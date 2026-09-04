@@ -59,6 +59,7 @@ function resolveKind(archivo: HistorialArchivoItem): HistorialArchivoKind {
 export function HistorialArchivoPreview({ archivo, className, canDelete = false }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
     const url = archivo.resultado_archivo_url;
@@ -92,6 +93,13 @@ export function HistorialArchivoPreview({ archivo, className, canDelete = false 
                     target="_blank"
                     rel="noopener noreferrer"
                     title={archivo.nombre_examen}
+                    onClick={(e) => {
+                        if (kind !== 'pdf') {
+                            return;
+                        }
+                        e.preventDefault();
+                        setPreviewOpen(true);
+                    }}
                     className={cn(
                         'inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-border/70 bg-background px-1.5 py-1',
                         'text-left shadow-sm transition hover:border-primary/40 hover:bg-muted/40',
@@ -146,6 +154,27 @@ export function HistorialArchivoPreview({ archivo, className, canDelete = false 
                     </Button>
                 ) : null}
             </div>
+
+            <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col gap-3 sm:max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>{archivo.nombre_examen}</DialogTitle>
+                        <DialogDescription>Vista del documento. Puedes descargarlo si lo necesitas.</DialogDescription>
+                    </DialogHeader>
+                    <iframe
+                        title={archivo.nombre_examen}
+                        src={url}
+                        className="h-[min(72vh,680px)] w-full rounded-md border border-border bg-white"
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" asChild>
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                                Abrir / descargar
+                            </a>
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                 <DialogContent className="max-w-sm">

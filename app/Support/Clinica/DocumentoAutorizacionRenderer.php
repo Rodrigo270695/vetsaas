@@ -9,6 +9,7 @@ use App\Models\Consulta;
 use App\Models\DocumentoAutorizacionPlantilla;
 use App\Models\Paciente;
 use App\Models\Propietario;
+use App\Support\Geo\MojibakeFixer;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
@@ -104,6 +105,7 @@ final class DocumentoAutorizacionRenderer
 
     public static function prepareCuerpoHtml(string $cuerpo, ?string $logoSrc = null): string
     {
+        $cuerpo = self::repairUtf8($cuerpo);
         $cuerpo = str_replace('{{logo}}', '<img class="auth-doc-logo" alt="">', $cuerpo);
 
         return self::applyLogoSrc(self::toSafeHtml($cuerpo), $logoSrc ?? self::clinicLogoDataUri());
@@ -116,6 +118,7 @@ final class DocumentoAutorizacionRenderer
 
     public static function toSafeHtml(string $cuerpo): string
     {
+        $cuerpo = self::repairUtf8($cuerpo);
         if (! self::looksLikeHtml($cuerpo)) {
             return nl2br(e($cuerpo), false);
         }
@@ -125,35 +128,20 @@ final class DocumentoAutorizacionRenderer
 
     public static function sanitizeHtml(string $html): string
     {
-        $html = trim($html);
+        $html = trim(self::repairUtf8($html));
         if ($html === '') {
             return '';
         }
 
         $stripped = strip_tags($html, '<p><br><strong><b><em><i><u><ol><ul><li><h2><h3><div><span><img>');
-
-        $dom = new DOMDocument;
-        $dom->encoding = 'UTF-8';
-        libxml_use_internal_errors(true);
-        $dom->loadHTML(
-            '<!DOCTYPE html><html><body><div id="__auth_root">'.$stripped.'</div></body></html>',
-            LIBXML_HTML_NODEFDTD | LIBXML_NOERROR,
-        );
-        libxml_clear_errors();
-
-        $root = $dom->getElementById('__auth_root');
+        $root = self::loadRoot($stripped);
         if ($root === null) {
             return e(strip_tags($html));
         }
 
-        self::sanitizeElement($root);
+        self::sanitizeElement($root['element']);
 
-        $out = '';
-        foreach ($root->childNodes as $child) {
-            $out .= $dom->saveHTML($child);
-        }
-
-        return $out;
+        return self::saveRoot($root['dom'], $root['element']);
     }
 
     private static function sanitizeElement(DOMElement $el): void
@@ -248,21 +236,13 @@ final class DocumentoAutorizacionRenderer
             return $html;
         }
 
-        $dom = new DOMDocument;
-        $dom->encoding = 'UTF-8';
-        libxml_use_internal_errors(true);
-        $dom->loadHTML(
-            '<!DOCTYPE html><html><body><div id="__auth_root">'.$html.'</div></body></html>',
-            LIBXML_HTML_NODEFDTD | LIBXML_NOERROR,
-        );
-        libxml_clear_errors();
-        $root = $dom->getElementById('__auth_root');
-        if ($root === null) {
+        $parsed = self::loadRoot($html);
+        if ($parsed === null) {
             return $html;
         }
 
         $imgs = [];
-        foreach ($root->getElementsByTagName('img') as $img) {
+        foreach ($parsed['element']->getElementsByTagName('img') as $img) {
             $imgs[] = $img;
         }
         $src = is_string($src) && $src !== '' ? $src : null;
@@ -282,12 +262,7 @@ final class DocumentoAutorizacionRenderer
             $img->setAttribute('alt', '');
         }
 
-        $out = '';
-        foreach ($root->childNodes as $child) {
-            $out .= $dom->saveHTML($child);
-        }
-
-        return $out;
+        return self::saveRoot($parsed['dom'], $parsed['element']);
     }
 
     public static function clinicLogoDataUri(): ?string
@@ -338,5 +313,51 @@ final class DocumentoAutorizacionRenderer
         }
 
         return $parts !== [] ? implode(' y ', $parts) : '—';
+    }
+
+    /**
+     * @return array{dom: DOMDocument, element: DOMElement}|null
+     */
+    private static function loadRoot(string $html): ?array
+    {
+        $encoded = mb_encode_numericentity($html, [0x80, 0x10FFFF, 0, 0x1FFFFF], 'UTF-8');
+        $dom = new DOMDocument;
+        $dom->encoding = 'UTF-8';
+        libxml_use_internal_errors(true);
+        $dom->loadHTML(
+            '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><div id="__auth_root">'.$encoded.'</div></body></html>',
+            LIBXML_HTML_NODEFDTD | LIBXML_NOERROR,
+        );
+        libxml_clear_errors();
+        $root = $dom->getElementById('__auth_root');
+        if (! $root instanceof DOMElement) {
+            return null;
+        }
+
+        return ['dom' => $dom, 'element' => $root];
+    }
+
+    private static function saveRoot(DOMDocument $dom, DOMElement $root): string
+    {
+        $out = '';
+        foreach ($root->childNodes as $child) {
+            $out .= $dom->saveHTML($child);
+        }
+
+        return mb_decode_numericentity($out, [0x80, 0x10FFFF, 0, 0x1FFFFF], 'UTF-8');
+    }
+
+    public static function repairUtf8(string $value): string
+    {
+        $current = $value;
+        for ($i = 0; $i < 5; $i++) {
+            $next = MojibakeFixer::repair($current);
+            if (! is_string($next) || $next === $current) {
+                break;
+            }
+            $current = $next;
+        }
+
+        return $current;
     }
 }

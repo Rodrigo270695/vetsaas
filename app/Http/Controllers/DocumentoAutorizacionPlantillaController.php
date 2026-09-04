@@ -19,22 +19,28 @@ final class DocumentoAutorizacionPlantillaController extends Controller
     {
         abort_unless(request()->user()?->can('config-general.view') ?? false, 403);
 
+        $logoUrl = ClinicSetting::current()->logo_url;
         $items = DocumentoAutorizacionPlantilla::query()
             ->orderBy('nombre')
             ->get()
-            ->map(fn (DocumentoAutorizacionPlantilla $row) => [
-                'id' => $row->id,
-                'nombre' => $row->nombre,
-                'descripcion' => $row->descripcion,
-                'cuerpo' => $row->cuerpo,
-                'activo' => $row->activo,
-                'updated_at' => $row->updated_at?->toIso8601String(),
-            ]);
+            ->map(function (DocumentoAutorizacionPlantilla $row) use ($logoUrl): array {
+                $cuerpo = DocumentoAutorizacionRenderer::sanitizeHtml($row->cuerpo);
+
+                return [
+                    'id' => $row->id,
+                    'nombre' => $row->nombre,
+                    'descripcion' => $row->descripcion,
+                    'cuerpo' => $cuerpo,
+                    'cuerpo_preview' => DocumentoAutorizacionRenderer::prepareCuerpoHtml($cuerpo, $logoUrl),
+                    'activo' => $row->activo,
+                    'updated_at' => $row->updated_at?->toIso8601String(),
+                ];
+            });
 
         return Inertia::render('configuracion/documentos-autorizacion/index', [
             'plantillas' => $items,
             'cuerpo_default' => DocumentoAutorizacionRenderer::defaultCuerpo(),
-            'clinic_logo_url' => ClinicSetting::current()->logo_url,
+            'clinic_logo_url' => $logoUrl,
         ]);
     }
 

@@ -5,8 +5,8 @@ import type { ReactNode } from 'react';
  */
 export default function PublicDocumentLayout({ children }: { children: ReactNode }) {
     return (
-        <div className="min-h-dvh bg-linear-to-b from-sky-50/80 via-background to-background text-foreground dark:from-sky-950/30">
-            <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-4 sm:py-6">{children}</div>
+        <div className="min-h-dvh bg-[#ebe6dc] text-foreground dark:bg-[#2a2723]">
+            <div className="mx-auto w-full max-w-2xl px-3 py-6 sm:px-4 sm:py-10">{children}</div>
         </div>
     );
 }

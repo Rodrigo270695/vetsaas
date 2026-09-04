@@ -12,8 +12,6 @@ use App\Services\Clinica\DocumentoAutorizacionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class DocumentoAutorizacionEnvioController extends Controller
 {
@@ -78,27 +76,12 @@ final class DocumentoAutorizacionEnvioController extends Controller
         Request $request,
         DocumentoAutorizacionEnvio $envio,
         DocumentoAutorizacionService $service,
-    ): StreamedResponse|Response {
+    ): Response {
         abort_unless($request->user()?->can('historias-clinicas.view') ?? false, 403);
         abort_unless($envio->estado === DocumentoAutorizacionEnvio::ESTADO_FIRMADO, 404);
 
         $filename = preg_replace('/[^\w\-]+/u', '-', $envio->titulo) ?: 'documento';
         $filename .= '.pdf';
-
-        if ($envio->diskPathExists()) {
-            $path = (string) $envio->pdf_path;
-
-            return response()->streamDownload(function () use ($path): void {
-                $stream = Storage::disk('public')->readStream($path);
-                if (is_resource($stream)) {
-                    fpassthru($stream);
-                    fclose($stream);
-                }
-            }, $filename, [
-                'Content-Type' => 'application/pdf',
-            ]);
-        }
-
         $binary = $service->renderPdf($envio);
 
         return response($binary, 200, [

@@ -6,13 +6,11 @@ import { Can } from '@/components/can';
 import { EmptyState, PageHeader } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { usePermission } from '@/hooks/use-permission';
 import {
     DocumentoAutorizacionPlantillaFormModal,
     type PlantillaAutorizacion,
 } from './components/plantilla-form-modal';
-import { htmlToPlain } from './components/plantilla-cuerpo-editor';
 
 type Props = {
     plantillas: readonly PlantillaAutorizacion[];
@@ -28,11 +26,7 @@ export default function Index({ plantillas, cuerpo_default, clinic_logo_url = nu
     const destroyForm = useForm({});
 
     const newButton = canUpdate ? (
-        <Button
-            type="button"
-            className="cursor-pointer gap-2"
-            onClick={() => setEditing('new')}
-        >
+        <Button type="button" className="cursor-pointer gap-2 shadow-sm" onClick={() => setEditing('new')}>
             <Plus className="size-4" />
             {t('new')}
         </Button>
@@ -41,12 +35,8 @@ export default function Index({ plantillas, cuerpo_default, clinic_logo_url = nu
     return (
         <>
             <Head title={t('title')} />
-            <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-                <PageHeader
-                    title={t('title')}
-                    description={t('description')}
-                    action={newButton}
-                />
+            <div className="flex flex-1 flex-col gap-6 bg-linear-to-b from-primary/6 via-transparent to-transparent p-4 md:p-6">
+                <PageHeader title={t('title')} description={t('description')} action={newButton} />
 
                 {plantillas.length === 0 ? (
                     <EmptyState
@@ -56,29 +46,33 @@ export default function Index({ plantillas, cuerpo_default, clinic_logo_url = nu
                         action={newButton}
                     />
                 ) : (
-                    <div className="grid gap-3">
+                    <div className="grid gap-5 lg:grid-cols-2">
                         {plantillas.map((row) => (
-                            <Card key={row.id}>
-                                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
-                                    <div className="min-w-0 space-y-1">
+                            <article
+                                key={row.id}
+                                className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm ring-1 ring-black/4"
+                            >
+                                <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-primary/8 px-4 py-3">
+                                    <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <p className="font-medium">{row.nombre}</p>
+                                            <h2 className="truncate font-semibold">{row.nombre}</h2>
                                             {row.activo ? (
-                                                <Badge variant="secondary">{t('activo')}</Badge>
+                                                <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
+                                                    {t('activo')}
+                                                </Badge>
                                             ) : null}
                                         </div>
                                         {row.descripcion ? (
-                                            <p className="text-sm text-muted-foreground">{row.descripcion}</p>
+                                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                                {row.descripcion}
+                                            </p>
                                         ) : null}
-                                        <p className="line-clamp-3 text-sm text-muted-foreground">
-                                            {htmlToPlain(row.cuerpo)}
-                                        </p>
                                     </div>
                                     <Can permission="config-general.update">
-                                        <div className="flex shrink-0 gap-2">
+                                        <div className="flex shrink-0 gap-1.5">
                                             <Button
                                                 type="button"
-                                                variant="outline"
+                                                variant="secondary"
                                                 size="sm"
                                                 className="cursor-pointer gap-1"
                                                 onClick={() => setEditing(row)}
@@ -91,7 +85,11 @@ export default function Index({ plantillas, cuerpo_default, clinic_logo_url = nu
                                                 size="sm"
                                                 className="cursor-pointer gap-1 text-destructive"
                                                 onClick={() => {
-                                                    if (!window.confirm(t('delete_description', { nombre: row.nombre }))) {
+                                                    if (
+                                                        !window.confirm(
+                                                            t('delete_description', { nombre: row.nombre }),
+                                                        )
+                                                    ) {
                                                         return;
                                                     }
                                                     destroyForm.delete(
@@ -104,8 +102,18 @@ export default function Index({ plantillas, cuerpo_default, clinic_logo_url = nu
                                             </Button>
                                         </div>
                                     </Can>
-                                </CardContent>
-                            </Card>
+                                </div>
+                                <div className="bg-[#efe9dc] p-3 sm:p-4">
+                                    <div className="auth-doc-body max-h-56 overflow-hidden rounded-sm bg-white px-4 py-5 text-[13px] leading-relaxed text-stone-800 shadow-md ring-1 ring-black/8">
+                                        <div
+                                            className="line-clamp-8"
+                                            dangerouslySetInnerHTML={{
+                                                __html: row.cuerpo_preview ?? row.cuerpo,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </article>
                         ))}
                     </div>
                 )}

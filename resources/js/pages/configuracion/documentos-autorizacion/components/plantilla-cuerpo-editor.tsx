@@ -108,8 +108,8 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
     };
 
     return (
-        <div className="overflow-hidden rounded-lg border border-input bg-background">
-            <div className="flex flex-wrap gap-1 border-b border-border bg-muted/40 p-1.5">
+        <div className="overflow-hidden rounded-lg border border-primary/20 bg-background shadow-sm">
+            <div className="flex flex-wrap gap-1 border-b border-primary/15 bg-primary/8 p-1.5">
                 <ToolbarBtn icon={Bold} label="Negrita" onClick={() => format('bold')} disabled={disabled} />
                 <ToolbarBtn icon={Italic} label="Cursiva" onClick={() => format('italic')} disabled={disabled} />
                 <ToolbarBtn
@@ -150,7 +150,7 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
                 />
             </div>
 
-            <div className="space-y-2 border-b border-border px-2 py-2">
+            <div className="space-y-2 border-b border-primary/10 bg-sky-50/80 px-2 py-2 dark:bg-sky-950/20">
                 {VAR_GROUPS.map((group) => (
                     <div key={group.label} className="flex flex-wrap items-center gap-1.5">
                         <span className="w-16 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -179,7 +179,7 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
                 contentEditable={!disabled}
                 suppressContentEditableWarning
                 className={cn(
-                    'auth-doc-editor min-h-[220px] max-h-[min(48vh,420px)] overflow-y-auto px-3 py-2 text-sm leading-relaxed outline-none',
+                    'auth-doc-editor min-h-[220px] max-h-[min(48vh,420px)] overflow-y-auto bg-[#fffcf6] px-4 py-3 text-sm leading-relaxed text-stone-800 outline-none',
                     disabled && 'pointer-events-none opacity-70',
                 )}
                 onInput={() => {

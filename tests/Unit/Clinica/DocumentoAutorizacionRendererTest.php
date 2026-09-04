@@ -45,6 +45,14 @@ it('conserva el marcador de logo y quita src arbitrario', function (): void {
         ->and($html)->not->toContain('src=');
 });
 
+it('conserva tildes en español', function (): void {
+    $html = DocumentoAutorizacionRenderer::sanitizeHtml('<p>autorización clínica años</p>');
+
+    expect($html)->toContain('autorización')
+        ->and($html)->toContain('clínica')
+        ->and($html)->toContain('años');
+});
+
 it('inyecta el src del logo de la clínica', function (): void {
     $html = DocumentoAutorizacionRenderer::applyLogoSrc(
         '<p><img class="auth-doc-logo" alt=""></p>',

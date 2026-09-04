@@ -1,57 +1,74 @@
 @php
     /** @var \App\Models\DocumentoAutorizacionEnvio $envio */
-    $docTitle = $envio->titulo;
-    $docSubtitle = 'Documento firmado';
+    $cuerpoTieneLogo = str_contains((string) $cuerpoHtml, 'auth-doc-logo');
 @endphp
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>{{ $docTitle }}</title>
+    <title>{{ $envio->titulo }}</title>
     @include('pdf.partials.clinic-styles')
     <style>
-        .auth-cuerpo { font-size: 10px; line-height: 1.45; color: #1f2937; }
-        .auth-cuerpo p { margin: 0 0 6px; }
-        .auth-cuerpo h2, .auth-cuerpo h3 { margin: 0 0 8px; font-size: 12px; }
-        .auth-cuerpo ol, .auth-cuerpo ul { margin: 6px 0 8px 18px; padding: 0; }
+        body { padding: 28px 32px 48px; }
+        .letterhead {
+            text-align: center;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1.5px solid {{ $colorPrimario }};
+        }
+        .letterhead .clinic { margin: 0; font-size: 13px; font-weight: bold; color: {{ $colorPrimario }}; }
+        .letterhead .meta { margin: 2px 0 0; font-size: 8px; color: #6b7280; }
+        .auth-cuerpo { font-size: 10.5px; line-height: 1.55; color: #111827; }
+        .auth-cuerpo p { margin: 0 0 8px; }
+        .auth-cuerpo h2, .auth-cuerpo h3 { margin: 0 0 10px; font-size: 13px; text-align: center; }
+        .auth-cuerpo ol, .auth-cuerpo ul { margin: 8px 0 12px 18px; padding: 0; }
+        .auth-cuerpo li { margin: 0 0 5px; }
         .auth-cuerpo img.auth-doc-logo {
             display: block;
-            margin: 0 auto 8px;
-            height: 56px;
+            margin: 0 auto 10px;
+            height: 58px;
             width: auto;
-            max-width: 140px;
+            max-width: 150px;
         }
+        .firma-box {
+            margin-top: 28px;
+            padding-top: 12px;
+            border-top: 1px solid #d1d5db;
+        }
+        .firma-label { margin: 0 0 6px; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280; }
+        .firma-line { margin-top: 4px; font-size: 10px; }
+        .firma-date { margin: 3px 0 0; font-size: 8px; color: #6b7280; }
     </style>
 </head>
 <body>
-    @php
-        $cuerpoTieneLogo = str_contains((string) $cuerpoHtml, 'auth-doc-logo');
-        if ($cuerpoTieneLogo) {
-            $logoDataUri = null;
-        }
-    @endphp
-    @include('pdf.partials.clinic-header')
-    @include('pdf.partials.patient-owner-cards')
+    <div class="letterhead">
+        @if (! $cuerpoTieneLogo && ! empty($logoDataUri))
+            <img src="{{ $logoDataUri }}" alt="" style="height: 44px; margin-bottom: 6px;">
+        @endif
+        <p class="clinic">{{ $clinicNombre }}</p>
+        @if (! empty($clinicEmail) || ! empty($clinicTelefono))
+            <p class="meta">
+                {{ implode(' · ', array_filter([$clinicTelefono ?? null, $clinicEmail ?? null])) }}
+            </p>
+        @endif
+    </div>
 
-    <h2 style="margin: 0 0 8px; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.03em; color: {{ $colorPrimario }};">
-        {{ $docTitle }}
-    </h2>
     <div class="auth-cuerpo">
         {!! $cuerpoHtml !!}
     </div>
 
-    <div style="margin-top: 22px; padding-top: 10px; border-top: 1px solid #e5e7eb;">
-        <p style="margin: 0 0 4px; font-size: 9px; text-transform: uppercase; color: #6b7280;">Firma del titular</p>
+    <div class="firma-box">
+        <p class="firma-label">Firma del titular</p>
         @if (! empty($firmaDataUri))
-            <img src="{{ $firmaDataUri }}" alt="Firma" style="height: 48px;">
+            <img src="{{ $firmaDataUri }}" alt="Firma" style="height: 52px;">
         @endif
-        <p style="margin: 8px 0 0; font-size: 10px;">
+        <p class="firma-line">
             {{ $envio->firmante_nombre }}
             @if ($envio->firmante_documento)
                 · {{ $envio->firmante_documento }}
             @endif
         </p>
-        <p style="margin: 2px 0 0; font-size: 8px; color: #6b7280;">
+        <p class="firma-date">
             Firmado el {{ optional($envio->firmado_at)->timezone(config('app.timezone'))->format('d/m/Y H:i') }}
         </p>
     </div>

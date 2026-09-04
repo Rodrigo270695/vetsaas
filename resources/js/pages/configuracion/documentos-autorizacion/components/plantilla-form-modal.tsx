@@ -13,6 +13,7 @@ export type PlantillaAutorizacion = {
     nombre: string;
     descripcion: string | null;
     cuerpo: string;
+    cuerpo_preview?: string;
     activo: boolean;
 };
 

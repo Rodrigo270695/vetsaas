@@ -1,4 +1,5 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import { CheckCircle2, PenLine } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,6 +26,7 @@ export default function PublicDocumentoAutorizacion({
     cuerpo,
     estado,
     expirado,
+    firmado_at,
     clinic,
     paciente_nombre,
     firmante_nombre_sugerido,
@@ -33,6 +35,7 @@ export default function PublicDocumentoAutorizacion({
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const drawing = useRef(false);
+    const flash = usePage().props.flash as { success?: string } | undefined;
     const form = useForm({
         firmante_nombre: firmante_nombre_sugerido ?? '',
         firmante_documento: firmante_documento_sugerido ?? '',
@@ -109,82 +112,117 @@ export default function PublicDocumentoAutorizacion({
 
     const cuerpoTieneLogo = cuerpo.includes('auth-doc-logo');
     const canSign = estado === 'pendiente' && !expirado;
+    const firmado = estado === 'firmado' || Boolean(flash?.success);
 
     return (
         <>
             <Head title={titulo} />
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
-                <div className="mb-4 flex items-center gap-3">
-                    {clinic.logo_url && !cuerpoTieneLogo ? (
-                        <img src={clinic.logo_url} alt="" className="h-10 w-auto max-w-24 object-contain" />
-                    ) : null}
-                    <div>
-                        <p className="text-sm text-muted-foreground">{clinic.nombre}</p>
-                        <h1 className="text-lg font-semibold tracking-tight">{titulo}</h1>
-                    </div>
+            {firmado ? (
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                    <CheckCircle2 className="size-4 shrink-0" />
+                    Documento firmado. Gracias.
                 </div>
-                {paciente_nombre ? (
-                    <p className="mb-3 text-sm text-muted-foreground">Paciente: {paciente_nombre}</p>
-                ) : null}
-                <div
-                    className="auth-doc-body max-h-[50vh] overflow-y-auto rounded-xl bg-muted/40 p-4 text-sm leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: cuerpo }}
-                />
+            ) : null}
 
-                {!canSign ? (
-                    <p className="mt-4 text-sm font-medium">
-                        {estado === 'firmado'
-                            ? 'Este documento ya fue firmado. Gracias.'
-                            : 'Este enlace expiró o ya no está disponible.'}
-                    </p>
-                ) : (
-                    <form
-                        className="mt-5 space-y-3"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            form.post(submit_url, { preserveScroll: true });
-                        }}
-                    >
-                        <div className="space-y-1.5">
-                            <Label htmlFor="fn">Nombre de quien firma</Label>
-                            <Input
-                                id="fn"
-                                value={form.data.firmante_nombre}
-                                onChange={(e) => form.setData('firmante_nombre', e.target.value)}
-                                required
+            <article className="overflow-hidden rounded-sm bg-white text-[#111827] shadow-[0_18px_50px_-20px_rgba(15,23,42,0.45)] ring-1 ring-black/10">
+                <div className="h-1.5 bg-primary" />
+                <div className="px-5 py-6 sm:px-9 sm:py-8">
+                    <header className="mb-6 border-b border-stone-200 pb-4 text-center">
+                        {clinic.logo_url && !cuerpoTieneLogo ? (
+                            <img
+                                src={clinic.logo_url}
+                                alt=""
+                                className="mx-auto mb-3 h-12 w-auto max-w-36 object-contain"
                             />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label htmlFor="fd">Documento (opcional)</Label>
-                            <Input
-                                id="fd"
-                                value={form.data.firmante_documento}
-                                onChange={(e) => form.setData('firmante_documento', e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label>Firma (dedo o mouse)</Label>
-                            <canvas
-                                ref={canvasRef}
-                                className="h-[140px] w-full touch-none rounded-xl border border-border bg-white"
-                            />
-                            <Button type="button" variant="ghost" size="sm" onClick={clearFirma}>
-                                Borrar firma
+                        ) : null}
+                        <p className="text-[11px] font-semibold tracking-[0.18em] text-primary uppercase">
+                            {clinic.nombre}
+                        </p>
+                        {paciente_nombre ? (
+                            <p className="mt-1 text-xs text-stone-500">Paciente: {paciente_nombre}</p>
+                        ) : null}
+                    </header>
+
+                    <div
+                        className="auth-doc-body text-[15px] leading-relaxed text-stone-800"
+                        dangerouslySetInnerHTML={{ __html: cuerpo }}
+                    />
+
+                    {!canSign ? (
+                        expirado && !firmado ? (
+                            <p className="mt-8 text-center text-sm font-medium text-amber-800">
+                                Este enlace expiró o ya no está disponible.
+                            </p>
+                        ) : firmado_at ? (
+                            <p className="mt-8 text-center text-xs text-stone-500">
+                                Firmado el {new Date(firmado_at).toLocaleString('es-PE')}
+                            </p>
+                        ) : null
+                    ) : (
+                        <form
+                            className="mt-8 space-y-4 border-t border-stone-200 pt-5"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                form.post(submit_url, { preserveScroll: true });
+                            }}
+                        >
+                            <p className="flex items-center gap-2 text-xs font-semibold tracking-wide text-stone-500 uppercase">
+                                <PenLine className="size-3.5" />
+                                Firma del titular
+                            </p>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="fn" className="text-stone-700">
+                                        Nombre de quien firma
+                                    </Label>
+                                    <Input
+                                        id="fn"
+                                        value={form.data.firmante_nombre}
+                                        onChange={(e) => form.setData('firmante_nombre', e.target.value)}
+                                        required
+                                        className="bg-white text-stone-900"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="fd" className="text-stone-700">
+                                        Documento (opcional)
+                                    </Label>
+                                    <Input
+                                        id="fd"
+                                        value={form.data.firmante_documento}
+                                        onChange={(e) => form.setData('firmante_documento', e.target.value)}
+                                        className="bg-white text-stone-900"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-stone-700">Firma (dedo o mouse)</Label>
+                                <canvas
+                                    ref={canvasRef}
+                                    className="h-[140px] w-full touch-none rounded-md border border-stone-300 bg-white"
+                                />
+                                <Button type="button" variant="ghost" size="sm" onClick={clearFirma}>
+                                    Borrar firma
+                                </Button>
+                            </div>
+                            <label className="flex items-start gap-2 text-sm text-stone-700">
+                                <Checkbox
+                                    checked={form.data.acepto}
+                                    onCheckedChange={(c) => form.setData('acepto', c === true)}
+                                />
+                                He leído este documento y firmo de forma voluntaria.
+                            </label>
+                            <Button
+                                type="submit"
+                                disabled={form.processing || !form.data.firma || !form.data.acepto}
+                                className="w-full sm:w-auto"
+                            >
+                                Firmar documento
                             </Button>
-                        </div>
-                        <label className="flex items-start gap-2 text-sm">
-                            <Checkbox
-                                checked={form.data.acepto}
-                                onCheckedChange={(c) => form.setData('acepto', c === true)}
-                            />
-                            He leído este documento y firmo de forma voluntaria.
-                        </label>
-                        <Button type="submit" disabled={form.processing || !form.data.firma || !form.data.acepto}>
-                            Firmar documento
-                        </Button>
-                    </form>
-                )}
-            </div>
+                        </form>
+                    )}
+                </div>
+            </article>
         </>
     );
 }
