@@ -25,6 +25,17 @@ export default function Index({ plantillas, cuerpo_default }: Props) {
     const [editing, setEditing] = useState<PlantillaAutorizacion | null | 'new'>(null);
     const destroyForm = useForm({});
 
+    const newButton = canUpdate ? (
+        <Button
+            type="button"
+            className="cursor-pointer gap-2"
+            onClick={() => setEditing('new')}
+        >
+            <Plus className="size-4" />
+            {t('new')}
+        </Button>
+    ) : null;
+
     return (
         <>
             <Head title={t('title')} />
@@ -32,22 +43,16 @@ export default function Index({ plantillas, cuerpo_default }: Props) {
                 <PageHeader
                     title={t('title')}
                     description={t('description')}
-                    actions={
-                        canUpdate ? (
-                            <Button
-                                type="button"
-                                className="cursor-pointer gap-2"
-                                onClick={() => setEditing('new')}
-                            >
-                                <Plus className="size-4" />
-                                {t('new')}
-                            </Button>
-                        ) : null
-                    }
+                    action={newButton}
                 />
 
                 {plantillas.length === 0 ? (
-                    <EmptyState icon={FilePenLine} title={t('empty')} />
+                    <EmptyState
+                        icon={FilePenLine}
+                        title={t('empty')}
+                        description={t('empty_hint')}
+                        action={newButton}
+                    />
                 ) : (
                     <div className="grid gap-3">
                         {plantillas.map((row) => (
