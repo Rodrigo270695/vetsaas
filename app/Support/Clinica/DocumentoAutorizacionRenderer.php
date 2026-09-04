@@ -154,13 +154,13 @@ final class DocumentoAutorizacionRenderer
             'div' => ['style', 'align'],
             'span' => ['style'],
             'br' => [],
-            'strong' => [],
-            'b' => [],
-            'em' => [],
-            'i' => [],
-            'u' => [],
-            'ol' => [],
-            'ul' => [],
+            'strong' => ['style'],
+            'b' => ['style'],
+            'em' => ['style'],
+            'i' => ['style'],
+            'u' => ['style'],
+            'ol' => ['style'],
+            'ul' => ['style'],
             'li' => ['style'],
             'h2' => ['style', 'align'],
             'h3' => ['style', 'align'],
@@ -314,23 +314,84 @@ final class DocumentoAutorizacionRenderer
         return 'data:'.$mime.';base64,'.base64_encode((string) $binary);
     }
 
+    /**
+     * DomPDF solo embebe DejaVu; Arial/Times se ven en pantalla y se aplanan en el PDF.
+     */
+    public static function mapFontsForPdf(string $html): string
+    {
+        $html = str_replace(
+            [
+                'Arial, Helvetica, sans-serif',
+                '"Times New Roman", Times, serif',
+                'Georgia, serif',
+                '"Courier New", Courier, monospace',
+            ],
+            [
+                'dejavu sans',
+                'dejavu serif',
+                'dejavu serif',
+                'dejavu sans mono',
+            ],
+            $html,
+        );
+
+        return (string) preg_replace_callback(
+            '/(font-(?:size|family))\s*:\s*([^;]+);/i',
+            static function (array $m): string {
+                $value = rtrim(trim($m[2]));
+                if (str_contains(strtolower($value), '!important')) {
+                    return $m[1].': '.$value.';';
+                }
+
+                return $m[1].': '.$value.' !important;';
+            },
+            $html,
+        );
+    }
+
     private static function sanitizeStyle(string $style): ?string
     {
         $parts = [];
-        if (preg_match('/text-align\s*:\s*(left|center|right|justify)\s*;?/i', $style, $m)) {
-            $parts[] = 'text-align: '.strtolower($m[1]);
-        }
-        if (preg_match('/font-family\s*:\s*([^;]+)/i', $style, $m)) {
-            $family = self::safeFontFamily($m[1]);
-            if ($family !== null) {
-                $parts[] = 'font-family: '.$family;
+        foreach (explode(';', $style) as $decl) {
+            $decl = trim($decl);
+            if ($decl === '' || ! str_contains($decl, ':')) {
+                continue;
             }
-        }
-        if (preg_match('/font-size\s*:\s*(\d{1,2}(?:\.\d+)?)(px|pt)\b/i', $style, $m)) {
-            $n = (float) $m[1];
-            if ($n >= 8 && $n <= 48) {
-                $unit = strtolower($m[2]);
-                $parts[] = 'font-size: '.$n.$unit;
+            [$prop, $value] = array_map(trim(...), explode(':', $decl, 2));
+            $prop = strtolower($prop);
+            $value = trim($value);
+            $unsafe = strtolower($value);
+            if ($value === '' || str_contains($unsafe, 'url(') || str_contains($unsafe, 'expression')) {
+                continue;
+            }
+
+            if ($prop === 'font') {
+                foreach (self::sanitizeFontShorthand($value) as $piece) {
+                    $parts[$piece['prop']] = $piece['css'];
+                }
+
+                continue;
+            }
+
+            $css = match ($prop) {
+                'text-align' => in_array(strtolower($value), ['left', 'center', 'right', 'justify'], true)
+                    ? 'text-align: '.strtolower($value)
+                    : null,
+                'font-family' => ($family = self::safeFontFamily($value)) !== null
+                    ? 'font-family: '.$family
+                    : null,
+                'font-size' => ($size = self::safeFontSize($value)) !== null
+                    ? 'font-size: '.$size
+                    : null,
+                'font-weight' => self::safeFontWeight($value),
+                'font-style' => in_array(strtolower($value), ['normal', 'italic', 'oblique'], true)
+                    ? 'font-style: '.strtolower($value)
+                    : null,
+                'text-decoration' => self::safeTextDecoration($value),
+                default => null,
+            };
+            if ($css !== null) {
+                $parts[$prop] = $css;
             }
         }
 
@@ -338,24 +399,119 @@ final class DocumentoAutorizacionRenderer
             return null;
         }
 
-        return implode('; ', $parts).';';
+        return implode('; ', array_values($parts)).';';
+    }
+
+    /**
+     * @return list<array{prop: string, css: string}>
+     */
+    private static function sanitizeFontShorthand(string $value): array
+    {
+        $out = [];
+        if (preg_match('/\b(italic|oblique)\b/i', $value)) {
+            $out[] = ['prop' => 'font-style', 'css' => 'font-style: italic'];
+        }
+        if (preg_match('/\b([1-9]00)\b/', $value, $wm)) {
+            $weight = self::safeFontWeight($wm[1]);
+            if ($weight !== null) {
+                $out[] = ['prop' => 'font-weight', 'css' => $weight];
+            }
+        } elseif (preg_match('/\b(bold|bolder)\b/i', $value)) {
+            $out[] = ['prop' => 'font-weight', 'css' => 'font-weight: bold'];
+        }
+        if (preg_match('/(\d{1,2}(?:\.\d+)?(?:px|pt)|(?:xx-small|x-small|small|medium|large|x-large|xx-large|xxx-large))\b/i', $value, $m)) {
+            $size = self::safeFontSize($m[1]);
+            if ($size !== null) {
+                $out[] = ['prop' => 'font-size', 'css' => 'font-size: '.$size];
+            }
+        }
+        if (preg_match('/(?:px|pt|large|small|medium)\s+(.+)$/i', $value, $m)) {
+            $family = self::safeFontFamily($m[1]);
+            if ($family !== null) {
+                $out[] = ['prop' => 'font-family', 'css' => 'font-family: '.$family];
+            }
+        }
+
+        return $out;
+    }
+
+    private static function safeFontSize(string $raw): ?string
+    {
+        $raw = strtolower(trim($raw));
+        $keywords = [
+            'xx-small' => '10px',
+            'x-small' => '12px',
+            'small' => '13px',
+            'medium' => '16px',
+            'large' => '18px',
+            'x-large' => '24px',
+            'xx-large' => '32px',
+            'xxx-large' => '48px',
+            '-webkit-xxx-large' => '48px',
+        ];
+        if (isset($keywords[$raw])) {
+            return $keywords[$raw];
+        }
+        if (preg_match('/^(\d{1,2}(?:\.\d+)?)(px|pt)$/', $raw, $m)) {
+            $n = (float) $m[1];
+            if ($n >= 8 && $n <= 48) {
+                return $n.$m[2];
+            }
+        }
+        if (preg_match('/^(\d(?:\.\d+)?)(em|rem)$/', $raw, $m)) {
+            $n = (float) $m[1];
+            if ($n >= 0.6 && $n <= 3.5) {
+                return $n.$m[2];
+            }
+        }
+
+        return null;
+    }
+
+    private static function safeFontWeight(string $raw): ?string
+    {
+        $raw = strtolower(trim($raw));
+        if (in_array($raw, ['normal', 'bold', 'bolder', 'lighter'], true)) {
+            return 'font-weight: '.$raw;
+        }
+        if (preg_match('/^[1-9]00$/', $raw)) {
+            return 'font-weight: '.$raw;
+        }
+
+        return null;
+    }
+
+    private static function safeTextDecoration(string $raw): ?string
+    {
+        $raw = strtolower($raw);
+        $allowed = [];
+        foreach (['underline', 'line-through', 'none'] as $token) {
+            if (str_contains($raw, $token)) {
+                $allowed[] = $token;
+            }
+        }
+        if ($allowed === []) {
+            return null;
+        }
+
+        return 'text-decoration: '.implode(' ', array_unique($allowed));
     }
 
     private static function safeFontFamily(string $raw): ?string
     {
         $raw = strtolower(trim($raw, " \t\"'"));
         $map = [
+            'dejavu sans' => 'DejaVu Sans, sans-serif',
+            'courier new' => '"Courier New", Courier, monospace',
+            'times new roman' => '"Times New Roman", Times, serif',
+            'georgia' => 'Georgia, serif',
             'arial' => 'Arial, Helvetica, sans-serif',
             'helvetica' => 'Arial, Helvetica, sans-serif',
-            'sans-serif' => 'Arial, Helvetica, sans-serif',
-            'times new roman' => '"Times New Roman", Times, serif',
-            'times' => '"Times New Roman", Times, serif',
-            'serif' => '"Times New Roman", Times, serif',
-            'georgia' => 'Georgia, serif',
-            'courier new' => '"Courier New", Courier, monospace',
             'courier' => '"Courier New", Courier, monospace',
+            'times' => '"Times New Roman", Times, serif',
             'monospace' => '"Courier New", Courier, monospace',
-            'dejavu sans' => 'DejaVu Sans, sans-serif',
+            'sans-serif' => 'Arial, Helvetica, sans-serif',
+            'serif' => '"Times New Roman", Times, serif',
         ];
         foreach ($map as $needle => $value) {
             if (str_contains($raw, $needle)) {
@@ -370,8 +526,8 @@ final class DocumentoAutorizacionRenderer
     {
         $map = [
             '1' => 10,
-            '2' => 13,
-            '3' => 16,
+            '2' => 12,
+            '3' => 14,
             '4' => 18,
             '5' => 24,
             '6' => 32,

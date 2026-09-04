@@ -144,7 +144,7 @@ export default function PublicDocumentoAutorizacion({
                     </header>
 
                     <div
-                        className="auth-doc-body text-[15px] leading-relaxed text-stone-800"
+                        className="auth-doc-body leading-relaxed text-stone-800"
                         dangerouslySetInnerHTML={{ __html: cuerpo }}
                     />
 

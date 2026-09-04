@@ -104,7 +104,7 @@ export default function Index({ plantillas, cuerpo_default, clinic_logo_url = nu
                                     </Can>
                                 </div>
                                 <div className="bg-[#efe9dc] p-3 sm:p-4">
-                                    <div className="auth-doc-body max-h-56 overflow-hidden rounded-sm bg-white px-4 py-5 text-[13px] leading-relaxed text-stone-800 shadow-md ring-1 ring-black/8">
+                                    <div className="auth-doc-body max-h-56 overflow-hidden rounded-sm bg-white px-4 py-5 leading-relaxed text-stone-800 shadow-md ring-1 ring-black/8">
                                         <div
                                             className="line-clamp-8"
                                             dangerouslySetInnerHTML={{

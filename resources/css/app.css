@@ -386,7 +386,17 @@
     display: none; /* Chromium / Safari */
 }
 
-/* Cuerpo de plantillas de autorización (editor, firma pública). */
+/* Cuerpo de plantillas de autorización. 14px/Arial es respaldo; el HTML de cada plantilla manda. */
+.auth-doc-editor,
+.auth-doc-body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+}
+.auth-doc-editor :where(p, li, span, div, h2, h3, strong, em, b, i, u),
+.auth-doc-body :where(p, li, span, div, h2, h3, strong, em, b, i, u) {
+    font-family: inherit;
+    font-size: inherit;
+}
 .auth-doc-editor p,
 .auth-doc-body p {
     margin: 0 0 0.65em;
@@ -396,7 +406,6 @@
 .auth-doc-editor h3,
 .auth-doc-body h3 {
     margin: 0 0 0.75em;
-    font-size: 1.05em;
     font-weight: 700;
 }
 .auth-doc-editor ol,

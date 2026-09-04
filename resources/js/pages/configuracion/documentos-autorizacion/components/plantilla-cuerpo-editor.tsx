@@ -23,11 +23,11 @@ const FONTS = [
 ] as const;
 
 const FONT_SIZES = [
-    { label: '12', value: '2' },
-    { label: '14', value: '3' },
-    { label: '18', value: '4' },
-    { label: '24', value: '5' },
-    { label: '32', value: '6' },
+    { label: '12', px: '12px' },
+    { label: '14', px: '14px' },
+    { label: '18', px: '18px' },
+    { label: '24', px: '24px' },
+    { label: '32', px: '32px' },
 ] as const;
 
 const VAR_GROUPS: readonly { label: string; items: readonly string[] }[] = [
@@ -143,18 +143,78 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
         onChange(el.innerHTML);
     };
 
-    const formatFromMenu = (cmd: string, arg: string) => {
-        const el = ref.current;
-        if (!el || disabled) {
-            return;
-        }
-        el.focus();
+    const restoreSelection = () => {
         const sel = window.getSelection();
         if (sel && savedRange.current) {
             sel.removeAllRanges();
             sel.addRange(savedRange.current);
         }
-        run(cmd, arg);
+    };
+
+    const applyFontFamily = (family: string) => {
+        const el = ref.current;
+        if (!el || disabled) {
+            return;
+        }
+        el.focus();
+        restoreSelection();
+        document.execCommand('styleWithCSS', false, 'false');
+        document.execCommand('fontName', false, family);
+        el.querySelectorAll('font[face]').forEach((font) => {
+            const span = document.createElement('span');
+            span.style.fontFamily = family;
+            const size = font.getAttribute('size');
+            const pxBySize: Record<string, string> = {
+                '1': '10px',
+                '2': '12px',
+                '3': '14px',
+                '4': '18px',
+                '5': '24px',
+                '6': '32px',
+                '7': '48px',
+            };
+            if (size && pxBySize[size]) {
+                span.style.fontSize = pxBySize[size];
+            }
+            while (font.firstChild) {
+                span.appendChild(font.firstChild);
+            }
+            font.replaceWith(span);
+        });
+        onChange(el.innerHTML);
+    };
+
+    const applyFontSize = (px: string) => {
+        const el = ref.current;
+        if (!el || disabled) {
+            return;
+        }
+        el.focus();
+        restoreSelection();
+        document.execCommand('styleWithCSS', false, 'false');
+        document.execCommand('fontSize', false, '7');
+        const rewrite = (node: Element) => {
+            const span = document.createElement('span');
+            span.style.fontSize = px;
+            const face = node.getAttribute('face');
+            if (face) {
+                span.style.fontFamily = face;
+            }
+            if (node instanceof HTMLElement && node.style.fontFamily) {
+                span.style.fontFamily = node.style.fontFamily;
+            }
+            while (node.firstChild) {
+                span.appendChild(node.firstChild);
+            }
+            node.replaceWith(span);
+        };
+        el.querySelectorAll('font[size="7"]').forEach(rewrite);
+        el.querySelectorAll('span').forEach((span) => {
+            const size = span.style.fontSize.toLowerCase();
+            if (size.includes('xxx-large')) {
+                span.style.fontSize = px;
+            }
+        });
         onChange(el.innerHTML);
     };
 
@@ -196,17 +256,17 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
                         style: { fontFamily: font.value },
                     }))}
                     onOpen={rememberSelection}
-                    onPick={(value) => formatFromMenu('fontName', value)}
+                    onPick={(value) => applyFontFamily(value)}
                 />
                 <FormatMenu
                     label="Tamaño"
                     disabled={disabled}
                     options={FONT_SIZES.map((size) => ({
                         label: size.label,
-                        value: size.value,
+                        value: size.px,
                     }))}
                     onOpen={rememberSelection}
-                    onPick={(value) => formatFromMenu('fontSize', value)}
+                    onPick={(value) => applyFontSize(value)}
                 />
                 <ToolbarBtn
                     icon={ListOrdered}
@@ -288,7 +348,7 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
                 contentEditable={!disabled}
                 suppressContentEditableWarning
                 className={cn(
-                    'auth-doc-editor min-h-[220px] max-h-[min(48vh,420px)] overflow-y-auto bg-[#fffcf6] px-4 py-3 text-sm leading-relaxed text-stone-800 outline-none',
+                    'auth-doc-editor min-h-[220px] max-h-[min(48vh,420px)] overflow-y-auto bg-[#fffcf6] px-4 py-3 leading-relaxed text-stone-800 outline-none',
                     disabled && 'pointer-events-none opacity-70',
                 )}
                 onInput={() => {

@@ -18,9 +18,25 @@
         }
         .letterhead .clinic { margin: 0; font-size: 13px; font-weight: bold; color: {{ $colorPrimario }}; }
         .letterhead .meta { margin: 2px 0 0; font-size: 8px; color: #6b7280; }
-        .auth-cuerpo { font-size: 10.5px; line-height: 1.55; color: #111827; }
+        .auth-cuerpo {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 14px;
+            line-height: 1.55;
+            color: #111827;
+        }
+        .auth-cuerpo p,
+        .auth-cuerpo li,
+        .auth-cuerpo span,
+        .auth-cuerpo div,
+        .auth-cuerpo strong,
+        .auth-cuerpo em,
+        .auth-cuerpo h2,
+        .auth-cuerpo h3 {
+            font-family: inherit;
+            font-size: inherit;
+        }
         .auth-cuerpo p { margin: 0 0 8px; }
-        .auth-cuerpo h2, .auth-cuerpo h3 { margin: 0 0 10px; font-size: 13px; text-align: center; }
+        .auth-cuerpo h2, .auth-cuerpo h3 { margin: 0 0 10px; font-weight: bold; }
         .auth-cuerpo ol, .auth-cuerpo ul { margin: 8px 0 12px; padding-left: 22px; }
         .auth-cuerpo ol { list-style-type: decimal; }
         .auth-cuerpo ul { list-style-type: disc; }
