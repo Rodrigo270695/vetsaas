@@ -31,9 +31,10 @@ final class AgendaRsvpInboxPoller
     ) {}
 
     /**
+     * @param  (callable(string, int, ?string): void)|null  $trace
      * @return array{chats: int, applied: int, skipped: int}
      */
-    public function poll(bool $dryRun = false): array
+    public function poll(bool $dryRun = false, ?callable $trace = null): array
     {
         $stats = ['chats' => 0, 'applied' => 0, 'skipped' => 0];
 
@@ -49,9 +50,9 @@ final class AgendaRsvpInboxPoller
             return $stats;
         }
 
-        foreach ($this->recentRsvpChatIds() as $chatId) {
+        foreach ($this->recentRsvpChatIds($sessionId) as $chatId) {
             $stats['chats']++;
-            $applied = $this->pollChat($sessionId, $chatId, $dryRun);
+            $applied = $this->pollChat($sessionId, $chatId, $dryRun, $trace);
             if ($applied) {
                 $stats['applied']++;
             } else {
@@ -65,11 +66,12 @@ final class AgendaRsvpInboxPoller
     /**
      * @return list<string>
      */
-    private function recentRsvpChatIds(): array
+    private function recentRsvpChatIds(string $sessionId): array
     {
         $ids = [];
+        $wantTails = [];
 
-        $this->activeTenants->each(function () use (&$ids): void {
+        $this->activeTenants->each(function () use (&$ids, &$wantTails): void {
             $rows = NotificationQueue::query()
                 ->where('canal', NotificationQueue::CANAL_WHATSAPP)
                 ->where('estado', NotificationQueue::ESTADO_ENVIADO)
@@ -88,28 +90,74 @@ final class AgendaRsvpInboxPoller
                     ? $raw
                     : (WhatsAppChatId::fromPhone($raw) ?? $raw);
                 $ids[$chatId] = true;
+                $digits = preg_replace('/\D/', '', $chatId) ?? '';
+                if (strlen($digits) >= 9) {
+                    $wantTails[substr($digits, -9)] = true;
+                }
             }
         });
 
-        return array_slice(array_keys($ids), 0, 40);
+        try {
+            foreach ($this->client->listSessionChats($sessionId, 80) as $chat) {
+                $id = (string) ($chat['id'] ?? $chat['chatId'] ?? $chat['jid'] ?? '');
+                if ($id === '' || str_ends_with(strtolower($id), '@g.us')) {
+                    continue;
+                }
+                $unread = (int) ($chat['unreadCount'] ?? $chat['unread'] ?? 0);
+                $digits = preg_replace('/\D/', '', $id) ?? '';
+                $tail = strlen($digits) >= 9 ? substr($digits, -9) : '';
+                if ($unread > 0 || ($tail !== '' && isset($wantTails[$tail]))) {
+                    $ids[$id] = true;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Agenda RSVP poll: no se pudo listar chats OpenWA', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return array_slice(array_keys($ids), 0, 50);
     }
 
-    private function pollChat(string $sessionId, string $chatId, bool $dryRun): bool
+    /**
+     * @param  (callable(string, int, ?string): void)|null  $trace
+     */
+    private function pollChat(string $sessionId, string $chatId, bool $dryRun, ?callable $trace = null): bool
     {
         try {
-            $messages = $this->client->listChatMessagesLive($sessionId, $chatId, 15);
+            $messages = array_merge(
+                $this->client->listChatMessages($sessionId, $chatId, 15),
+                $this->client->listChatMessagesLive($sessionId, $chatId, 15),
+            );
         } catch (\Throwable $e) {
             Log::warning('Agenda RSVP poll: no se pudo leer el chat', [
                 'chat_id' => $chatId,
                 'error' => $e->getMessage(),
             ]);
+            $trace && $trace($chatId, 0, 'error: '.$e->getMessage());
 
             return false;
         }
 
+        $sample = null;
+        foreach (array_reverse($messages) as $message) {
+            $text = OpenWaInboundRsvpPicker::text($message);
+            if ($text !== '') {
+                $sample = mb_substr($text, 0, 80);
+                break;
+            }
+        }
+        $trace && $trace($chatId, count($messages), $sample);
+
         $hit = OpenWaInboundRsvpPicker::latest($messages, $chatId);
         if ($hit === null) {
             return false;
+        }
+
+        if ($dryRun) {
+            Log::warning('Agenda RSVP poll: dry-run', $hit);
+
+            return true;
         }
 
         $fingerprint = $hit['message_id'] !== ''
@@ -118,12 +166,6 @@ final class AgendaRsvpInboxPoller
         $cacheKey = 'agenda-rsvp-poll:'.$fingerprint;
         if (! Cache::add($cacheKey, 1, now()->addDays(7))) {
             return false;
-        }
-
-        if ($dryRun) {
-            Log::warning('Agenda RSVP poll: dry-run', $hit);
-
-            return true;
         }
 
         $result = $this->rsvp->tryHandle($sessionId, $hit['phone'], $hit['wa_chat_id'], $hit['body']);

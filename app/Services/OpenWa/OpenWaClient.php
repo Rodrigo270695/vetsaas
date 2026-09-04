@@ -159,6 +159,19 @@ final class OpenWaClient
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function listSessionChats(string $sessionId, int $limit = 50): array
+    {
+        $limit = max(1, min(100, $limit));
+
+        return $this->unwrapMessageList($this->request(
+            'get',
+            '/api/sessions/'.$sessionId.'/chats?limit='.$limit,
+        ));
+    }
+
+    /**
      * Historial persistido o, si viene vacío, lectura live desde WhatsApp.
      *
      * @return list<array<string, mixed>>
@@ -198,8 +211,11 @@ final class OpenWaClient
         }
 
         foreach ($candidates as $candidate) {
-            if (isset($candidate['messages']) && is_array($candidate['messages'])) {
-                $candidate = $candidate['messages'];
+            foreach (['messages', 'items', 'rows'] as $listKey) {
+                if (isset($candidate[$listKey]) && is_array($candidate[$listKey])) {
+                    $candidate = $candidate[$listKey];
+                    break;
+                }
             }
             if ($candidate === [] || ! array_is_list($candidate)) {
                 continue;

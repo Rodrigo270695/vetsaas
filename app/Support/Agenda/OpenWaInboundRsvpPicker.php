@@ -23,7 +23,7 @@ final class OpenWaInboundRsvpPicker
                 continue;
             }
 
-            $body = trim((string) ($message['body'] ?? $message['content'] ?? $message['text'] ?? ''));
+            $body = self::text($message);
             if (AgendaRsvpIntent::parse($body) === null) {
                 continue;
             }
@@ -33,17 +33,84 @@ final class OpenWaInboundRsvpPicker
                 continue;
             }
 
-            $from = (string) ($message['from'] ?? $message['chatId'] ?? $message['author'] ?? $fallbackChatId);
+            $from = self::chatId($message, $fallbackChatId);
             $bestTs = $ts;
             $best = [
                 'body' => $body,
                 'phone' => preg_replace('/\D/', '', $from) ?: $from,
                 'wa_chat_id' => str_contains($from, '@') ? $from : $fallbackChatId,
-                'message_id' => (string) ($message['id'] ?? $message['key']['id'] ?? ''),
+                'message_id' => self::messageId($message),
             ];
         }
 
         return $best;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    public static function text(array $message): string
+    {
+        foreach (['body', 'content', 'text', 'caption'] as $key) {
+            $value = $message[$key] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        $nested = $message['message'] ?? $message['data'] ?? null;
+        if (is_array($nested)) {
+            $fromNested = self::text($nested);
+            if ($fromNested !== '') {
+                return $fromNested;
+            }
+
+            $conversation = $nested['conversation'] ?? null;
+            if (is_string($conversation) && trim($conversation) !== '') {
+                return trim($conversation);
+            }
+
+            $extMsg = $nested['extendedTextMessage'] ?? null;
+            $extended = is_array($extMsg) ? ($extMsg['text'] ?? null) : null;
+            if (is_string($extended) && trim($extended) !== '') {
+                return trim($extended);
+            }
+
+            $ephemeral = $nested['ephemeralMessage']['message'] ?? null;
+            if (is_array($ephemeral)) {
+                return self::text(['message' => $ephemeral]);
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private static function chatId(array $message, string $fallback): string
+    {
+        $key = is_array($message['key'] ?? null) ? $message['key'] : [];
+        foreach (['from', 'chatId', 'author', 'remoteJid'] as $field) {
+            $value = $message[$field] ?? $key[$field] ?? null;
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        $remote = $key['remoteJid'] ?? null;
+
+        return is_string($remote) && $remote !== '' ? $remote : $fallback;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private static function messageId(array $message): string
+    {
+        $key = is_array($message['key'] ?? null) ? $message['key'] : [];
+
+        return (string) ($message['id'] ?? $key['id'] ?? '');
     }
 
     /**
@@ -60,6 +127,11 @@ final class OpenWaInboundRsvpPicker
         $key = $message['key'] ?? null;
         if (is_array($key) && filter_var($key['fromMe'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
             return true;
+        }
+
+        $key = $message['key'] ?? null;
+        if (is_array($key) && array_key_exists('fromMe', $key)) {
+            return filter_var($key['fromMe'], FILTER_VALIDATE_BOOLEAN);
         }
 
         return false;

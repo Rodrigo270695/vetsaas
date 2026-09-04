@@ -13,13 +13,26 @@ use Illuminate\Console\Command;
 final class AgendaRsvpPollInboxCommand extends Command
 {
     protected $signature = 'vetsaas:agenda-rsvp-poll-inbox
-                            {--dry-run : Solo listar; no confirma ni responde}';
+                            {--dry-run : Solo listar; no confirma ni responde}
+                            {--debug : Muestra chat, cantidad de mensajes y un extracto}';
 
     protected $description = 'Aplica SI/NO de agenda leyendo el inbox OpenWA (si el webhook no dispara)';
 
     public function handle(AgendaRsvpInboxPoller $poller): int
     {
-        $stats = $poller->poll((bool) $this->option('dry-run'));
+        $debug = (bool) $this->option('debug');
+        $trace = $debug
+            ? function (string $chatId, int $count, ?string $sample): void {
+                $this->line(sprintf(
+                    '  %s  msgs=%d  %s',
+                    $chatId,
+                    $count,
+                    $sample !== null && $sample !== '' ? $sample : '(sin texto)',
+                ));
+            }
+            : null;
+
+        $stats = $poller->poll((bool) $this->option('dry-run'), $trace);
 
         $this->info("Chats revisados: {$stats['chats']}");
         $this->info("Aplicados:       {$stats['applied']}");

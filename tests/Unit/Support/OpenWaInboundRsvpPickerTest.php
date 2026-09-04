@@ -33,3 +33,23 @@ it('elige el SI inbound más reciente e ignora fromMe', function (): void {
         ->and($hit['message_id'])->toBe('in-si')
         ->and($hit['phone'])->toBe('51911111111');
 });
+
+it('lee SI en payload Baileys (message.conversation)', function (): void {
+    $hit = OpenWaInboundRsvpPicker::latest([
+        [
+            'key' => [
+                'remoteJid' => '51911111111@c.us',
+                'fromMe' => false,
+                'id' => 'BAE1',
+            ],
+            'message' => [
+                'conversation' => 'Si',
+            ],
+            'messageTimestamp' => 1_704_000_000,
+        ],
+    ], '51911111111@c.us');
+
+    expect($hit)->not->toBeNull()
+        ->and($hit['body'])->toBe('Si')
+        ->and($hit['message_id'])->toBe('BAE1');
+});
