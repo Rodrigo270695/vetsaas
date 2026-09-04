@@ -1,5 +1,6 @@
 import {
     AlignCenter,
+    AlignJustify,
     AlignLeft,
     Bold,
     ImageIcon,
@@ -11,6 +12,21 @@ import {
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+const FONTS = [
+    { label: 'Arial', value: 'Arial' },
+    { label: 'Times', value: 'Times New Roman' },
+    { label: 'Georgia', value: 'Georgia' },
+    { label: 'Courier', value: 'Courier New' },
+] as const;
+
+const FONT_SIZES = [
+    { label: '12', value: '2' },
+    { label: '14', value: '3' },
+    { label: '18', value: '4' },
+    { label: '24', value: '5' },
+    { label: '32', value: '6' },
+] as const;
 
 const VAR_GROUPS: readonly { label: string; items: readonly string[] }[] = [
     { label: 'Paciente', items: ['paciente', 'especie', 'raza', 'edad', 'sexo'] },
@@ -98,13 +114,13 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
         onChange(el.innerHTML);
     };
 
-    const format = (cmd: string) => {
+    const format = (cmd: string, arg?: string) => {
         const el = ref.current;
         if (!el || disabled) {
             return;
         }
         el.focus();
-        run(cmd);
+        run(cmd, arg);
         onChange(el.innerHTML);
     };
 
@@ -131,6 +147,58 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
                     onClick={() => format('justifyCenter')}
                     disabled={disabled}
                 />
+                <ToolbarBtn
+                    icon={AlignJustify}
+                    label="Justificar"
+                    onClick={() => format('justifyFull')}
+                    disabled={disabled}
+                />
+                <select
+                    aria-label="Fuente"
+                    disabled={disabled}
+                    defaultValue=""
+                    className="h-8 max-w-[7.5rem] cursor-pointer rounded-md border border-input bg-background px-1.5 text-xs"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (value) {
+                            format('fontName', value);
+                        }
+                        e.target.value = '';
+                    }}
+                >
+                    <option value="" disabled>
+                        Fuente
+                    </option>
+                    {FONTS.map((font) => (
+                        <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                            {font.label}
+                        </option>
+                    ))}
+                </select>
+                <select
+                    aria-label="Tamaño"
+                    disabled={disabled}
+                    defaultValue=""
+                    className="h-8 w-[4.5rem] cursor-pointer rounded-md border border-input bg-background px-1.5 text-xs"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (value) {
+                            format('fontSize', value);
+                        }
+                        e.target.value = '';
+                    }}
+                >
+                    <option value="" disabled>
+                        Tamaño
+                    </option>
+                    {FONT_SIZES.map((size) => (
+                        <option key={size.value} value={size.value}>
+                            {size.label}
+                        </option>
+                    ))}
+                </select>
                 <ToolbarBtn
                     icon={ListOrdered}
                     label="Lista numerada"

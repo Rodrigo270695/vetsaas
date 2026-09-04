@@ -136,7 +136,7 @@ final class DocumentoAutorizacionRenderer
             return '';
         }
 
-        $stripped = strip_tags($html, '<p><br><strong><b><em><i><u><ol><ul><li><h2><h3><div><span><img>');
+        $stripped = strip_tags($html, '<p><br><strong><b><em><i><u><ol><ul><li><h2><h3><div><span><img><font>');
         $root = self::loadRoot($stripped);
         if ($root === null) {
             return e(strip_tags($html));
@@ -161,10 +161,11 @@ final class DocumentoAutorizacionRenderer
             'u' => [],
             'ol' => [],
             'ul' => [],
-            'li' => [],
+            'li' => ['style'],
             'h2' => ['style', 'align'],
             'h3' => ['style', 'align'],
             'img' => ['class', 'alt'],
+            'font' => ['face', 'size'],
         ];
 
         $children = [];
@@ -217,6 +218,31 @@ final class DocumentoAutorizacionRenderer
             }
             foreach ($remove as $name) {
                 $child->removeAttribute($name);
+            }
+
+            if ($tag === 'font') {
+                $doc = $child->ownerDocument;
+                if ($doc instanceof DOMDocument) {
+                    $span = $doc->createElement('span');
+                    $styles = [];
+                    $family = self::safeFontFamily($child->getAttribute('face'));
+                    if ($family !== null) {
+                        $styles[] = 'font-family: '.$family;
+                    }
+                    $px = self::htmlFontSizeToPx($child->getAttribute('size'));
+                    if ($px !== null) {
+                        $styles[] = 'font-size: '.$px.'px';
+                    }
+                    if ($styles !== []) {
+                        $span->setAttribute('style', implode('; ', $styles).';');
+                    }
+                    while ($child->firstChild instanceof DOMNode) {
+                        $span->appendChild($child->firstChild);
+                    }
+                    $el->replaceChild($span, $child);
+                }
+
+                continue;
             }
 
             if ($tag === 'img') {
@@ -290,11 +316,69 @@ final class DocumentoAutorizacionRenderer
 
     private static function sanitizeStyle(string $style): ?string
     {
-        if (! preg_match('/text-align\s*:\s*(left|center|right|justify)\s*;?/i', $style, $m)) {
+        $parts = [];
+        if (preg_match('/text-align\s*:\s*(left|center|right|justify)\s*;?/i', $style, $m)) {
+            $parts[] = 'text-align: '.strtolower($m[1]);
+        }
+        if (preg_match('/font-family\s*:\s*([^;]+)/i', $style, $m)) {
+            $family = self::safeFontFamily($m[1]);
+            if ($family !== null) {
+                $parts[] = 'font-family: '.$family;
+            }
+        }
+        if (preg_match('/font-size\s*:\s*(\d{1,2}(?:\.\d+)?)(px|pt)\b/i', $style, $m)) {
+            $n = (float) $m[1];
+            if ($n >= 8 && $n <= 48) {
+                $unit = strtolower($m[2]);
+                $parts[] = 'font-size: '.$n.$unit;
+            }
+        }
+
+        if ($parts === []) {
             return null;
         }
 
-        return 'text-align: '.strtolower($m[1]).';';
+        return implode('; ', $parts).';';
+    }
+
+    private static function safeFontFamily(string $raw): ?string
+    {
+        $raw = strtolower(trim($raw, " \t\"'"));
+        $map = [
+            'arial' => 'Arial, Helvetica, sans-serif',
+            'helvetica' => 'Arial, Helvetica, sans-serif',
+            'sans-serif' => 'Arial, Helvetica, sans-serif',
+            'times new roman' => '"Times New Roman", Times, serif',
+            'times' => '"Times New Roman", Times, serif',
+            'serif' => '"Times New Roman", Times, serif',
+            'georgia' => 'Georgia, serif',
+            'courier new' => '"Courier New", Courier, monospace',
+            'courier' => '"Courier New", Courier, monospace',
+            'monospace' => '"Courier New", Courier, monospace',
+            'dejavu sans' => 'DejaVu Sans, sans-serif',
+        ];
+        foreach ($map as $needle => $value) {
+            if (str_contains($raw, $needle)) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    private static function htmlFontSizeToPx(string $size): ?int
+    {
+        $map = [
+            '1' => 10,
+            '2' => 13,
+            '3' => 16,
+            '4' => 18,
+            '5' => 24,
+            '6' => 32,
+            '7' => 48,
+        ];
+
+        return $map[trim($size)] ?? null;
     }
 
     private static function edadTexto(Paciente $paciente): string

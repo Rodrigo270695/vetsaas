@@ -35,6 +35,16 @@ it('detecta HTML y conserva negrita y alineación segura', function (): void {
         ->and($html)->not->toContain('color:red');
 });
 
+it('conserva justificado, fuente y tamaño', function (): void {
+    $html = DocumentoAutorizacionRenderer::sanitizeHtml(
+        '<p style="text-align:justify;font-family:Arial;font-size:18px">Texto</p>',
+    );
+
+    expect($html)->toContain('text-align: justify')
+        ->and($html)->toContain('Arial')
+        ->and($html)->toContain('font-size: 18px');
+});
+
 it('conserva el marcador de logo y quita src arbitrario', function (): void {
     $html = DocumentoAutorizacionRenderer::sanitizeHtml(
         '<p><img class="auth-doc-logo" src="javascript:alert(1)" alt="x"></p><p>Hola</p>',
