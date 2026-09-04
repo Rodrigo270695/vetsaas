@@ -1,38 +1,22 @@
 import { Head, Link, resetLayoutProps, setLayoutProps } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    ChevronDown,
-    Mail,
-    MapPin,
-    PawPrint,
-    Pencil,
-    Phone,
-    Plus,
-    Sparkles,
-    UserCircle,
-} from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ArrowLeft, PawPrint, Pencil, Plus, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
-import { EmptyState, StatBadge } from '@/components/data-page';
+import { EmptyState } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { usePermission } from '@/hooks/use-permission';
+import type { EspecieRazaCatalogo } from '@/lib/paciente-especie-raza-options';
 import { isPropietarioDocumentTypeCode } from '@/lib/document-type-options';
-import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import propietarios from '@/routes/clinica/propietarios';
 import { PacienteDeleteDialog } from '../pacientes/components/paciente-delete-dialog';
 import { PacienteFormModal } from '../pacientes/components/paciente-form-modal';
-import type { EspecieRazaCatalogo } from '@/lib/paciente-especie-raza-options';
 import { MascotaTarjetaFicha } from './components/mascota-tarjeta-ficha';
 import { PropietarioFormModal } from './components/propietario-form-modal';
+import { PropietarioTitularCard } from './components/propietario-titular-card';
 import type { GeoOption, Paciente, Propietario } from './types';
 
 function displayNombre(p: Propietario): string {
@@ -40,11 +24,6 @@ function displayNombre(p: Propietario): string {
         return p.razon_social;
     }
     return [p.nombres, p.apellidos].filter(Boolean).join(' ');
-}
-
-function ubicacionLinea(p: Propietario): string | null {
-    const parts = [p.departamento, p.provincia, p.distrito].filter(Boolean);
-    return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 function breadcrumbTitular(nombre: string): string {
@@ -65,19 +44,6 @@ type ModalState =
     | { type: 'edit-pet'; paciente: Paciente }
     | { type: 'delete-pet'; paciente: Paciente };
 
-type DatoProps = { label: string; children: ReactNode; className?: string };
-
-function DatoCompacto({ label, children, className }: DatoProps) {
-    return (
-        <div className={cn('min-w-0', className)}>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                {label}
-            </p>
-            <div className="mt-0.5 text-sm font-medium leading-snug text-foreground">{children}</div>
-        </div>
-    );
-}
-
 export default function Show({
     propietario,
     pacientes,
@@ -87,7 +53,6 @@ export default function Show({
     const { t } = useTranslation(['propietarios', 'pacientes', 'nav']);
     const { can } = usePermission();
     const canEditOwner = can('propietarios.update');
-    const canCreatePet = can('pacientes.create');
     const canUpdatePet = can('pacientes.update');
     const canDeletePet = can('pacientes.delete');
     const canDownloadCarnetVacunas = can('vacunaciones.view');
@@ -97,7 +62,6 @@ export default function Show({
         canUpdatePet || canDeletePet || canDownloadCarnetVacunas || canViewPetHistorial;
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
-    const [ownerMoreOpen, setOwnerMoreOpen] = useState(false);
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
 
     const nombreTitular = useMemo(() => displayNombre(propietario), [propietario]);
@@ -124,22 +88,6 @@ export default function Show({
         }
         return `${tipoEtiqueta}${num}`.trim();
     }, [propietario, t]);
-
-    const ubicacion = ubicacionLinea(propietario);
-
-    const contactoLinea = useMemo(() => {
-        const bits: string[] = [];
-        if (propietario.email?.trim()) {
-            bits.push(propietario.email.trim());
-        }
-        const tels = [propietario.telefono, propietario.telefono_alt].filter(Boolean);
-        if (tels.length) {
-            bits.push(tels.join(' · '));
-        }
-        return bits.length ? bits.join(' · ') : null;
-    }, [propietario]);
-
-    const extraTitular = Boolean(propietario.direccion || ubicacion || propietario.notas);
 
     useEffect(() => {
         setLayoutProps({
@@ -193,7 +141,7 @@ export default function Show({
                                 </Badge>
                             </div>
                             <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                                {t('description')}
+                                {t('show.page_hint')}
                             </p>
                         </div>
                     </div>
@@ -224,135 +172,7 @@ export default function Show({
                     </div>
                 </div>
 
-                <section
-                    className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-sm ring-1 ring-black/[0.03] backdrop-blur-sm dark:bg-card/80 dark:ring-white/[0.06]"
-                    aria-labelledby="titular-heading"
-                >
-                    <div
-                        className="pointer-events-none absolute -right-20 -top-20 size-56 rounded-full bg-gradient-to-br from-primary/15 to-transparent blur-2xl"
-                        aria-hidden
-                    />
-                    <div className="relative flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:gap-5 sm:p-5">
-                        <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-inner ring-1 ring-primary/10">
-                            <UserCircle className="size-8" strokeWidth={1.75} />
-                        </div>
-                        <div className="min-w-0 flex-1 space-y-3">
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                                <h2
-                                    id="titular-heading"
-                                    className="text-sm font-semibold tracking-tight text-foreground"
-                                >
-                                    {t('show.section_owner')}
-                                </h2>
-                                {propietario.activo ? (
-                                    <StatBadge
-                                        label={t('show.owner_status_label')}
-                                        value={t('show.owner_active')}
-                                        variant="success"
-                                    />
-                                ) : (
-                                    <StatBadge
-                                        label={t('show.owner_status_label')}
-                                        value={t('show.owner_inactive')}
-                                        variant="muted"
-                                    />
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">{t('show.owner_compact_hint')}</p>
-
-                            {propietario.razon_social ? (
-                                <p className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm font-medium text-foreground">
-                                    {propietario.razon_social}
-                                </p>
-                            ) : null}
-
-                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                <DatoCompacto label={t('form.nombres')}>
-                                    {propietario.nombres?.trim() || '—'}
-                                </DatoCompacto>
-                                <DatoCompacto label={t('form.apellidos')}>
-                                    {propietario.apellidos?.trim() || '—'}
-                                </DatoCompacto>
-                                <DatoCompacto label={t('show.label_doc')} className="sm:col-span-2">
-                                    {docResumen ? (
-                                        <span className="font-mono text-xs sm:text-sm">{docResumen}</span>
-                                    ) : (
-                                        <span className="font-normal text-muted-foreground">
-                                            {t('row.no_doc')}
-                                        </span>
-                                    )}
-                                </DatoCompacto>
-                            </div>
-
-                            {contactoLinea ? (
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/50 pt-3 text-sm text-muted-foreground">
-                                    {propietario.email?.trim() ? (
-                                        <span className="inline-flex min-w-0 items-center gap-1.5">
-                                            <Mail className="size-3.5 shrink-0 text-primary/80" aria-hidden />
-                                            <span className="truncate text-foreground">{propietario.email}</span>
-                                        </span>
-                                    ) : null}
-                                    {(propietario.telefono || propietario.telefono_alt) && (
-                                        <span className="inline-flex items-center gap-1.5 tabular-nums">
-                                            <Phone className="size-3.5 shrink-0 text-primary/80" aria-hidden />
-                                            <span className="text-foreground">
-                                                {[propietario.telefono, propietario.telefono_alt]
-                                                    .filter(Boolean)
-                                                    .join(' · ')}
-                                            </span>
-                                        </span>
-                                    )}
-                                </div>
-                            ) : null}
-
-                            {extraTitular ? (
-                                <Collapsible open={ownerMoreOpen} onOpenChange={setOwnerMoreOpen}>
-                                    <CollapsibleTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="-ml-2 h-8 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                        >
-                                            <ChevronDown
-                                                className={cn(
-                                                    'size-4 transition-transform',
-                                                    ownerMoreOpen && 'rotate-180',
-                                                )}
-                                            />
-                                            {t('show.owner_more_toggle')}
-                                        </Button>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent className="space-y-3 border-t border-border/40 pt-3 data-[state=closed]:animate-none">
-                                        {propietario.direccion ? (
-                                            <DatoCompacto label={t('show.label_address')}>
-                                                {propietario.direccion}
-                                            </DatoCompacto>
-                                        ) : null}
-                                        {ubicacion ? (
-                                            <DatoCompacto label={t('show.label_location')}>
-                                                <span className="inline-flex items-start gap-2">
-                                                    <MapPin
-                                                        className="mt-0.5 size-4 shrink-0 text-primary/80"
-                                                        strokeWidth={2.25}
-                                                    />
-                                                    <span>{ubicacion}</span>
-                                                </span>
-                                            </DatoCompacto>
-                                        ) : null}
-                                        {propietario.notas ? (
-                                            <DatoCompacto label={t('show.label_notes')}>
-                                                <span className="whitespace-pre-wrap text-sm font-normal text-muted-foreground">
-                                                    {propietario.notas}
-                                                </span>
-                                            </DatoCompacto>
-                                        ) : null}
-                                    </CollapsibleContent>
-                                </Collapsible>
-                            ) : null}
-                        </div>
-                    </div>
-                </section>
+                <PropietarioTitularCard propietario={propietario} docResumen={docResumen} />
 
                 <section className="relative space-y-5" aria-labelledby="mascotas-heading">
                     <div className="flex flex-wrap items-end justify-between gap-3">
@@ -375,7 +195,7 @@ export default function Show({
                     </div>
 
                     <div
-                        className="rounded-2xl border border-dashed border-primary/15 bg-gradient-to-br from-primary/[0.04] via-background to-muted/40 p-4 sm:p-6 dark:from-primary/[0.07] dark:via-background dark:to-muted/20"
+                        className="rounded-2xl border border-dashed border-primary/15 bg-linear-to-br from-primary/4 via-background to-muted/40 p-4 sm:p-6 dark:from-primary/7 dark:via-background dark:to-muted/20"
                     >
                         {pacientes.length === 0 ? (
                             <EmptyState
