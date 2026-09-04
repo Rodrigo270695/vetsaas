@@ -16,7 +16,7 @@ const VAR_GROUPS: readonly { label: string; items: readonly string[] }[] = [
     { label: 'Paciente', items: ['paciente', 'especie', 'raza', 'edad', 'sexo'] },
     { label: 'Titular', items: ['propietario', 'documento', 'telefono'] },
     { label: 'Clínica', items: ['clinica', 'ciudad', 'veterinario', 'logo'] },
-    { label: 'Consulta', items: ['motivo', 'causa'] },
+    { label: 'Consulta', items: ['motivo'] },
     { label: 'Fecha', items: ['fecha', 'fecha_corta', 'dia', 'mes', 'mes_nombre', 'anio'] },
 ];
 

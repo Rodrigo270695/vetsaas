@@ -7,7 +7,7 @@
     "nombre": "Name",
     "descripcion_field": "Description",
     "cuerpo": "Document text",
-    "cuerpo_hint": "motivo and causa come from that consultation’s reason field. Centered logo. Date: ciudad, dia, mes_nombre and anio.",
+    "cuerpo_hint": "motivo is that consultation’s reason field. Centered logo. Date: ciudad, dia, mes_nombre and anio.",
     "activo": "Active",
     "insert_var": "Insert",
     "submit_create": "Create template",

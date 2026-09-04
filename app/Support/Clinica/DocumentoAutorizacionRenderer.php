@@ -62,7 +62,6 @@ final class DocumentoAutorizacionRenderer
             'documento' => $doc !== '' ? $doc : '—',
             'telefono' => trim((string) ($owner?->telefono ?? '')) ?: '—',
             'motivo' => $motivo !== '' ? $motivo : '—',
-            'causa' => $motivo !== '' ? $motivo : '—',
             'fecha' => $at->format('d/m/Y H:i'),
             'fecha_corta' => $at->format('d/m/Y'),
             'dia' => $at->format('j'),

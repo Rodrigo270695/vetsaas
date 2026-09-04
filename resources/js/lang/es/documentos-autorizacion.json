@@ -7,7 +7,7 @@
     "nombre": "Nombre",
     "descripcion_field": "Descripción",
     "cuerpo": "Texto del documento",
-    "cuerpo_hint": "motivo y causa salen del campo «Motivos de la consulta» de esa HC. Logo centrado. Fecha: ciudad, dia, mes_nombre y anio.",
+    "cuerpo_hint": "motivo es el campo «Motivos de la consulta» de esa HC. Logo centrado. Fecha: ciudad, dia, mes_nombre y anio.",
     "activo": "Activa",
     "insert_var": "Insertar",
     "submit_create": "Crear plantilla",
