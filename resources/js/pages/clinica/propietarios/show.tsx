@@ -1,10 +1,9 @@
 import { Head, Link, resetLayoutProps, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, PawPrint, Pencil, Plus, Sparkles } from 'lucide-react';
+import { ArrowLeft, PawPrint, Pencil, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import { EmptyState } from '@/components/data-page';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermission } from '@/hooks/use-permission';
 import type { EspecieRazaCatalogo } from '@/lib/paciente-especie-raza-options';
@@ -119,80 +118,59 @@ export default function Show({
                     />
                 </div>
 
-                <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex min-w-0 flex-1 flex-col gap-2">
-                        <Link
-                            href={propietarios.index().url}
-                            className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                            <ArrowLeft className="size-4 shrink-0" strokeWidth={2.25} />
-                            {t('show.back')}
-                        </Link>
-                        <div className="flex min-w-0 flex-col gap-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                                    {nombreTitular}
-                                </h1>
-                                <Badge
-                                    variant="outline"
-                                    className="border-primary/25 bg-primary/5 font-normal text-primary"
-                                >
-                                    {t('show.badge_titular')}
-                                </Badge>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-                        {canEditOwner && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="cursor-pointer gap-2"
-                                onClick={() => setModal({ type: 'edit-owner' })}
-                            >
-                                <Pencil className="size-4" strokeWidth={2.25} />
-                                {t('show.edit_owner')}
-                            </Button>
-                        )}
-                        <Can permission="pacientes.create">
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="cursor-pointer gap-2 shadow-sm"
-                                onClick={() => setModal({ type: 'create-pet' })}
-                            >
-                                <Plus className="size-4" strokeWidth={2.25} />
-                                {t('show.add_pet')}
-                            </Button>
-                        </Can>
-                    </div>
+                <div className="relative flex flex-col gap-3">
+                    <Link
+                        href={propietarios.index().url}
+                        className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        <ArrowLeft className="size-4 shrink-0" strokeWidth={2.25} />
+                        {t('show.back')}
+                    </Link>
+                    <PropietarioTitularCard
+                        propietario={propietario}
+                        displayName={nombreTitular}
+                        docResumen={docResumen}
+                        actions={
+                            <>
+                                {canEditOwner && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="cursor-pointer gap-2"
+                                        onClick={() => setModal({ type: 'edit-owner' })}
+                                    >
+                                        <Pencil className="size-4" strokeWidth={2.25} />
+                                        {t('show.edit_owner')}
+                                    </Button>
+                                )}
+                                <Can permission="pacientes.create">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        className="cursor-pointer gap-2 shadow-sm"
+                                        onClick={() => setModal({ type: 'create-pet' })}
+                                    >
+                                        <Plus className="size-4" strokeWidth={2.25} />
+                                        {t('show.add_pet')}
+                                    </Button>
+                                </Can>
+                            </>
+                        }
+                    />
                 </div>
 
-                <PropietarioTitularCard
-                    propietario={propietario}
-                    displayName={nombreTitular}
-                    docResumen={docResumen}
-                />
-
-                <section className="relative space-y-5" aria-labelledby="mascotas-heading">
-                    <div className="flex flex-wrap items-end justify-between gap-3">
-                        <div className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                                <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                                    <Sparkles className="size-4" strokeWidth={2} aria-hidden />
-                                </span>
-                                <h2
-                                    id="mascotas-heading"
-                                    className="text-lg font-semibold tracking-tight text-foreground sm:text-xl"
-                                >
-                                    {t('show.pets_deck_title')}
-                                </h2>
-                            </div>
-                            <p className="max-w-2xl text-sm text-muted-foreground">
-                                {t('show.pets_deck_hint')}
-                            </p>
-                        </div>
+                <section className="relative space-y-4" aria-labelledby="mascotas-heading">
+                    <div className="flex items-baseline gap-2">
+                        <h2
+                            id="mascotas-heading"
+                            className="text-lg font-semibold tracking-tight text-foreground"
+                        >
+                            {t('show.pets_deck_title')}
+                        </h2>
+                        <span className="text-sm tabular-nums text-muted-foreground">
+                            {pacientes.length}
+                        </span>
                     </div>
 
                     <div
