@@ -21,6 +21,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     plantilla: PlantillaAutorizacion | null;
     cuerpoDefault: string;
+    clinicLogoUrl?: string | null;
 };
 
 export function DocumentoAutorizacionPlantillaFormModal({
@@ -28,6 +29,7 @@ export function DocumentoAutorizacionPlantillaFormModal({
     onOpenChange,
     plantilla,
     cuerpoDefault,
+    clinicLogoUrl,
 }: Props) {
     const { t } = useTranslation(['documentos-autorizacion', 'common']);
     const isEdit = plantilla !== null;
@@ -117,6 +119,7 @@ export function DocumentoAutorizacionPlantillaFormModal({
                             value={form.data.cuerpo}
                             onChange={(html) => form.setData('cuerpo', html)}
                             resetKey={`${plantilla?.id ?? 'new'}:${open ? '1' : '0'}`}
+                            logoUrl={clinicLogoUrl}
                         />
                     ) : null}
                 </FormField>

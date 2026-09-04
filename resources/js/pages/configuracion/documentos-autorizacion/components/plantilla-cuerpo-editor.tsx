@@ -2,6 +2,7 @@ import {
     AlignCenter,
     AlignLeft,
     Bold,
+    ImageIcon,
     Italic,
     List,
     ListOrdered,
@@ -14,7 +15,7 @@ import { cn } from '@/lib/utils';
 const VAR_GROUPS: readonly { label: string; items: readonly string[] }[] = [
     { label: 'Paciente', items: ['paciente', 'especie', 'raza', 'edad', 'sexo'] },
     { label: 'Titular', items: ['propietario', 'documento', 'telefono'] },
-    { label: 'Clínica', items: ['clinica', 'ciudad', 'veterinario'] },
+    { label: 'Clínica', items: ['clinica', 'ciudad', 'veterinario', 'logo'] },
     { label: 'Fecha', items: ['fecha', 'fecha_corta', 'dia', 'mes', 'mes_nombre', 'anio'] },
 ];
 
@@ -36,6 +37,7 @@ type Props = {
     value: string;
     onChange: (html: string) => void;
     resetKey: string;
+    logoUrl?: string | null;
     disabled?: boolean;
 };
 
@@ -43,7 +45,7 @@ function run(cmd: string, arg?: string) {
     document.execCommand(cmd, false, arg);
 }
 
-export function PlantillaCuerpoEditor({ value, onChange, resetKey, disabled }: Props) {
+export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disabled }: Props) {
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -52,11 +54,22 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, disabled }: P
             return;
         }
         el.innerHTML = value.trim() !== '' ? value : '<p><br></p>';
+        el.querySelectorAll('img.auth-doc-logo').forEach((img) => {
+            if (logoUrl) {
+                img.setAttribute('src', logoUrl);
+            } else {
+                img.removeAttribute('src');
+            }
+        });
         // Solo al abrir / cambiar de plantilla. Si se sincroniza en cada tecla, el cursor salta.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [resetKey]);
+    }, [resetKey, logoUrl]);
 
     const insertVar = (key: string) => {
+        if (key === 'logo') {
+            insertLogo();
+            return;
+        }
         const el = ref.current;
         if (!el || disabled) {
             return;
@@ -67,6 +80,20 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, disabled }: P
         if (!ok) {
             document.execCommand('insertHTML', false, token);
         }
+        onChange(el.innerHTML);
+    };
+
+    const insertLogo = () => {
+        const el = ref.current;
+        if (!el || disabled) {
+            return;
+        }
+        el.focus();
+        const src = logoUrl
+            ? logoUrl.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+            : '';
+        const html = `<p style="text-align:center"><img class="auth-doc-logo" alt=""${src ? ` src="${src}"` : ''}></p>`;
+        document.execCommand('insertHTML', false, html);
         onChange(el.innerHTML);
     };
 
@@ -113,6 +140,12 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, disabled }: P
                     icon={List}
                     label="Lista con viñetas"
                     onClick={() => format('insertUnorderedList')}
+                    disabled={disabled}
+                />
+                <ToolbarBtn
+                    icon={ImageIcon}
+                    label={logoUrl ? 'Insertar logo (centrado)' : 'Sube el logo en Configuración → General'}
+                    onClick={insertLogo}
                     disabled={disabled}
                 />
             </div>

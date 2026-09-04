@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DocumentoAutorizacionPlantillaRequest;
+use App\Models\ClinicSetting;
 use App\Models\DocumentoAutorizacionPlantilla;
 use App\Support\Clinica\DocumentoAutorizacionRenderer;
 use Illuminate\Http\RedirectResponse;
@@ -33,6 +34,7 @@ final class DocumentoAutorizacionPlantillaController extends Controller
         return Inertia::render('configuracion/documentos-autorizacion/index', [
             'plantillas' => $items,
             'cuerpo_default' => DocumentoAutorizacionRenderer::defaultCuerpo(),
+            'clinic_logo_url' => ClinicSetting::current()->logo_url,
         ]);
     }
 

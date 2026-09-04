@@ -13,12 +13,14 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 final class DocumentoAutorizacionRenderer
 {
     public static function defaultCuerpo(): string
     {
-        return '<p style="text-align:center"><strong>AUTORIZACIÓN</strong></p>'
+        return '<p style="text-align:center"><img class="auth-doc-logo" alt=""></p>'
+            .'<p style="text-align:center"><strong>AUTORIZACIÓN</strong></p>'
             .'<p>Yo, {{propietario}}, identificada(o) con documento {{documento}}, titular de {{paciente}} (especie {{especie}}, raza {{raza}}, edad {{edad}}, sexo {{sexo}}), autorizo a {{clinica}} a realizar los procedimientos clínicos correspondientes.</p>'
             .'<ol>'
             .'<li>Autorizo al equipo médico a administrar el tratamiento que consideren necesario.</li>'
@@ -97,7 +99,14 @@ final class DocumentoAutorizacionRenderer
             $vars = $escaped;
         }
 
-        return self::toSafeHtml(self::render($plantilla->cuerpo, $vars));
+        return self::prepareCuerpoHtml(self::render($plantilla->cuerpo, $vars));
+    }
+
+    public static function prepareCuerpoHtml(string $cuerpo, ?string $logoSrc = null): string
+    {
+        $cuerpo = str_replace('{{logo}}', '<img class="auth-doc-logo" alt="">', $cuerpo);
+
+        return self::applyLogoSrc(self::toSafeHtml($cuerpo), $logoSrc ?? self::clinicLogoDataUri());
     }
 
     public static function looksLikeHtml(string $cuerpo): bool
@@ -121,7 +130,7 @@ final class DocumentoAutorizacionRenderer
             return '';
         }
 
-        $stripped = strip_tags($html, '<p><br><strong><b><em><i><u><ol><ul><li><h2><h3><div><span>');
+        $stripped = strip_tags($html, '<p><br><strong><b><em><i><u><ol><ul><li><h2><h3><div><span><img>');
 
         $dom = new DOMDocument;
         $dom->encoding = 'UTF-8';
@@ -164,6 +173,7 @@ final class DocumentoAutorizacionRenderer
             'li' => [],
             'h2' => ['style', 'align'],
             'h3' => ['style', 'align'],
+            'img' => ['class', 'alt'],
         ];
 
         $children = [];
@@ -217,7 +227,87 @@ final class DocumentoAutorizacionRenderer
             foreach ($remove as $name) {
                 $child->removeAttribute($name);
             }
+
+            if ($tag === 'img') {
+                $class = strtolower(trim($child->getAttribute('class')));
+                if ($class !== 'auth-doc-logo') {
+                    $el->removeChild($child);
+
+                    continue;
+                }
+                $child->setAttribute('class', 'auth-doc-logo');
+                $child->setAttribute('alt', '');
+                $child->removeAttribute('src');
+            }
         }
+    }
+
+    public static function applyLogoSrc(string $html, ?string $src): string
+    {
+        if (! str_contains($html, 'auth-doc-logo')) {
+            return $html;
+        }
+
+        $dom = new DOMDocument;
+        $dom->encoding = 'UTF-8';
+        libxml_use_internal_errors(true);
+        $dom->loadHTML(
+            '<!DOCTYPE html><html><body><div id="__auth_root">'.$html.'</div></body></html>',
+            LIBXML_HTML_NODEFDTD | LIBXML_NOERROR,
+        );
+        libxml_clear_errors();
+        $root = $dom->getElementById('__auth_root');
+        if ($root === null) {
+            return $html;
+        }
+
+        $imgs = [];
+        foreach ($root->getElementsByTagName('img') as $img) {
+            $imgs[] = $img;
+        }
+        $src = is_string($src) && $src !== '' ? $src : null;
+        foreach ($imgs as $img) {
+            if (! $img instanceof DOMElement) {
+                continue;
+            }
+            if (strtolower($img->getAttribute('class')) !== 'auth-doc-logo') {
+                continue;
+            }
+            if ($src === null) {
+                $img->parentNode?->removeChild($img);
+
+                continue;
+            }
+            $img->setAttribute('src', $src);
+            $img->setAttribute('alt', '');
+        }
+
+        $out = '';
+        foreach ($root->childNodes as $child) {
+            $out .= $dom->saveHTML($child);
+        }
+
+        return $out;
+    }
+
+    public static function clinicLogoDataUri(): ?string
+    {
+        $clinic = ClinicSetting::current();
+        $path = $clinic->logo_path;
+        if ($path === null || $path === '') {
+            return null;
+        }
+        $path = ltrim((string) $path, '/');
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+        $binary = Storage::disk('public')->get($path);
+        $mime = Storage::disk('public')->mimeType($path) ?? 'image/png';
+        if (! is_string($mime) || ! str_starts_with($mime, 'image/')) {
+            return null;
+        }
+
+        return 'data:'.$mime.';base64,'.base64_encode((string) $binary);
     }
 
     private static function sanitizeStyle(string $style): ?string

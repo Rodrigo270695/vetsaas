@@ -14,10 +14,22 @@
         .auth-cuerpo p { margin: 0 0 6px; }
         .auth-cuerpo h2, .auth-cuerpo h3 { margin: 0 0 8px; font-size: 12px; }
         .auth-cuerpo ol, .auth-cuerpo ul { margin: 6px 0 8px 18px; padding: 0; }
-        .auth-cuerpo li { margin: 0 0 4px; }
+        .auth-cuerpo img.auth-doc-logo {
+            display: block;
+            margin: 0 auto 8px;
+            height: 56px;
+            width: auto;
+            max-width: 140px;
+        }
     </style>
 </head>
 <body>
+    @php
+        $cuerpoTieneLogo = str_contains((string) $cuerpoHtml, 'auth-doc-logo');
+        if ($cuerpoTieneLogo) {
+            $logoDataUri = null;
+        }
+    @endphp
     @include('pdf.partials.clinic-header')
     @include('pdf.partials.patient-owner-cards')
 

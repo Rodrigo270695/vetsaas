@@ -24,7 +24,10 @@ final class PublicDocumentoAutorizacionController extends Controller
         return Inertia::render('public/documento-autorizacion', [
             'token' => $token,
             'titulo' => $envio->titulo,
-            'cuerpo' => DocumentoAutorizacionRenderer::toSafeHtml($envio->cuerpo_snapshot),
+            'cuerpo' => DocumentoAutorizacionRenderer::prepareCuerpoHtml(
+                $envio->cuerpo_snapshot,
+                $clinic->logo_url,
+            ),
             'estado' => $envio->isPending() ? 'pendiente' : $envio->estado,
             'expirado' => $envio->estado === DocumentoAutorizacionEnvio::ESTADO_PENDIENTE
                 && $envio->expires_at->isPast(),

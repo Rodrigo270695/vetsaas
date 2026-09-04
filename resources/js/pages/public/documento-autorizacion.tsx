@@ -107,6 +107,7 @@ export default function PublicDocumentoAutorizacion({
         form.setData('firma', '');
     };
 
+    const cuerpoTieneLogo = cuerpo.includes('auth-doc-logo');
     const canSign = estado === 'pendiente' && !expirado;
 
     return (
@@ -114,7 +115,7 @@ export default function PublicDocumentoAutorizacion({
             <Head title={titulo} />
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
                 <div className="mb-4 flex items-center gap-3">
-                    {clinic.logo_url ? (
+                    {clinic.logo_url && !cuerpoTieneLogo ? (
                         <img src={clinic.logo_url} alt="" className="h-10 w-auto max-w-24 object-contain" />
                     ) : null}
                     <div>

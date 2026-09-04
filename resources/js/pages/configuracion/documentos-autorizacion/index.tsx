@@ -17,9 +17,10 @@ import { htmlToPlain } from './components/plantilla-cuerpo-editor';
 type Props = {
     plantillas: readonly PlantillaAutorizacion[];
     cuerpo_default: string;
+    clinic_logo_url?: string | null;
 };
 
-export default function Index({ plantillas, cuerpo_default }: Props) {
+export default function Index({ plantillas, cuerpo_default, clinic_logo_url = null }: Props) {
     const { t } = useTranslation(['documentos-autorizacion', 'common', 'nav']);
     const { can } = usePermission();
     const canUpdate = can('config-general.update');
@@ -119,7 +120,15 @@ export default function Index({ plantillas, cuerpo_default }: Props) {
                 }}
                 plantilla={editing === 'new' || editing === null ? null : editing}
                 cuerpoDefault={cuerpo_default}
+                clinicLogoUrl={clinic_logo_url}
             />
         </>
     );
 }
+
+Index.layout = {
+    breadcrumbs: [
+        { title: 'Configuración' },
+        { title: 'Autorizaciones', href: '/configuracion/documentos-autorizacion' },
+    ],
+};

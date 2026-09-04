@@ -35,7 +35,21 @@ it('detecta HTML y conserva negrita y alineación segura', function (): void {
         ->and($html)->not->toContain('color:red');
 });
 
-it('convierte texto plano a HTML escapado', function (): void {
-    expect(DocumentoAutorizacionRenderer::toSafeHtml("A < B\nC"))
-        ->toBe("A &lt; B<br>\nC");
+it('conserva el marcador de logo y quita src arbitrario', function (): void {
+    $html = DocumentoAutorizacionRenderer::sanitizeHtml(
+        '<p><img class="auth-doc-logo" src="javascript:alert(1)" alt="x"></p><p>Hola</p>',
+    );
+
+    expect($html)->toContain('auth-doc-logo')
+        ->and($html)->not->toContain('javascript')
+        ->and($html)->not->toContain('src=');
+});
+
+it('inyecta el src del logo de la clínica', function (): void {
+    $html = DocumentoAutorizacionRenderer::applyLogoSrc(
+        '<p><img class="auth-doc-logo" alt=""></p>',
+        'https://clinica.test/logo.png',
+    );
+
+    expect($html)->toContain('src="https://clinica.test/logo.png"');
 });

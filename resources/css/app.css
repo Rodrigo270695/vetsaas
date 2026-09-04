@@ -410,3 +410,12 @@
 .auth-doc-body li {
     margin: 0 0 0.35em;
 }
+.auth-doc-editor img.auth-doc-logo,
+.auth-doc-body img.auth-doc-logo {
+    display: block;
+    margin: 0 auto 0.75em;
+    height: 72px;
+    width: auto;
+    max-width: 160px;
+    object-fit: contain;
+}
