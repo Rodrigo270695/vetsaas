@@ -11,12 +11,19 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { usePermission } from '@/hooks/use-permission';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { isPropietarioDocumentTypeCode } from '@/lib/document-type-options';
 import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
 import { toastManager } from '@/lib/toast';
-import { useOfflineSync } from '@/hooks/use-offline-sync';
 import propietarios from '@/routes/clinica/propietarios';
 import type { GeoOption, Propietario } from '../types';
+import {
+    emptyMascotaDraft,
+    mascotaDraftsForSubmit,
+    PropietarioMascotasInline,
+    type MascotaDraft,
+} from './propietario-mascotas-inline';
 
 function soloDigitos(value: string, max?: number): string {
     const digits = value.replace(/\D/g, '');
@@ -70,6 +77,18 @@ const empty: FormData = {
     activo: true,
 };
 
+function mascotaDraftDirty(row: MascotaDraft): boolean {
+    return (
+        row.nombre.trim() !== '' ||
+        row.especie.trim() !== '' ||
+        row.raza.trim() !== '' ||
+        row.sexo !== '' ||
+        row.fecha_nacimiento.trim() !== '' ||
+        row.peso_kg.trim() !== '' ||
+        row.color.trim() !== ''
+    );
+}
+
 function normalizeTipoDocumento(raw: string | null | undefined): string {
     if (!raw) {
         return '';
@@ -118,17 +137,21 @@ export function PropietarioFormModal({
 }: PropietarioFormModalProps) {
     const { t } = useTranslation(['propietarios', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
+    const { can } = usePermission();
     const isEdit = propietario !== null;
+    const canCreatePets = !isEdit && can('pacientes.create');
 
-    const { data, setData, post, put, processing, errors, reset, clearErrors, setError } =
+    const { data, setData, post, put, processing, errors, reset, clearErrors, setError, transform } =
         useForm<FormData>(empty);
 
     const [geo, setGeo] = useState<GeoCascadeValue>(() => geoFrom(null));
+    const [mascotas, setMascotas] = useState<MascotaDraft[]>(() => [emptyMascotaDraft()]);
     const initialRef = useRef<FormData>(empty);
     const lastConsultaKeyRef = useRef<string | null>(null);
     const [jsonSubmitting, setJsonSubmitting] = useState(false);
     const [consultandoDoc, setConsultandoDoc] = useState(false);
     const submitting = processing || jsonSubmitting;
+    const namedPets = mascotaDraftsForSubmit(mascotas);
     const canSubmit = data.nombres.trim().length > 0 && !submitting;
 
     const tipoDoc = data.tipo_documento.trim().toUpperCase();
@@ -157,6 +180,7 @@ export function PropietarioFormModal({
                 setData(key, initial[key]);
             });
             setGeo(geoFrom(propietario));
+            setMascotas([emptyMascotaDraft()]);
             clearErrors();
             setConsultandoDoc(false);
 
@@ -296,10 +320,13 @@ export function PropietarioFormModal({
 
     const isDirty = useMemo(() => {
         const initial = initialRef.current;
-        return (Object.keys(initial) as Array<keyof FormData>).some(
+        const fieldsDirty = (Object.keys(initial) as Array<keyof FormData>).some(
             (key) => initial[key] !== data[key],
         );
-    }, [data]);
+        const petsDirty = canCreatePets && mascotas.some(mascotaDraftDirty);
+
+        return fieldsDirty || petsDirty;
+    }, [canCreatePets, data, mascotas]);
 
     const handleClose = (next: boolean) => {
         if (!next) {
@@ -311,6 +338,7 @@ export function PropietarioFormModal({
             }
             reset();
             setGeo({ departamento_id: null, provincia_id: null, distrito_id: null });
+            setMascotas([emptyMascotaDraft()]);
             clearErrors();
         }
         onOpenChange(next);
@@ -321,8 +349,15 @@ export function PropietarioFormModal({
         const onSuccess = () => {
             reset();
             setGeo({ departamento_id: null, provincia_id: null, distrito_id: null });
+            setMascotas([emptyMascotaDraft()]);
             clearErrors();
             onOpenChange(false);
+        };
+
+        const createPayload = {
+            ...data,
+            tipo_documento: normalizeTipoDocumento(data.tipo_documento) || null,
+            mascotas: canCreatePets ? namedPets : [],
         };
 
         if (isEdit && propietario) {
@@ -335,13 +370,9 @@ export function PropietarioFormModal({
         }
 
         if (jsonStoreUrl && onCreated) {
-            const offlinePayload = {
-                ...data,
-                tipo_documento: normalizeTipoDocumento(data.tipo_documento) || null,
-            };
             const queued = await enqueueIfOffline(
                 'clinica.propietario.create',
-                offlinePayload,
+                createPayload,
                 {
                     refreshPending,
                     onSuccess: () => undefined,
@@ -375,7 +406,7 @@ export function PropietarioFormModal({
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify(data),
+                    body: JSON.stringify(createPayload),
                 });
                 const body = (await res.json()) as {
                     propietario?: PropietarioCreatedPayload;
@@ -407,13 +438,14 @@ export function PropietarioFormModal({
             return;
         }
 
-        const offlinePayload = {
-            ...data,
-            tipo_documento: normalizeTipoDocumento(data.tipo_documento) || null,
-        };
+        transform((formData) => ({
+            ...formData,
+            mascotas: canCreatePets ? namedPets : [],
+        }));
+
         const queued = await enqueueIfOffline(
             'clinica.propietario.create',
-            offlinePayload,
+            createPayload,
             {
                 refreshPending,
                 onSuccess,
@@ -437,8 +469,8 @@ export function PropietarioFormModal({
             open={open}
             onOpenChange={handleClose}
             title={isEdit ? t('form.title_edit') : t('form.title_create')}
-            description={t('description')}
-            size="lg"
+            description={isEdit ? t('form.description_edit') : t('form.description_create')}
+            size={canCreatePets ? 'xl' : 'lg'}
             onSubmit={onSubmit}
             footer={
                 <>
@@ -459,7 +491,11 @@ export function PropietarioFormModal({
                         {submitting && (
                             <Loader2 className="size-4 animate-spin" aria-hidden />
                         )}
-                        {isEdit ? t('form.submit_edit') : t('form.submit_create')}
+                        {isEdit
+                            ? t('form.submit_edit')
+                            : namedPets.length > 0
+                              ? t('form.submit_create_with_pets')
+                              : t('form.submit_create')}
                     </Button>
                 </>
             }
@@ -640,6 +676,15 @@ export function PropietarioFormModal({
                         </div>
                     </FormField>
                 </FormSection>
+
+                {canCreatePets ? (
+                    <PropietarioMascotasInline
+                        drafts={mascotas}
+                        onChange={setMascotas}
+                        errors={errors as Record<string, string>}
+                        disabled={submitting}
+                    />
+                ) : null}
             </div>
         </FormModal>
     );

@@ -66,6 +66,9 @@ it('envía al crear y editar solo cuando la preferencia WhatsApp está activa', 
         $this->testTenant->slug,
         function (): string {
             expect(NotificationQueue::query()->where('tipo', 'cita_creada')->count())->toBe(1);
+            expect(NotificationQueue::query()->where('tipo', 'cita_2h')->count())->toBe(0);
+            expect(NotificationQueue::query()->where('tipo', 'like', 'cita_%d')->count())->toBe(0);
+            expect(NotificationQueue::query()->where('tipo', 'cita_48h')->count())->toBe(0);
 
             ClinicSetting::current()->update([
                 'notificar_cita_whatsapp_activo' => false,

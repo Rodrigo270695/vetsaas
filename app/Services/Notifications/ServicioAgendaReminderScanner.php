@@ -292,6 +292,10 @@ final class ServicioAgendaReminderScanner
             return 0;
         }
 
+        if ($this->shouldSkipReminderAfterLifecycleNotice($referenciaTipo, $referenciaId, $tipo)) {
+            return 0;
+        }
+
         $created = $this->queue->enqueue(
             tipo: $tipo,
             destinatario: $chatId,
@@ -305,6 +309,25 @@ final class ServicioAgendaReminderScanner
         );
 
         return $created instanceof NotificationQueue ? 1 : 0;
+    }
+
+    private function shouldSkipReminderAfterLifecycleNotice(string $referenciaTipo, string $referenciaId, string $tipo): bool
+    {
+        $lifecycle = match ($referenciaTipo) {
+            'grooming_turno' => ['grooming_programado', 'grooming_reprogramado'],
+            'hotel_estancia' => ['hotel_registrada', 'hotel_reprogramada'],
+            default => [],
+        };
+        if ($lifecycle === [] || in_array($tipo, $lifecycle, true)) {
+            return false;
+        }
+
+        return NotificationQueue::query()
+            ->where('referencia_tipo', $referenciaTipo)
+            ->where('referencia_id', $referenciaId)
+            ->whereIn('tipo', $lifecycle)
+            ->where('created_at', '>=', now()->subHours(6))
+            ->exists();
     }
 
     private function tipoGroomingDias(int $days): string

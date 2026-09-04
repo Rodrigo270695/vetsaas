@@ -1,6 +1,6 @@
 {
     "title": "Owners",
-    "description": "Owners and contact details. From the profile you can register their pets.",
+    "description": "Owners, contact details and pets. You can register the owner and patients in one step.",
     "search_placeholder": "Search by name, surname, ID, email or phone…",
     "filter_label": "Status",
     "plan_limit": {
@@ -72,7 +72,7 @@
         "no_results_title": "No results",
         "no_results_description": "Try clearing filters or changing your search.",
         "no_records_title": "No owners yet",
-        "no_records_description": "Register the owner to link pets later."
+        "no_records_description": "Register the owner and, if you want, their pets in the same step."
     },
     "toast": {
         "load_error": "Could not load the list."
@@ -106,7 +106,18 @@
         "notas": "Internal notes",
         "activo": "Active",
         "submit_create": "Save owner",
-        "submit_edit": "Save changes"
+        "submit_create_with_pets": "Save owner and pets",
+        "submit_edit": "Save changes",
+        "description_create": "Owner details and, if you want, one or more pets. Everything is saved together.",
+        "description_edit": "Update identity and contact. Pets are managed from the profile.",
+        "section_pets": "Pets",
+        "section_pets_hint": "Optional. A name is enough; species and the rest can be completed later.",
+        "pets_named_count_one": "1 pet ready to save",
+        "pets_named_count_other": "{{count}} pets ready to save",
+        "pet_untitled": "No name yet",
+        "pet_remove": "Remove this pet",
+        "pet_add": "Add another pet",
+        "pet_name_placeholder": "E.g. Luna, Max…"
     },
     "delete": {
         "title": "Delete owner",

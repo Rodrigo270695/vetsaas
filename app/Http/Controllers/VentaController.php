@@ -37,6 +37,7 @@ use App\Services\Venta\VentaTicketPdfService;
 use App\Services\Venta\VentaWhatsAppComprobanteSender;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\Caja\VentaTicketPolicy;
+use App\Support\Clinica\PropietarioMascotasAttach;
 use App\Support\Clinica\PropietarioSearch;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\Fel\FelDocumentApisunatModeResolver;
@@ -1079,13 +1080,23 @@ class VentaController extends Controller
         abort_unless($request->user()?->can('ventas.create'), 403);
 
         $userId = Auth::id();
-        $data = $this->hydratePropietarioUbigeo($request->validated());
+        [$payload, $mascotas] = PropietarioMascotasAttach::split($request->validated());
+        $data = $this->hydratePropietarioUbigeo($payload);
 
-        $propietario = Propietario::query()->create([
-            ...$data,
-            'created_by_id' => $userId,
-            'updated_by_id' => $userId,
-        ]);
+        if ($mascotas !== [] && ! $request->user()?->can('pacientes.create')) {
+            $mascotas = [];
+        }
+
+        $propietario = DB::transaction(function () use ($data, $userId, $mascotas) {
+            $propietario = Propietario::query()->create([
+                ...$data,
+                'created_by_id' => $userId,
+                'updated_by_id' => $userId,
+            ]);
+            PropietarioMascotasAttach::create($propietario, $mascotas, $userId);
+
+            return $propietario;
+        });
 
         $label = $propietario->razon_social
             ?: trim(implode(' ', array_filter([$propietario->nombres, $propietario->apellidos])));

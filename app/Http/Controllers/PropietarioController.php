@@ -14,12 +14,14 @@ use App\Models\Propietario;
 use App\Services\Clinica\PropietarioImportService;
 use App\Services\Integrations\ApiPeruDniService;
 use App\Services\Integrations\ApiPeruRucService;
+use App\Support\Clinica\PropietarioMascotasAttach;
 use App\Support\Clinica\PropietarioSearch;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -201,20 +203,36 @@ class PropietarioController extends Controller
     public function store(PropietarioRequest $request): RedirectResponse
     {
         $userId = Auth::id();
-        $data = $this->hydrateLocationFromDistrito($request->validated());
+        [$payload, $mascotas] = PropietarioMascotasAttach::split($request->validated());
+        $data = $this->hydrateLocationFromDistrito($payload);
 
-        Propietario::create([
-            ...$data,
-            'created_by_id' => $userId,
-            'updated_by_id' => $userId,
-        ]);
+        if ($mascotas !== [] && ! $request->user()?->can('pacientes.create')) {
+            $mascotas = [];
+        }
 
-        return back()->with('success', 'Propietario creado correctamente.');
+        $count = 0;
+        DB::transaction(function () use ($data, $userId, $mascotas, &$count): void {
+            $propietario = Propietario::query()->create([
+                ...$data,
+                'created_by_id' => $userId,
+                'updated_by_id' => $userId,
+            ]);
+            $count = PropietarioMascotasAttach::create($propietario, $mascotas, $userId);
+        });
+
+        $msg = $count > 0
+            ? ($count === 1
+                ? 'Propietario y 1 mascota creados correctamente.'
+                : "Propietario y {$count} mascotas creados correctamente.")
+            : 'Propietario creado correctamente.';
+
+        return back()->with('success', $msg);
     }
 
     public function update(PropietarioRequest $request, Propietario $propietario): RedirectResponse
     {
-        $data = $this->hydrateLocationFromDistrito($request->validated());
+        [$payload] = PropietarioMascotasAttach::split($request->validated());
+        $data = $this->hydrateLocationFromDistrito($payload);
 
         $propietario->update([
             ...$data,

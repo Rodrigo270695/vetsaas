@@ -54,6 +54,7 @@ use App\Models\Venta;
 use App\Services\Hotel\HotelWhatsAppNotifier;
 use App\Services\Inventario\InventarioLoteService;
 use App\Services\Venta\VentaCheckoutService;
+use App\Support\Clinica\PropietarioMascotasAttach;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use App\Support\Hotel\HotelEstanciaTipoRules;
 use App\Support\Vacunas\VacunaAplicadaStockSync;
@@ -323,15 +324,23 @@ final class OfflineSyncPushService
     {
         try {
             $validated = $this->validatePropietarioPayload($payload, $user);
-            $data = $this->hydrateLocationFromDistrito($validated);
+            [$ownerPayload, $mascotas] = PropietarioMascotasAttach::split($validated);
+            $data = $this->hydrateLocationFromDistrito($ownerPayload);
             $uid = $user->id;
 
-            $propietario = DB::transaction(function () use ($data, $uid): Propietario {
-                return Propietario::query()->create([
+            if ($mascotas !== [] && ! $user->can('pacientes.create')) {
+                $mascotas = [];
+            }
+
+            $propietario = DB::transaction(function () use ($data, $uid, $mascotas): Propietario {
+                $propietario = Propietario::query()->create([
                     ...$data,
                     'created_by_id' => $uid,
                     'updated_by_id' => $uid,
                 ]);
+                PropietarioMascotasAttach::create($propietario, $mascotas, $uid);
+
+                return $propietario;
             });
 
             $label = $propietario->razon_social

@@ -1,6 +1,6 @@
 {
     "title": "Propietarios",
-    "description": "Titulares y datos de contacto. Desde la ficha puedes registrar sus mascotas.",
+    "description": "Titulares, contacto y mascotas. Puedes registrar dueño y pacientes en el mismo alta.",
     "search_placeholder": "Buscar por nombre, apellido, DNI, correo o teléfono…",
     "filter_label": "Estado",
     "plan_limit": {
@@ -72,7 +72,7 @@
         "no_results_title": "Sin resultados",
         "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
         "no_records_title": "Aún no hay propietarios",
-        "no_records_description": "Registra al titular para luego asociar mascotas."
+        "no_records_description": "Registra al titular y, si quieres, sus mascotas en el mismo paso."
     },
     "toast": {
         "load_error": "No se pudo cargar el listado."
@@ -106,7 +106,18 @@
         "notas": "Notas internas",
         "activo": "Activo",
         "submit_create": "Guardar propietario",
-        "submit_edit": "Guardar cambios"
+        "submit_create_with_pets": "Guardar titular y mascotas",
+        "submit_edit": "Guardar cambios",
+        "description_create": "Datos del titular y, si quieres, una o más mascotas. Todo se guarda junto.",
+        "description_edit": "Actualiza identidad y contacto. Las mascotas se gestionan desde la ficha.",
+        "section_pets": "Mascotas",
+        "section_pets_hint": "Opcional. Con el nombre basta; especie y el resto los puedes completar después.",
+        "pets_named_count_one": "1 mascota lista para guardar",
+        "pets_named_count_other": "{{count}} mascotas listas para guardar",
+        "pet_untitled": "Sin nombre todavía",
+        "pet_remove": "Quitar esta mascota",
+        "pet_add": "Añadir otra mascota",
+        "pet_name_placeholder": "Ej. Luna, Max…"
     },
     "delete": {
         "title": "Eliminar propietario",

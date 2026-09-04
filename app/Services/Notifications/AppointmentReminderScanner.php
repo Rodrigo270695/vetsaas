@@ -164,6 +164,10 @@ final class AppointmentReminderScanner
             return 0;
         }
 
+        if ($this->shouldSkipReminderAfterLifecycleNotice($cita, $tipo)) {
+            return 0;
+        }
+
         $created = $this->queue->enqueue(
             tipo: $tipo,
             destinatario: $chatId,
@@ -177,6 +181,24 @@ final class AppointmentReminderScanner
         );
 
         return $created instanceof NotificationQueue ? 1 : 0;
+    }
+
+    /**
+     * Tras "Registramos la cita" no mandar el recordatorio de 1 día / 2 h
+     * en el mismo instante (cita a ~24 h o ~2 h).
+     */
+    private function shouldSkipReminderAfterLifecycleNotice(Cita $cita, string $tipo): bool
+    {
+        if (in_array($tipo, ['cita_creada', 'cita_reprogramada', 'cita_actualizada'], true)) {
+            return false;
+        }
+
+        return NotificationQueue::query()
+            ->where('referencia_tipo', 'cita')
+            ->where('referencia_id', $cita->id)
+            ->whereIn('tipo', ['cita_creada', 'cita_reprogramada', 'cita_actualizada'])
+            ->where('created_at', '>=', now()->subHours(6))
+            ->exists();
     }
 
     private function ownerName(Cita $cita): string

@@ -37,5 +37,5 @@ it('usa el texto de fábrica cuando no hay tabla de plantillas', function (): vo
 
     expect($msg)->toContain('Registramos la cita de *Kaizer*')
         ->and($msg)->toContain('OpenVet')
-        ->and($msg)->toContain('Responde *SI*');
+        ->and($msg)->not->toContain('Responde *SI*');
 });
