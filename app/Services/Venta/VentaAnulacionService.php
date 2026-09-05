@@ -9,8 +9,6 @@ use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\MovimientoInventario;
 use App\Models\Venta;
-use App\Models\VentaLinea;
-use App\Models\ConsultaCargoLinea;
 use App\Services\Fel\FelAnulacionComprobanteService;
 use App\Services\Fel\FelNotaCreditoComprobanteService;
 use App\Services\Inventario\InventarioLoteService;
@@ -121,9 +119,18 @@ final class VentaAnulacionService
 
     private function liberarVinculos(Venta $venta): void
     {
-        ConsultaCargo::query()
+        $cargos = ConsultaCargo::query()
             ->where('venta_id', $venta->id)
-            ->update(['venta_id' => null]);
+            ->orderBy('created_at')
+            ->get();
+
+        foreach ($cargos as $cargo) {
+            if ($this->origenYaTienePrecuentaPendiente($cargo)) {
+                continue;
+            }
+
+            $cargo->update(['venta_id' => null]);
+        }
 
         GroomingTurno::query()
             ->where('venta_id', $venta->id)
@@ -140,5 +147,27 @@ final class VentaAnulacionService
         HotelEstancia::query()
             ->where('venta_id', $venta->id)
             ->update(['venta_id' => null]);
+    }
+
+    /**
+     * Solo puede haber una pre-cuenta pendiente (venta_id null) por origen.
+     * Si ya abrieron otra hoja tras cobrar, no reabrimos esta al anular.
+     */
+    private function origenYaTienePrecuentaPendiente(ConsultaCargo $cargo): bool
+    {
+        foreach (['consulta_id', 'internamiento_id', 'grooming_turno_id', 'hotel_estancia_id', 'vacuna_aplicada_id'] as $col) {
+            $origenId = $cargo->{$col};
+            if (! is_string($origenId) || $origenId === '') {
+                continue;
+            }
+
+            return ConsultaCargo::query()
+                ->where($col, $origenId)
+                ->whereNull('venta_id')
+                ->whereKeyNot($cargo->id)
+                ->exists();
+        }
+
+        return false;
     }
 }

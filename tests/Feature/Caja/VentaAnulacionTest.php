@@ -170,6 +170,58 @@ it('anula venta pagada, revierte stock y libera pre-cuenta', function (): void {
     });
 });
 
+it('anula el ticket aunque la consulta ya tenga otra pre-cuenta pendiente', function (): void {
+    $payload = CajaConsultaCargoScenario::ventaPayloadFromCargo($this->scenario);
+
+    $this->actingAs($this->cajero)
+        ->post($this->baseUrl.'/caja/ventas', $payload)
+        ->assertRedirect();
+
+    $ventaId = null;
+    $cargoId = (string) $this->scenario['cargo']->id;
+    $consultaId = (string) $this->scenario['consulta']->id;
+    $userId = (string) $this->cajero->id;
+
+    TenantContext::runForSlug($this->slug, function () use (&$ventaId, $consultaId, $userId): void {
+        $venta = Venta::query()->orderByDesc('created_at')->firstOrFail();
+        $ventaId = $venta->id;
+
+        ConsultaCargo::query()->create([
+            'consulta_id' => $consultaId,
+            'estado' => ConsultaCargo::ESTADO_BORRADOR,
+            'moneda' => 'PEN',
+            'subtotal_sin_igv' => 0,
+            'igv_importe' => 0,
+            'total' => 0,
+            'created_by_id' => $userId,
+            'updated_by_id' => $userId,
+        ]);
+    });
+
+    $this->actingAs($this->cajero)
+        ->post($this->baseUrl.'/caja/ventas/'.$ventaId.'/anular', [
+            'motivo' => 'Error de cobro; ya hay otra pre-cuenta abierta',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    TenantContext::runForSlug($this->slug, function () use ($ventaId, $cargoId, $consultaId): void {
+        $venta = Venta::query()->findOrFail($ventaId);
+        expect($venta->estado)->toBe(Venta::ESTADO_ANULADO);
+
+        expect(
+            ConsultaCargo::query()->whereKey($cargoId)->value('venta_id'),
+        )->toBe($ventaId);
+
+        expect(
+            ConsultaCargo::query()
+                ->where('consulta_id', $consultaId)
+                ->whereNull('venta_id')
+                ->count(),
+        )->toBe(1);
+    });
+});
+
 it('anula comprobante FEL emitido vía Lucode (APISUNAT)', function (): void {
     $plan = Plan::query()->firstOrCreate(
         ['codigo' => 'clinica'],
