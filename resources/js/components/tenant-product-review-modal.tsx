@@ -151,8 +151,8 @@ export function TenantProductReviewModal() {
                             ¿Cómo está siendo VetSaaS en {prompt.clinic_name}?
                         </DialogTitle>
                         <DialogDescription className="text-sm leading-relaxed">
-                            Puedes cerrar ahora y te lo recordaremos mañana. Cuando envíes
-                            la reseña, se publicará en orvae.pe como{' '}
+                            Puedes cerrar ahora; te lo volveremos a pedir en un par de semanas hasta que publiques.
+                            La reseña se verá en orvae.pe como{' '}
                             <span className="font-medium text-foreground">{previewLine}</span>
                             {prompt.author_name ? (
                                 <>

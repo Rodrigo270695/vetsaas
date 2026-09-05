@@ -54,7 +54,7 @@ it('permite cerrar el modal y no lo vuelve a mostrar el mismo día', function ()
         ->assertInertia(fn ($page) => $page->where('product_review_prompt', null));
 });
 
-it('vuelve a mostrar el modal al día siguiente si no enviaron la reseña', function (): void {
+it('no vuelve a mostrar el modal al día siguiente; espera dos semanas', function (): void {
     Carbon::setTestNow(Carbon::parse('2026-08-31 10:00:00', 'America/Lima'));
 
     $this->actingAs($this->testTenantAdmin)
@@ -62,6 +62,12 @@ it('vuelve a mostrar el modal al día siguiente si no enviaron la reseña', func
         ->assertRedirect();
 
     Carbon::setTestNow(Carbon::parse('2026-09-01 09:00:00', 'America/Lima'));
+
+    $this->get('http://'.$this->testTenantHost.'/dashboard')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('product_review_prompt', null));
+
+    Carbon::setTestNow(Carbon::parse('2026-09-14 09:00:00', 'America/Lima'));
 
     $this->get('http://'.$this->testTenantHost.'/dashboard')
         ->assertOk()

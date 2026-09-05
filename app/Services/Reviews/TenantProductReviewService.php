@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 
 final class TenantProductReviewService
 {
+    public const DISMISS_COOLDOWN_DAYS = 14;
     /** @var array<string, string> */
     public const ROLE_LABELS = [
         'admin_clinica' => 'Administración',
@@ -64,7 +65,7 @@ final class TenantProductReviewService
 
         $today = $this->todayForTenant($tenant);
         if ($row?->prompt_dismissed_on !== null
-            && $row->prompt_dismissed_on->toDateString() === $today->toDateString()) {
+            && $row->prompt_dismissed_on->copy()->addDays(self::DISMISS_COOLDOWN_DAYS)->gt($today)) {
             return false;
         }
 

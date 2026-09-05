@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Sales\SalesBotService;
 use App\Services\Subscriptions\SubscriptionWinBackService;
-use App\Support\Agenda\AgendaRsvpFromInbound;
 use App\Support\WhatsApp\BotInboundDebouncer;
 use App\Support\WhatsApp\BotInboundDebounceScheduler;
 use App\Support\WhatsApp\WhatsAppContactResolver;
@@ -50,7 +49,6 @@ final class SalesBotWebhookController extends Controller
         private readonly PlatformWhatsAppMessenger $messenger,
         private readonly WhatsAppContactResolver $contactResolver,
         private readonly SubscriptionWinBackService $winBack,
-        private readonly AgendaRsvpFromInbound $agendaRsvp,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -101,10 +99,7 @@ final class SalesBotWebhookController extends Controller
             'from' => $data['from'] ?? $data['chatId'] ?? null,
         ]);
 
-        $rsvpIntentEarly = \App\Support\Agenda\AgendaRsvpIntent::parse($body);
-        // Aceptar message.received / onMessage / message, y SI/NO aunque el event name sea otro.
-        $esEventoMensaje = \App\Support\OpenWa\OpenWaWebhookEvents::isInboundChat($event)
-            || ($rsvpIntentEarly !== null && ! $fromMe);
+        $esEventoMensaje = \App\Support\OpenWa\OpenWaWebhookEvents::isInboundChat($event);
 
         $isAudio = in_array($type, ['ptt', 'audio'], true);
         $messageId = (string) ($data['id'] ?? '');
@@ -181,45 +176,6 @@ final class SalesBotWebhookController extends Controller
 
         if ($phone === '') {
             return response()->json(['ok' => false, 'reason' => 'no phone'], 422);
-        }
-
-        $rsvpIntent = \App\Support\Agenda\AgendaRsvpIntent::parse($body);
-        if ($rsvpIntent !== null) {
-            Log::warning('Agenda RSVP: inbound sales-bot', [
-                'intent' => $rsvpIntent,
-                'phone' => $phone,
-                'wa_chat_id' => $waChatId,
-                'session' => $openWaSessionId,
-                'body' => mb_substr($body, 0, 40),
-            ]);
-        }
-
-        $rsvp = $this->agendaRsvp->tryHandle($openWaSessionId, $phone, $waChatId, $body);
-        if ($rsvp !== null) {
-            Log::warning('Agenda RSVP: sales-bot confirmó/canceló', [
-                'kind' => $rsvp['kind'],
-                'intent' => $rsvp['intent'],
-                'id' => $rsvp['id'],
-                'phone' => $phone,
-            ]);
-            if ($this->messenger->isReady()) {
-                $this->messenger->sendText($waChatId, $rsvp['reply']);
-            }
-
-            return response()->json([
-                'ok' => true,
-                'rsvp' => true,
-                'kind' => $rsvp['kind'],
-                'intent' => $rsvp['intent'],
-            ]);
-        }
-
-        if ($rsvpIntent !== null) {
-            Log::warning('Agenda RSVP: sales-bot no aplicó el SI/NO', [
-                'phone' => $phone,
-                'wa_chat_id' => $waChatId,
-                'session' => $openWaSessionId,
-            ]);
         }
 
         // Cliente habla con Rodrigo o envía datos de proyecto → no intervenir.

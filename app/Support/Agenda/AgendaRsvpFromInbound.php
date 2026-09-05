@@ -66,6 +66,10 @@ final class AgendaRsvpFromInbound
             return null;
         }
 
+        if ($this->isPlatformSalesSession($openWaSessionId)) {
+            return null;
+        }
+
         $slugs = [];
         foreach ($this->tenantSlugsFor($openWaSessionId, $phone, $waChatId) as $slug) {
             if ($slug !== '' && ! in_array($slug, $slugs, true)) {
@@ -168,6 +172,20 @@ final class AgendaRsvpFromInbound
         }
 
         return $slugs;
+    }
+
+    /**
+     * El WhatsApp de plataforma es el bot de ventas (superadmin), no confirmación de citas.
+     */
+    private function isPlatformSalesSession(string $openWaSessionId): bool
+    {
+        if ($openWaSessionId === '') {
+            return false;
+        }
+
+        return PlatformWhatsAppSession::query()
+            ->where('openwa_session_id', $openWaSessionId)
+            ->exists();
     }
 
     /**

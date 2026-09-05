@@ -16,7 +16,7 @@ final class AgendaRsvpPollInboxCommand extends Command
                             {--dry-run : Solo listar; no confirma ni responde}
                             {--debug : Muestra chat, cantidad de mensajes y un extracto}';
 
-    protected $description = 'Aplica SI/NO de agenda leyendo el inbox OpenWA (si el webhook no dispara)';
+    protected $description = 'No-op: la confirmación SI/NO no usa el WhatsApp de plataforma (SalesBot)';
 
     public function handle(AgendaRsvpInboxPoller $poller): int
     {
