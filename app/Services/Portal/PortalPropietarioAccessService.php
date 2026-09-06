@@ -84,7 +84,7 @@ final class PortalPropietarioAccessService
         return $portal;
     }
 
-    public function setPin(PortalPropietario $portal, string $pin, Request $request): Cookie
+    public function setPin(PortalPropietario $portal, string $pin): void
     {
         $this->assertPinFormat($pin);
 
@@ -97,11 +97,9 @@ final class PortalPropietarioAccessService
             'reset_code_expires_at' => null,
             'reset_failed_attempts' => 0,
         ])->save();
-
-        return $this->issueSession($portal, $request);
     }
 
-    public function unlock(PortalPropietario $portal, string $pin, Request $request): Cookie
+    public function unlock(PortalPropietario $portal, string $pin): void
     {
         $this->assertPinFormat($pin);
 
@@ -118,8 +116,6 @@ final class PortalPropietarioAccessService
             'pin_failed_attempts' => 0,
             'pin_locked_until' => null,
         ])->save();
-
-        return $this->issueSession($portal, $request);
     }
 
     public function sendResetCode(PortalPropietario $portal, Tenant $tenant): string
@@ -168,7 +164,7 @@ final class PortalPropietarioAccessService
         return PortalPhoneMask::mask($phone);
     }
 
-    public function confirmReset(PortalPropietario $portal, string $code, string $pin, Request $request): Cookie
+    public function confirmReset(PortalPropietario $portal, string $code, string $pin): void
     {
         $this->assertPinFormat($pin);
         $code = preg_replace('/\D+/', '', $code) ?? '';
@@ -204,8 +200,6 @@ final class PortalPropietarioAccessService
             'reset_code_expires_at' => null,
             'reset_failed_attempts' => 0,
         ])->save();
-
-        return $this->issueSession($portal, $request);
     }
 
     public function issueSession(PortalPropietario $portal, Request $request): Cookie
@@ -231,6 +225,48 @@ final class PortalPropietarioAccessService
             httpOnly: true,
             sameSite: 'lax',
         );
+    }
+
+    public function identityCookie(PortalPropietario $portal): Cookie
+    {
+        return cookie(
+            name: (string) config('portal.identity_cookie', 'vetsaas_portal_id'),
+            value: $portal->id,
+            minutes: 60 * 24 * 400,
+            path: '/',
+            secure: (bool) config('session.secure'),
+            httpOnly: true,
+            sameSite: 'lax',
+        );
+    }
+
+    public function findByIdentity(?string $portalId): ?PortalPropietario
+    {
+        if ($portalId === null || $portalId === '') {
+            return null;
+        }
+
+        $portal = PortalPropietario::query()
+            ->where('id', $portalId)
+            ->with('propietario')
+            ->first();
+
+        if ($portal === null || $portal->propietario === null || ! $portal->propietario->activo) {
+            return null;
+        }
+
+        return $portal;
+    }
+
+    /**
+     * @return list<Cookie>
+     */
+    public function authCookies(PortalPropietario $portal, Request $request): array
+    {
+        return [
+            $this->issueSession($portal, $request),
+            $this->identityCookie($portal),
+        ];
     }
 
     public function resolveSession(?string $plainToken): ?PortalPropietarioSesion

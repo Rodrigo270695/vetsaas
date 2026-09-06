@@ -18,7 +18,9 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Grooming\GroomingProcesoWhatsAppSender;
 use App\Services\Notifications\ServicioAgendaReminderScanner;
+use App\Services\Portal\PortalOwnerNotifier;
 use App\Services\Venta\VentaCheckoutService;
+use App\Support\ConsultaCargo\ConsultaCargoCobroEstado;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use App\Support\WhatsApp\DeferredWhatsAppDispatch;
 use App\Support\WhatsApp\WhatsAppChatId;
@@ -129,7 +131,7 @@ class GroomingTurnoController extends Controller
                 'cargo',
             ]);
 
-        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::withCobradosCount($query);
+        ConsultaCargoCobroEstado::withCobradosCount($query);
 
         if ($canAudit) {
             $query->with([
@@ -141,10 +143,10 @@ class GroomingTurnoController extends Controller
         $query->whereBetween('grooming_turnos.inicio_at', [$inicioRango, $finRango]);
 
         $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
-        if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
-            $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
+        if (! in_array($cobroFiltro, ConsultaCargoCobroEstado::FILTERS, true)) {
+            $cobroFiltro = ConsultaCargoCobroEstado::FILTER_TODOS;
         }
-        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::applyListFilter(
+        ConsultaCargoCobroEstado::applyListFilter(
             $query,
             $cobroFiltro,
             'cargos',
@@ -447,6 +449,26 @@ class GroomingTurnoController extends Controller
         $groomingTurno->estado = $nuevoEstado;
         $groomingTurno->updated_by_id = Auth::id();
         $groomingTurno->save();
+
+        $groomingTurno->loadMissing(['paciente.propietario', 'groomingServicio:id,nombre']);
+        $pacientePortal = $groomingTurno->paciente;
+        if ($pacientePortal !== null) {
+            $estadoTxt = match ($nuevoEstado) {
+                GroomingTurno::ESTADO_PROGRAMADA => 'programado',
+                GroomingTurno::ESTADO_CONFIRMADA => 'confirmado',
+                GroomingTurno::ESTADO_EN_PROCESO => 'en proceso (baño)',
+                GroomingTurno::ESTADO_COMPLETADA => 'listo para recoger',
+                GroomingTurno::ESTADO_NO_ASISTIO => 'no asistió',
+                default => $nuevoEstado,
+            };
+            $servicioTxt = (string) ($groomingTurno->servicio_label ?: $groomingTurno->servicio);
+            app(PortalOwnerNotifier::class)->notifyPaciente(
+                $pacientePortal,
+                'grooming',
+                $pacientePortal->nombre.': grooming',
+                ucfirst($estadoTxt).($servicioTxt !== '' ? ' · '.$servicioTxt : ''),
+            );
+        }
 
         $fotosCreadas = collect();
         $files = $request->file('fotos', []);

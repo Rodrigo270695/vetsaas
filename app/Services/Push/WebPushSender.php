@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Push;
 
+use App\Models\PortalPushSubscription;
 use App\Models\PushSubscription;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -91,6 +92,69 @@ final class WebPushSender
             $endpoint = $report->getRequest()?->getUri()?->__toString();
             if (is_string($endpoint) && $endpoint !== '') {
                 PushSubscription::query()->where('endpoint', $endpoint)->delete();
+            }
+        }
+    }
+
+    /**
+     * @param  iterable<int, object{endpoint: string, public_key: ?string, auth_token: string, content_encoding: string}>  $subscriptions
+     * @param  array{title: string, body: string, url: string, tag: string}  $payload
+     */
+    public function sendToRawSubscriptions(iterable $subscriptions, array $payload): void
+    {
+        $tag = $payload['tag'] ?? 'unknown';
+
+        if (! $this->isConfigured() || ! class_exists(WebPush::class)) {
+            return;
+        }
+
+        $list = [];
+        foreach ($subscriptions as $subscription) {
+            $list[] = $subscription;
+        }
+        if ($list === []) {
+            return;
+        }
+
+        try {
+            $webPush = new WebPush(
+                [
+                    'VAPID' => [
+                        'subject' => (string) config('webpush.vapid.subject'),
+                        'publicKey' => (string) config('webpush.vapid.public_key'),
+                        'privateKey' => (string) config('webpush.vapid.private_key'),
+                    ],
+                ],
+                ['TTL' => 300, 'urgency' => 'high'],
+            );
+        } catch (Throwable $e) {
+            Log::error('Web push init failed', ['tag' => $tag, 'error' => $e->getMessage()]);
+
+            return;
+        }
+
+        $json = json_encode($payload, JSON_THROW_ON_ERROR);
+
+        foreach ($list as $subscription) {
+            $webPush->queueNotification(
+                Subscription::create([
+                    'endpoint' => $subscription->endpoint,
+                    'publicKey' => $subscription->public_key,
+                    'authToken' => $subscription->auth_token,
+                    'contentEncoding' => $subscription->content_encoding,
+                ]),
+                $json,
+            );
+        }
+
+        foreach ($webPush->flush() as $report) {
+            if ($report->isSuccess()) {
+                continue;
+            }
+
+            $endpoint = $report->getRequest()?->getUri()?->__toString();
+            if (is_string($endpoint) && $endpoint !== '') {
+                PortalPushSubscription::query()->where('endpoint', $endpoint)->delete();
             }
         }
     }

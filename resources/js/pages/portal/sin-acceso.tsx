@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { PortalThemeToggle } from '@/components/portal/portal-theme-toggle';
 
 type Props = {
     clinic: { nombre: string; logo_url: string | null };
@@ -11,14 +12,19 @@ export default function PortalSinAcceso({ clinic }: Props) {
     return (
         <>
             <Head title={clinic.nombre} />
-            <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-8 text-center">
+            <div className="relative flex min-h-dvh flex-col items-center justify-center bg-linear-to-br from-teal-50 via-amber-50 to-rose-50 px-8 text-center dark:from-slate-950 dark:via-teal-950 dark:to-rose-950">
+                <div className="absolute top-4 right-4">
+                    <PortalThemeToggle />
+                </div>
                 {clinic.logo_url ? (
-                    <img src={clinic.logo_url} alt="" className="mb-6 h-12 w-auto object-contain" />
+                    <img src={clinic.logo_url} alt="" className="mb-6 h-14 w-auto object-contain" />
                 ) : (
-                    <div className="mb-6 text-5xl">🐾</div>
+                    <div className="mb-6 text-6xl">🐾</div>
                 )}
-                <h1 className="text-2xl font-semibold tracking-tight">{t('sin_acceso.title')}</h1>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                <h1 className="max-w-md text-3xl font-semibold tracking-tight text-teal-950 dark:text-teal-50">
+                    {t('sin_acceso.title')}
+                </h1>
+                <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
                     {t('sin_acceso.body')}
                 </p>
                 <p className="mt-8 text-xs text-muted-foreground">{clinic.nombre}</p>

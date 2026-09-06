@@ -1,7 +1,8 @@
 {
     "entrar": {
+        "kicker": "Your clinic · your pets",
         "setup_title": "Create your PIN",
-        "setup_subtitle": "Four digits. We won’t ask again on this phone.",
+        "setup_subtitle": "Four digits. We won’t ask again on this device.",
         "pin_title": "Your PIN",
         "pin_subtitle": "Hi {{name}}. Open this to see {{pet}}.",
         "pin_subtitle_generic": "Hi {{name}}. Open this to see your pets.",
@@ -16,19 +17,48 @@
         "code_label": "6-digit code",
         "new_pin": "New PIN",
         "save_pin": "Save and enter",
-        "back_to_pin": "Back"
+        "back_to_pin": "Back",
+        "theme_light": "Light",
+        "theme_dark": "Dark"
     },
     "home": {
         "hello": "Hi, {{name}}",
         "clinic": "{{clinic}}",
         "next_visit": "Next visit",
+        "visits": "Schedule",
         "no_visit": "No upcoming visits",
         "vaccine": "Next vaccine",
+        "vaccines": "Vaccines",
         "no_vaccine": "Vaccines up to date",
-        "add_home": "Add this screen to your home screen to open it like an app.",
-        "logout": "Sign out on this phone",
+        "grooming": "Grooming",
+        "no_grooming": "No grooming visits yet.",
+        "hc": "Clinical history",
+        "no_hc": "No closed visits yet.",
+        "photos": "Grooming photos",
+        "photo_proceso": "In progress",
+        "photo_final": "After",
+        "avisos": "Alerts",
+        "no_avisos": "No new alerts.",
+        "install_android": "Install on Android",
+        "install_ios": "Add on iPhone",
+        "install_desktop": "Install on this computer",
+        "install_ios_hint": "Safari → Share → Add to Home Screen",
+        "push_on": "Enable phone alerts",
+        "push_off": "Portal alerts are on",
+        "push_fail": "Could not enable alerts. Allow notifications in the browser.",
+        "add_home": "Install the app to open the portal like a phone app.",
+        "logout": "Sign out",
         "no_pets": "No pets on your file yet. The clinic will add them soon.",
-        "pets": "Your pets"
+        "pets": "Your pets",
+        "estado": {
+            "programada": "Scheduled",
+            "confirmada": "Confirmed",
+            "en_atencion": "In consult",
+            "completada": "Completed",
+            "no_asistio": "No-show",
+            "en_proceso": "In bath",
+            "cancelada": "Cancelled"
+        }
     },
     "sin_acceso": {
         "title": "Open the WhatsApp link",

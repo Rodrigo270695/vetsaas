@@ -1,7 +1,8 @@
 {
     "entrar": {
+        "kicker": "Tu clínica · tus mascotas",
         "setup_title": "Crea tu PIN",
-        "setup_subtitle": "Cuatro números. En este celular no te lo volveremos a pedir.",
+        "setup_subtitle": "Cuatro números. En este dispositivo no te lo pediremos cada vez.",
         "pin_title": "Tu PIN",
         "pin_subtitle": "Hola {{name}}. Entra para ver a {{pet}}.",
         "pin_subtitle_generic": "Hola {{name}}. Entra para ver a tus mascotas.",
@@ -16,19 +17,48 @@
         "code_label": "Código de 6 dígitos",
         "new_pin": "Nuevo PIN",
         "save_pin": "Guardar y entrar",
-        "back_to_pin": "Volver"
+        "back_to_pin": "Volver",
+        "theme_light": "Claro",
+        "theme_dark": "Oscuro"
     },
     "home": {
         "hello": "Hola, {{name}}",
         "clinic": "{{clinic}}",
         "next_visit": "Próxima cita",
+        "visits": "Agenda",
         "no_visit": "Sin citas próximas",
         "vaccine": "Próximo refuerzo",
+        "vaccines": "Vacunas",
         "no_vaccine": "Vacunas al día",
-        "add_home": "Añade esta pantalla al inicio de tu celular para abrirla como una app.",
-        "logout": "Salir de este celular",
+        "grooming": "Grooming y baños",
+        "no_grooming": "Aún no hay turnos de grooming.",
+        "hc": "Historia clínica",
+        "no_hc": "Todavía no hay consultas cerradas.",
+        "photos": "Fotos del baño",
+        "photo_proceso": "En proceso",
+        "photo_final": "Resultado",
+        "avisos": "Avisos",
+        "no_avisos": "Sin avisos nuevos.",
+        "install_android": "Instalar en Android",
+        "install_ios": "Añadir en iPhone",
+        "install_desktop": "Instalar en este equipo",
+        "install_ios_hint": "Safari → Compartir → Añadir a pantalla de inicio",
+        "push_on": "Activar avisos en el celular",
+        "push_off": "Avisos del portal activos",
+        "push_fail": "No se pudieron activar los avisos. Permite notificaciones en el navegador.",
+        "add_home": "Instala la app para abrir el portal como en el celular.",
+        "logout": "Cerrar sesión",
         "no_pets": "Aún no hay mascotas en tu ficha. La clínica las cargará pronto.",
-        "pets": "Tus mascotas"
+        "pets": "Tus mascotas",
+        "estado": {
+            "programada": "Programada",
+            "confirmada": "Confirmada",
+            "en_atencion": "En atención",
+            "completada": "Completada",
+            "no_asistio": "No asistió",
+            "en_proceso": "En baño",
+            "cancelada": "Cancelada"
+        }
     },
     "sin_acceso": {
         "title": "Abre el enlace de WhatsApp",

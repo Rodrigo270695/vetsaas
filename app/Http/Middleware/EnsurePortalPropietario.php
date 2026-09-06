@@ -21,8 +21,11 @@ final class EnsurePortalPropietario
         $sesion = $this->access->resolveSession($request->cookie($cookieName));
 
         if ($sesion === null) {
-            if ($request->inertia() || $request->expectsJson()) {
-                return redirect()->route('tenant.portal.sin-acceso');
+            $identityName = (string) config('portal.identity_cookie', 'vetsaas_portal_id');
+            $portal = $this->access->findByIdentity($request->cookie($identityName));
+
+            if ($portal !== null) {
+                return redirect()->route('tenant.portal.pin');
             }
 
             return redirect()->route('tenant.portal.sin-acceso');

@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\Notifications\AppointmentReminderScanner;
 use App\Services\Notifications\NotificationQueueService;
 use App\Services\Notifications\ReminderMessageBuilder;
+use App\Services\Portal\PortalOwnerNotifier;
 use App\Support\WhatsApp\DeferredWhatsAppDispatch;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Database\Eloquent\Builder;
@@ -284,6 +285,17 @@ class CitaController extends Controller
 
         $cita = Cita::query()->create($data);
         $cita->load(['paciente.propietario']);
+
+        $pacienteCita = $cita->paciente;
+        if ($pacienteCita !== null) {
+            $cuando = $cita->inicio_at->timezone(config('app.timezone'))->format('d/m H:i');
+            app(PortalOwnerNotifier::class)->notifyPaciente(
+                $pacienteCita,
+                'cita',
+                'Cita para '.$pacienteCita->nombre,
+                trim('Programada el '.$cuando.' '.($cita->motivo ?: '')),
+            );
+        }
 
         $redirect = redirect()
             ->route('clinica.citas.index', $request->only([

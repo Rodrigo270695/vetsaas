@@ -6,6 +6,7 @@ use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\Portal\PortalAuthController;
 use App\Http\Controllers\Portal\PortalHomeController;
+use App\Http\Controllers\Portal\PortalPushController;
 use App\Http\Controllers\PublicDocumentoAutorizacionController;
 use App\Http\Controllers\Tenant\TenantDashboardController;
 use App\Http\Controllers\VacunacionController;
@@ -98,8 +99,24 @@ Route::middleware(['tenant.required'])->group(function (): void {
                 ->where('token', '[a-f0-9]{64}')
                 ->name('reset.confirm');
 
+            Route::get('pin', [PortalAuthController::class, 'showPin'])
+                ->name('pin');
+            Route::post('pin', [PortalAuthController::class, 'storePinIdentity'])
+                ->name('pin.store.identity');
+            Route::post('desbloquear', [PortalAuthController::class, 'unlockIdentity'])
+                ->name('unlock.identity');
+            Route::post('reset', [PortalAuthController::class, 'sendResetIdentity'])
+                ->middleware('throttle:8,60')
+                ->name('reset.send.identity');
+            Route::post('reset/confirmar', [PortalAuthController::class, 'confirmResetIdentity'])
+                ->name('reset.confirm.identity');
+
             Route::middleware('portal.auth')->group(function (): void {
                 Route::get('/', [PortalHomeController::class, 'index'])->name('home');
+                Route::post('push', [PortalPushController::class, 'store'])
+                    ->name('push.store');
+                Route::delete('push', [PortalPushController::class, 'destroy'])
+                    ->name('push.destroy');
             });
         });
 
