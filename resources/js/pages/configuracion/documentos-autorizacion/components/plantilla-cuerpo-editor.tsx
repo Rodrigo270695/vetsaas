@@ -35,7 +35,7 @@ const VAR_GROUPS: readonly { label: string; items: readonly string[] }[] = [
     { label: 'Titular', items: ['propietario', 'documento', 'telefono'] },
     { label: 'Clínica', items: ['clinica', 'ciudad', 'veterinario', 'logo'] },
     { label: 'Consulta', items: ['motivo'] },
-    { label: 'Fecha', items: ['fecha', 'fecha_corta', 'dia', 'mes', 'mes_nombre', 'anio'] },
+    { label: 'Fecha', items: ['ciudad', 'fecha', 'fecha_corta', 'dia', 'mes', 'mes_nombre', 'anio'] },
 ];
 
 export function htmlToPlain(html: string): string {
