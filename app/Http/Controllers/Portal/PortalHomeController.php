@@ -36,13 +36,16 @@ final class PortalHomeController extends Controller
             $tab = 'citas';
         }
 
+        $monthStart = now()->startOfMonth()->toDateString();
+        $monthEnd = now()->endOfMonth()->toDateString();
+
         $desde = self::optionalDate($request->query('desde'));
         $hasta = self::optionalDate($request->query('hasta'));
         $todo = $request->boolean('todo');
 
         if ($mascotaId !== '' && ! $todo && $desde === null && $hasta === null) {
-            $desde = now()->startOfYear()->toDateString();
-            $hasta = now()->toDateString();
+            $desde = $monthStart;
+            $hasta = $monthEnd;
         }
 
         $pet = null;
@@ -62,8 +65,8 @@ final class PortalHomeController extends Controller
                 'tab' => $tab,
                 'desde' => $desde,
                 'hasta' => $hasta,
-                'default_desde' => now()->startOfYear()->toDateString(),
-                'default_hasta' => now()->toDateString(),
+                'default_desde' => $monthStart,
+                'default_hasta' => $monthEnd,
             ],
             'push' => [
                 'enabled' => filled(config('webpush.vapid.public_key')),

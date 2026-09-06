@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { ArrowLeft, CalendarDays, FileDown, Scissors, Stethoscope, Syringe } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Droplets, FileDown, Scissors, Stethoscope, Syringe } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PortalPetCover } from '@/components/portal/portal-pet-cover';
@@ -88,6 +88,19 @@ function formatFecha(iso: string | null): string {
     } catch {
         return iso;
     }
+}
+
+function statusBadgeClass(estado: string): string {
+    if (estado === 'completada') {
+        return 'bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200';
+    }
+    if (estado === 'en_proceso') {
+        return 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200';
+    }
+    if (estado === 'programada' || estado === 'confirmada') {
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
+    }
+    return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
 }
 
 function ageLabel(iso: string | null): string | null {
@@ -272,11 +285,10 @@ export function PortalPetView({
                     triggerClassName="h-11 w-full cursor-pointer sm:w-auto"
                     onApply={(desde, hasta) => visit({ desde, hasta })}
                     onClear={() =>
-                        router.get(
-                            homeUrl,
-                            { mascota: m.id, tab: filters.tab, todo: 1 },
-                            { preserveState: true },
-                        )
+                        visit({
+                            desde: filters.default_desde,
+                            hasta: filters.default_hasta,
+                        })
                     }
                 />
 
@@ -347,46 +359,97 @@ export function PortalPetView({
                 {filters.tab === 'banos' && (
                     <section className="space-y-3">
                         {pet.grooming.length === 0 ? (
-                            <p className="rounded-3xl bg-white p-6 text-sm text-slate-500 shadow-sm dark:bg-slate-900">
-                                {t('home.no_grooming')}
-                            </p>
+                            <div className="rounded-3xl bg-white px-5 py-10 text-center shadow-sm ring-1 ring-black/5 dark:bg-slate-900">
+                                <Droplets className="mx-auto size-8 text-brand-500" />
+                                <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-300">
+                                    {t('home.no_grooming')}
+                                </p>
+                            </div>
                         ) : (
-                            pet.grooming.map((g) => (
-                                <article
-                                    key={g.id}
-                                    className="overflow-hidden rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:bg-slate-900"
-                                >
-                                    <p className="font-semibold">
-                                        {formatCita(g.inicio_at)}
-                                        <span className="ml-2 text-sm font-medium text-rose-700">
-                                            {estado(g.estado)}
-                                        </span>
-                                    </p>
-                                    {g.servicio ? (
-                                        <p className="text-sm text-slate-500">{g.servicio}</p>
-                                    ) : null}
-                                    {g.fotos.length > 0 ? (
-                                        <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto pb-1">
-                                            {g.fotos.map((f) =>
-                                                f.url ? (
-                                                    <figure key={f.id} className="shrink-0">
+                            pet.grooming.map((g) => {
+                                const antes = g.fotos.find((f) => f.tipo !== 'final' && f.url);
+                                const despues = g.fotos.find((f) => f.tipo === 'final' && f.url);
+                                const otras = g.fotos.filter(
+                                    (f) => f.url && f.id !== antes?.id && f.id !== despues?.id,
+                                );
+
+                                return (
+                                    <article
+                                        key={g.id}
+                                        className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-slate-900"
+                                    >
+                                        <div className="flex items-start justify-between gap-3 px-4 pt-4">
+                                            <div className="min-w-0">
+                                                <p className="font-semibold">{formatCita(g.inicio_at)}</p>
+                                                {g.servicio ? (
+                                                    <p className="mt-0.5 text-sm text-slate-500">{g.servicio}</p>
+                                                ) : null}
+                                            </div>
+                                            <span
+                                                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(g.estado)}`}
+                                            >
+                                                {estado(g.estado)}
+                                            </span>
+                                        </div>
+                                        {g.notas ? (
+                                            <p className="px-4 pt-2 text-sm text-slate-600 dark:text-slate-300">
+                                                {g.notas}
+                                            </p>
+                                        ) : null}
+                                        {antes?.url || despues?.url ? (
+                                            <div className="mt-3 grid grid-cols-2 gap-2 px-3 pb-3">
+                                                <figure>
+                                                    {antes?.url ? (
                                                         <img
+                                                            src={antes.url}
+                                                            alt=""
+                                                            className="aspect-square w-full rounded-2xl object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex aspect-square items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800">
+                                                            —
+                                                        </div>
+                                                    )}
+                                                    <figcaption className="mt-1.5 text-center text-[11px] font-semibold text-slate-500">
+                                                        {t('home.photo_proceso')}
+                                                    </figcaption>
+                                                </figure>
+                                                <figure>
+                                                    {despues?.url ? (
+                                                        <img
+                                                            src={despues.url}
+                                                            alt=""
+                                                            className="aspect-square w-full rounded-2xl object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex aspect-square items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800">
+                                                            —
+                                                        </div>
+                                                    )}
+                                                    <figcaption className="mt-1.5 text-center text-[11px] font-semibold text-slate-500">
+                                                        {t('home.photo_final')}
+                                                    </figcaption>
+                                                </figure>
+                                            </div>
+                                        ) : otras.length > 0 ? (
+                                            <div className="mt-3 flex gap-2 overflow-x-auto px-3 pb-3">
+                                                {otras.map((f) =>
+                                                    f.url ? (
+                                                        <img
+                                                            key={f.id}
                                                             src={f.url}
                                                             alt=""
-                                                            className="h-36 w-36 rounded-2xl object-cover"
+                                                            className="h-32 w-32 shrink-0 rounded-2xl object-cover"
                                                         />
-                                                        <figcaption className="mt-1 text-center text-[10px] text-slate-500">
-                                                            {f.tipo === 'final'
-                                                                ? t('home.photo_final')
-                                                                : t('home.photo_proceso')}
-                                                        </figcaption>
-                                                    </figure>
-                                                ) : null,
-                                            )}
-                                        </div>
-                                    ) : null}
-                                </article>
-                            ))
+                                                    ) : null,
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="px-4 pb-4" />
+                                        )}
+                                    </article>
+                                );
+                            })
                         )}
                     </section>
                 )}
