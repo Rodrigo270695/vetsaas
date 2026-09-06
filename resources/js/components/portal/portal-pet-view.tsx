@@ -201,7 +201,7 @@ export function PortalPetView({
                     onClick={() => visit({ tab: 'citas' })}
                     className="cursor-pointer rounded-2xl bg-white p-3 text-left shadow-md ring-1 ring-black/5 dark:bg-slate-900"
                 >
-                    <p className="text-[11px] font-bold tracking-wide text-teal-700 uppercase dark:text-teal-300">
+                    <p className="text-[11px] font-bold tracking-wide text-brand-700 uppercase dark:text-brand-300">
                         {t('home.next_visit')}
                     </p>
                     <p className="mt-0.5 line-clamp-2 text-sm font-semibold">
@@ -213,7 +213,7 @@ export function PortalPetView({
                     onClick={() => visit({ tab: 'vacunas' })}
                     className="cursor-pointer rounded-2xl bg-white p-3 text-left shadow-md ring-1 ring-black/5 dark:bg-slate-900"
                 >
-                    <p className="text-[11px] font-bold tracking-wide text-lime-700 uppercase dark:text-lime-300">
+                    <p className="text-[11px] font-bold tracking-wide text-brand-700 uppercase dark:text-brand-300">
                         {t('home.vaccine')}
                     </p>
                     <p className="mt-0.5 line-clamp-2 text-sm font-semibold">
@@ -227,7 +227,7 @@ export function PortalPetView({
                     onClick={() => visit({ tab: 'hc' })}
                     className="col-span-2 cursor-pointer rounded-2xl bg-white p-3 text-left shadow-md ring-1 ring-black/5 sm:col-span-1 dark:bg-slate-900"
                 >
-                    <p className="text-[11px] font-bold tracking-wide text-sky-700 uppercase dark:text-sky-300">
+                    <p className="text-[11px] font-bold tracking-wide text-brand-800 uppercase dark:text-brand-200">
                         {t('home.hc')}
                     </p>
                     <p className="mt-0.5 text-sm font-semibold">
@@ -238,7 +238,7 @@ export function PortalPetView({
                 </button>
             </div>
 
-            <div className="sticky top-14 z-20 -mt-1 bg-[#f3f7f6]/95 px-2 py-2 backdrop-blur-md sm:top-16 sm:mx-6 sm:rounded-b-3xl dark:bg-slate-950/90">
+            <div className="sticky top-14 z-20 -mt-1 bg-brand-50/95 px-2 py-2 backdrop-blur-md sm:top-16 sm:mx-6 sm:rounded-b-3xl dark:bg-slate-950/90">
                 <div className="grid grid-cols-4 gap-1">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
@@ -250,7 +250,7 @@ export function PortalPetView({
                                 onClick={() => visit({ tab: tab.id })}
                                 className={`flex cursor-pointer flex-col items-center gap-1 rounded-2xl py-2.5 text-[11px] font-semibold ${
                                     active
-                                        ? 'bg-teal-600 text-white shadow-md'
+                                        ? 'bg-brand-600 text-white shadow-md'
                                         : 'text-slate-600 dark:text-slate-300'
                                 }`}
                             >
@@ -282,9 +282,9 @@ export function PortalPetView({
 
                 {filters.tab === 'citas' && (
                     <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-slate-900">
-                        <div className="border-b border-black/5 bg-teal-50 px-4 py-3 dark:bg-teal-950/40">
+                        <div className="border-b border-black/5 bg-brand-50 px-4 py-3 dark:bg-brand-950/40">
                             {pet.citas.proxima ? (
-                                <p className="font-semibold text-teal-900 dark:text-teal-100">
+                                <p className="font-semibold text-brand-900 dark:text-brand-100">
                                     {t('home.next_visit')}: {formatCita(pet.citas.proxima.inicio_at)}
                                     {pet.citas.proxima.motivo ? ` · ${pet.citas.proxima.motivo}` : ''}
                                 </p>
@@ -301,7 +301,7 @@ export function PortalPetView({
                                             <span className="text-slate-500">{c.motivo}</span>
                                         ) : null}
                                     </span>
-                                    <span className="shrink-0 rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-800 dark:bg-teal-950 dark:text-teal-200">
+                                    <span className="shrink-0 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-800 dark:bg-brand-950 dark:text-brand-200">
                                         {estado(c.estado)}
                                     </span>
                                 </li>
@@ -315,7 +315,7 @@ export function PortalPetView({
                         {pet.historial.pdf_url ? (
                             <a
                                 href={pet.historial.pdf_url}
-                                className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-sky-600 px-4 text-sm font-semibold text-white"
+                                className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-brand-600 px-4 text-sm font-semibold text-white"
                             >
                                 <FileDown className="size-4" />
                                 {t('home.download_hc')}
@@ -393,7 +393,7 @@ export function PortalPetView({
 
                 {filters.tab === 'vacunas' && (
                     <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-slate-900">
-                        <div className="border-b border-black/5 bg-lime-50 px-4 py-3 dark:bg-lime-950/30">
+                        <div className="border-b border-black/5 bg-brand-50 px-4 py-3 dark:bg-brand-950/30">
                             {pet.vacunas.proxima ? (
                                 <p className="font-semibold">
                                     {t('home.vaccine')}: {pet.vacunas.proxima.nombre}

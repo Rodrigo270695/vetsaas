@@ -14,7 +14,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
                 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
                 <meta name="mobile-web-app-capable" content="yes" />
             </Head>
-            <div className="h-dvh overflow-x-hidden overflow-y-auto overscroll-none bg-[#eef5f3] text-foreground antialiased scrollbar-hidden [-webkit-tap-highlight-color:transparent] [&_a]:cursor-pointer [&_button]:cursor-pointer dark:bg-slate-950">
+            <div className="h-dvh overflow-x-hidden overflow-y-auto overscroll-none bg-brand-50 text-foreground antialiased scrollbar-hidden [-webkit-tap-highlight-color:transparent] [&_a]:cursor-pointer [&_button]:cursor-pointer dark:bg-slate-950">
                 {children}
             </div>
         </>

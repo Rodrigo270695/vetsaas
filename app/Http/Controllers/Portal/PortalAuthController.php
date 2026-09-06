@@ -258,6 +258,7 @@ final class PortalAuthController extends Controller
             'mascota' => $pet === null ? null : [
                 'nombre' => $pet->nombre,
                 'foto_url' => $pet->foto_url,
+                'especie' => $pet->especie,
             ],
             'telefono_mascara' => PortalPhoneMask::mask($propietario?->telefono ?: $portal->telefono_snapshot),
             'urls' => $urls,

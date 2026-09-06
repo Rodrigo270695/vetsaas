@@ -2,12 +2,12 @@ import { Bird, Cat, Dog, Fish, PawPrint, Rabbit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const PALETTES = [
-    'from-[#0f766e] via-[#14b8a6] to-[#84cc16]',
-    'from-[#9a3412] via-[#f97316] to-[#facc15]',
-    'from-[#6d28d9] via-[#8b5cf6] to-[#f472b6]',
-    'from-[#1d4ed8] via-[#0ea5e9] to-[#2dd4bf]',
-    'from-[#9f1239] via-[#fb7185] to-[#fdba74]',
-    'from-[#115e59] via-[#059669] to-[#a3e635]',
+    'from-brand-800 via-brand-600 to-brand-400',
+    'from-brand-900 via-brand-600 to-brand-300',
+    'from-brand-700 via-brand-500 to-brand-300',
+    'from-brand-800 via-brand-500 to-brand-200',
+    'from-brand-950 via-brand-700 to-brand-400',
+    'from-brand-700 via-brand-600 to-brand-400',
 ];
 
 function hashName(name: string): number {

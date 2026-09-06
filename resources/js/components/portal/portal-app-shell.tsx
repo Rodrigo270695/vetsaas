@@ -32,7 +32,7 @@ export function PortalAppShell({
     const { t } = useTranslation('portal-propietario');
 
     return (
-        <div className="flex min-h-dvh flex-col bg-[#eef5f3] dark:bg-slate-950">
+        <div className="flex min-h-dvh flex-col bg-brand-50 dark:bg-slate-950">
             <header className="sticky top-0 z-30 bg-white/75 pt-[env(safe-area-inset-top)] backdrop-blur-2xl dark:bg-slate-950/75">
                 <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:h-16 sm:px-6">
                     <div className="flex min-w-0 items-center gap-2.5">
@@ -43,10 +43,10 @@ export function PortalAppShell({
                                 className="h-8 w-auto object-contain sm:h-9"
                             />
                         ) : (
-                            <PawPrint className="size-7 shrink-0 text-teal-600" />
+                            <PawPrint className="size-7 shrink-0 text-brand-600" />
                         )}
                         <div className="min-w-0">
-                            <p className="truncate text-[10px] font-bold tracking-[0.14em] text-teal-800 uppercase dark:text-teal-200">
+                            <p className="truncate text-[10px] font-bold tracking-[0.14em] text-brand-800 uppercase dark:text-brand-200">
                                 {clinicName}
                             </p>
                             <p className="truncate text-[13px] font-semibold text-slate-700 dark:text-slate-200">

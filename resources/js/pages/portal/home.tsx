@@ -106,9 +106,9 @@ function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string 
 
     return (
         <main className="mx-auto max-w-6xl">
-            <section className="relative overflow-hidden bg-linear-to-br from-teal-800 via-teal-600 to-lime-400 px-4 pb-6 pt-4 text-white sm:mx-5 sm:mt-5 sm:rounded-[1.75rem] sm:px-7 sm:shadow-xl">
+            <section className="relative overflow-hidden bg-linear-to-br from-brand-800 via-brand-600 to-brand-400 px-4 pb-6 pt-4 text-white sm:mx-5 sm:mt-5 sm:rounded-[1.75rem] sm:px-7 sm:shadow-xl">
                 <div className="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-2xl" />
-                <div className="pointer-events-none absolute -bottom-20 -left-8 size-56 rounded-full bg-lime-300/30 blur-2xl" />
+                <div className="pointer-events-none absolute -bottom-20 -left-8 size-56 rounded-full bg-brand-300/30 blur-2xl" />
                 <button
                     type="button"
                     onClick={() => setOpen((v) => !v)}
@@ -118,7 +118,7 @@ function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string 
                         {initials(o.nombre)}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold tracking-[0.2em] text-teal-100 uppercase">
+                        <p className="text-[10px] font-bold tracking-[0.2em] text-brand-100 uppercase">
                             {t('home.owner')}
                         </p>
                         <h1 className="truncate text-xl font-bold tracking-tight">{o.nombre}</h1>
@@ -158,8 +158,8 @@ function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string 
             </section>
 
             {overview.avisos.length > 0 ? (
-                <section className="mx-4 mt-4 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200/70 sm:mx-5 dark:bg-amber-950/40">
-                    <h2 className="mb-2 text-xs font-bold tracking-wide text-amber-900 uppercase dark:text-amber-200">
+                <section className="mx-4 mt-4 rounded-3xl bg-brand-50 p-4 ring-1 ring-brand-200/70 sm:mx-5 dark:bg-brand-950/40">
+                    <h2 className="mb-2 text-xs font-bold tracking-wide text-brand-900 uppercase dark:text-brand-200">
                         {t('home.avisos')}
                     </h2>
                     <ul className="space-y-2">
@@ -198,7 +198,7 @@ function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string 
                                 />
                                 <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/25 to-black/10" />
                                 {m.proxima_cita ? (
-                                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-teal-400 px-2.5 py-1 text-[11px] font-bold text-teal-950 shadow">
+                                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-brand-400 px-2.5 py-1 text-[11px] font-bold text-brand-950 shadow">
                                         <CalendarDays className="size-3" />
                                         {formatCita(m.proxima_cita.inicio_at)}
                                     </span>
@@ -223,7 +223,7 @@ function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string 
                                             </p>
                                         ) : null}
                                     </div>
-                                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/95 text-teal-700 shadow">
+                                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/95 text-brand-700 shadow">
                                         <ChevronRight className="size-5" />
                                     </span>
                                 </div>

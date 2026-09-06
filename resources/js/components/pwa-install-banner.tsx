@@ -2,6 +2,14 @@ import { Download, Share2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
+import {
+    isAndroidDevice,
+    isIosChromeLike,
+    isIosDevice,
+    isStandaloneDisplay,
+    promptPwaInstall,
+    subscribePwaInstallPrompt,
+} from '@/lib/pwa-install';
 
 const DISMISS_KEY = 'vetsaas-pwa-install-dismiss-until';
 const DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -26,38 +34,19 @@ function shouldHideBanner(pathname: string): boolean {
 }
 
 function isStandalone(): boolean {
-    if (typeof window === 'undefined') {
-        return true;
-    }
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        return true;
-    }
-    const nav = window.navigator as Navigator & { standalone?: boolean };
-    return Boolean(nav.standalone);
+    return isStandaloneDisplay();
 }
 
 function isIos(): boolean {
-    if (typeof navigator === 'undefined') {
-        return false;
-    }
-    return (
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    );
+    return isIosDevice();
 }
 
 function isIosChrome(): boolean {
-    if (typeof navigator === 'undefined') {
-        return false;
-    }
-    return isIos() && /CriOS|EdgiOS|FxiOS/.test(navigator.userAgent);
+    return isIosChromeLike();
 }
 
 function isAndroid(): boolean {
-    if (typeof navigator === 'undefined') {
-        return false;
-    }
-    return /Android/i.test(navigator.userAgent);
+    return isAndroidDevice();
 }
 
 function isDesktopChromiumLike(): boolean {
@@ -146,23 +135,24 @@ export default function PwaInstallBanner() {
             return ret;
         };
 
-        const onBip = (e: Event) => {
-            e.preventDefault();
-            setDeferred(e as BeforeInstallPromptEvent);
-        };
+        const unsub = subscribePwaInstallPrompt((event) => {
+            setDeferred(event);
+            if (event === null && isStandalone()) {
+                setDismissed(true);
+            }
+        });
         const onInstalled = () => {
             setDeferred(null);
             setDismissed(true);
         };
-        window.addEventListener('beforeinstallprompt', onBip);
         window.addEventListener('appinstalled', onInstalled);
 
         return () => {
             window.removeEventListener('popstate', updatePath);
             history.pushState = originalPushState;
             history.replaceState = originalReplaceState;
-            window.removeEventListener('beforeinstallprompt', onBip);
             window.removeEventListener('appinstalled', onInstalled);
+            unsub();
         };
     }, []);
 
@@ -191,18 +181,13 @@ export default function PwaInstallBanner() {
     }, []);
 
     const onInstallClick = useCallback(async () => {
-        if (!deferred) {
-            return;
-        }
         setInstalling(true);
         try {
-            await deferred.prompt();
-            await deferred.userChoice;
+            await promptPwaInstall();
         } finally {
             setInstalling(false);
-            setDeferred(null);
         }
-    }, [deferred]);
+    }, []);
 
     if (dismissed || isStandalone() || shouldHideBanner(pathname)) {
         return null;

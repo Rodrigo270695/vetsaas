@@ -12,6 +12,7 @@ import PortalLayout from '@/layouts/portal-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { applyInitialClinicThemeFromDocument } from '@/lib/apply-initial-clinic-theme';
 import { showConsoleSecurityWarning } from '@/lib/console-security-warning';
+import { capturePwaInstallPrompt } from '@/lib/pwa-install';
 import '@/lib/i18n';
 import { rememberInertiaPage } from '@/lib/offline/page-cache';
 
@@ -20,6 +21,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 initializeTheme();
 applyInitialClinicThemeFromDocument();
 showConsoleSecurityWarning();
+capturePwaInstallPrompt();
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

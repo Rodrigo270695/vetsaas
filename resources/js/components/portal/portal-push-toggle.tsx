@@ -89,7 +89,7 @@ export function PortalPushToggle({ enabled, vapid, subscribeUrl }: Props) {
                 type="button"
                 disabled={busy || on}
                 onClick={() => void activate()}
-                className="inline-flex h-12 min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-amber-400 px-3 text-xs font-semibold text-amber-950 shadow-sm transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70 md:h-10 md:w-auto md:rounded-full md:text-sm"
+                className="inline-flex h-12 min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-brand-100 px-3 text-xs font-semibold text-brand-900 shadow-sm transition hover:bg-brand-200 disabled:cursor-not-allowed disabled:opacity-70 md:h-10 md:w-auto md:rounded-full md:text-sm dark:bg-brand-900 dark:text-brand-100 dark:hover:bg-brand-800"
             >
                 {on ? <Bell className="size-4 shrink-0" /> : <BellOff className="size-4 shrink-0" />}
                 <span className="md:hidden">{on ? t('home.push_off_short') : t('home.push_on_short')}</span>

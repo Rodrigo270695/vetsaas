@@ -1,7 +1,8 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { PawPrint } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PortalPetCover } from '@/components/portal/portal-pet-cover';
 import { PortalPinInput } from '@/components/portal/portal-pin-input';
 import { PortalThemeToggle } from '@/components/portal/portal-theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ type Props = {
     step: 'setup' | 'pin';
     clinic: Clinic;
     saludo: string;
-    mascota: { nombre: string; foto_url: string | null } | null;
+    mascota: { nombre: string; foto_url: string | null; especie?: string | null } | null;
     telefono_mascara: string;
     urls: {
         setup: string;
@@ -45,17 +46,10 @@ export default function PortalEntrar({
     return (
         <>
             <Head title={clinic.nombre} />
-            <div className="relative min-h-dvh overflow-hidden bg-linear-to-br from-teal-50 via-amber-50 to-rose-50 dark:from-teal-950 dark:via-slate-950 dark:to-rose-950">
-                <div
-                    className="pointer-events-none absolute -top-24 -right-16 size-80 rounded-full bg-teal-300/40 blur-3xl dark:bg-teal-500/20"
-                    aria-hidden
-                />
-                <div
-                    className="pointer-events-none absolute -bottom-20 -left-10 size-96 rounded-full bg-rose-300/30 blur-3xl dark:bg-rose-600/15"
-                    aria-hidden
-                />
-                <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-20">
-                    <PortalThemeToggle />
+            <div className="relative min-h-dvh bg-brand-700 lg:bg-linear-to-br lg:from-brand-50 lg:via-brand-100 lg:to-white dark:lg:from-brand-950 dark:lg:via-slate-950 dark:lg:to-slate-900">
+                <div className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block" aria-hidden>
+                    <div className="absolute -top-24 -right-16 size-80 rounded-full bg-brand-300/40 blur-3xl dark:bg-brand-500/20" />
+                    <div className="absolute -bottom-20 -left-10 size-96 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-600/15" />
                 </div>
 
                 <div className="relative mx-auto grid min-h-dvh max-w-6xl lg:grid-cols-2">
@@ -64,26 +58,22 @@ export default function PortalEntrar({
                             {clinic.logo_url ? (
                                 <img src={clinic.logo_url} alt="" className="h-12 w-auto object-contain" />
                             ) : (
-                                <PawPrint className="size-10 text-teal-700 dark:text-teal-300" />
+                                <PawPrint className="size-10 text-brand-700 dark:text-brand-300" />
                             )}
-                            <p className="text-sm font-semibold tracking-wide text-teal-900 uppercase dark:text-teal-100">
+                            <p className="text-sm font-semibold tracking-wide text-brand-900 uppercase dark:text-brand-100">
                                 {clinic.nombre}
                             </p>
                         </div>
                         <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl ring-4 ring-white/60 dark:ring-white/10">
-                            {mascota?.foto_url ? (
-                                <img
-                                    src={mascota.foto_url}
-                                    alt=""
-                                    className="aspect-4/5 w-full object-cover"
+                            <div className="aspect-4/5 w-full">
+                                <PortalPetCover
+                                    nombre={mascota?.nombre ?? clinic.nombre}
+                                    fotoUrl={mascota?.foto_url ?? null}
+                                    especie={mascota?.especie}
                                 />
-                            ) : (
-                                <div className="flex aspect-4/5 items-center justify-center bg-linear-to-br from-teal-400 to-emerald-600 text-8xl">
-                                    🐾
-                                </div>
-                            )}
-                            <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-teal-950/80 to-transparent p-8 text-white">
-                                <p className="text-sm text-teal-100">{t('entrar.kicker')}</p>
+                            </div>
+                            <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-950/85 to-transparent p-8 text-white">
+                                <p className="text-sm text-brand-100">{t('entrar.kicker')}</p>
                                 <p className="mt-1 text-4xl font-semibold">
                                     {mascota?.nombre ?? clinic.nombre}
                                 </p>
@@ -91,48 +81,62 @@ export default function PortalEntrar({
                         </div>
                     </section>
 
-                    <section className="flex flex-1 flex-col justify-end px-0 pb-0 lg:justify-center lg:px-10 lg:py-12">
-                        <div className="relative mb-0 overflow-hidden lg:hidden">
-                            <div className="relative h-[42vh] min-h-56 bg-linear-to-br from-teal-400 to-emerald-700">
-                                {mascota?.foto_url ? (
-                                    <img src={mascota.foto_url} alt="" className="size-full object-cover" />
-                                ) : (
-                                    <div className="flex size-full items-center justify-center text-7xl">🐾</div>
-                                )}
-                                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/15 to-transparent" />
-                                <div className="absolute inset-x-0 bottom-0 p-5 text-white">
-                                    {clinic.logo_url ? (
-                                        <img src={clinic.logo_url} alt="" className="mb-3 h-8 w-auto object-contain" />
-                                    ) : null}
-                                    <p className="text-xs font-semibold tracking-[0.18em] text-white/70 uppercase">
-                                        {clinic.nombre}
-                                    </p>
-                                    <p className="mt-1 text-2xl font-bold">
-                                        {mascota?.nombre ?? t('entrar.kicker')}
-                                    </p>
-                                </div>
+                    <section className="flex min-h-dvh flex-col lg:justify-center lg:px-10 lg:py-12">
+                        <div className="relative flex flex-col items-center px-5 pb-5 pt-[max(0.75rem,env(safe-area-inset-top))] text-center text-white lg:hidden">
+                            <div className="absolute top-[max(0.5rem,env(safe-area-inset-top))] right-3 z-20">
+                                <PortalThemeToggle />
                             </div>
+                            {clinic.logo_url ? (
+                                <div className="mb-3 rounded-full bg-white/95 px-3 py-1.5 shadow-sm">
+                                    <img src={clinic.logo_url} alt="" className="h-7 w-auto object-contain" />
+                                </div>
+                            ) : (
+                                <PawPrint className="mb-3 size-8 text-white/90" />
+                            )}
+                            <div className="size-[5.75rem] overflow-hidden rounded-full ring-4 ring-white/40 shadow-xl">
+                                <PortalPetCover
+                                    nombre={mascota?.nombre ?? clinic.nombre}
+                                    fotoUrl={mascota?.foto_url ?? null}
+                                    especie={mascota?.especie}
+                                />
+                            </div>
+                            <p className="mt-3 text-[11px] font-bold tracking-[0.18em] text-white/70 uppercase">
+                                {clinic.nombre}
+                            </p>
+                            <h1 className="mt-1 max-w-[16rem] truncate text-2xl font-bold tracking-tight">
+                                {mascota?.nombre ?? t('entrar.kicker')}
+                            </h1>
+                            <p className="mt-1 text-sm text-white/80">
+                                {t('entrar.hello_short', { name: saludo })}
+                            </p>
                         </div>
-                        <div className="mx-auto w-full max-w-md rounded-t-[1.75rem] bg-white p-6 shadow-[0_-12px_40px_rgba(15,80,70,0.12)] ring-1 ring-teal-900/5 lg:rounded-4xl lg:p-8 lg:shadow-xl dark:bg-slate-900/90 dark:ring-white/10">
-                            <header className="mb-4 hidden flex-col items-center gap-3 text-center lg:flex">
+
+                        <div className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col rounded-t-[1.85rem] bg-white px-6 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-18px_40px_rgba(0,40,35,0.18)] lg:flex-none lg:rounded-[2rem] lg:p-8 lg:shadow-xl dark:bg-slate-900">
+                            <div className="mb-5 hidden items-center justify-between lg:flex">
                                 {clinic.logo_url ? (
-                                    <img src={clinic.logo_url} alt="" className="h-10 w-auto object-contain" />
-                                ) : null}
-                            </header>
+                                    <img src={clinic.logo_url} alt="" className="h-9 w-auto object-contain" />
+                                ) : (
+                                    <span />
+                                )}
+                                <PortalThemeToggle />
+                            </div>
 
                             {mode === 'setup' && (
                                 <form
                                     className="space-y-5 text-center"
                                     onSubmit={(e) => {
                                         e.preventDefault();
-                                        if (setup.data.pin.length === 4 && setup.data.pin === setup.data.pin_confirmation) {
+                                        if (
+                                            setup.data.pin.length === 4 &&
+                                            setup.data.pin === setup.data.pin_confirmation
+                                        ) {
                                             setup.post(urls.setup);
                                         }
                                     }}
                                 >
-                                    <h1 className="text-3xl font-semibold tracking-tight text-teal-950 dark:text-teal-50">
+                                    <h2 className="text-2xl font-bold tracking-tight text-brand-950 dark:text-brand-50">
                                         {t('entrar.setup_title')}
-                                    </h1>
+                                    </h2>
                                     <p className="text-sm text-muted-foreground">{t('entrar.setup_subtitle')}</p>
                                     <PortalPinInput
                                         value={setup.data.pin}
@@ -159,7 +163,7 @@ export default function PortalEntrar({
                                     ) : null}
                                     <Button
                                         type="submit"
-                                        className="h-12 w-full rounded-2xl bg-teal-600 text-base text-white hover:bg-teal-700"
+                                        className="h-12 w-full cursor-pointer rounded-2xl bg-brand-600 text-base text-white hover:bg-brand-700"
                                         disabled={
                                             setup.processing ||
                                             setup.data.pin.length !== 4 ||
@@ -173,7 +177,7 @@ export default function PortalEntrar({
 
                             {mode === 'pin' && (
                                 <form
-                                    className="space-y-5 text-center"
+                                    className="flex flex-1 flex-col text-center"
                                     onSubmit={(e) => {
                                         e.preventDefault();
                                         if (unlock.data.pin.length === 4) {
@@ -181,10 +185,10 @@ export default function PortalEntrar({
                                         }
                                     }}
                                 >
-                                    <h1 className="text-3xl font-semibold tracking-tight text-teal-950 dark:text-teal-50">
+                                    <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                                         {t('entrar.pin_title')}
-                                    </h1>
-                                    <p className="text-sm text-muted-foreground">
+                                    </h2>
+                                    <p className="mt-1 mb-5 text-sm text-slate-500 dark:text-slate-400">
                                         {mascota
                                             ? t('entrar.pin_subtitle', {
                                                   name: saludo,
@@ -193,29 +197,25 @@ export default function PortalEntrar({
                                             : t('entrar.pin_subtitle_generic', { name: saludo })}
                                     </p>
                                     <PortalPinInput
+                                        variant="lock"
+                                        keypad
                                         value={unlock.data.pin}
                                         onChange={(pin) => unlock.setData('pin', pin)}
+                                        disabled={unlock.processing}
                                         onComplete={(pin) => {
                                             if (!unlock.processing && pin.length === 4) {
                                                 unlock.setData('pin', pin);
-                                                unlock.post(urls.unlock);
+                                                router.post(urls.unlock, { pin });
                                             }
                                         }}
                                         ariaLabel={t('entrar.pin_title')}
                                     />
                                     {unlock.errors.pin ? (
-                                        <p className="text-sm text-destructive">{unlock.errors.pin}</p>
+                                        <p className="mt-3 text-sm text-destructive">{unlock.errors.pin}</p>
                                     ) : null}
-                                    <Button
-                                        type="submit"
-                                        className="h-12 w-full rounded-2xl bg-teal-600 text-base text-white hover:bg-teal-700"
-                                        disabled={unlock.processing || unlock.data.pin.length !== 4}
-                                    >
-                                        {t('entrar.continue')}
-                                    </Button>
                                     <button
                                         type="button"
-                                        className="text-sm text-teal-800 underline-offset-4 hover:underline dark:text-teal-200"
+                                        className="mt-auto cursor-pointer pt-6 text-sm font-semibold text-brand-700 dark:text-brand-300"
                                         onClick={() => setMode('reset')}
                                     >
                                         {t('entrar.forgot')}
@@ -225,9 +225,9 @@ export default function PortalEntrar({
 
                             {mode === 'reset' && (
                                 <div className="space-y-4 text-center">
-                                    <h1 className="text-3xl font-semibold tracking-tight">
+                                    <h2 className="text-2xl font-bold tracking-tight">
                                         {t('entrar.reset_title')}
-                                    </h1>
+                                    </h2>
                                     <p className="text-sm text-muted-foreground">
                                         {t('entrar.reset_hint', { phone: telefono_mascara })}
                                     </p>
@@ -236,7 +236,7 @@ export default function PortalEntrar({
                                     ) : null}
                                     <Button
                                         variant="outline"
-                                        className="h-12 w-full rounded-2xl"
+                                        className="h-12 w-full cursor-pointer rounded-2xl"
                                         disabled={resetSend.processing}
                                         onClick={() => resetSend.post(urls.reset_send)}
                                     >
@@ -275,7 +275,7 @@ export default function PortalEntrar({
                                         </p>
                                     ) : null}
                                     <Button
-                                        className="h-12 w-full rounded-2xl bg-teal-600 text-white hover:bg-teal-700"
+                                        className="h-12 w-full cursor-pointer rounded-2xl bg-brand-600 text-white hover:bg-brand-700"
                                         disabled={
                                             resetConfirm.processing ||
                                             resetConfirm.data.code.length !== 6 ||
@@ -287,7 +287,7 @@ export default function PortalEntrar({
                                     </Button>
                                     <button
                                         type="button"
-                                        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+                                        className="cursor-pointer text-sm font-medium text-muted-foreground"
                                         onClick={() => setMode('pin')}
                                     >
                                         {t('entrar.back_to_pin')}
