@@ -2,6 +2,7 @@ import { router, usePage } from '@inertiajs/react';
 import { ArrowLeft, CalendarDays, FileDown, Scissors, Stethoscope, Syringe } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PortalPetCover } from '@/components/portal/portal-pet-cover';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import { dateKeyInAppTimezone } from '@/pages/clinica/historias-clinicas/format-atendido';
 import { PacienteTimelineRow } from '@/pages/clinica/pacientes/components/paciente-timeline-row';
@@ -163,13 +164,9 @@ export function PortalPetView({
 
     return (
         <div className="mx-auto max-w-5xl">
-            <div className="relative h-[min(52vh,26rem)] w-full overflow-hidden bg-linear-to-br from-teal-400 to-emerald-700 sm:mx-6 sm:mt-4 sm:h-80 sm:rounded-[1.75rem] sm:shadow-xl">
-                {m.foto_url ? (
-                    <img src={m.foto_url} alt="" className="absolute inset-0 size-full object-cover" />
-                ) : (
-                    <div className="flex size-full items-center justify-center text-8xl">🐾</div>
-                )}
-                <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-black/10" />
+            <div className="relative h-[min(52vh,26rem)] w-full overflow-hidden sm:mx-6 sm:mt-4 sm:h-80 sm:rounded-[1.75rem] sm:shadow-xl">
+                <PortalPetCover nombre={m.nombre} fotoUrl={m.foto_url} especie={m.especie} />
+                <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-black/10" />
                 <button
                     type="button"
                     className="absolute top-3 left-3 z-10 inline-flex size-11 cursor-pointer items-center justify-center rounded-full bg-white/95 text-slate-800 shadow-md"

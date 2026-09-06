@@ -54,6 +54,7 @@
         "logout": "Cerrar sesión",
         "no_pets": "Aún no hay mascotas en tu ficha. La clínica las cargará pronto.",
         "pets": "Tus mascotas",
+        "pets_count": "{{count}} fichas",
         "owner": "Titular",
         "open_pet": "Ver ficha",
         "back": "Todas las mascotas",

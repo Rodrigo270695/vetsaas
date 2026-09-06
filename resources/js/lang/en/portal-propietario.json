@@ -54,6 +54,7 @@
         "logout": "Sign out",
         "no_pets": "No pets on your file yet. The clinic will add them soon.",
         "pets": "Your pets",
+        "pets_count": "{{count}} files",
         "owner": "Owner",
         "open_pet": "Open file",
         "back": "All pets",

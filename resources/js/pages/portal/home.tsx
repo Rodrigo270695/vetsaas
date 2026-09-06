@@ -1,7 +1,9 @@
 import { Head, router } from '@inertiajs/react';
-import { Mail, MapPin, Phone, UserRound } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronRight, IdCard, Mail, MapPin, Phone } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PortalAppShell } from '@/components/portal/portal-app-shell';
+import { PortalPetCover } from '@/components/portal/portal-pet-cover';
 import { PortalPetView, type PortalPetPayload } from '@/components/portal/portal-pet-view';
 
 type MascotaCard = {
@@ -85,6 +87,7 @@ export default function PortalHome({ clinic, overview, pet, filters, push, urls 
                 greeting={t('home.hello', { name: overview.saludo })}
                 logoutUrl={urls.logout}
                 push={push}
+                showDock={!pet}
             >
                 {pet ? (
                     <PortalPetView pet={pet} filters={filters} homeUrl={urls.home} />
@@ -99,48 +102,63 @@ export default function PortalHome({ clinic, overview, pet, filters, push, urls 
 function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string }) {
     const { t } = useTranslation('portal-propietario');
     const o = overview.titular;
+    const [open, setOpen] = useState(false);
 
     return (
         <main className="mx-auto max-w-6xl">
-            <section className="bg-linear-to-br from-teal-700 via-teal-600 to-emerald-500 px-4 pb-8 pt-5 text-white sm:mx-6 sm:mt-6 sm:rounded-[1.75rem] sm:px-8 sm:shadow-xl">
-                <div className="flex items-center gap-4">
-                    <div className="flex size-[3.25rem] shrink-0 items-center justify-center rounded-2xl bg-white/20 text-lg font-bold tracking-wide">
-                        {initials(o.nombre) || <UserRound className="size-7" />}
+            <section className="relative overflow-hidden bg-linear-to-br from-teal-800 via-teal-600 to-lime-400 px-4 pb-6 pt-4 text-white sm:mx-5 sm:mt-5 sm:rounded-[1.75rem] sm:px-7 sm:shadow-xl">
+                <div className="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-2xl" />
+                <div className="pointer-events-none absolute -bottom-20 -left-8 size-56 rounded-full bg-lime-300/30 blur-2xl" />
+                <button
+                    type="button"
+                    onClick={() => setOpen((v) => !v)}
+                    className="relative flex w-full cursor-pointer items-center gap-3 text-left"
+                >
+                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-lg font-bold tracking-wide ring-2 ring-white/25">
+                        {initials(o.nombre)}
                     </div>
-                    <div className="min-w-0">
-                        <p className="text-[11px] font-bold tracking-[0.18em] text-teal-100 uppercase">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold tracking-[0.2em] text-teal-100 uppercase">
                             {t('home.owner')}
                         </p>
-                        <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{o.nombre}</h1>
+                        <h1 className="truncate text-xl font-bold tracking-tight">{o.nombre}</h1>
+                        {o.telefono ? (
+                            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-white/85">
+                                <Phone className="size-3.5" />
+                                {o.telefono}
+                            </p>
+                        ) : null}
                     </div>
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                    {o.telefono ? (
-                        <p className="flex items-center gap-2 rounded-2xl bg-white/12 px-3 py-2.5">
-                            <Phone className="size-4 opacity-80" />
-                            {o.telefono}
-                        </p>
-                    ) : null}
-                    {o.email ? (
-                        <p className="flex items-center gap-2 overflow-hidden rounded-2xl bg-white/12 px-3 py-2.5">
-                            <Mail className="size-4 shrink-0 opacity-80" />
-                            <span className="truncate">{o.email}</span>
-                        </p>
-                    ) : null}
-                    {o.documento ? (
-                        <p className="rounded-2xl bg-white/12 px-3 py-2.5">{o.documento}</p>
-                    ) : null}
-                    {o.direccion ? (
-                        <p className="flex items-center gap-2 rounded-2xl bg-white/12 px-3 py-2.5 sm:col-span-2">
-                            <MapPin className="size-4 shrink-0 opacity-80" />
-                            <span className="truncate">{o.direccion}</span>
-                        </p>
-                    ) : null}
-                </div>
+                    <ChevronDown
+                        className={`size-5 shrink-0 opacity-80 transition ${open ? 'rotate-180' : ''}`}
+                    />
+                </button>
+                {open ? (
+                    <div className="relative mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                        {o.email ? (
+                            <p className="flex items-center gap-2 overflow-hidden rounded-2xl bg-white/12 px-3 py-2.5">
+                                <Mail className="size-4 shrink-0 opacity-80" />
+                                <span className="truncate">{o.email}</span>
+                            </p>
+                        ) : null}
+                        {o.documento ? (
+                            <p className="flex items-center gap-2 rounded-2xl bg-white/12 px-3 py-2.5">
+                                <IdCard className="size-4 shrink-0 opacity-80" />
+                                {o.documento}
+                            </p>
+                        ) : null}
+                        {o.direccion ? (
+                            <p className="flex items-center gap-2 rounded-2xl bg-white/12 px-3 py-2.5 sm:col-span-2">
+                                <MapPin className="size-4 shrink-0 opacity-80" />
+                                <span className="truncate">{o.direccion}</span>
+                            </p>
+                        ) : null}
+                    </div>
+                ) : null}
             </section>
 
             {overview.avisos.length > 0 ? (
-                <section className="mx-4 mt-5 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200/70 sm:mx-6 dark:bg-amber-950/40">
+                <section className="mx-4 mt-4 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200/70 sm:mx-5 dark:bg-amber-950/40">
                     <h2 className="mb-2 text-xs font-bold tracking-wide text-amber-900 uppercase dark:text-amber-200">
                         {t('home.avisos')}
                     </h2>
@@ -155,46 +173,59 @@ function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string 
                 </section>
             ) : null}
 
-            <section className="px-4 pt-6 sm:px-6">
-                <h2 className="mb-3 text-lg font-bold tracking-tight">{t('home.pets')}</h2>
+            <section className="px-4 pt-5 sm:px-5">
+                <div className="mb-3 flex items-end justify-between">
+                    <h2 className="text-lg font-bold tracking-tight">{t('home.pets')}</h2>
+                    <p className="text-xs font-medium text-slate-500">
+                        {t('home.pets_count', { count: overview.mascotas.length })}
+                    </p>
+                </div>
                 {overview.mascotas.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('home.no_pets')}</p>
                 ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
                         {overview.mascotas.map((m) => (
                             <button
                                 key={m.id}
                                 type="button"
                                 onClick={() => router.get(homeUrl, { mascota: m.id, tab: 'citas' })}
-                                className="group cursor-pointer overflow-hidden rounded-[1.6rem] bg-white text-left shadow-[0_8px_30px_rgba(15,80,70,0.08)] ring-1 ring-black/4 active:scale-[0.98] dark:bg-slate-900"
+                                className="group relative h-56 cursor-pointer overflow-hidden rounded-[1.65rem] text-left shadow-[0_12px_32px_rgba(15,60,50,0.14)] ring-1 ring-black/5 active:scale-[0.985] sm:h-64"
                             >
-                                <div className="relative h-48 bg-linear-to-br from-teal-300 to-emerald-600 sm:h-52">
-                                    {m.foto_url ? (
-                                        <img src={m.foto_url} alt="" className="size-full object-cover" />
-                                    ) : (
-                                        <div className="flex size-full items-center justify-center text-6xl">🐾</div>
-                                    )}
-                                    <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 via-black/25 to-transparent px-4 pb-3 pt-12">
-                                        <p className="text-xl font-bold text-white">{m.nombre}</p>
-                                        <p className="text-sm text-white/80">
-                                            {[m.especie, m.raza].filter(Boolean).join(' · ') || ' '}
+                                <PortalPetCover
+                                    nombre={m.nombre}
+                                    fotoUrl={m.foto_url}
+                                    especie={m.especie}
+                                />
+                                <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/25 to-black/10" />
+                                {m.proxima_cita ? (
+                                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-teal-400 px-2.5 py-1 text-[11px] font-bold text-teal-950 shadow">
+                                        <CalendarDays className="size-3" />
+                                        {formatCita(m.proxima_cita.inicio_at)}
+                                    </span>
+                                ) : (
+                                    <span className="absolute top-3 right-3 rounded-full bg-white/18 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
+                                        {t('home.no_visit')}
+                                    </span>
+                                )}
+                                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-2xl font-bold text-white drop-shadow">
+                                            {m.nombre}
                                         </p>
+                                        <p className="truncate text-sm text-white/80">
+                                            {[m.especie, m.raza].filter(Boolean).join(' · ') ||
+                                                t('home.open_pet')}
+                                        </p>
+                                        {m.ultima_consulta ? (
+                                            <p className="mt-1 text-[11px] text-white/65">
+                                                {t('home.last_visit')} ·{' '}
+                                                {formatCita(m.ultima_consulta.atendido_at)}
+                                            </p>
+                                        ) : null}
                                     </div>
-                                </div>
-                                <div className="space-y-1 px-4 py-3.5">
-                                    {m.proxima_cita ? (
-                                        <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-                                            {t('home.next_visit')}: {formatCita(m.proxima_cita.inicio_at)}
-                                        </p>
-                                    ) : (
-                                        <p className="text-sm text-slate-500">{t('home.no_visit')}</p>
-                                    )}
-                                    {m.ultima_consulta ? (
-                                        <p className="text-xs text-slate-500">
-                                            {t('home.last_visit')}: {formatCita(m.ultima_consulta.atendido_at)}
-                                        </p>
-                                    ) : null}
-                                    <p className="pt-1 text-sm font-bold text-teal-600">{t('home.open_pet')} →</p>
+                                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/95 text-teal-700 shadow">
+                                        <ChevronRight className="size-5" />
+                                    </span>
                                 </div>
                             </button>
                         ))}
