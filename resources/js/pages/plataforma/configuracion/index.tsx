@@ -138,8 +138,6 @@ export default function Index({
         );
     };
 
-    const hasLive = liveAnnouncementId !== null;
-
     return (
         <>
             <Head title={t('title')} />
