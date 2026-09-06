@@ -54,7 +54,7 @@ export default function PortalEntrar({
                     className="pointer-events-none absolute -bottom-20 -left-10 size-96 rounded-full bg-rose-300/30 blur-3xl dark:bg-rose-600/15"
                     aria-hidden
                 />
-                <div className="absolute top-4 right-4 z-20">
+                <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-20">
                     <PortalThemeToggle />
                 </div>
 
@@ -91,23 +91,33 @@ export default function PortalEntrar({
                         </div>
                     </section>
 
-                    <section className="flex flex-col justify-center px-5 py-12 sm:px-10">
-                        <div className="mx-auto w-full max-w-md rounded-4xl bg-white/80 p-8 shadow-xl ring-1 ring-teal-900/5 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10">
-                            <header className="mb-6 flex flex-col items-center gap-3 text-center lg:hidden">
+                    <section className="flex flex-1 flex-col justify-end px-0 pb-0 lg:justify-center lg:px-10 lg:py-12">
+                        <div className="relative mb-0 overflow-hidden lg:hidden">
+                            <div className="relative h-[42vh] min-h-56 bg-linear-to-br from-teal-400 to-emerald-700">
+                                {mascota?.foto_url ? (
+                                    <img src={mascota.foto_url} alt="" className="size-full object-cover" />
+                                ) : (
+                                    <div className="flex size-full items-center justify-center text-7xl">🐾</div>
+                                )}
+                                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/15 to-transparent" />
+                                <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+                                    {clinic.logo_url ? (
+                                        <img src={clinic.logo_url} alt="" className="mb-3 h-8 w-auto object-contain" />
+                                    ) : null}
+                                    <p className="text-xs font-semibold tracking-[0.18em] text-white/70 uppercase">
+                                        {clinic.nombre}
+                                    </p>
+                                    <p className="mt-1 text-2xl font-bold">
+                                        {mascota?.nombre ?? t('entrar.kicker')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mx-auto w-full max-w-md rounded-t-[1.75rem] bg-white p-6 shadow-[0_-12px_40px_rgba(15,80,70,0.12)] ring-1 ring-teal-900/5 lg:rounded-4xl lg:p-8 lg:shadow-xl dark:bg-slate-900/90 dark:ring-white/10">
+                            <header className="mb-4 hidden flex-col items-center gap-3 text-center lg:flex">
                                 {clinic.logo_url ? (
                                     <img src={clinic.logo_url} alt="" className="h-10 w-auto object-contain" />
                                 ) : null}
-                                {mascota?.foto_url ? (
-                                    <img
-                                        src={mascota.foto_url}
-                                        alt=""
-                                        className="size-28 rounded-full object-cover ring-4 ring-teal-200 dark:ring-teal-700"
-                                    />
-                                ) : (
-                                    <div className="flex size-28 items-center justify-center rounded-full bg-teal-100 text-5xl dark:bg-teal-900">
-                                        🐾
-                                    </div>
-                                )}
                             </header>
 
                             {mode === 'setup' && (

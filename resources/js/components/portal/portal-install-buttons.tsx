@@ -56,39 +56,42 @@ export function PortalInstallButtons() {
     }
 
     const btn =
-        'inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold shadow-sm transition hover:brightness-105 sm:text-sm';
+        'inline-flex h-12 min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl px-3 text-xs font-semibold shadow-sm transition hover:brightness-105 md:h-10 md:rounded-full md:text-sm';
 
     return (
-        <div className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1 md:flex-none">
+            <div className="flex min-w-0 items-center gap-2">
                 {(isAndroid() || promptEvent) && (
                     <button
                         type="button"
                         onClick={() => void install()}
-                        className={`${btn} bg-[#3ddc84] text-[#053b1f]`}
+                        className={`${btn} flex-1 bg-[#3ddc84] text-[#053b1f] md:flex-none`}
                     >
                         <Smartphone className="size-4 shrink-0" />
-                        <span className="max-sm:sr-only">{t('home.install_android')}</span>
+                        <span className="md:hidden">{t('home.install_short')}</span>
+                        <span className="hidden md:inline">{t('home.install_android')}</span>
                     </button>
                 )}
                 {isIos() && (
                     <button
                         type="button"
                         onClick={() => setIosHint(true)}
-                        className={`${btn} bg-[#007aff] text-white`}
+                        className={`${btn} flex-1 bg-[#007aff] text-white md:flex-none`}
                     >
                         <Share2 className="size-4 shrink-0" />
-                        <span className="max-sm:sr-only">{t('home.install_ios')}</span>
+                        <span className="md:hidden">{t('home.install_short')}</span>
+                        <span className="hidden md:inline">{t('home.install_ios')}</span>
                     </button>
                 )}
                 {!isAndroid() && !isIos() && (
                     <button
                         type="button"
                         onClick={() => void install()}
-                        className={`${btn} bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900`}
+                        className={`${btn} flex-1 bg-slate-800 text-white md:flex-none dark:bg-slate-100 dark:text-slate-900`}
                     >
                         <Download className="size-4 shrink-0" />
-                        <span className="max-sm:sr-only">{t('home.install_desktop')}</span>
+                        <span className="md:hidden">{t('home.install_short')}</span>
+                        <span className="hidden md:inline">{t('home.install_desktop')}</span>
                     </button>
                 )}
             </div>
