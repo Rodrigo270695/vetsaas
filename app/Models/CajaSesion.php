@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Turno de caja (apertura / cierre) por sede y usuario.
@@ -15,10 +16,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $estado
  * @property string $moneda
  * @property string $saldo_apertura
+ * @property ?array $saldos_apertura_json
  * @property ?string $saldo_cierre_efectivo
+ * @property ?array $saldos_cierre_json
  * @property ?array $arqueo_json
- * @property \Illuminate\Support\Carbon $opened_at
- * @property ?\Illuminate\Support\Carbon $closed_at
+ * @property Carbon $opened_at
+ * @property ?Carbon $closed_at
  * @property ?string $notas
  * @property string $opened_by_id
  * @property ?string $closed_by_id
@@ -38,7 +41,9 @@ class CajaSesion extends Model
         'estado',
         'moneda',
         'saldo_apertura',
+        'saldos_apertura_json',
         'saldo_cierre_efectivo',
+        'saldos_cierre_json',
         'arqueo_json',
         'opened_at',
         'closed_at',
@@ -51,7 +56,9 @@ class CajaSesion extends Model
     {
         return [
             'saldo_apertura' => 'decimal:2',
+            'saldos_apertura_json' => 'array',
             'saldo_cierre_efectivo' => 'decimal:2',
+            'saldos_cierre_json' => 'array',
             'arqueo_json' => 'array',
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',

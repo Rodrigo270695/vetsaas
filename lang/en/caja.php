@@ -5,7 +5,17 @@ return [
         'sede_id' => 'branch',
         'moneda' => 'currency',
         'saldo_apertura' => 'opening cash',
+        'saldos_apertura' => [
+            'yape' => 'opening Yape',
+            'plin' => 'opening Plin',
+            'transferencia' => 'opening bank transfer',
+        ],
         'saldo_cierre_efectivo' => 'cash counted at closing',
+        'saldos_cierre' => [
+            'yape' => 'Yape at closing',
+            'plin' => 'Plin at closing',
+            'transferencia' => 'bank transfer at closing',
+        ],
         'notas' => 'notes',
         'egreso_monto' => 'expense amount',
         'egreso_motivo' => 'expense reason',

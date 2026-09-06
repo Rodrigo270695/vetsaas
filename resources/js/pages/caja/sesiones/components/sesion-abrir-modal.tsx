@@ -18,6 +18,8 @@ import { resolveDefaultSedeIdOrEmpty } from '@/lib/default-sede';
 import { toastManager } from '@/lib/toast';
 import caja from '@/routes/caja';
 import type { QueryParams } from '@/wayfinder';
+import { BilleterasMontosFields } from './billeteras-montos-fields';
+import { emptySaldosBilleteras, type CajaBilleteraCodigo, type SaldosBilleterasForm } from './arqueo-types';
 import type { SedeOpcion } from '../types';
 
 type SesionAbrirModalProps = {
@@ -33,6 +35,7 @@ type FormData = {
     sede_id: string;
     moneda: string;
     saldo_apertura: string;
+    saldos_apertura: SaldosBilleterasForm;
     notas: string;
 };
 
@@ -56,6 +59,7 @@ const buildEmpty = (
     sede_id: resolveInitialSedeId(sedes, preferredSedeId),
     moneda: 'PEN',
     saldo_apertura: '0',
+    saldos_apertura: emptySaldosBilleteras('0'),
     notas: '',
 });
 
@@ -106,7 +110,10 @@ export function SesionAbrirModal({
                     formErrors.sede_id ??
                     formErrors.saldo_apertura ??
                     formErrors.moneda ??
-                    formErrors.notas;
+                    formErrors.notas ??
+                    formErrors['saldos_apertura.yape'] ??
+                    formErrors['saldos_apertura.plin'] ??
+                    formErrors['saldos_apertura.transferencia'];
 
                 if (message) {
                     toastManager.error({ title: message });
@@ -121,6 +128,7 @@ export function SesionAbrirModal({
             onOpenChange={onOpenChange}
             title={t('sesiones.dialog_abrir.title')}
             description={t('sesiones.dialog_abrir.description')}
+            size="md"
             onSubmit={onSubmit}
             footer={
                 <>
@@ -179,6 +187,16 @@ export function SesionAbrirModal({
                         className="tabular-nums"
                     />
                 </FormField>
+
+                <BilleterasMontosFields
+                    idPrefix="abrir-billetera"
+                    values={data.saldos_apertura}
+                    errorPrefix="saldos_apertura"
+                    errors={errors as Record<string, string | undefined>}
+                    onChange={(codigo: CajaBilleteraCodigo, value) =>
+                        setData('saldos_apertura', { ...data.saldos_apertura, [codigo]: value })
+                    }
+                />
 
                 <FormField id="abrir-notas" label={t('sesiones.fields.notas_apertura')} error={errors.notas}>
                     <Textarea value={data.notas} onChange={(ev) => setData('notas', ev.target.value)} rows={3} className="resize-y" />

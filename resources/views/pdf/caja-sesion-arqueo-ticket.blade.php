@@ -219,6 +219,30 @@
         </tr>
     </table>
 
+    @php
+        $billeterasTicket = is_array($arqueo['billeteras'] ?? null) ? $arqueo['billeteras'] : [];
+    @endphp
+    @if(count($billeterasTicket) > 0)
+        <hr class="rule">
+        <p class="sec">Billeteras</p>
+        <table class="rows">
+            @foreach($billeterasTicket as $b)
+                <tr>
+                    <td class="lbl">{{ $metodoLabel((string) ($b['codigo'] ?? '')) }} esp.</td>
+                    <td class="val">{{ $fmt($b['esperado'] ?? '0.00', $moneda) }}</td>
+                </tr>
+                <tr>
+                    <td class="lbl">Contado</td>
+                    <td class="val">{{ $fmt($b['contado'] ?? null, $moneda) }}</td>
+                </tr>
+                <tr>
+                    <td class="lbl">Dif.</td>
+                    <td class="val">{{ $fmt(isset($b['diferencia']) && is_string($b['diferencia']) ? $b['diferencia'] : null, $moneda) }}</td>
+                </tr>
+            @endforeach
+        </table>
+    @endif
+
     @if(!empty($notas_cierre))
         <hr class="rule">
         <p class="sec">Notas</p>

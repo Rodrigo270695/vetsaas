@@ -82,7 +82,7 @@
         },
         "dialog_abrir": {
             "title": "Abrir sesión de caja",
-            "description": "Indica la sede y el efectivo inicial del turno.",
+            "description": "Indica la sede, el efectivo inicial y, si aplica, el saldo de Yape, Plin y transferencia.",
             "submit": "Confirmar apertura",
             "cancel": "Cancelar"
         },
@@ -111,7 +111,7 @@
         },
         "dialog_cerrar": {
             "title": "Arqueo y cierre de caja",
-            "description": "Revisa ventas, egresos, comprobantes y métodos de pago. Cuadra el efectivo contado contra lo esperado.",
+            "description": "Revisa ventas, egresos y métodos. Cuadra el efectivo y el saldo de cada billetera contra lo esperado.",
             "submit": "Confirmar cierre",
             "cancel": "Cancelar",
             "loading_arqueo": "Calculando arqueo…",
@@ -152,12 +152,21 @@
             "formula": "Efectivo a cuadrar = {{apertura}} (apertura) + {{ventas}} (efectivo) − {{egresos}} (egresos) → {{esperado}}",
             "anuladas_hint": "{{count}} anulada(s) excluidas ({{total}}).",
             "contado_hint": "Cuenta solo el efectivo físico en caja (no Yape/tarjeta).",
+            "billeteras_title": "Billeteras al cierre",
+            "billeteras_hint": "Cuenta lo que queda en cada canal. Lo esperado es apertura de ese medio + cobros (los egresos no se descuentan aquí).",
+            "billeteras_col_apertura": "Apertura",
+            "billeteras_col_ventas": "Cobrado",
+            "billeteras_col_esperado": "Esperado",
+            "billeteras_col_contado": "Contado",
+            "billeteras_col_diff": "Dif.",
             "notas_placeholder": "Observaciones del arqueo (opcional)"
         },
         "fields": {
             "sede": "Sede",
             "moneda": "Moneda",
             "saldo_apertura": "Efectivo inicial",
+            "saldos_billeteras": "Billeteras (opcional)",
+            "saldos_billeteras_hint": "Saldo que ya hay en Yape, Plin o transferencia al abrir. Déjalo en 0 si no usas ese medio.",
             "notas_apertura": "Notas (opcional)",
             "saldo_cierre": "Efectivo contado al cierre",
             "notas_cierre": "Notas de cierre (opcional)",

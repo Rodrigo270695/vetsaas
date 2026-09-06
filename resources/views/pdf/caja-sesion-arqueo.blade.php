@@ -283,6 +283,43 @@
     </tr>
 </table>
 
+@php
+    $billeterasPdf = is_array($arqueo['billeteras'] ?? null) ? $arqueo['billeteras'] : [];
+@endphp
+@if(count($billeterasPdf) > 0)
+<div class="card">
+    <h2>Billeteras (Yape, Plin, transferencia)</h2>
+    <table class="grid">
+        <tr>
+            <td class="k" style="font-weight:bold;">Canal</td>
+            <td class="v">Apertura · cobrado · esperado · contado · dif.</td>
+        </tr>
+        @foreach($billeterasPdf as $b)
+            @php
+                $codigoB = (string) ($b['codigo'] ?? '');
+                $labelB = $metodoLabel($codigoB);
+                $diffB = $b['diferencia'] ?? null;
+            @endphp
+            <tr>
+                <td class="k">{{ $labelB }}</td>
+                <td class="v">
+                    {{ $fmt($b['apertura'] ?? '0.00', $moneda) }}
+                    <span class="muted">+</span>
+                    {{ $fmt($b['ventas'] ?? '0.00', $moneda) }}
+                    <span class="muted">→</span>
+                    {{ $fmt($b['esperado'] ?? '0.00', $moneda) }}
+                    <span class="muted">|</span>
+                    {{ $fmt($b['contado'] ?? null, $moneda) }}
+                    <span class="muted">dif.</span>
+                    {{ $fmt(is_string($diffB) ? $diffB : null, $moneda) }}
+                </td>
+            </tr>
+        @endforeach
+    </table>
+    <p class="muted" style="margin:8px 0 0;">Esperado = apertura del canal + cobros. Los egresos solo afectan el efectivo.</p>
+</div>
+@endif
+
 <div class="card">
     <h2>Métodos de pago — distribución</h2>
     @if(count($chart) === 0)

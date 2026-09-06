@@ -1,19 +1,21 @@
-import { ArrowDownCircle, Banknote, FileText, Receipt, Scale, Ticket } from 'lucide-react';
+import { ArrowDownCircle, Banknote, FileText, Receipt, Scale, Smartphone, Ticket } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { formatArqueoMoney, type ArqueoPayload } from './arqueo-types';
+import { formatArqueoMoney, type ArqueoPayload, type SaldosBilleterasForm } from './arqueo-types';
 
 type ArqueoResumenProps = {
     arqueo: ArqueoPayload;
     /** Si se pasa, se usa en el KPI de diferencia (cierre en vivo). Si no, usa arqueo.diferencia. */
     diferenciaOverride?: string | null;
     diffTone?: 'ok' | 'over' | 'short' | 'muted';
+    billeterasContadas?: SaldosBilleterasForm;
 };
 
 export function ArqueoResumen({
     arqueo,
     diferenciaOverride,
     diffTone = 'muted',
+    billeterasContadas,
 }: ArqueoResumenProps) {
     const { t, i18n } = useTranslation('caja');
     const moneda = arqueo.moneda || 'PEN';
@@ -121,6 +123,92 @@ export function ArqueoResumen({
                     egresos: formatArqueoMoney(arqueo.egresos_total ?? '0.00', moneda, locale),
                 })}
             </div>
+
+            {(arqueo.billeteras ?? []).length > 0 ? (
+                <div className="overflow-hidden rounded-xl border border-border/50">
+                    <div className="flex items-center gap-2 border-b border-border/50 bg-muted/40 px-3 py-2">
+                        <Smartphone className="size-3.5 text-muted-foreground" />
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {t('sesiones.dialog_cerrar.billeteras_title')}
+                        </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-lg text-sm">
+                            <thead>
+                                <tr className="border-b border-border/40 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                                    <th className="px-3 py-2 font-medium"> </th>
+                                    <th className="px-3 py-2 font-medium tabular-nums">
+                                        {t('sesiones.dialog_cerrar.billeteras_col_apertura')}
+                                    </th>
+                                    <th className="px-3 py-2 font-medium tabular-nums">
+                                        {t('sesiones.dialog_cerrar.billeteras_col_ventas')}
+                                    </th>
+                                    <th className="px-3 py-2 font-medium tabular-nums">
+                                        {t('sesiones.dialog_cerrar.billeteras_col_esperado')}
+                                    </th>
+                                    <th className="px-3 py-2 font-medium tabular-nums">
+                                        {t('sesiones.dialog_cerrar.billeteras_col_contado')}
+                                    </th>
+                                    <th className="px-3 py-2 font-medium tabular-nums">
+                                        {t('sesiones.dialog_cerrar.billeteras_col_diff')}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/40">
+                                {(arqueo.billeteras ?? []).map((row) => {
+                                    const live = billeterasContadas?.[row.codigo as keyof SaldosBilleterasForm];
+                                    const contadoRaw =
+                                        live !== undefined && live.trim() !== '' ? live : row.contado;
+                                    const esperadoN = Number(row.esperado);
+                                    const contadoN = contadoRaw === null || contadoRaw === undefined || contadoRaw === ''
+                                        ? NaN
+                                        : Number(contadoRaw);
+                                    const diff =
+                                        Number.isNaN(esperadoN) || Number.isNaN(contadoN)
+                                            ? null
+                                            : (contadoN - esperadoN).toFixed(2);
+                                    const tone =
+                                        diff === null
+                                            ? 'muted'
+                                            : Number(diff) === 0
+                                              ? 'ok'
+                                              : Number(diff) > 0
+                                                ? 'over'
+                                                : 'short';
+
+                                    return (
+                                        <tr key={row.codigo}>
+                                            <td className="px-3 py-2 font-medium">{metodoLabel(row.codigo)}</td>
+                                            <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                                                {formatArqueoMoney(row.apertura, moneda, locale)}
+                                            </td>
+                                            <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                                                {formatArqueoMoney(row.ventas, moneda, locale)}
+                                            </td>
+                                            <td className="px-3 py-2 tabular-nums font-medium">
+                                                {formatArqueoMoney(row.esperado, moneda, locale)}
+                                            </td>
+                                            <td className="px-3 py-2 tabular-nums">
+                                                {formatArqueoMoney(contadoRaw, moneda, locale)}
+                                            </td>
+                                            <td
+                                                className={cn(
+                                                    'px-3 py-2 tabular-nums font-medium',
+                                                    tone === 'ok' && 'text-emerald-700 dark:text-emerald-300',
+                                                    tone === 'over' && 'text-sky-700 dark:text-sky-300',
+                                                    tone === 'short' && 'text-amber-700 dark:text-amber-300',
+                                                )}
+                                            >
+                                                {formatArqueoMoney(diff, moneda, locale)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ) : null}
 
             {(arqueo.egresos_count ?? 0) > 0 ? (
                 <div className="overflow-hidden rounded-xl border border-rose-500/25">

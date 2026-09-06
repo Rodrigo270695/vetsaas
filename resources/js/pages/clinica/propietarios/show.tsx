@@ -139,9 +139,8 @@ export default function Show({
                                 {canEditOwner && (
                                     <Button
                                         type="button"
-                                        variant="outline"
                                         size="sm"
-                                        className="cursor-pointer gap-2"
+                                        className="cursor-pointer gap-2 shadow-sm"
                                         onClick={() => setModal({ type: 'edit-owner' })}
                                     >
                                         <Pencil className="size-4" strokeWidth={2.25} />
@@ -151,9 +150,8 @@ export default function Show({
                                 {propietario.telefono && portal_invitar_url ? (
                                     <Button
                                         type="button"
-                                        variant="outline"
                                         size="sm"
-                                        className="cursor-pointer gap-2"
+                                        className="cursor-pointer gap-2 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
                                         onClick={() =>
                                             router.post(portal_invitar_url, {}, { preserveScroll: true })
                                         }

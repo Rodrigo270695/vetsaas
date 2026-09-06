@@ -11,6 +11,7 @@ use App\Models\FelSerie;
 use App\Models\Sede;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Support\Caja\CajaBilleteras;
 use Illuminate\Support\Collection;
 
 /**
@@ -21,9 +22,10 @@ final class CajaSesionArqueoService
     private const METODOS = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia'];
 
     /**
+     * @param  array<string, string>|null  $billeterasContadas
      * @return array<string, mixed>
      */
-    public function build(CajaSesion $sesion, ?string $efectivoContado = null): array
+    public function build(CajaSesion $sesion, ?string $efectivoContado = null, ?array $billeterasContadas = null): array
     {
         $ventas = Venta::query()
             ->with([
@@ -146,8 +148,61 @@ final class CajaSesionArqueoService
             'efectivo_esperado' => $esperado,
             'efectivo_contado' => $contado,
             'diferencia' => $diferencia,
+            'billeteras' => $this->billeteras($sesion, $metodos, $billeterasContadas),
             'generated_at' => now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * Esperado por billetera = apertura de ese canal + cobros (sin egresos).
+     *
+     * @param  list<array{codigo: string, count: int, total: string}>  $metodos
+     * @param  array<string, string>|null  $billeterasContadas
+     * @return list<array{
+     *     codigo: string,
+     *     apertura: string,
+     *     ventas: string,
+     *     esperado: string,
+     *     contado: string|null,
+     *     diferencia: string|null
+     * }>
+     */
+    private function billeteras(CajaSesion $sesion, array $metodos, ?array $billeterasContadas): array
+    {
+        $aperturaMap = CajaBilleteras::normalize(
+            is_array($sesion->saldos_apertura_json) ? $sesion->saldos_apertura_json : null,
+        );
+
+        $cierreMap = is_array($sesion->saldos_cierre_json) && $sesion->saldos_cierre_json !== []
+            ? CajaBilleteras::normalize($sesion->saldos_cierre_json)
+            : null;
+
+        $rows = [];
+        foreach (CajaBilleteras::CODIGOS as $codigo) {
+            $apertura = $aperturaMap[$codigo];
+            $ventas = $this->sumMetodo($metodos, $codigo);
+            $esperado = $this->add($apertura, $ventas);
+
+            $contado = null;
+            if (is_array($billeterasContadas) && array_key_exists($codigo, $billeterasContadas)) {
+                $contado = $this->money((string) $billeterasContadas[$codigo]);
+            } elseif ($cierreMap !== null) {
+                $contado = $cierreMap[$codigo];
+            }
+
+            $diferencia = $contado !== null ? $this->sub($contado, $esperado) : null;
+
+            $rows[] = [
+                'codigo' => $codigo,
+                'apertura' => $apertura,
+                'ventas' => $ventas,
+                'esperado' => $esperado,
+                'contado' => $contado,
+                'diferencia' => $diferencia,
+            ];
+        }
+
+        return $rows;
     }
 
     /**

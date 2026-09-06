@@ -43,7 +43,10 @@ final class PortalHomeController extends Controller
         $hasta = self::optionalDate($request->query('hasta'));
         $todo = $request->boolean('todo');
 
-        if ($mascotaId !== '' && ! $todo && $desde === null && $hasta === null) {
+        $legacyYearToToday = $desde === now()->startOfYear()->toDateString()
+            && $hasta === now()->toDateString();
+
+        if ($mascotaId !== '' && ! $todo && ($legacyYearToToday || ($desde === null && $hasta === null))) {
             $desde = $monthStart;
             $hasta = $monthEnd;
         }

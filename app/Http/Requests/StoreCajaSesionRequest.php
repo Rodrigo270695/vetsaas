@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\Caja\CajaBilleteras;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +29,7 @@ class StoreCajaSesionRequest extends FormRequest
             ],
             'moneda' => ['required', Rule::in(['PEN', 'USD'])],
             'saldo_apertura' => ['required', 'numeric', 'min:0'],
+            ...CajaBilleteras::validationRules('saldos_apertura', false),
             'notas' => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -38,6 +40,7 @@ class StoreCajaSesionRequest extends FormRequest
             'sede_id' => __('caja.attributes.sede_id'),
             'moneda' => __('caja.attributes.moneda'),
             'saldo_apertura' => __('caja.attributes.saldo_apertura'),
+            ...CajaBilleteras::validationAttributes('saldos_apertura'),
             'notas' => __('caja.attributes.notas'),
         ];
     }

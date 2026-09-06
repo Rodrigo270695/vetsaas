@@ -82,7 +82,7 @@
         },
         "dialog_abrir": {
             "title": "Open cash session",
-            "description": "Select the branch and the opening cash float.",
+            "description": "Select the branch, the opening cash float and, if you use them, Yape, Plin and bank transfer balances.",
             "submit": "Confirm opening",
             "cancel": "Cancel"
         },
@@ -111,7 +111,7 @@
         },
         "dialog_cerrar": {
             "title": "Cash reconciliation & close",
-            "description": "Review sales, expenses, documents and payment methods. Match counted cash against expected cash.",
+            "description": "Review sales, expenses and payment methods. Match counted cash and each wallet against expected amounts.",
             "submit": "Confirm closing",
             "cancel": "Cancel",
             "loading_arqueo": "Calculating reconciliation…",
@@ -152,12 +152,21 @@
             "formula": "Cash to reconcile = {{apertura}} (opening) + {{ventas}} (cash) − {{egresos}} (expenses) → {{esperado}}",
             "anuladas_hint": "{{count}} voided sale(s) excluded ({{total}}).",
             "contado_hint": "Count physical cash only (not Yape/card).",
+            "billeteras_title": "Wallets at closing",
+            "billeteras_hint": "Count what remains in each channel. Expected is that channel’s opening + collections (expenses are not subtracted here).",
+            "billeteras_col_apertura": "Opening",
+            "billeteras_col_ventas": "Collected",
+            "billeteras_col_esperado": "Expected",
+            "billeteras_col_contado": "Counted",
+            "billeteras_col_diff": "Diff.",
             "notas_placeholder": "Reconciliation notes (optional)"
         },
         "fields": {
             "sede": "Branch",
             "moneda": "Currency",
             "saldo_apertura": "Opening cash",
+            "saldos_billeteras": "Wallets (optional)",
+            "saldos_billeteras_hint": "Balance already in Yape, Plin or bank transfer when you open. Leave 0 if you don’t use that method.",
             "notas_apertura": "Notes (optional)",
             "saldo_cierre": "Cash counted at closing",
             "notas_cierre": "Closing notes (optional)",

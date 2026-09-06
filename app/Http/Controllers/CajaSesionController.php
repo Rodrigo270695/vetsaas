@@ -10,6 +10,7 @@ use App\Models\Sede;
 use App\Models\Venta;
 use App\Services\Caja\CajaSesionArqueoPdfService;
 use App\Services\Caja\CajaSesionArqueoService;
+use App\Support\Caja\CajaBilleteras;
 use App\Support\Caja\TicketAnchoMm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -256,6 +257,7 @@ class CajaSesionController extends Controller
                 'estado' => CajaSesion::ESTADO_ABIERTA,
                 'moneda' => $data['moneda'],
                 'saldo_apertura' => $data['saldo_apertura'],
+                'saldos_apertura_json' => CajaBilleteras::normalize($data['saldos_apertura'] ?? null),
                 'opened_at' => now(),
                 'notas' => $data['notas'] ?? null,
                 'opened_by_id' => Auth::id(),
@@ -285,11 +287,17 @@ class CajaSesionController extends Controller
         }
 
         $data = $request->validated();
-        $arqueo = $arqueoService->build($cajaSesion, (string) $data['saldo_cierre_efectivo']);
+        $saldosCierre = CajaBilleteras::normalize($data['saldos_cierre'] ?? null);
+        $arqueo = $arqueoService->build(
+            $cajaSesion,
+            (string) $data['saldo_cierre_efectivo'],
+            $saldosCierre,
+        );
 
         $cajaSesion->update([
             'estado' => CajaSesion::ESTADO_CERRADA,
             'saldo_cierre_efectivo' => $data['saldo_cierre_efectivo'],
+            'saldos_cierre_json' => $saldosCierre,
             'arqueo_json' => $arqueo,
             'closed_at' => now(),
             'closed_by_id' => Auth::id(),
@@ -309,12 +317,22 @@ class CajaSesionController extends Controller
             ? (string) $cajaSesion->saldo_cierre_efectivo
             : null;
 
+        $billeteras = is_array($cajaSesion->saldos_cierre_json) && $cajaSesion->saldos_cierre_json !== []
+            ? CajaBilleteras::normalize($cajaSesion->saldos_cierre_json)
+            : null;
+
         if (is_array($cajaSesion->arqueo_json) && $cajaSesion->arqueo_json !== [] && ! $cajaSesion->estaAbierta()) {
-            return response()->json(['arqueo' => $cajaSesion->arqueo_json]);
+            $arqueo = $cajaSesion->arqueo_json;
+            if (! isset($arqueo['billeteras']) || ! is_array($arqueo['billeteras'])) {
+                $fresh = $arqueoService->build($cajaSesion, $contado, $billeteras);
+                $arqueo['billeteras'] = $fresh['billeteras'];
+            }
+
+            return response()->json(['arqueo' => $arqueo]);
         }
 
         return response()->json([
-            'arqueo' => $arqueoService->build($cajaSesion, $contado),
+            'arqueo' => $arqueoService->build($cajaSesion, $contado, $billeteras),
         ]);
     }
 

@@ -91,14 +91,29 @@ export default function PortalHome({ clinic, overview, pet, filters, push, urls 
                 {pet ? (
                     <PortalPetView pet={pet} filters={filters} homeUrl={urls.home} />
                 ) : (
-                    <Dashboard overview={overview} homeUrl={urls.home} />
+                    <Dashboard
+                        overview={overview}
+                        homeUrl={urls.home}
+                        monthDesde={filters.default_desde}
+                        monthHasta={filters.default_hasta}
+                    />
                 )}
             </PortalAppShell>
         </>
     );
 }
 
-function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string }) {
+function Dashboard({
+    overview,
+    homeUrl,
+    monthDesde,
+    monthHasta,
+}: {
+    overview: Overview;
+    homeUrl: string;
+    monthDesde: string;
+    monthHasta: string;
+}) {
     const { t } = useTranslation('portal-propietario');
     const o = overview.titular;
     const [open, setOpen] = useState(false);
@@ -187,7 +202,14 @@ function Dashboard({ overview, homeUrl }: { overview: Overview; homeUrl: string 
                             <button
                                 key={m.id}
                                 type="button"
-                                onClick={() => router.get(homeUrl, { mascota: m.id, tab: 'citas' })}
+                                onClick={() =>
+                                    router.get(homeUrl, {
+                                        mascota: m.id,
+                                        tab: 'citas',
+                                        desde: monthDesde,
+                                        hasta: monthHasta,
+                                    })
+                                }
                                 className="group relative h-56 cursor-pointer overflow-hidden rounded-[1.65rem] text-left shadow-[0_12px_32px_rgba(15,60,50,0.14)] ring-1 ring-black/5 active:scale-[0.985] sm:h-64"
                             >
                                 <PortalPetCover

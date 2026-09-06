@@ -7,6 +7,7 @@ namespace App\Services\Caja;
 use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
 use App\Models\Tenant;
+use App\Support\Caja\CajaBilleteras;
 use App\Support\Caja\TicketAnchoMm;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
@@ -76,7 +77,8 @@ final class CajaSesionArqueoPdfService
         $tf = TicketAnchoMm::typography($ancho);
         $widthPt = ((float) $ancho) * 72 / 25.4;
         $metodosCount = is_array($arqueo['metodos'] ?? null) ? count($arqueo['metodos']) : 0;
-        $heightPt = max(460.0, 300.0 + ($metodosCount * 24.0) + 180.0);
+        $billeterasCount = is_array($arqueo['billeteras'] ?? null) ? count($arqueo['billeteras']) : 0;
+        $heightPt = max(460.0, 300.0 + ($metodosCount * 24.0) + ($billeterasCount * 52.0) + 180.0);
 
         $pdf = Pdf::loadView('pdf.caja-sesion-arqueo-ticket', array_merge($baseData, [
             'ancho_mm' => $ancho,
@@ -119,22 +121,24 @@ final class CajaSesionArqueoPdfService
      */
     private function resolveArqueo(CajaSesion $sesion, ?array $arqueo): array
     {
+        $contado = $sesion->saldo_cierre_efectivo !== null
+            ? (string) $sesion->saldo_cierre_efectivo
+            : null;
+        $billeteras = is_array($sesion->saldos_cierre_json) && $sesion->saldos_cierre_json !== []
+            ? CajaBilleteras::normalize($sesion->saldos_cierre_json)
+            : null;
+
         $arqueo ??= is_array($sesion->arqueo_json) && $sesion->arqueo_json !== []
             ? $sesion->arqueo_json
-            : $this->arqueoService->build($sesion, $sesion->saldo_cierre_efectivo !== null
-                ? (string) $sesion->saldo_cierre_efectivo
-                : null);
+            : $this->arqueoService->build($sesion, $contado, $billeteras);
 
         if (! isset($arqueo['productos_total'])
             || ! isset($arqueo['servicios_total'])
             || ! isset($arqueo['metodos'])
-            || ! is_array($arqueo['metodos'])) {
-            return $this->arqueoService->build(
-                $sesion,
-                $sesion->saldo_cierre_efectivo !== null
-                    ? (string) $sesion->saldo_cierre_efectivo
-                    : null,
-            );
+            || ! is_array($arqueo['metodos'])
+            || ! isset($arqueo['billeteras'])
+            || ! is_array($arqueo['billeteras'])) {
+            return $this->arqueoService->build($sesion, $contado, $billeteras);
         }
 
         return $arqueo;

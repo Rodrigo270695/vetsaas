@@ -4,6 +4,29 @@ export type ArqueoMetodo = {
     total: string;
 };
 
+export type ArqueoBilletera = {
+    codigo: string;
+    apertura: string;
+    ventas: string;
+    esperado: string;
+    contado: string | null;
+    diferencia: string | null;
+};
+
+export const CAJA_BILLETERAS = ['yape', 'plin', 'transferencia'] as const;
+
+export type CajaBilleteraCodigo = (typeof CAJA_BILLETERAS)[number];
+
+export type SaldosBilleterasForm = Record<CajaBilleteraCodigo, string>;
+
+export function emptySaldosBilleteras(fill = '0'): SaldosBilleterasForm {
+    return {
+        yape: fill,
+        plin: fill,
+        transferencia: fill,
+    };
+}
+
 export type ArqueoEgreso = {
     id: string;
     monto: string;
@@ -37,6 +60,7 @@ export type ArqueoPayload = {
     efectivo_esperado: string;
     efectivo_contado: string | null;
     diferencia: string | null;
+    billeteras?: ArqueoBilletera[];
 };
 
 export function formatArqueoMoney(

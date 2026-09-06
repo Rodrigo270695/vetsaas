@@ -5,7 +5,17 @@ return [
         'sede_id' => 'sede',
         'moneda' => 'moneda',
         'saldo_apertura' => 'saldo de apertura',
+        'saldos_apertura' => [
+            'yape' => 'Yape de apertura',
+            'plin' => 'Plin de apertura',
+            'transferencia' => 'transferencia de apertura',
+        ],
         'saldo_cierre_efectivo' => 'efectivo contado al cierre',
+        'saldos_cierre' => [
+            'yape' => 'Yape al cierre',
+            'plin' => 'Plin al cierre',
+            'transferencia' => 'transferencia al cierre',
+        ],
         'notas' => 'notas',
         'egreso_monto' => 'monto del egreso',
         'egreso_motivo' => 'motivo del egreso',
@@ -55,7 +65,7 @@ return [
             'adelanto_nota_venta' => 'Venta de adelanto (anticipo) de grooming.',
             'adelanto_registrado' => 'Adelanto :numero registrado (:monto).',
         ],
-            'hotel' => [
+        'hotel' => [
             'no_completado' => 'Marca la estancia como «Completada» antes de cobrar en caja.',
             'ya_cobrado' => 'Esta estancia ya tiene un cobro registrado.',
             'sin_propietario' => 'El paciente no tiene propietario vinculado; no se puede cobrar en caja.',

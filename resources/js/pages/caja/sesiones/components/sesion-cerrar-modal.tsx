@@ -11,7 +11,8 @@ import caja from '@/routes/caja';
 import { arqueo as arqueoRoute } from '@/routes/caja/sesiones';
 import type { QueryParams } from '@/wayfinder';
 import { ArqueoResumen } from './arqueo-resumen';
-import { arqueoCsrfToken, formatArqueoMoney, type ArqueoPayload } from './arqueo-types';
+import { arqueoCsrfToken, emptySaldosBilleteras, formatArqueoMoney, type ArqueoPayload, type CajaBilleteraCodigo, type SaldosBilleterasForm } from './arqueo-types';
+import { BilleterasMontosFields } from './billeteras-montos-fields';
 import type { CajaSesionRow } from '../types';
 
 type SesionCerrarModalProps = {
@@ -23,11 +24,13 @@ type SesionCerrarModalProps = {
 
 type FormData = {
     saldo_cierre_efectivo: string;
+    saldos_cierre: SaldosBilleterasForm;
     notas: string;
 };
 
 const empty: FormData = {
     saldo_cierre_efectivo: '',
+    saldos_cierre: emptySaldosBilleteras('0'),
     notas: '',
 };
 
@@ -70,9 +73,17 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
             })
             .then((json) => {
                 setArqueo(json.arqueo);
-                if (json.arqueo.efectivo_esperado) {
-                    setData('saldo_cierre_efectivo', json.arqueo.efectivo_esperado);
+                const billeteras = emptySaldosBilleteras('0');
+                for (const row of json.arqueo.billeteras ?? []) {
+                    if (row.codigo in billeteras) {
+                        billeteras[row.codigo as CajaBilleteraCodigo] = row.esperado;
+                    }
                 }
+                setData({
+                    saldo_cierre_efectivo: json.arqueo.efectivo_esperado ?? '',
+                    saldos_cierre: billeteras,
+                    notas: '',
+                });
             })
             .catch(() => {
                 setArqueoError(t('sesiones.dialog_cerrar.arqueo_error'));
@@ -172,6 +183,7 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
                         arqueo={arqueo}
                         diferenciaOverride={diferenciaLive}
                         diffTone={diffTone}
+                        billeterasContadas={data.saldos_cierre}
                     />
                 ) : null}
 
@@ -192,6 +204,16 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
                         autoFocus
                     />
                 </FormField>
+
+                <BilleterasMontosFields
+                    idPrefix="cerrar-billetera"
+                    values={data.saldos_cierre}
+                    errorPrefix="saldos_cierre"
+                    errors={errors as Record<string, string | undefined>}
+                    onChange={(codigo, value) =>
+                        setData('saldos_cierre', { ...data.saldos_cierre, [codigo]: value })
+                    }
+                />
 
                 <FormField id="cerrar-notas" label={t('sesiones.fields.notas_cierre')} error={errors.notas}>
                     <Textarea
