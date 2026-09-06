@@ -7,6 +7,7 @@ import {
     Lock,
     Plus,
     Printer,
+    RotateCcw,
     ScreenShare,
     SlidersHorizontal,
     Store,
@@ -43,6 +44,7 @@ import { SesionAbrirModal } from './components/sesion-abrir-modal';
 import { SesionArqueoDetalleModal } from './components/sesion-arqueo-detalle-modal';
 import { SesionCerrarModal } from './components/sesion-cerrar-modal';
 import { SesionEgresoModal } from './components/sesion-egreso-modal';
+import { SesionReabrirDialog } from './components/sesion-reabrir-dialog';
 import type { CajaSesionEstadoFiltro, CajaSesionFilters, CajaSesionRow, CajaSesionesIndexProps } from './types';
 
 type TableExtraFilters = {
@@ -69,6 +71,19 @@ function formatMonto(amount: string | null, moneda: string, locale: string): str
     const cur = moneda === 'USD' ? 'USD' : 'PEN';
 
     return new Intl.NumberFormat(locale, { style: 'currency', currency: cur }).format(n);
+}
+
+function sesionCerradaDentroDe24h(closedAt: string | null): boolean {
+    if (!closedAt) {
+        return false;
+    }
+
+    const closedMs = new Date(closedAt).getTime();
+    if (Number.isNaN(closedMs)) {
+        return false;
+    }
+
+    return Date.now() < closedMs + 24 * 60 * 60 * 1000;
 }
 
 function filtersToListQuery(filters: CajaSesionFilters): QueryParams {
@@ -159,6 +174,7 @@ export default function Index({
     const [egresoSesion, setEgresoSesion] = useState<CajaSesionRow | null>(null);
     const [detalleSesion, setDetalleSesion] = useState<CajaSesionRow | null>(null);
     const [imprimirSesionId, setImprimirSesionId] = useState<string | null>(null);
+    const [reabrirSesion, setReabrirSesion] = useState<CajaSesionRow | null>(null);
     const closeCerrar = useCallback(() => setCerrarSesion(null), []);
 
     const imprimirPdfUrl = useMemo(
@@ -333,15 +349,31 @@ export default function Index({
             },
         ];
 
-        if (canClose || canView) {
+        if (canClose || canView || canOpen) {
             base.push({
                 key: 'acciones',
                 header: <span className="md:sr-only">{t('caja:sesiones.columns.acciones')}</span>,
                 align: 'right',
                 cell: (row) => {
                     if (row.estado === 'cerrada' && canView) {
+                        const mostrarReabrir =
+                            canOpen && row.puede_reabrir === true && sesionCerradaDentroDe24h(row.closed_at);
+
                         return (
                             <div className="flex justify-end gap-0.5">
+                                {mostrarReabrir ? (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8 shrink-0 cursor-pointer border-0 bg-transparent text-emerald-600 shadow-none hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                        onClick={() => setReabrirSesion(row)}
+                                        aria-label={t('caja:sesiones.actions.reabrir')}
+                                        title={t('caja:sesiones.actions.reabrir')}
+                                    >
+                                        <RotateCcw className="size-4" strokeWidth={2.25} aria-hidden />
+                                    </Button>
+                                ) : null}
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -420,12 +452,12 @@ export default function Index({
 
                     return <span className="text-xs text-muted-foreground"> </span>;
                 },
-                className: 'w-20 sm:w-24',
+                className: 'w-24 sm:w-32',
             });
         }
 
         return base;
-    }, [t, i18n.language, canClose, canEgreso, canView, authUserId, sedeCodigoById]);
+    }, [t, i18n.language, canClose, canEgreso, canView, canOpen, authUserId, sedeCodigoById]);
 
     return (
         <>
@@ -625,6 +657,17 @@ export default function Index({
                     }
                 }}
                 sesion={cerrarSesion}
+                listQuery={listQuery}
+            />
+
+            <SesionReabrirDialog
+                open={reabrirSesion !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setReabrirSesion(null);
+                    }
+                }}
+                sesion={reabrirSesion}
                 listQuery={listQuery}
             />
 

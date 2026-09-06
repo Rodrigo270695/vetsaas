@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CloseCajaSesionRequest;
+use App\Http\Requests\ReopenCajaSesionRequest;
 use App\Http\Requests\StoreCajaSesionRequest;
 use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
@@ -150,8 +151,20 @@ class CajaSesionController extends Controller
             ->whereIn('id', $sesiones->pluck('sede_id')->unique()->filter()->all())
             ->pluck('nombre', 'id');
 
-        $sesiones->getCollection()->transform(function (CajaSesion $s) use ($sedeNombres): CajaSesion {
+        $ocupacion = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->get(['sede_id', 'opened_by_id']);
+        $sedesConAbierta = $ocupacion->pluck('sede_id')->flip();
+        $cajerosConAbierta = $ocupacion->pluck('opened_by_id')->flip();
+
+        $sesiones->getCollection()->transform(function (CajaSesion $s) use ($sedeNombres, $sedesConAbierta, $cajerosConAbierta): CajaSesion {
             $s->setAttribute('sede_nombre', $sedeNombres[$s->sede_id] ?? '—');
+            $s->setAttribute(
+                'puede_reabrir',
+                $s->estaDentroDeVentanaReabrir()
+                    && ! $sedesConAbierta->has($s->sede_id)
+                    && ! $cajerosConAbierta->has($s->opened_by_id),
+            );
 
             return $s;
         });
@@ -309,6 +322,85 @@ class CajaSesionController extends Controller
             ->with('success', __('caja.flash.sesion_cerrada'));
     }
 
+    public function reabrir(ReopenCajaSesionRequest $request, CajaSesion $cajaSesion): RedirectResponse
+    {
+        $redirect = redirect()->route('caja.sesiones.index', $request->query());
+
+        if ($cajaSesion->estaAbierta()) {
+            return $redirect->with('error', __('caja.flash.sesion_ya_abierta'));
+        }
+
+        if (! $cajaSesion->estaDentroDeVentanaReabrir()) {
+            return $redirect->with('error', __('caja.flash.reabrir_fuera_de_plazo'));
+        }
+
+        try {
+            DB::transaction(function () use ($cajaSesion): void {
+                /** @var CajaSesion $sesion */
+                $sesion = CajaSesion::query()
+                    ->whereKey($cajaSesion->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($sesion->estaAbierta()) {
+                    throw ValidationException::withMessages([
+                        'caja_sesion' => __('caja.flash.sesion_ya_abierta'),
+                    ]);
+                }
+
+                if (! $sesion->estaDentroDeVentanaReabrir()) {
+                    throw ValidationException::withMessages([
+                        'caja_sesion' => __('caja.flash.reabrir_fuera_de_plazo'),
+                    ]);
+                }
+
+                $sedeOcupada = CajaSesion::query()
+                    ->where('sede_id', $sesion->sede_id)
+                    ->where('estado', CajaSesion::ESTADO_ABIERTA)
+                    ->whereKeyNot($sesion->getKey())
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($sedeOcupada) {
+                    throw ValidationException::withMessages([
+                        'caja_sesion' => __('caja.validation.sede_tiene_sesion_abierta'),
+                    ]);
+                }
+
+                $cajeroOcupado = CajaSesion::query()
+                    ->where('opened_by_id', $sesion->opened_by_id)
+                    ->where('estado', CajaSesion::ESTADO_ABIERTA)
+                    ->whereKeyNot($sesion->getKey())
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($cajeroOcupado) {
+                    throw ValidationException::withMessages([
+                        'caja_sesion' => __('caja.validation.reabrir_cajero_tiene_sesion_abierta'),
+                    ]);
+                }
+
+                $sesion->update([
+                    'estado' => CajaSesion::ESTADO_ABIERTA,
+                    'saldo_cierre_efectivo' => null,
+                    'saldos_cierre_json' => null,
+                    'arqueo_json' => null,
+                    'closed_at' => null,
+                    'closed_by_id' => null,
+                    'notas' => $this->mergeNotasReabrir($sesion->notas),
+                ]);
+            });
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first();
+
+            return $redirect->with('error', is_string($message) && $message !== ''
+                ? $message
+                : __('caja.flash.reabrir_fuera_de_plazo'));
+        }
+
+        return $redirect->with('success', __('caja.flash.sesion_reabierta'));
+    }
+
     public function arqueo(CajaSesion $cajaSesion, CajaSesionArqueoService $arqueoService): JsonResponse
     {
         $this->authorizeSesionAccess($cajaSesion);
@@ -375,5 +467,19 @@ class CajaSesionController extends Controller
         }
 
         return $existentes."\n\n--- Cierre ---\n".$nuevas;
+    }
+
+    private function mergeNotasReabrir(?string $existentes): ?string
+    {
+        $linea = now()->timezone((string) config('app.timezone'))->format('d/m/Y H:i')
+            .' · '.(Auth::user()?->name ?? '—');
+        $bloque = '--- Reapertura ---'."\n".$linea;
+        $existentes = $existentes !== null ? trim($existentes) : '';
+
+        if ($existentes === '') {
+            return $bloque;
+        }
+
+        return $existentes."\n\n".$bloque;
     }
 }

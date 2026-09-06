@@ -926,6 +926,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:caja-sesiones.close')
             ->post('sesiones/{caja_sesion}/cerrar', [CajaSesionController::class, 'cerrar'])
             ->name('sesiones.cerrar');
+        Route::middleware('permission:caja-sesiones.open')
+            ->post('sesiones/{caja_sesion}/reabrir', [CajaSesionController::class, 'reabrir'])
+            ->name('sesiones.reabrir');
         Route::middleware('permission:caja-sesiones.view')
             ->get('sesiones/{caja_sesion}/arqueo', [CajaSesionController::class, 'arqueo'])
             ->name('sesiones.arqueo');

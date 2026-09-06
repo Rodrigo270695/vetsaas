@@ -47,10 +47,16 @@
             "arqueo_pdf": "Imprimir arqueo",
             "arqueo_pdf_short": "PDF",
             "arqueo_ver": "Ver arqueo",
-            "arqueo_ver_short": "Ver"
+            "arqueo_ver_short": "Ver",
+            "reabrir": "Reaperturar sesión"
         },
         "row": {
             "cerrar_solo_si_abriste": "Solo quien abrió puede cerrar"
+        },
+        "dialog_reabrir": {
+            "title": "Reaperturar sesión de caja",
+            "description": "La sesión volverá a quedar abierta para seguir cobrando. Solo es posible dentro de las 24 horas posteriores al cierre.",
+            "submit": "Reaperturar"
         },
         "dialog_detalle": {
             "title": "Detalle del arqueo",

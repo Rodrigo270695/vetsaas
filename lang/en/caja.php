@@ -23,6 +23,7 @@ return [
     'validation' => [
         'sede_tiene_sesion_abierta' => 'There is already an open cash session for this branch. Close it before opening another.',
         'usuario_tiene_sesion_abierta' => 'You already have an open cash session. Close it before opening another.',
+        'reabrir_cajero_tiene_sesion_abierta' => 'The cashier who opened this session already has another open till. Close it before reopening.',
         'egreso_sesion_cerrada' => 'You cannot add or remove expenses on a closed session.',
         'egreso_sesion_no_tuya' => 'Only the user who opened the session can add or remove expenses.',
     ],
@@ -30,6 +31,9 @@ return [
         'sesion_abierta' => 'Cash session opened.',
         'sesion_cerrada' => 'Cash session closed.',
         'sesion_ya_cerrada' => 'This session was already closed.',
+        'sesion_ya_abierta' => 'This session is already open.',
+        'sesion_reabierta' => 'Cash session reopened.',
+        'reabrir_fuera_de_plazo' => 'A session can only be reopened within 24 hours after closing.',
         'solo_apertura_puede_cerrar' => 'Only the user who opened the session can close it.',
         'egreso_registrado' => 'Expense recorded.',
         'egreso_eliminado' => 'Expense removed.',

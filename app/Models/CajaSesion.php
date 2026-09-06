@@ -34,6 +34,9 @@ class CajaSesion extends Model
 
     public const ESTADO_CERRADA = 'cerrada';
 
+    /** Horas máximas tras el cierre para volver a abrir la misma sesión. */
+    public const REABRIR_HORAS = 24;
+
     protected $table = 'caja_sesiones';
 
     protected $fillable = [
@@ -88,5 +91,33 @@ class CajaSesion extends Model
     public function estaAbierta(): bool
     {
         return $this->estado === self::ESTADO_ABIERTA;
+    }
+
+    /**
+     * Solo sesiones cerradas cuyo cierre fue hace menos de 24 horas.
+     * En el límite exacto de 24 h ya no se permite reaperturar.
+     */
+    public function estaDentroDeVentanaReabrir(?Carbon $now = null): bool
+    {
+        return self::estaCierreDentroDeVentanaReabrir(
+            (string) ($this->attributes['estado'] ?? ''),
+            $this->attributes['closed_at'] ?? null,
+            $now,
+        );
+    }
+
+    public static function estaCierreDentroDeVentanaReabrir(string $estado, mixed $closedAt, ?Carbon $now = null): bool
+    {
+        if ($estado !== self::ESTADO_CERRADA || $closedAt === null || $closedAt === '') {
+            return false;
+        }
+
+        $cierre = $closedAt instanceof \DateTimeInterface
+            ? Carbon::instance(\DateTimeImmutable::createFromInterface($closedAt))
+            : Carbon::parse((string) $closedAt);
+
+        $now ??= now();
+
+        return $now->lt($cierre->copy()->addHours(self::REABRIR_HORAS));
     }
 }

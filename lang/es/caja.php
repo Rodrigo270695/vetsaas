@@ -23,6 +23,7 @@ return [
     'validation' => [
         'sede_tiene_sesion_abierta' => 'Ya existe una sesión de caja abierta en esta sede. Ciérrala antes de abrir otra.',
         'usuario_tiene_sesion_abierta' => 'Ya tienes una sesión de caja abierta. Ciérrala antes de abrir otra.',
+        'reabrir_cajero_tiene_sesion_abierta' => 'Quien abrió esta sesión ya tiene otra caja abierta. Ciérrala antes de reaperturar.',
         'egreso_sesion_cerrada' => 'No se puede registrar o eliminar egresos en una sesión cerrada.',
         'egreso_sesion_no_tuya' => 'Solo quien abrió la sesión puede registrar o eliminar egresos.',
     ],
@@ -30,6 +31,9 @@ return [
         'sesion_abierta' => 'Sesión de caja abierta.',
         'sesion_cerrada' => 'Sesión de caja cerrada.',
         'sesion_ya_cerrada' => 'Esta sesión ya estaba cerrada.',
+        'sesion_ya_abierta' => 'Esta sesión ya está abierta.',
+        'sesion_reabierta' => 'Sesión de caja reaperturada.',
+        'reabrir_fuera_de_plazo' => 'Solo se puede reaperturar una sesión durante las 24 horas posteriores al cierre.',
         'solo_apertura_puede_cerrar' => 'Solo quien abrió la sesión puede cerrarla.',
         'egreso_registrado' => 'Egreso registrado.',
         'egreso_eliminado' => 'Egreso eliminado.',

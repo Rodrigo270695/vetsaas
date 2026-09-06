@@ -47,10 +47,16 @@
             "arqueo_pdf": "Print reconciliation",
             "arqueo_pdf_short": "PDF",
             "arqueo_ver": "View reconciliation",
-            "arqueo_ver_short": "View"
+            "arqueo_ver_short": "View",
+            "reabrir": "Reopen session"
         },
         "row": {
             "cerrar_solo_si_abriste": "Only the opener can close"
+        },
+        "dialog_reabrir": {
+            "title": "Reopen cash session",
+            "description": "The session will be open again so you can keep taking payments. This is only allowed within 24 hours after closing.",
+            "submit": "Reopen"
         },
         "dialog_detalle": {
             "title": "Reconciliation detail",

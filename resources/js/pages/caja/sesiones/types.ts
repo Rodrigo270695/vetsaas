@@ -39,6 +39,7 @@ export type CajaSesionRow = {
     closed_by_id: string | null;
     abierta_por?: CajaSesionUsuario | null;
     cerrada_por?: CajaSesionUsuario | null;
+    puede_reabrir?: boolean;
 };
 
 export type CajaSesionStats = {
