@@ -27,12 +27,106 @@ final class DocumentoAutorizacionPlantillaFromAiService
             throw new RuntimeException('La IA no está configurada. Falta OPENAI_API_KEY.');
         }
 
-        $userContent = $this->buildUserContent($file);
+        $path = (string) $file->getRealPath();
+        if ($path === '' || ! is_file($path)) {
+            throw new RuntimeException('No se pudo leer el archivo.');
+        }
+
+        $mime = $this->detectMime($file);
+        $isPdf = $mime === 'application/pdf' || str_ends_with(strtolower($file->getClientOriginalName()), '.pdf');
+
+        if ($isPdf) {
+            return $this->generateFromPdf($file, $path);
+        }
+
+        if (str_starts_with($mime, 'image/')) {
+            $content = [
+                [
+                    'type' => 'text',
+                    'text' => 'Convierte este documento de autorización / consentimiento veterinario en una plantilla HTML. Responde solo JSON.',
+                ],
+                [
+                    'type' => 'image_url',
+                    'image_url' => [
+                        'url' => 'data:'.$this->safeImageMime($mime).';base64,'.base64_encode((string) file_get_contents($path)),
+                    ],
+                ],
+            ];
+
+            return $this->complete($content, (string) config('in-app-assistant.openai_model', 'gpt-4o-mini'));
+        }
+
+        throw new RuntimeException('Usa un PDF o una imagen (JPG, PNG o WebP).');
+    }
+
+    /**
+     * @return array{nombre: string, descripcion: string|null, cuerpo: string}
+     */
+    private function generateFromPdf(UploadedFile $file, string $path): array
+    {
+        $bytes = (string) file_get_contents($path);
+        if ($bytes === '') {
+            throw new RuntimeException('El PDF está vacío.');
+        }
+
+        $filename = $file->getClientOriginalName() ?: 'documento.pdf';
+        $filePart = [
+            'type' => 'file',
+            'file' => [
+                'filename' => $filename,
+                'file_data' => 'data:application/pdf;base64,'.base64_encode($bytes),
+            ],
+        ];
+        $prompt = [
+            'type' => 'text',
+            'text' => 'Convierte este PDF de autorización / consentimiento veterinario en una plantilla HTML. Puede ser un escaneo. Responde solo JSON.',
+        ];
+
+        try {
+            return $this->complete([$prompt, $filePart], $this->pdfModel());
+        } catch (RuntimeException $e) {
+            Log::info('Plantilla autorización IA: PDF como archivo falló, se intenta rasterizar', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $images = $this->pdfPagesAsJpeg($path);
+        if ($images !== []) {
+            $parts = [$prompt];
+            foreach ($images as $jpeg) {
+                $parts[] = [
+                    'type' => 'image_url',
+                    'image_url' => ['url' => 'data:image/jpeg;base64,'.base64_encode($jpeg)],
+                ];
+            }
+
+            return $this->complete($parts, $this->pdfModel());
+        }
+
+        $text = trim($this->pdfToText($path));
+        if (mb_strlen($text) >= 40) {
+            return $this->complete([
+                [
+                    'type' => 'text',
+                    'text' => $prompt['text']."\n\nTexto extraído del PDF:\n".mb_substr($text, 0, 12000),
+                ],
+            ], (string) config('in-app-assistant.openai_model', 'gpt-4o-mini'));
+        }
+
+        throw new RuntimeException('No se pudo leer este PDF (suele ser un escaneo). Prueba de nuevo o sube fotos nítidas de las páginas.');
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $userContent
+     * @return array{nombre: string, descripcion: string|null, cuerpo: string}
+     */
+    private function complete(array $userContent, string $model): array
+    {
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$this->apiKey(),
             'Content-Type' => 'application/json',
-        ])->timeout(90)->post('https://api.openai.com/v1/chat/completions', [
-            'model' => (string) config('in-app-assistant.openai_model', 'gpt-4o-mini'),
+        ])->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
+            'model' => $model,
             'temperature' => 0.2,
             'max_tokens' => 3500,
             'response_format' => ['type' => 'json_object'],
@@ -44,7 +138,8 @@ final class DocumentoAutorizacionPlantillaFromAiService
 
         if (! $response->successful()) {
             Log::warning('Plantilla autorización IA: OpenAI HTTP '.$response->status(), [
-                'body' => mb_substr($response->body(), 0, 400),
+                'model' => $model,
+                'body' => mb_substr($response->body(), 0, 500),
             ]);
 
             throw new RuntimeException('No se pudo leer el documento. Intenta de nuevo o usa una foto más nítida.');
@@ -68,58 +163,32 @@ final class DocumentoAutorizacionPlantillaFromAiService
         ];
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function buildUserContent(UploadedFile $file): array
+    private function pdfModel(): string
+    {
+        $configured = trim((string) config('in-app-assistant.openai_pdf_model', ''));
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        return 'gpt-4o';
+    }
+
+    private function detectMime(UploadedFile $file): string
     {
         $mime = strtolower((string) ($file->getMimeType() ?: ''));
-        $path = (string) $file->getRealPath();
-        if ($path === '' || ! is_file($path)) {
-            throw new RuntimeException('No se pudo leer el archivo.');
+        if ($mime !== '' && $mime !== 'application/octet-stream') {
+            return $mime;
         }
+        $ext = strtolower((string) $file->getClientOriginalExtension());
 
-        $parts = [[
-            'type' => 'text',
-            'text' => 'Convierte este documento de autorización / consentimiento veterinario en una plantilla HTML. Responde solo JSON.',
-        ]];
-
-        if (str_starts_with($mime, 'image/')) {
-            $parts[] = [
-                'type' => 'image_url',
-                'image_url' => [
-                    'url' => 'data:'.$this->safeImageMime($mime).';base64,'.base64_encode((string) file_get_contents($path)),
-                ],
-            ];
-
-            return $parts;
-        }
-
-        if ($mime === 'application/pdf' || str_ends_with(strtolower($file->getClientOriginalName()), '.pdf')) {
-            $images = $this->pdfPagesAsJpeg($path);
-            if ($images !== []) {
-                foreach ($images as $jpeg) {
-                    $parts[] = [
-                        'type' => 'image_url',
-                        'image_url' => [
-                            'url' => 'data:image/jpeg;base64,'.base64_encode($jpeg),
-                        ],
-                    ];
-                }
-
-                return $parts;
-            }
-
-            $text = $this->pdfToText($path);
-            if (mb_strlen(trim($text)) < 40) {
-                throw new RuntimeException('Este PDF no se pudo leer. Saca fotos de las páginas y súbelas.');
-            }
-            $parts[0]['text'] .= "\n\nTexto extraído del PDF:\n".mb_substr($text, 0, 12000);
-
-            return $parts;
-        }
-
-        throw new RuntimeException('Usa un PDF o una imagen (JPG, PNG o WebP).');
+        return match ($ext) {
+            'pdf' => 'application/pdf',
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            default => $mime,
+        };
     }
 
     /**
@@ -152,9 +221,74 @@ final class DocumentoAutorizacionPlantillaFromAiService
             return $out;
         } catch (\Throwable $e) {
             Log::info('Plantilla autorización IA: Imagick PDF falló', ['error' => $e->getMessage()]);
+        }
 
+        return $this->pdfPagesWithGhostscript($path);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function pdfPagesWithGhostscript(string $path): array
+    {
+        $gs = $this->ghostscriptBinary();
+        if ($gs === null) {
             return [];
         }
+
+        $dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'auth-pdf-'.uniqid('', true);
+        if (! mkdir($dir, 0700, true) && ! is_dir($dir)) {
+            return [];
+        }
+
+        try {
+            $pattern = $dir.DIRECTORY_SEPARATOR.'p%d.jpg';
+            $result = Process::timeout(40)->run([
+                $gs,
+                '-dSAFER',
+                '-dBATCH',
+                '-dNOPAUSE',
+                '-sDEVICE=jpeg',
+                '-dJPEGQ=75',
+                '-r120',
+                '-dFirstPage=1',
+                '-dLastPage=3',
+                '-sOutputFile='.$pattern,
+                $path,
+            ]);
+            if (! $result->successful()) {
+                return [];
+            }
+            $out = [];
+            foreach ([1, 2, 3] as $n) {
+                $file = $dir.DIRECTORY_SEPARATOR.'p'.$n.'.jpg';
+                if (is_file($file)) {
+                    $blob = (string) file_get_contents($file);
+                    if ($blob !== '') {
+                        $out[] = $blob;
+                    }
+                }
+            }
+
+            return $out;
+        } finally {
+            foreach (glob($dir.DIRECTORY_SEPARATOR.'*') ?: [] as $f) {
+                @unlink($f);
+            }
+            @rmdir($dir);
+        }
+    }
+
+    private function ghostscriptBinary(): ?string
+    {
+        foreach (['gs', 'gswin64c', 'gswin32c'] as $bin) {
+            $result = Process::timeout(5)->run([$bin, '-v']);
+            if ($result->successful() || str_contains($result->errorOutput().$result->output(), 'Ghostscript')) {
+                return $bin;
+            }
+        }
+
+        return null;
     }
 
     private function pdfToText(string $path): string

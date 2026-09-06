@@ -19,8 +19,8 @@ class DocumentoAutorizacionPlantillaFromAiRequest extends FormRequest
             'archivo' => [
                 'required',
                 'file',
-                'max:8192',
-                'mimetypes:application/pdf,image/jpeg,image/png,image/webp,image/gif',
+                'max:20480',
+                'mimes:pdf,jpg,jpeg,png,webp,gif',
             ],
         ];
     }
