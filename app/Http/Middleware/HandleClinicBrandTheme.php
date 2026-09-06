@@ -18,14 +18,18 @@ class HandleClinicBrandTheme
      */
     public function handle(Request $request, Closure $next): Response
     {
-        View::share('clinicBrandCss', $this->resolveCssBlock());
+        View::share('clinicBrandCss', $this->resolveCssBlock($request));
 
         return $next($request);
     }
 
-    private function resolveCssBlock(): ?string
+    private function resolveCssBlock(Request $request): ?string
     {
         if (app(TenantManager::class)->current() === null) {
+            return null;
+        }
+
+        if ($request->is('portal') || $request->is('portal/*')) {
             return null;
         }
 

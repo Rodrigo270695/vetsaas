@@ -10,6 +10,9 @@ import {
     subscribePwaInstallPrompt,
 } from '@/lib/pwa-install';
 
+const iconBtn =
+    'inline-flex size-11 min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-slate-800 ring-1 ring-slate-200/80 transition hover:bg-slate-200 disabled:opacity-50 dark:bg-white/10 dark:text-white dark:ring-white/10';
+
 export function PortalInstallButtons() {
     const { t } = useTranslation('portal-propietario');
     const [canPrompt, setCanPrompt] = useState(false);
@@ -49,9 +52,6 @@ export function PortalInstallButtons() {
         return null;
     }
 
-    const btn =
-        'inline-flex h-12 min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl px-3 text-xs font-semibold shadow-sm transition hover:brightness-105 md:h-10 md:rounded-full md:text-sm';
-
     const howToText = isIosDevice()
         ? isIosChromeLike()
             ? t('home.install_how_ios_chrome')
@@ -60,32 +60,30 @@ export function PortalInstallButtons() {
           ? t('home.install_how_android')
           : t('home.install_how_desktop');
 
+    const label = isIosDevice()
+        ? t('home.install_ios')
+        : isAndroidDevice()
+          ? t('home.install_android')
+          : t('home.install_desktop');
+
     return (
-        <div className="flex min-w-0 flex-1 flex-col gap-1 md:flex-none">
-            <div className="flex min-w-0 items-center gap-2">
-                <button
-                    type="button"
-                    onClick={() => void install()}
-                    disabled={busy}
-                    className={`${btn} flex-1 bg-brand-600 text-white md:flex-none`}
-                >
-                    {isIosDevice() ? (
-                        <Share2 className="size-4 shrink-0" />
-                    ) : canPrompt || isAndroidDevice() ? (
-                        <Smartphone className="size-4 shrink-0" />
-                    ) : (
-                        <Download className="size-4 shrink-0" />
-                    )}
-                    <span className="md:hidden">{t('home.install_short')}</span>
-                    <span className="hidden md:inline">
-                        {isIosDevice()
-                            ? t('home.install_ios')
-                            : isAndroidDevice()
-                              ? t('home.install_android')
-                              : t('home.install_desktop')}
-                    </span>
-                </button>
-            </div>
+        <>
+            <button
+                type="button"
+                onClick={() => void install()}
+                disabled={busy}
+                className={iconBtn}
+                aria-label={label}
+                title={label}
+            >
+                {isIosDevice() ? (
+                    <Share2 className="size-4" />
+                ) : canPrompt || isAndroidDevice() ? (
+                    <Smartphone className="size-4" />
+                ) : (
+                    <Download className="size-4" />
+                )}
+            </button>
 
             {howTo ? (
                 <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 md:items-center">
@@ -116,6 +114,6 @@ export function PortalInstallButtons() {
                     </div>
                 </div>
             ) : null}
-        </div>
+        </>
     );
 }

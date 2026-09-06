@@ -386,6 +386,33 @@
     display: none; /* Chromium / Safari */
 }
 
+/* Portal del titular: verde VetSaaS, no el color de la clínica. */
+.portal-skin {
+    --brand-50: oklch(0.968 0.02 168);
+    --brand-100: oklch(0.911 0.046 168);
+    --brand-200: oklch(0.836 0.08 168);
+    --brand-300: oklch(0.736 0.108 168);
+    --brand-400: oklch(0.625 0.122 168);
+    --brand-500: oklch(0.555 0.122 168);
+    --brand-600: oklch(0.47 0.094 170);
+    --brand-700: oklch(0.395 0.078 170);
+    --brand-800: oklch(0.325 0.062 170);
+    --brand-900: oklch(0.272 0.05 170);
+    --brand-950: oklch(0.18 0.03 170);
+    --primary: var(--brand-600);
+    --primary-foreground: oklch(1 0 0);
+    --accent: var(--brand-50);
+    --accent-foreground: var(--brand-700);
+    --ring: var(--brand-600);
+}
+.dark .portal-skin {
+    --primary: var(--brand-400);
+    --primary-foreground: oklch(0.18 0.03 170);
+    --accent: oklch(0.26 0.035 170);
+    --accent-foreground: var(--brand-200);
+    --ring: var(--brand-400);
+}
+
 /* Cuerpo de plantillas de autorización. 14px/Arial es respaldo; el HTML de cada plantilla manda. */
 .auth-doc-editor,
 .auth-doc-body {

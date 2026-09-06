@@ -18,7 +18,6 @@ export function PortalAppShell({
     greeting,
     logoutUrl,
     push,
-    showDock = true,
     children,
 }: {
     clinicName: string;
@@ -26,7 +25,6 @@ export function PortalAppShell({
     greeting: string;
     logoutUrl: string;
     push: Push;
-    showDock?: boolean;
     children: ReactNode;
 }) {
     const { t } = useTranslation('portal-propietario');
@@ -54,15 +52,13 @@ export function PortalAppShell({
                             </p>
                         </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                        <div className="hidden items-center gap-2 md:flex">
-                            <PortalInstallButtons />
-                            <PortalPushToggle
-                                enabled={push.enabled}
-                                vapid={push.vapid}
-                                subscribeUrl={push.subscribe_url}
-                            />
-                        </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                        <PortalInstallButtons />
+                        <PortalPushToggle
+                            enabled={push.enabled}
+                            vapid={push.vapid}
+                            subscribeUrl={push.subscribe_url}
+                        />
                         <PortalThemeToggle />
                         <button
                             type="button"
@@ -76,27 +72,7 @@ export function PortalAppShell({
                 </div>
             </header>
 
-            <div
-                className={`flex-1 ${showDock ? 'pb-[calc(5.1rem+env(safe-area-inset-bottom))] md:pb-8' : 'pb-6'}`}
-            >
-                {children}
-            </div>
-
-            {showDock ? (
-                <div className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-1 md:hidden">
-                    <div className="rounded-[1.4rem] border border-white/60 bg-white/90 p-1.5 shadow-[0_-8px_32px_rgba(15,50,40,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
-                        <div className="mx-auto mb-1.5 h-1 w-10 rounded-full bg-slate-300/80 dark:bg-white/20" />
-                        <div className="flex items-stretch gap-2">
-                            <PortalInstallButtons />
-                            <PortalPushToggle
-                                enabled={push.enabled}
-                                vapid={push.vapid}
-                                subscribeUrl={push.subscribe_url}
-                            />
-                        </div>
-                    </div>
-                </div>
-            ) : null}
+            <div className="flex-1 pb-6">{children}</div>
         </div>
     );
 }

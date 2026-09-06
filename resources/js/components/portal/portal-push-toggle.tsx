@@ -84,18 +84,17 @@ export function PortalPushToggle({ enabled, vapid, subscribeUrl }: Props) {
     };
 
     return (
-        <div className="min-w-0 flex-1 space-y-1 md:flex-none">
+        <>
             <button
                 type="button"
                 disabled={busy || on}
                 onClick={() => void activate()}
-                className="inline-flex h-12 min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-brand-100 px-3 text-xs font-semibold text-brand-900 shadow-sm transition hover:bg-brand-200 disabled:cursor-not-allowed disabled:opacity-70 md:h-10 md:w-auto md:rounded-full md:text-sm dark:bg-brand-900 dark:text-brand-100 dark:hover:bg-brand-800"
+                className="inline-flex size-11 min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-slate-800 ring-1 ring-slate-200/80 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white/10 dark:text-white dark:ring-white/10"
+                aria-label={on ? t('home.push_off') : t('home.push_on')}
+                title={error ?? (on ? t('home.push_off') : t('home.push_on'))}
             >
-                {on ? <Bell className="size-4 shrink-0" /> : <BellOff className="size-4 shrink-0" />}
-                <span className="md:hidden">{on ? t('home.push_off_short') : t('home.push_on_short')}</span>
-                <span className="hidden md:inline">{on ? t('home.push_off') : t('home.push_on')}</span>
+                {on ? <Bell className="size-4" /> : <BellOff className="size-4" />}
             </button>
-            {error ? <p className="text-xs text-destructive">{error}</p> : null}
-        </div>
+        </>
     );
 }

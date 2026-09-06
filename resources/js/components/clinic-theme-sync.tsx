@@ -6,7 +6,27 @@ import type { ClinicBranding } from '@/types/clinic-branding';
 type InertiaPage = { props?: Record<string, unknown> };
 type InertiaEvent = CustomEvent<{ page?: InertiaPage }>;
 
-function syncBranding(props: Record<string, unknown> | undefined): void {
+function pageComponent(props: Record<string, unknown> | undefined, fallback?: string): string {
+    if (typeof fallback === 'string' && fallback !== '') {
+        return fallback;
+    }
+
+    const fromRouter = (router as unknown as { page?: { component?: string } }).page?.component;
+
+    return typeof fromRouter === 'string' ? fromRouter : '';
+}
+
+function isPortalPage(component: string): boolean {
+    return component.startsWith('portal/');
+}
+
+function syncBranding(props: Record<string, unknown> | undefined, component?: string): void {
+    if (isPortalPage(pageComponent(props, component))) {
+        clearClinicBrandTheme();
+
+        return;
+    }
+
     const branding = props?.clinic_branding as ClinicBranding | null | undefined;
 
     if (!branding) {
@@ -28,11 +48,15 @@ function readRouterPageProps(): Record<string, unknown> | undefined {
  */
 export function ClinicThemeSync() {
     useLayoutEffect(() => {
-        syncBranding(readRouterPageProps());
+        syncBranding(
+            readRouterPageProps(),
+            (router as unknown as { page?: { component?: string } }).page?.component,
+        );
 
         const removeSuccess = router.on('success', (event) => {
             const detail = (event as InertiaEvent).detail;
-            syncBranding(detail?.page?.props);
+            const page = detail?.page as { props?: Record<string, unknown>; component?: string } | undefined;
+            syncBranding(page?.props, page?.component);
         });
 
         return () => {

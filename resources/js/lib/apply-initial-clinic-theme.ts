@@ -18,7 +18,15 @@ export function applyInitialClinicThemeFromDocument(): void {
     }
 
     try {
-        const page = JSON.parse(rawPage) as { props?: Record<string, unknown> };
+        const page = JSON.parse(rawPage) as {
+            component?: string;
+            props?: Record<string, unknown>;
+        };
+
+        if (typeof page.component === 'string' && page.component.startsWith('portal/')) {
+            return;
+        }
+
         const branding = page.props?.clinic_branding as ClinicBranding | null | undefined;
 
         if (!branding) {

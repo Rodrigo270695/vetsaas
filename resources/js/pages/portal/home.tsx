@@ -87,7 +87,6 @@ export default function PortalHome({ clinic, overview, pet, filters, push, urls 
                 greeting={t('home.hello', { name: overview.saludo })}
                 logoutUrl={urls.logout}
                 push={push}
-                showDock={!pet}
             >
                 {pet ? (
                     <PortalPetView pet={pet} filters={filters} homeUrl={urls.home} />
