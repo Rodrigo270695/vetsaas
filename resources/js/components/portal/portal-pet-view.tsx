@@ -141,7 +141,7 @@ export function PortalPetView({
         <div className="mx-auto max-w-5xl space-y-5 px-4 pb-16 sm:px-6">
             <button
                 type="button"
-                className="inline-flex items-center gap-2 text-sm text-teal-800 hover:underline dark:text-teal-200"
+                className="inline-flex cursor-pointer items-center gap-2 text-sm text-teal-800 hover:underline dark:text-teal-200"
                 onClick={() => router.get(homeUrl)}
             >
                 <ArrowLeft className="size-4" />
@@ -179,7 +179,7 @@ export function PortalPetView({
                             key={tab.id}
                             type="button"
                             onClick={() => visit({ tab: tab.id })}
-                            className={`rounded-full px-4 py-2 text-sm font-medium ${
+                            className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium ${
                                 filters.tab === tab.id
                                     ? 'bg-teal-700 text-white'
                                     : 'bg-white/80 text-teal-900 shadow-sm dark:bg-white/10 dark:text-teal-50'

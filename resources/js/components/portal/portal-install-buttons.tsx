@@ -55,42 +55,47 @@ export function PortalInstallButtons() {
         return null;
     }
 
+    const btn =
+        'inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold shadow-sm transition hover:brightness-105 sm:text-sm';
+
     return (
-        <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
                 {(isAndroid() || promptEvent) && (
                     <button
                         type="button"
                         onClick={() => void install()}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#3ddc84] px-4 py-2.5 text-sm font-semibold text-[#053b1f] shadow-sm"
+                        className={`${btn} bg-[#3ddc84] text-[#053b1f]`}
                     >
-                        <Smartphone className="size-4" />
-                        {t('home.install_android')}
+                        <Smartphone className="size-4 shrink-0" />
+                        <span className="max-sm:sr-only">{t('home.install_android')}</span>
                     </button>
                 )}
                 {isIos() && (
                     <button
                         type="button"
                         onClick={() => setIosHint(true)}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#007aff] px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
+                        className={`${btn} bg-[#007aff] text-white`}
                     >
-                        <Share2 className="size-4" />
-                        {t('home.install_ios')}
+                        <Share2 className="size-4 shrink-0" />
+                        <span className="max-sm:sr-only">{t('home.install_ios')}</span>
                     </button>
                 )}
                 {!isAndroid() && !isIos() && (
                     <button
                         type="button"
                         onClick={() => void install()}
-                        className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm"
+                        className={`${btn} bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900`}
                     >
-                        <Download className="size-4" />
-                        {t('home.install_desktop')}
+                        <Download className="size-4 shrink-0" />
+                        <span className="max-sm:sr-only">{t('home.install_desktop')}</span>
                     </button>
                 )}
             </div>
             {iosHint ? (
-                <p className="text-xs text-muted-foreground">{t('home.install_ios_hint')}</p>
+                <p className="max-w-56 text-[11px] leading-snug text-muted-foreground sm:max-w-none">
+                    {t('home.install_ios_hint')}
+                </p>
             ) : null}
         </div>
     );
