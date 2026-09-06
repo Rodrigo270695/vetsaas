@@ -234,7 +234,8 @@ final class PortalAuthController extends Controller
             'pacientes' => fn ($q) => $q->where('activo', true)->orderBy('nombre'),
         ]);
         $propietario = $portal->propietario;
-        $pet = $propietario?->pacientes->first();
+        $pacientes = $propietario?->pacientes ?? collect();
+        $featured = $pacientes->first(fn ($p): bool => filled($p->foto_url)) ?? $pacientes->first();
 
         $urls = $token === null
             ? [
@@ -255,11 +256,12 @@ final class PortalAuthController extends Controller
             'step' => $portal->hasPin() ? 'pin' : 'setup',
             'clinic' => PortalHomePayload::clinic(),
             'saludo' => $this->firstName((string) ($propietario?->nombres ?? $propietario?->displayName())),
-            'mascota' => $pet === null ? null : [
-                'nombre' => $pet->nombre,
-                'foto_url' => $pet->foto_url,
-                'especie' => $pet->especie,
+            'mascota' => $featured === null ? null : [
+                'nombre' => $featured->nombre,
+                'foto_url' => $featured->foto_url,
+                'especie' => $featured->especie,
             ],
+            'mascotas_count' => $pacientes->count(),
             'telefono_mascara' => PortalPhoneMask::mask($propietario?->telefono ?: $portal->telefono_snapshot),
             'urls' => $urls,
         ]);

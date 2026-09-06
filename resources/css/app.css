@@ -413,6 +413,28 @@
     --ring: var(--brand-400);
 }
 
+@keyframes portal-pin-shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    20% {
+        transform: translateX(-7px);
+    }
+    40% {
+        transform: translateX(7px);
+    }
+    60% {
+        transform: translateX(-4px);
+    }
+    80% {
+        transform: translateX(4px);
+    }
+}
+.portal-pin-shake {
+    animation: portal-pin-shake 0.42s ease-in-out;
+}
+
 /* Cuerpo de plantillas de autorización. 14px/Arial es respaldo; el HTML de cada plantilla manda. */
 .auth-doc-editor,
 .auth-doc-body {

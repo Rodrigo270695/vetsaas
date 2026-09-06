@@ -16,6 +16,7 @@ type Props = {
     clinic: Clinic;
     saludo: string;
     mascota: { nombre: string; foto_url: string | null; especie?: string | null } | null;
+    mascotas_count?: number;
     telefono_mascara: string;
     urls: {
         setup: string;
@@ -30,6 +31,7 @@ export default function PortalEntrar({
     clinic,
     saludo,
     mascota,
+    mascotas_count = 0,
     telefono_mascara,
     urls,
 }: Props) {
@@ -42,6 +44,13 @@ export default function PortalEntrar({
     const unlock = useForm({ pin: '' });
     const resetSend = useForm({});
     const resetConfirm = useForm({ code: '', pin: '', pin_confirmation: '' });
+    const [pinError, setPinError] = useState<string | null>(null);
+    const [pinBusy, setPinBusy] = useState(false);
+    const onlyOnePet = mascotas_count === 1 && Boolean(mascota?.nombre);
+    const headline = onlyOnePet ? mascota!.nombre : t('entrar.pets_title');
+    const pinHint = onlyOnePet
+        ? t('entrar.pin_subtitle', { name: saludo, pet: mascota!.nombre })
+        : t('entrar.pin_subtitle_generic', { name: saludo });
 
     return (
         <>
@@ -74,9 +83,7 @@ export default function PortalEntrar({
                             </div>
                             <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-950/85 to-transparent p-8 text-white">
                                 <p className="text-sm text-brand-100">{t('entrar.kicker')}</p>
-                                <p className="mt-1 text-4xl font-semibold">
-                                    {mascota?.nombre ?? clinic.nombre}
-                                </p>
+                                <p className="mt-1 text-4xl font-semibold">{headline}</p>
                             </div>
                         </div>
                     </section>
@@ -104,7 +111,7 @@ export default function PortalEntrar({
                                 {clinic.nombre}
                             </p>
                             <h1 className="mt-1 max-w-[16rem] truncate text-2xl font-bold tracking-tight">
-                                {mascota?.nombre ?? t('entrar.kicker')}
+                                {headline}
                             </h1>
                             <p className="mt-1 text-sm text-white/80">
                                 {t('entrar.hello_short', { name: saludo })}
@@ -189,29 +196,53 @@ export default function PortalEntrar({
                                         {t('entrar.pin_title')}
                                     </h2>
                                     <p className="mt-1 mb-5 text-sm text-slate-500 dark:text-slate-400">
-                                        {mascota
-                                            ? t('entrar.pin_subtitle', {
-                                                  name: saludo,
-                                                  pet: mascota.nombre,
-                                              })
-                                            : t('entrar.pin_subtitle_generic', { name: saludo })}
+                                        {pinHint}
                                     </p>
                                     <PortalPinInput
                                         variant="lock"
                                         keypad
+                                        invalid={Boolean(pinError)}
                                         value={unlock.data.pin}
-                                        onChange={(pin) => unlock.setData('pin', pin)}
-                                        disabled={unlock.processing}
-                                        onComplete={(pin) => {
-                                            if (!unlock.processing && pin.length === 4) {
-                                                unlock.setData('pin', pin);
-                                                router.post(urls.unlock, { pin });
+                                        onChange={(pin) => {
+                                            unlock.setData('pin', pin);
+                                            if (pinError) {
+                                                setPinError(null);
                                             }
+                                        }}
+                                        disabled={pinBusy || unlock.processing}
+                                        onComplete={(pin) => {
+                                            if (pinBusy || unlock.processing || pin.length !== 4) {
+                                                return;
+                                            }
+                                            setPinBusy(true);
+                                            setPinError(null);
+                                            unlock.setData('pin', pin);
+                                            router.post(urls.unlock, { pin }, {
+                                                preserveScroll: true,
+                                                onError: (errors) => {
+                                                    const raw = errors.pin;
+                                                    const msg = Array.isArray(raw) ? raw[0] : raw;
+                                                    setPinError(
+                                                        typeof msg === 'string' && msg !== ''
+                                                            ? msg
+                                                            : t('entrar.pin_wrong'),
+                                                    );
+                                                    unlock.setData('pin', '');
+                                                },
+                                                onFinish: () => setPinBusy(false),
+                                            });
                                         }}
                                         ariaLabel={t('entrar.pin_title')}
                                     />
-                                    {unlock.errors.pin ? (
-                                        <p className="mt-3 text-sm text-destructive">{unlock.errors.pin}</p>
+                                    {pinError ? (
+                                        <p
+                                            className="mt-3 text-sm font-medium text-red-600 dark:text-red-400"
+                                            role="alert"
+                                        >
+                                            {pinError === 'PIN incorrecto.'
+                                                ? t('entrar.pin_wrong')
+                                                : pinError}
+                                        </p>
                                     ) : null}
                                     <button
                                         type="button"

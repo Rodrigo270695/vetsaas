@@ -11,6 +11,7 @@ type Props = {
     ariaLabel: string;
     variant?: 'boxes' | 'lock';
     keypad?: boolean;
+    invalid?: boolean;
 };
 
 export function PortalPinInput({
@@ -23,6 +24,7 @@ export function PortalPinInput({
     ariaLabel,
     variant = 'boxes',
     keypad = false,
+    invalid = false,
 }: Props) {
     const refs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -88,14 +90,16 @@ export function PortalPinInput({
     if (variant === 'lock') {
         return (
             <div className="space-y-6" role="group" aria-label={ariaLabel}>
-                <div className="flex justify-center gap-3.5">
+                <div className={`flex justify-center gap-3.5 ${invalid ? 'portal-pin-shake' : ''}`}>
                     {Array.from({ length }, (_, i) => (
                         <span
                             key={i}
                             className={`size-4 rounded-full transition ${
-                                value[i]
-                                    ? 'scale-110 bg-brand-600 shadow-[0_0_0_4px_color-mix(in_oklch,var(--brand-600)_22%,transparent)]'
-                                    : 'bg-slate-200 dark:bg-slate-700'
+                                invalid
+                                    ? 'scale-110 bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.22)]'
+                                    : value[i]
+                                      ? 'scale-110 bg-brand-600 shadow-[0_0_0_4px_color-mix(in_oklch,var(--brand-600)_22%,transparent)]'
+                                      : 'bg-slate-200 dark:bg-slate-700'
                             }`}
                         />
                     ))}
