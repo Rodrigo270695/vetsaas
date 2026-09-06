@@ -148,6 +148,8 @@
         "no_contact": "Sin teléfono, correo ni dirección. Completa el titular con «Editar titular».",
         "section_pets_hint": "Mascotas asociadas a este titular en la clínica.",
         "add_pet": "Registrar mascota",
+        "send_portal": "Enviar portal",
+        "send_portal_again": "Reenviar portal",
         "no_pets": "Sin mascotas registradas",
         "no_pets_subtitle": "Pulsa «Registrar mascota» arriba a la derecha para crear la primera ficha (vacunas, citas e historial).",
         "owner_status_label": "Estado",

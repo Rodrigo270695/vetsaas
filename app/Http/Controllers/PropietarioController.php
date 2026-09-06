@@ -10,6 +10,7 @@ use App\Http\Requests\PropietarioRequest;
 use App\Models\Departamento;
 use App\Models\Distrito;
 use App\Models\Paciente;
+use App\Models\PortalPropietario;
 use App\Models\Propietario;
 use App\Services\Clinica\PropietarioImportService;
 use App\Services\Integrations\ApiPeruDniService;
@@ -163,6 +164,10 @@ class PropietarioController extends Controller
             'pacientes' => $pacientes,
             'departamentos' => $departamentos,
             'especie_raza_catalogo' => PacienteEspecieRazaCatalogo::payload(),
+            'portal_invitar_url' => route('clinica.propietarios.portal.invitar', $propietario),
+            'portal_tiene_acceso' => PortalPropietario::query()
+                ->where('propietario_id', $propietario->id)
+                ->exists(),
         ]);
     }
 

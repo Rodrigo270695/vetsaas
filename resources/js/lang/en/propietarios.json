@@ -148,6 +148,8 @@
         "no_contact": "No phone, email or address yet. Use «Edit owner» to add them.",
         "section_pets_hint": "Pets linked to this owner at your clinic.",
         "add_pet": "Register pet",
+        "send_portal": "Send portal",
+        "send_portal_again": "Resend portal",
         "no_pets": "No pets registered yet",
         "no_pets_subtitle": "Use «Register pet» at the top right to create the first record (vaccines, appointments, and history).",
         "owner_status_label": "Status",

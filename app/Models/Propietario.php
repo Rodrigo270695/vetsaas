@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -82,6 +83,11 @@ class Propietario extends Model
     public function pacientes(): HasMany
     {
         return $this->hasMany(Paciente::class, 'propietario_id');
+    }
+
+    public function portalAcceso(): HasOne
+    {
+        return $this->hasOne(PortalPropietario::class, 'propietario_id');
     }
 
     /**

@@ -1,0 +1,37 @@
+{
+    "entrar": {
+        "setup_title": "Crea tu PIN",
+        "setup_subtitle": "Cuatro números. En este celular no te lo volveremos a pedir.",
+        "pin_title": "Tu PIN",
+        "pin_subtitle": "Hola {{name}}. Entra para ver a {{pet}}.",
+        "pin_subtitle_generic": "Hola {{name}}. Entra para ver a tus mascotas.",
+        "confirm": "Repite el PIN",
+        "continue": "Entrar",
+        "creating": "Guardando…",
+        "forgot": "Olvidé el PIN",
+        "reset_title": "Restablecer PIN",
+        "reset_hint": "Te escribimos por WhatsApp al {{phone}}.",
+        "send_code": "Enviar código",
+        "sending": "Enviando…",
+        "code_label": "Código de 6 dígitos",
+        "new_pin": "Nuevo PIN",
+        "save_pin": "Guardar y entrar",
+        "back_to_pin": "Volver"
+    },
+    "home": {
+        "hello": "Hola, {{name}}",
+        "clinic": "{{clinic}}",
+        "next_visit": "Próxima cita",
+        "no_visit": "Sin citas próximas",
+        "vaccine": "Próximo refuerzo",
+        "no_vaccine": "Vacunas al día",
+        "add_home": "Añade esta pantalla al inicio de tu celular para abrirla como una app.",
+        "logout": "Salir de este celular",
+        "no_pets": "Aún no hay mascotas en tu ficha. La clínica las cargará pronto.",
+        "pets": "Tus mascotas"
+    },
+    "sin_acceso": {
+        "title": "Abre el enlace de WhatsApp",
+        "body": "Este acceso es personal. Pide a la clínica que te reenvíe el mensaje, o usa el enlace que ya te mandaron."
+    }
+}

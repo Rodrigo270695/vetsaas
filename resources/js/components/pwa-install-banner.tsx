@@ -12,6 +12,7 @@ const HIDE_PATH_PREFIXES = [
     '/forgot-password',
     '/reset-password',
     '/cuenta/cambiar-password',
+    '/portal',
 ] as const;
 
 function shouldHideBanner(pathname: string): boolean {

@@ -1,5 +1,5 @@
-import { Head, Link, resetLayoutProps, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, PawPrint, Pencil, Plus } from 'lucide-react';
+import { Head, Link, resetLayoutProps, router, setLayoutProps } from '@inertiajs/react';
+import { ArrowLeft, MessageCircle, PawPrint, Pencil, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -34,6 +34,8 @@ type Props = {
     pacientes: readonly Paciente[];
     departamentos: readonly GeoOption[];
     especie_raza_catalogo: EspecieRazaCatalogo;
+    portal_invitar_url?: string;
+    portal_tiene_acceso?: boolean;
 };
 
 type ModalState =
@@ -48,6 +50,8 @@ export default function Show({
     pacientes,
     departamentos,
     especie_raza_catalogo,
+    portal_invitar_url,
+    portal_tiene_acceso = false,
 }: Props) {
     const { t } = useTranslation(['propietarios', 'pacientes', 'nav']);
     const { can } = usePermission();
@@ -144,6 +148,22 @@ export default function Show({
                                         {t('show.edit_owner')}
                                     </Button>
                                 )}
+                                {propietario.telefono && portal_invitar_url ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="cursor-pointer gap-2"
+                                        onClick={() =>
+                                            router.post(portal_invitar_url, {}, { preserveScroll: true })
+                                        }
+                                    >
+                                        <MessageCircle className="size-4" strokeWidth={2.25} />
+                                        {portal_tiene_acceso
+                                            ? t('show.send_portal_again')
+                                            : t('show.send_portal')}
+                                    </Button>
+                                ) : null}
                                 <Can permission="pacientes.create">
                                     <Button
                                         type="button"

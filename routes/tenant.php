@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\BootstrapLoginController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\PacienteController;
+use App\Http\Controllers\Portal\PortalAuthController;
+use App\Http\Controllers\Portal\PortalHomeController;
 use App\Http\Controllers\PublicDocumentoAutorizacionController;
 use App\Http\Controllers\Tenant\TenantDashboardController;
 use App\Http\Controllers\VacunacionController;
@@ -68,6 +70,37 @@ Route::middleware(['tenant.required'])->group(function (): void {
             Route::post('autorizacion/{token}', [PublicDocumentoAutorizacionController::class, 'store'])
                 ->where('token', '[A-Za-z0-9]{32,64}')
                 ->name('tenant.public.autorizacion.store');
+        });
+
+    Route::middleware(['throttle:40,1'])
+        ->prefix('portal')
+        ->name('tenant.portal.')
+        ->group(function (): void {
+            Route::get('sin-acceso', [PortalAuthController::class, 'sinAcceso'])
+                ->name('sin-acceso');
+            Route::post('salir', [PortalAuthController::class, 'logout'])
+                ->name('logout');
+
+            Route::get('entrar/{token}', [PortalAuthController::class, 'show'])
+                ->where('token', '[a-f0-9]{64}')
+                ->name('entrar');
+            Route::post('entrar/{token}/pin', [PortalAuthController::class, 'storePin'])
+                ->where('token', '[a-f0-9]{64}')
+                ->name('pin.store');
+            Route::post('entrar/{token}/desbloquear', [PortalAuthController::class, 'unlock'])
+                ->where('token', '[a-f0-9]{64}')
+                ->name('unlock');
+            Route::post('entrar/{token}/reset', [PortalAuthController::class, 'sendReset'])
+                ->where('token', '[a-f0-9]{64}')
+                ->middleware('throttle:8,60')
+                ->name('reset.send');
+            Route::post('entrar/{token}/reset/confirmar', [PortalAuthController::class, 'confirmReset'])
+                ->where('token', '[a-f0-9]{64}')
+                ->name('reset.confirm');
+
+            Route::middleware('portal.auth')->group(function (): void {
+                Route::get('/', [PortalHomeController::class, 'index'])->name('home');
+            });
         });
 
     Route::get('/', [TenantDashboardController::class, 'welcome'])

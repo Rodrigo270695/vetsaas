@@ -54,6 +54,7 @@ import planesEn from '@/lang/en/planes.json';
 import platformEn from '@/lang/en/platform.json';
 import productosInventarioEn from '@/lang/en/productos-inventario.json';
 import propietariosEn from '@/lang/en/propietarios.json';
+import portalPropietarioEn from '@/lang/en/portal-propietario.json';
 import proveedoresInventarioEn from '@/lang/en/proveedores-inventario.json';
 import recetasEn from '@/lang/en/recetas.json';
 import rolesEn from '@/lang/en/roles.json';
@@ -126,6 +127,7 @@ import planesEs from '@/lang/es/planes.json';
 import platformEs from '@/lang/es/platform.json';
 import productosInventarioEs from '@/lang/es/productos-inventario.json';
 import propietariosEs from '@/lang/es/propietarios.json';
+import portalPropietarioEs from '@/lang/es/portal-propietario.json';
 import proveedoresInventarioEs from '@/lang/es/proveedores-inventario.json';
 import recetasEs from '@/lang/es/recetas.json';
 import rolesEs from '@/lang/es/roles.json';
@@ -174,6 +176,7 @@ const resources = {
         pacientes: pacientesEs,
         'clinicas-asesoradas': clinicasAsesoradasEs,
         propietarios: propietariosEs,
+        'portal-propietario': portalPropietarioEs,
         sedes: sedesEs,
         'stock-inventario': stockInventarioEs,
         roles: rolesEs,
@@ -248,6 +251,7 @@ const resources = {
         pacientes: pacientesEn,
         'clinicas-asesoradas': clinicasAsesoradasEn,
         propietarios: propietariosEn,
+        'portal-propietario': portalPropietarioEn,
         sedes: sedesEn,
         'stock-inventario': stockInventarioEn,
         roles: rolesEn,
@@ -333,6 +337,7 @@ void i18n
             'pacientes',
             'clinicas-asesoradas',
             'propietarios',
+            'portal-propietario',
             'sedes',
             'roles',
             'settings',

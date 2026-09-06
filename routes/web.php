@@ -68,6 +68,7 @@ use App\Http\Controllers\PlatformSettingController;
 use App\Http\Controllers\PlatformSupportChatController;
 use App\Http\Controllers\PlatformTenantUsageController;
 use App\Http\Controllers\PlatformWhatsAppController;
+use App\Http\Controllers\Portal\PortalInviteController;
 use App\Http\Controllers\PresenceHeartbeatController;
 use App\Http\Controllers\ProductoInventarioController;
 use App\Http\Controllers\PromotionController;
@@ -317,6 +318,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:propietarios.view')
                 ->get('propietarios/{propietario}', [PropietarioController::class, 'show'])
                 ->name('propietarios.show');
+            Route::middleware('permission:propietarios.view')
+                ->post('propietarios/{propietario}/portal/invitar', [PortalInviteController::class, 'store'])
+                ->name('propietarios.portal.invitar');
             Route::middleware('permission:propietarios.update')
                 ->match(['put', 'patch'], 'propietarios/{propietario}', [PropietarioController::class, 'update'])
                 ->name('propietarios.update');

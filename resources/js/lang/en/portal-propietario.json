@@ -1,0 +1,37 @@
+{
+    "entrar": {
+        "setup_title": "Create your PIN",
+        "setup_subtitle": "Four digits. We won’t ask again on this phone.",
+        "pin_title": "Your PIN",
+        "pin_subtitle": "Hi {{name}}. Open this to see {{pet}}.",
+        "pin_subtitle_generic": "Hi {{name}}. Open this to see your pets.",
+        "confirm": "Repeat PIN",
+        "continue": "Continue",
+        "creating": "Saving…",
+        "forgot": "Forgot PIN",
+        "reset_title": "Reset PIN",
+        "reset_hint": "We’ll WhatsApp a code to {{phone}}.",
+        "send_code": "Send code",
+        "sending": "Sending…",
+        "code_label": "6-digit code",
+        "new_pin": "New PIN",
+        "save_pin": "Save and enter",
+        "back_to_pin": "Back"
+    },
+    "home": {
+        "hello": "Hi, {{name}}",
+        "clinic": "{{clinic}}",
+        "next_visit": "Next visit",
+        "no_visit": "No upcoming visits",
+        "vaccine": "Next vaccine",
+        "no_vaccine": "Vaccines up to date",
+        "add_home": "Add this screen to your home screen to open it like an app.",
+        "logout": "Sign out on this phone",
+        "no_pets": "No pets on your file yet. The clinic will add them soon.",
+        "pets": "Your pets"
+    },
+    "sin_acceso": {
+        "title": "Open the WhatsApp link",
+        "body": "This access is personal. Ask the clinic to resend the message, or use the link they already sent you."
+    }
+}

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureNoTenant;
 use App\Http\Middleware\EnsurePasswordIsChanged;
+use App\Http\Middleware\EnsurePortalPropietario;
 use App\Http\Middleware\EnsureTenant;
 use App\Http\Middleware\EnsureTenantHasActiveSede;
 use App\Http\Middleware\EnsureTenantModuleEnabled;
@@ -83,6 +84,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'force-password-change' => EnsurePasswordIsChanged::class,
             'tenant.module' => EnsureTenantModuleEnabled::class,
             'tenant.active-sede' => EnsureTenantHasActiveSede::class,
+            'portal.auth' => EnsurePortalPropietario::class,
         ]);
 
         // `ResolveTenant` se aplica a TODO el grupo web. Es inocuo en
