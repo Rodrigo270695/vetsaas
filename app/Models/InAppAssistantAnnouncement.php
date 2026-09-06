@@ -6,9 +6,11 @@ namespace App\Models;
 
 use App\Models\Concerns\UsesPublicSchema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Novedad in-app del asistente (modal que ven las clínicas).
@@ -19,13 +21,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array|null $features
  * @property bool $is_active
  * @property int $version
- * @property \Illuminate\Support\Carbon|null $published_at
+ * @property Carbon|null $published_at
  * @property string|null $created_by_id
  */
 final class InAppAssistantAnnouncement extends Model
 {
     use HasUuids;
     use UsesPublicSchema;
+
+    public const MAX_LIVE = 3;
 
     protected $table = 'in_app_assistant_announcements';
 
@@ -66,11 +70,25 @@ final class InAppAssistantAnnouncement extends Model
 
     public static function currentLive(): ?self
     {
-        return static::query()
+        return self::currentLiveList()->first();
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public static function currentLiveList()
+    {
+        return self::query()
             ->live()
             ->orderByDesc('published_at')
             ->orderByDesc('version')
-            ->first();
+            ->limit(self::MAX_LIVE)
+            ->get();
+    }
+
+    public static function liveCount(): int
+    {
+        return self::query()->live()->count();
     }
 
     /**
@@ -102,8 +120,31 @@ final class InAppAssistantAnnouncement extends Model
     }
 
     /**
-     * Payload para el modal de las clínicas.
+     * Payload para el modal de las clínicas (hasta MAX_LIVE novedades).
      *
+     * @return list<array{
+     *     active: bool,
+     *     id: string,
+     *     version: int,
+     *     title: string|null,
+     *     body: string|null,
+     *     features: list<string>
+     * }>
+     */
+    public static function tenantPayloads(): array
+    {
+        $out = [];
+        foreach (self::currentLiveList() as $announcement) {
+            $payload = $announcement->toTenantItem();
+            if ($payload !== null) {
+                $out[] = $payload;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * @return array{
      *     active: bool,
      *     id: string,
@@ -115,26 +156,36 @@ final class InAppAssistantAnnouncement extends Model
      */
     public static function tenantPayload(): ?array
     {
-        $announcement = static::currentLive();
-        if ($announcement === null) {
-            return null;
-        }
+        return self::tenantPayloads()[0] ?? null;
+    }
 
-        $version = (int) $announcement->version;
+    /**
+     * @return array{
+     *     active: bool,
+     *     id: string,
+     *     version: int,
+     *     title: string|null,
+     *     body: string|null,
+     *     features: list<string>
+     * }|null
+     */
+    public function toTenantItem(): ?array
+    {
+        $version = (int) $this->version;
         if ($version < 1) {
             return null;
         }
 
-        $title = trim($announcement->title);
-        $body = trim($announcement->body);
+        $title = trim($this->title);
+        $body = trim($this->body);
 
         return [
             'active' => true,
-            'id' => $announcement->id,
+            'id' => $this->id,
             'version' => $version,
             'title' => $title !== '' ? mb_substr($title, 0, 160) : null,
             'body' => $body !== '' ? mb_substr($body, 0, 2000) : null,
-            'features' => $announcement->featureList(),
+            'features' => $this->featureList(),
         ];
     }
 

@@ -1894,6 +1894,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->name('configuracion.novedades.republish');
             Route::post('configuracion/novedades/{novedad}/activar', [InAppAssistantAnnouncementController::class, 'activate'])
                 ->name('configuracion.novedades.activate');
+            Route::post('configuracion/novedades/{novedad}/desactivar', [InAppAssistantAnnouncementController::class, 'deactivate'])
+                ->name('configuracion.novedades.deactivate');
             Route::delete('configuracion/novedades/{novedad}', [InAppAssistantAnnouncementController::class, 'destroy'])
                 ->name('configuracion.novedades.destroy');
         });

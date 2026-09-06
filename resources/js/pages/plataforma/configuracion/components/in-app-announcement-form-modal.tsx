@@ -18,6 +18,7 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     entry: InAppAnnouncementRecord | null;
+    liveMax?: number;
 };
 
 type FormData = {
@@ -42,7 +43,7 @@ function padFeatures(features: string[] | undefined): [string, string, string, s
     return [next[0] ?? '', next[1] ?? '', next[2] ?? '', next[3] ?? ''];
 }
 
-export function InAppAnnouncementFormModal({ open, onOpenChange, entry }: Props) {
+export function InAppAnnouncementFormModal({ open, onOpenChange, entry, liveMax = 3 }: Props) {
     const { t } = useTranslation(['platform', 'common']);
     const isEdit = entry !== null;
 
@@ -213,7 +214,7 @@ export function InAppAnnouncementFormModal({ open, onOpenChange, entry }: Props)
                             {t('platform:announcements.fields.publish_now')}
                         </Label>
                         <p className="text-xs leading-relaxed text-muted-foreground">
-                            {t('platform:announcements.fields.publish_now_hint')}
+                            {t('platform:announcements.fields.publish_now_hint', { max: liveMax })}
                         </p>
                     </span>
                 </label>

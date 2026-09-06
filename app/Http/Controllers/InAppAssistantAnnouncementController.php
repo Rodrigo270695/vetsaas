@@ -9,9 +9,11 @@ use App\Models\InAppAssistantAnnouncement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
- * CRUD de novedades del asistente in-app (Plataforma → Configuración).
+ * CRUD de novedades in-app para clínicas (Plataforma → Configuración).
+ * Hasta {@see InAppAssistantAnnouncement::MAX_LIVE} pueden estar activas a la vez.
  */
 final class InAppAssistantAnnouncementController extends Controller
 {
@@ -22,7 +24,7 @@ final class InAppAssistantAnnouncementController extends Controller
 
         DB::transaction(function () use ($data, $publishNow): void {
             if ($publishNow) {
-                $this->deactivateAll();
+                $this->assertCanActivate();
             }
 
             InAppAssistantAnnouncement::query()->create([
@@ -50,8 +52,8 @@ final class InAppAssistantAnnouncementController extends Controller
         $publishNow = (bool) ($request->validated()['publish_now'] ?? $novedad->is_active);
 
         DB::transaction(function () use ($novedad, $data, $publishNow): void {
-            if ($publishNow) {
-                $this->deactivateAllExcept($novedad->id);
+            if ($publishNow && ! $novedad->is_active) {
+                $this->assertCanActivate();
             }
 
             $novedad->fill($data);
@@ -70,7 +72,10 @@ final class InAppAssistantAnnouncementController extends Controller
     public function republish(InAppAssistantAnnouncement $novedad): RedirectResponse
     {
         DB::transaction(function () use ($novedad): void {
-            $this->deactivateAllExcept($novedad->id);
+            if (! $novedad->is_active) {
+                $this->assertCanActivate();
+            }
+
             $novedad->is_active = true;
             $novedad->version = ((int) $novedad->version) + 1;
             $novedad->published_at = now();
@@ -83,7 +88,10 @@ final class InAppAssistantAnnouncementController extends Controller
     public function activate(InAppAssistantAnnouncement $novedad): RedirectResponse
     {
         DB::transaction(function () use ($novedad): void {
-            $this->deactivateAllExcept($novedad->id);
+            if (! $novedad->is_active) {
+                $this->assertCanActivate();
+            }
+
             $novedad->is_active = true;
             if ($novedad->published_at === null) {
                 $novedad->published_at = now();
@@ -95,6 +103,14 @@ final class InAppAssistantAnnouncementController extends Controller
         });
 
         return back()->with('success', 'Novedad activada para las clínicas.');
+    }
+
+    public function deactivate(InAppAssistantAnnouncement $novedad): RedirectResponse
+    {
+        $novedad->is_active = false;
+        $novedad->save();
+
+        return back()->with('success', 'Novedad desactivada.');
     }
 
     public function destroy(InAppAssistantAnnouncement $novedad): RedirectResponse
@@ -127,18 +143,12 @@ final class InAppAssistantAnnouncementController extends Controller
         ];
     }
 
-    private function deactivateAll(): void
+    private function assertCanActivate(): void
     {
-        InAppAssistantAnnouncement::query()
-            ->where('is_active', true)
-            ->update(['is_active' => false]);
-    }
-
-    private function deactivateAllExcept(string $id): void
-    {
-        InAppAssistantAnnouncement::query()
-            ->where('is_active', true)
-            ->where('id', '!=', $id)
-            ->update(['is_active' => false]);
+        if (InAppAssistantAnnouncement::liveCount() >= InAppAssistantAnnouncement::MAX_LIVE) {
+            throw ValidationException::withMessages([
+                'publish_now' => 'Ya hay '.InAppAssistantAnnouncement::MAX_LIVE.' novedades activas. Desactiva una para publicar otra.',
+            ]);
+        }
     }
 }

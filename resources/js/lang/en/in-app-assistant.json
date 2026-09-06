@@ -133,6 +133,10 @@
         "title": "New AI assistant in VetSaaS",
         "body": "You now get product help and clinic lookups without leaving the app. Open it at the top right: it’s a floating window you can move and resize.",
         "dismiss": "Got it",
+        "next": "Next",
+        "prev": "Back",
+        "counter": "{{current}} of {{total}}",
+        "go_to": "Go to update {{n}}",
         "try": "Try it now",
         "features": {
             "help": "Guides you to each module and how to use it",

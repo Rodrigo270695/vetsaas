@@ -39,7 +39,23 @@ declare module '@inertiajs/core' {
                     body?: string | null;
                     features?: string[];
                 } | null;
+                announcements?: Array<{
+                    active: boolean;
+                    version: number;
+                    id?: string;
+                    title?: string | null;
+                    body?: string | null;
+                    features?: string[];
+                }>;
             } | null;
+            clinic_announcements?: Array<{
+                active: boolean;
+                version: number;
+                id: string;
+                title?: string | null;
+                body?: string | null;
+                features?: string[];
+            }>;
             tenant_modules: import('@/types/tenant-modules').TenantModulesSnapshot | null;
             tenant_impersonation: SharedTenantImpersonation | null;
             whatsapp_connection: import('@/types/whatsapp-connection').WhatsAppConnectionShared | null;

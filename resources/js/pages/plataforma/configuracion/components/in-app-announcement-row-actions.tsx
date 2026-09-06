@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Megaphone, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Megaphone, MoreHorizontal, Pencil, Trash2, VolumeX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,8 @@ const ROUTE_URL = '/plataforma/configuracion/novedades';
 
 type Props = {
     entry: InAppAnnouncementRecord;
-    liveAnnouncementId: string | null;
+    isLive: boolean;
+    canActivateMore: boolean;
     onEdit: (entry: InAppAnnouncementRecord) => void;
     onDelete: (entry: InAppAnnouncementRecord) => void;
     canUpdate?: boolean;
@@ -25,16 +26,20 @@ type Props = {
 
 export function InAppAnnouncementRowActions({
     entry,
-    liveAnnouncementId,
+    isLive,
+    canActivateMore,
     onEdit,
     onDelete,
     canUpdate = true,
 }: Props) {
     const { t } = useTranslation(['platform', 'common']);
-    const isLive = liveAnnouncementId === entry.id;
 
     const activate = () => {
         router.post(`${ROUTE_URL}/${entry.id}/activar`, {}, { preserveScroll: true });
+    };
+
+    const deactivate = () => {
+        router.post(`${ROUTE_URL}/${entry.id}/desactivar`, {}, { preserveScroll: true });
     };
 
     const republish = () => {
@@ -63,15 +68,25 @@ export function InAppAnnouncementRowActions({
                     <Pencil className="size-4" strokeWidth={2.25} />
                     {t('common:actions.edit')}
                 </DropdownMenuItem>
-                {!isLive ? (
-                    <DropdownMenuItem onSelect={activate} className="gap-2">
+                {isLive ? (
+                    <>
+                        <DropdownMenuItem onSelect={republish} className="gap-2">
+                            <Megaphone className="size-4" strokeWidth={2.25} />
+                            {t('platform:announcements.actions.republish')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={deactivate} className="gap-2">
+                            <VolumeX className="size-4" strokeWidth={2.25} />
+                            {t('platform:announcements.actions.deactivate')}
+                        </DropdownMenuItem>
+                    </>
+                ) : (
+                    <DropdownMenuItem
+                        onSelect={activate}
+                        disabled={!canActivateMore}
+                        className="gap-2"
+                    >
                         <Megaphone className="size-4" strokeWidth={2.25} />
                         {t('platform:announcements.actions.activate')}
-                    </DropdownMenuItem>
-                ) : (
-                    <DropdownMenuItem onSelect={republish} className="gap-2">
-                        <Megaphone className="size-4" strokeWidth={2.25} />
-                        {t('platform:announcements.actions.republish')}
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />

@@ -7,9 +7,9 @@
     },
     "stats": {
         "daily_limit": "Chat limit / day",
-        "announcement": "Announcement",
-        "announcement_on": "On",
-        "announcement_off": "Off"
+        "announcement": "Announcements",
+        "announcement_on": "{{count}} live",
+        "announcement_off": "None live"
     },
     "intro": {
         "title": "In-app assistant control",
@@ -22,7 +22,7 @@
         },
         "announcement": {
             "title": "Clinic announcements",
-            "description": "Records for the modal tenants see on entry. Only one can be live at a time."
+            "description": "Modal clinics see on login. You can have up to {{max}} live at once; staff swipe through them."
         }
     },
     "fields": {
@@ -38,6 +38,7 @@
         "version": "v{{version}}",
         "actions": {
             "activate": "Activate",
+            "deactivate": "Deactivate",
             "republish": "Republish"
         },
         "form": {
@@ -51,10 +52,10 @@
             "body": "Body",
             "body_hint": "Explain the announcement in 1–3 sentences.",
             "features": "Highlights (up to 4)",
-            "features_hint": "Optional. If empty, the modal uses the assistant default highlights.",
+            "features_hint": "Optional. If empty, the modal only shows title and body.",
             "feature": "Highlight {{n}}",
             "publish_now": "Publish now",
-            "publish_now_hint": "When enabled, this announcement replaces the live one and is shown to clinics."
+            "publish_now_hint": "When enabled, this announcement is added to the clinic modal (max {{max}} live). Other live ones stay on."
         },
         "delete": {
             "title": "Delete announcement",

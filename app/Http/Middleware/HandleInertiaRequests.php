@@ -3,9 +3,14 @@
 namespace App\Http\Middleware;
 
 use App\Models\ClinicSetting;
-use App\Models\PlatformSetting;
+use App\Models\InAppAssistantAnnouncement;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Chat\PlatformSupportChatService;
+use App\Services\Chat\TenantChatService;
 use App\Services\InAppAssistant\InAppAssistantService;
+use App\Services\Onboarding\ClinicOnboardingService;
+use App\Services\Reviews\TenantProductReviewService;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Support\Database\PublicSchema;
 use App\Support\OpenWa\PlatformWhatsAppPresenter;
@@ -133,7 +138,7 @@ class HandleInertiaRequests extends Middleware
                     }
 
                     try {
-                        $onboarding = app(\App\Services\Onboarding\ClinicOnboardingService::class);
+                        $onboarding = app(ClinicOnboardingService::class);
                         $tenant = $tenantContext->tenant;
                         $tenantId = (string) $tenant->id;
                         $needsSede = ! $onboarding->hasAnyActiveSede($tenantId);
@@ -255,12 +260,12 @@ class HandleInertiaRequests extends Middleware
                             return null;
                         }
 
-                        if (! \Illuminate\Support\Facades\Schema::hasTable('chat_messages')) {
+                        if (! Schema::hasTable('chat_messages')) {
                             return ['unread_total' => 0];
                         }
 
                         return [
-                            'unread_total' => app(\App\Services\Chat\TenantChatService::class)
+                            'unread_total' => app(TenantChatService::class)
                                 ->unreadTotalFor($user),
                         ];
                     } catch (Throwable $e) {
@@ -277,12 +282,12 @@ class HandleInertiaRequests extends Middleware
                             return null;
                         }
 
-                        if (! \Illuminate\Support\Facades\Schema::hasTable('platform_support_threads')) {
+                        if (! Schema::hasTable('platform_support_threads')) {
                             return ['unread_total' => 0];
                         }
 
                         return [
-                            'unread_total' => app(\App\Services\Chat\PlatformSupportChatService::class)
+                            'unread_total' => app(PlatformSupportChatService::class)
                                 ->unreadTotal(),
                         ];
                     } catch (Throwable $e) {
@@ -311,10 +316,13 @@ class HandleInertiaRequests extends Middleware
                         $configured = $assistant->isConfigured();
 
                         $announcement = null;
-                        if ($isClinic && $enabled && $configured) {
+                        $announcements = [];
+                        if ($isClinic) {
                             try {
-                                $announcement = PlatformSetting::current()->assistantAnnouncementPayload();
+                                $announcements = InAppAssistantAnnouncement::tenantPayloads();
+                                $announcement = $announcements[0] ?? null;
                             } catch (Throwable) {
+                                $announcements = [];
                                 $announcement = null;
                             }
                         }
@@ -325,11 +333,23 @@ class HandleInertiaRequests extends Middleware
                             'scope' => $isPlatform ? 'platform' : 'clinic',
                             'unlimited' => $user instanceof User && $user->isPlatformSuperadmin(),
                             'announcement' => $announcement,
+                            'announcements' => $announcements,
                         ];
                     } catch (Throwable $e) {
                         report($e);
 
                         return null;
+                    }
+                },
+            'clinic_announcements' => $skipHeavySharedProps || $tenantContext === null
+                ? []
+                : static function (): array {
+                    try {
+                        return InAppAssistantAnnouncement::tenantPayloads();
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return [];
                     }
                 },
             'tenant_modules' => $skipHeavySharedProps || $tenantContext === null
@@ -357,7 +377,7 @@ class HandleInertiaRequests extends Middleware
                             return null;
                         }
 
-                        return app(\App\Services\Reviews\TenantProductReviewService::class)
+                        return app(TenantProductReviewService::class)
                             ->promptPayload($user, $tenantContext->tenant);
                     } catch (Throwable $e) {
                         report($e);
@@ -477,7 +497,7 @@ class HandleInertiaRequests extends Middleware
      *     manage_url: string|null
      * }|null
      */
-    private function resolveWhatsAppConnection(?\App\Models\Tenant $tenant, User $user): ?array
+    private function resolveWhatsAppConnection(?Tenant $tenant, User $user): ?array
     {
         if ($tenant !== null) {
             if (! $user->can('comunicaciones-cola.view') && ! $user->can('comunicaciones-bot-ia.view')) {

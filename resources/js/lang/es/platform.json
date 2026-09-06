@@ -7,9 +7,9 @@
     },
     "stats": {
         "daily_limit": "Límite chat / día",
-        "announcement": "Novedad",
-        "announcement_on": "Activa",
-        "announcement_off": "Inactiva"
+        "announcement": "Novedades",
+        "announcement_on": "{{count}} activas",
+        "announcement_off": "Ninguna activa"
     },
     "intro": {
         "title": "Control del asistente in-app",
@@ -22,7 +22,7 @@
         },
         "announcement": {
             "title": "Novedades para clínicas",
-            "description": "Registros del modal que ven los usuarios de cada tenant. Solo una puede estar activa a la vez."
+            "description": "Modal que ven al entrar. Puedes tener hasta {{max}} activas a la vez; el tenant las recorre en un carrusel."
         }
     },
     "fields": {
@@ -38,6 +38,7 @@
         "version": "v{{version}}",
         "actions": {
             "activate": "Activar",
+            "deactivate": "Desactivar",
             "republish": "Republicar"
         },
         "form": {
@@ -51,10 +52,10 @@
             "body": "Texto principal",
             "body_hint": "Explica la novedad en 1–3 frases.",
             "features": "Puntos destacados (hasta 4)",
-            "features_hint": "Opcional. Si los dejas vacíos, el modal usará los puntos por defecto del asistente.",
+            "features_hint": "Opcional. Si los dejas vacíos, el modal solo muestra título y texto.",
             "feature": "Punto {{n}}",
             "publish_now": "Publicar ahora",
-            "publish_now_hint": "Si está activo, esta novedad reemplaza a la que esté en vivo y se muestra a las clínicas."
+            "publish_now_hint": "Si está activo, se suma al modal de las clínicas (máximo {{max}} a la vez). No apaga las otras."
         },
         "delete": {
             "title": "Eliminar novedad",

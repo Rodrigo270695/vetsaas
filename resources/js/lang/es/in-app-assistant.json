@@ -133,6 +133,10 @@
         "title": "Nuevo Asistente IA en VetSaaS",
         "body": "Ahora tienes ayuda y consultas de tu clínica sin salir del sistema. Ábrelo arriba a la derecha: es una ventana flotante que puedes mover y redimensionar.",
         "dismiss": "Entendido",
+        "next": "Siguiente",
+        "prev": "Anterior",
+        "counter": "{{current}} de {{total}}",
+        "go_to": "Ir a la novedad {{n}}",
         "try": "Probar ahora",
         "features": {
             "help": "Te orienta dónde está cada módulo y cómo usarlo",

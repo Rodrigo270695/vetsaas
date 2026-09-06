@@ -48,7 +48,9 @@ type PlatformSetting = {
 type PageProps = {
     setting: PlatformSetting;
     announcements: InAppAnnouncementRecord[];
+    live_announcement_ids?: string[];
     live_announcement_id: string | null;
+    live_max?: number;
 };
 
 type ModalState =
@@ -78,7 +80,13 @@ export default function Index({
     setting,
     announcements,
     live_announcement_id: liveAnnouncementId,
+    live_announcement_ids: liveAnnouncementIdsProp,
+    live_max: liveMaxProp,
 }: PageProps) {
+    const liveAnnouncementIds = liveAnnouncementIdsProp ?? (liveAnnouncementId ? [liveAnnouncementId] : []);
+    const liveMax = liveMaxProp ?? 3;
+    const liveCount = liveAnnouncementIds.length;
+    const hasLive = liveCount > 0;
     const { t, i18n } = useTranslation(['platform', 'common']);
     const { can } = usePermission();
     const canUpdate = can('platform-settings.update');
@@ -151,7 +159,7 @@ export default function Index({
                             {
                                 label: t('stats.announcement'),
                                 value: hasLive
-                                    ? t('stats.announcement_on')
+                                    ? t('stats.announcement_on', { count: liveCount })
                                     : t('stats.announcement_off'),
                                 variant: hasLive ? 'success' : 'muted',
                                 icon: Megaphone,
@@ -243,7 +251,7 @@ export default function Index({
                 <SectionCard
                     icon={Megaphone}
                     title={t('sections.announcement.title')}
-                    description={t('sections.announcement.description')}
+                    description={t('sections.announcement.description', { max: liveMax })}
                     badge={
                         canUpdate ? (
                             <Button
@@ -278,7 +286,7 @@ export default function Index({
                         <div className="overflow-hidden rounded-xl border border-border/70">
                             <ul className="divide-y divide-border/60">
                                 {announcements.map((entry) => {
-                                    const isLive = liveAnnouncementId === entry.id;
+                                    const isLive = liveAnnouncementIds.includes(entry.id);
                                     return (
                                         <li
                                             key={entry.id}
@@ -299,7 +307,7 @@ export default function Index({
                                                                   : 'border-border bg-muted/40 text-muted-foreground',
                                                         )}
                                                     >
-                                                        {isLive
+                                                                                        {isLive
                                                             ? t('announcements.live')
                                                             : entry.published_at
                                                               ? t('announcements.inactive')
@@ -326,7 +334,8 @@ export default function Index({
                                             </div>
                                             <InAppAnnouncementRowActions
                                                 entry={entry}
-                                                liveAnnouncementId={liveAnnouncementId}
+                                                isLive={isLive}
+                                                canActivateMore={liveCount < liveMax}
                                                 canUpdate={canUpdate}
                                                 onEdit={(item) =>
                                                     setModal({ type: 'edit', entry: item })
@@ -346,6 +355,7 @@ export default function Index({
 
             <InAppAnnouncementFormModal
                 open={modal.type === 'create' || modal.type === 'edit'}
+                liveMax={liveMax}
                 onOpenChange={(open) => {
                     if (!open) {
                         closeModal();

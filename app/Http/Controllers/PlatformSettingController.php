@@ -28,12 +28,14 @@ class PlatformSettingController extends Controller
             ->values()
             ->all();
 
-        $live = InAppAssistantAnnouncement::currentLive();
+        $liveIds = InAppAssistantAnnouncement::currentLiveList()->pluck('id')->values()->all();
 
         return Inertia::render('plataforma/configuracion/index', [
             'setting' => $this->presentSetting($setting),
             'announcements' => $announcements,
-            'live_announcement_id' => $live?->id,
+            'live_announcement_ids' => $liveIds,
+            'live_announcement_id' => $liveIds[0] ?? null,
+            'live_max' => InAppAssistantAnnouncement::MAX_LIVE,
         ]);
     }
 
