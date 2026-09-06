@@ -13,7 +13,9 @@ use App\Models\PortalAviso;
 use App\Models\PortalPropietario;
 use App\Models\Propietario;
 use App\Models\VacunaAplicada;
-use Illuminate\Support\Collection;
+use App\Support\Clinica\PublicClinicalHistoryPayload;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 
 final class PortalHomePayload
@@ -21,53 +23,121 @@ final class PortalHomePayload
     /**
      * @return array<string, mixed>
      */
-    public static function make(Propietario $propietario, ?string $mascotaId = null): array
+    public static function overview(Propietario $propietario): array
     {
         $pacientes = Paciente::query()
             ->where('propietario_id', $propietario->id)
             ->where('activo', true)
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'foto_path', 'especie', 'raza']);
+            ->get();
 
-        $selected = self::resolveSelected($pacientes, $mascotaId);
+        $portal = PortalPropietario::query()
+            ->where('propietario_id', $propietario->id)
+            ->first();
 
         $nombres = trim((string) $propietario->nombres);
         $saludo = $nombres !== ''
             ? explode(' ', $nombres)[0]
             : $propietario->displayName();
 
-        $portal = PortalPropietario::query()
-            ->where('propietario_id', $propietario->id)
-            ->first();
-
         return [
             'saludo' => $saludo,
-            'mascotas' => $pacientes->map(fn (Paciente $p): array => [
-                'id' => $p->id,
-                'nombre' => $p->nombre,
-                'foto_url' => $p->foto_url,
-                'especie' => $p->especie,
-                'raza' => $p->raza,
-            ])->values()->all(),
-            'mascota' => $selected === null ? null : [
-                'id' => $selected->id,
-                'nombre' => $selected->nombre,
-                'foto_url' => $selected->foto_url,
-                'especie' => $selected->especie,
-                'raza' => $selected->raza,
+            'titular' => [
+                'nombre' => $propietario->displayName(),
+                'telefono' => $propietario->telefono,
+                'email' => $propietario->email,
+                'documento' => trim(implode(' ', array_filter([
+                    $propietario->tipo_documento,
+                    $propietario->numero_documento,
+                ]))) ?: null,
+                'direccion' => $propietario->direccion,
             ],
-            'citas' => $selected ? self::citas($selected->id) : ['proxima' => null, 'historial' => []],
-            'grooming' => $selected ? self::grooming($selected->id) : [],
-            'consultas' => $selected ? self::consultas($selected->id) : [],
-            'vacunas' => $selected ? self::vacunas($selected->id) : ['proxima' => null, 'historial' => []],
-            'avisos' => $portal ? self::avisos($portal->id, $selected?->id) : [],
+            'mascotas' => $pacientes->map(fn (Paciente $p): array => self::mascotaCard($p))->values()->all(),
+            'avisos' => $portal ? self::avisos($portal->id, null) : [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function pet(
+        Propietario $propietario,
+        Paciente $paciente,
+        ?string $desde,
+        ?string $hasta,
+    ): array {
+        abort_unless($paciente->propietario_id === $propietario->id, 404);
+
+        $hc = PublicClinicalHistoryPayload::forPaciente($paciente);
+        $timeline = array_values(array_filter(
+            $hc['timeline'],
+            static fn (array $item): bool => self::inRange((string) $item['ocurrido_at'], $desde, $hasta),
+        ));
+
+        return [
+            'mascota' => [
+                'id' => $paciente->id,
+                'nombre' => $paciente->nombre,
+                'foto_url' => $paciente->foto_url,
+                'especie' => $paciente->especie,
+                'raza' => $paciente->raza,
+                'sexo' => $paciente->sexo,
+                'fecha_nacimiento' => $paciente->fecha_nacimiento?->toDateString(),
+                'color' => $paciente->color,
+                'peso_kg' => $paciente->peso_kg,
+            ],
+            'citas' => self::citas($paciente->id, $desde, $hasta),
+            'grooming' => self::grooming($paciente->id, $desde, $hasta),
+            'vacunas' => self::vacunas($paciente->id, $desde, $hasta),
+            'historial' => [
+                'timeline' => $timeline,
+                'pdf_url' => $hc['links']['historial_pdf'] ?? null,
+                'permisos' => $hc['permisos'],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function mascotaCard(Paciente $p): array
+    {
+        $proxima = Cita::query()
+            ->where('paciente_id', $p->id)
+            ->whereIn('estado', Cita::ESTADOS_EN_ESPERA)
+            ->where('inicio_at', '>=', now()->subHours(2))
+            ->orderBy('inicio_at')
+            ->first();
+
+        $ultimaConsulta = Consulta::query()
+            ->whereHas('historiaClinica', fn ($q) => $q->where('paciente_id', $p->id))
+            ->whereNotNull('cerrada_at')
+            ->orderByDesc('atendido_at')
+            ->first(['atendido_at', 'motivo']);
+
+        return [
+            'id' => $p->id,
+            'nombre' => $p->nombre,
+            'foto_url' => $p->foto_url,
+            'especie' => $p->especie,
+            'raza' => $p->raza,
+            'sexo' => $p->sexo,
+            'fecha_nacimiento' => $p->fecha_nacimiento?->toDateString(),
+            'proxima_cita' => $proxima === null ? null : [
+                'inicio_at' => $proxima->inicio_at->toIso8601String(),
+                'motivo' => $proxima->motivo,
+            ],
+            'ultima_consulta' => $ultimaConsulta === null ? null : [
+                'atendido_at' => $ultimaConsulta->atendido_at->toIso8601String(),
+                'motivo' => $ultimaConsulta->motivo,
+            ],
         ];
     }
 
     /**
      * @return array{proxima: ?array<string, mixed>, historial: list<array<string, mixed>>}
      */
-    private static function citas(string $pacienteId): array
+    private static function citas(string $pacienteId, ?string $desde, ?string $hasta): array
     {
         $proxima = Cita::query()
             ->where('paciente_id', $pacienteId)
@@ -76,11 +146,13 @@ final class PortalHomePayload
             ->orderBy('inicio_at')
             ->first();
 
-        $rows = Cita::query()
+        $rowsQuery = Cita::query()
             ->where('paciente_id', $pacienteId)
-            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA])
+            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA]);
+        self::constrainDate($rowsQuery, 'inicio_at', $desde, $hasta);
+        $rows = $rowsQuery
             ->orderByDesc('inicio_at')
-            ->limit(20)
+            ->limit(40)
             ->get(['id', 'inicio_at', 'motivo', 'estado', 'duracion_minutos']);
 
         $map = static fn (Cita $c): array => [
@@ -99,14 +171,16 @@ final class PortalHomePayload
     /**
      * @return list<array<string, mixed>>
      */
-    private static function grooming(string $pacienteId): array
+    private static function grooming(string $pacienteId, ?string $desde, ?string $hasta): array
     {
-        $turnos = GroomingTurno::query()
+        $turnosQuery = GroomingTurno::query()
             ->where('paciente_id', $pacienteId)
-            ->whereNotIn('estado', [GroomingTurno::ESTADO_CANCELADA])
+            ->whereNotIn('estado', [GroomingTurno::ESTADO_CANCELADA]);
+        self::constrainDate($turnosQuery, 'inicio_at', $desde, $hasta);
+        $turnos = $turnosQuery
             ->with(['fotos' => fn ($q) => $q->orderBy('created_at')])
             ->orderByDesc('inicio_at')
-            ->limit(8)
+            ->limit(30)
             ->get();
 
         return $turnos->map(function (GroomingTurno $t): array {
@@ -126,38 +200,16 @@ final class PortalHomePayload
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    private static function consultas(string $pacienteId): array
-    {
-        return Consulta::query()
-            ->whereHas('historiaClinica', fn ($q) => $q->where('paciente_id', $pacienteId))
-            ->whereNotNull('cerrada_at')
-            ->orderByDesc('atendido_at')
-            ->limit(12)
-            ->get(['id', 'atendido_at', 'motivo', 'plan', 'analisis', 'medico_tratante', 'peso_kg'])
-            ->map(fn (Consulta $c): array => [
-                'id' => $c->id,
-                'atendido_at' => $c->atendido_at->toIso8601String(),
-                'motivo' => $c->motivo,
-                'plan' => $c->plan,
-                'analisis' => $c->analisis,
-                'medico' => $c->medico_tratante,
-                'peso_kg' => $c->peso_kg,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
      * @return array{proxima: ?array<string, mixed>, historial: list<array<string, mixed>>}
      */
-    private static function vacunas(string $pacienteId): array
+    private static function vacunas(string $pacienteId, ?string $desde, ?string $hasta): array
     {
-        $rows = VacunaAplicada::query()
-            ->where('paciente_id', $pacienteId)
+        $rowsQuery = VacunaAplicada::query()
+            ->where('paciente_id', $pacienteId);
+        self::constrainDate($rowsQuery, 'aplicada_at', $desde, $hasta);
+        $rows = $rowsQuery
             ->orderByDesc('aplicada_at')
-            ->limit(12)
+            ->limit(40)
             ->get(['id', 'nombre_vacuna', 'aplicada_at', 'fecha_proxima_sugerida', 'categoria_registro']);
 
         $proxima = VacunaAplicada::query()
@@ -197,7 +249,7 @@ final class PortalHomePayload
                 $q->whereNull('paciente_id')->orWhere('paciente_id', $pacienteId);
             }))
             ->orderByDesc('created_at')
-            ->limit(12)
+            ->limit(8)
             ->get()
             ->map(fn (PortalAviso $a): array => [
                 'id' => $a->id,
@@ -212,22 +264,34 @@ final class PortalHomePayload
     }
 
     /**
-     * @param  Collection<int, Paciente>  $pacientes
+     * @param  Builder<*>  $query
      */
-    private static function resolveSelected(Collection $pacientes, ?string $mascotaId): ?Paciente
+    private static function constrainDate(Builder $query, string $column, ?string $desde, ?string $hasta): void
     {
-        if ($pacientes->isEmpty()) {
-            return null;
+        if (is_string($desde) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $desde) === 1) {
+            $query->whereDate($column, '>=', $desde);
+        }
+        if (is_string($hasta) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $hasta) === 1) {
+            $query->whereDate($column, '<=', $hasta);
+        }
+    }
+
+    private static function inRange(string $iso, ?string $desde, ?string $hasta): bool
+    {
+        try {
+            $day = Carbon::parse($iso)->toDateString();
+        } catch (\Throwable) {
+            return true;
         }
 
-        if ($mascotaId !== null && $mascotaId !== '') {
-            $match = $pacientes->firstWhere('id', $mascotaId);
-            if ($match instanceof Paciente) {
-                return $match;
-            }
+        if (is_string($desde) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $desde) === 1 && $day < $desde) {
+            return false;
+        }
+        if (is_string($hasta) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $hasta) === 1 && $day > $hasta) {
+            return false;
         }
 
-        return $pacientes->first();
+        return true;
     }
 
     public static function clinic(): array

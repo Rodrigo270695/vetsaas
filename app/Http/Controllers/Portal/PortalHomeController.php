@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\Paciente;
 use App\Models\PortalPropietario;
 use App\Models\Propietario;
 use App\Services\Portal\PortalPropietarioAccessService;
@@ -30,10 +31,40 @@ final class PortalHomeController extends Controller
         }
 
         $mascotaId = trim((string) $request->query('mascota', ''));
+        $tab = (string) $request->query('tab', 'citas');
+        if (! in_array($tab, ['citas', 'hc', 'banos', 'vacunas'], true)) {
+            $tab = 'citas';
+        }
+
+        $desde = self::optionalDate($request->query('desde'));
+        $hasta = self::optionalDate($request->query('hasta'));
+        $todo = $request->boolean('todo');
+
+        if ($mascotaId !== '' && ! $todo && $desde === null && $hasta === null) {
+            $desde = now()->startOfYear()->toDateString();
+            $hasta = now()->toDateString();
+        }
+
+        $pet = null;
+        if ($mascotaId !== '') {
+            $paciente = Paciente::query()
+                ->where('propietario_id', $titular->id)
+                ->whereKey($mascotaId)
+                ->firstOrFail();
+            $pet = PortalHomePayload::pet($titular, $paciente, $desde, $hasta);
+        }
 
         return Inertia::render('portal/home', [
             'clinic' => PortalHomePayload::clinic(),
-            'home' => PortalHomePayload::make($titular, $mascotaId !== '' ? $mascotaId : null),
+            'overview' => PortalHomePayload::overview($titular),
+            'pet' => $pet,
+            'filters' => [
+                'tab' => $tab,
+                'desde' => $desde,
+                'hasta' => $hasta,
+                'default_desde' => now()->startOfYear()->toDateString(),
+                'default_hasta' => now()->toDateString(),
+            ],
             'push' => [
                 'enabled' => filled(config('webpush.vapid.public_key')),
                 'vapid' => (string) config('webpush.vapid.public_key'),
@@ -45,5 +76,15 @@ final class PortalHomeController extends Controller
                 'logout' => route('tenant.portal.logout'),
             ],
         ]);
+    }
+
+    private static function optionalDate(mixed $value): ?string
+    {
+        $raw = is_string($value) ? trim($value) : '';
+        if ($raw === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) !== 1) {
+            return null;
+        }
+
+        return $raw;
     }
 }

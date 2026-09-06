@@ -123,7 +123,8 @@ it('crea el PIN y deja la sesión en el celular', function (): void {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('portal/home')
-            ->where('home.mascota.nombre', 'Luna'));
+            ->where('overview.mascotas.0.nombre', 'Luna')
+            ->where('pet', null));
 });
 
 it('rechaza el PIN incorrecto y pide el enlace si no hay sesión', function (): void {
