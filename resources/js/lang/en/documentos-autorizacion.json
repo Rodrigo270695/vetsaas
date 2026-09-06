@@ -14,6 +14,11 @@
     "submit_edit": "Save",
     "title_create": "New template",
     "title_edit": "Edit template",
+    "ia_button": "Create with AI",
+    "ia_hint": "Upload a PDF or photo of the consent form and AI will draft the template. Then you review and save.",
+    "ia_working": "AI is creating the template",
+    "ia_wait": "This usually takes a few seconds. Don’t close this window.",
+    "ia_error": "Couldn’t generate the template. Try another photo or PDF.",
     "delete_title": "Delete template",
     "delete_description": "«{{nombre}}» will be deleted. Already signed documents are kept."
 }

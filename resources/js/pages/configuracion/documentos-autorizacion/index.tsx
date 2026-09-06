@@ -16,9 +16,15 @@ type Props = {
     plantillas: readonly PlantillaAutorizacion[];
     cuerpo_default: string;
     clinic_logo_url?: string | null;
+    ia_disponible?: boolean;
 };
 
-export default function Index({ plantillas, cuerpo_default, clinic_logo_url = null }: Props) {
+export default function Index({
+    plantillas,
+    cuerpo_default,
+    clinic_logo_url = null,
+    ia_disponible = false,
+}: Props) {
     const { t } = useTranslation(['documentos-autorizacion', 'common', 'nav']);
     const { can } = usePermission();
     const canUpdate = can('config-general.update');
@@ -129,6 +135,7 @@ export default function Index({ plantillas, cuerpo_default, clinic_logo_url = nu
                 plantilla={editing === 'new' || editing === null ? null : editing}
                 cuerpoDefault={cuerpo_default}
                 clinicLogoUrl={clinic_logo_url}
+                iaDisponible={ia_disponible}
             />
         </>
     );

@@ -14,6 +14,11 @@
     "submit_edit": "Guardar",
     "title_create": "Nueva plantilla",
     "title_edit": "Editar plantilla",
+    "ia_button": "Crear con IA",
+    "ia_hint": "Sube un PDF o una foto del consentimiento y la IA arma la plantilla. Luego revisas y guardas.",
+    "ia_working": "La IA está creando la plantilla",
+    "ia_wait": "Suele tardar unos segundos. No cierres esta ventana.",
+    "ia_error": "No se pudo generar la plantilla. Prueba con otra foto o PDF.",
     "delete_title": "Eliminar plantilla",
     "delete_description": "Se eliminará «{{nombre}}». Los documentos ya firmados se conservan."
 }

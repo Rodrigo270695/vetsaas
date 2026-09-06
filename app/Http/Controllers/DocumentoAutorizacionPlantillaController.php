@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DocumentoAutorizacionPlantillaFromAiRequest;
 use App\Http\Requests\DocumentoAutorizacionPlantillaRequest;
 use App\Models\ClinicSetting;
 use App\Models\DocumentoAutorizacionPlantilla;
+use App\Services\Clinica\DocumentoAutorizacionPlantillaFromAiService;
 use App\Support\Clinica\DocumentoAutorizacionRenderer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 final class DocumentoAutorizacionPlantillaController extends Controller
 {
@@ -41,6 +45,7 @@ final class DocumentoAutorizacionPlantillaController extends Controller
             'plantillas' => $items,
             'cuerpo_default' => DocumentoAutorizacionRenderer::defaultCuerpo(),
             'clinic_logo_url' => $logoUrl,
+            'ia_disponible' => app(DocumentoAutorizacionPlantillaFromAiService::class)->isConfigured(),
         ]);
     }
 
@@ -54,6 +59,24 @@ final class DocumentoAutorizacionPlantillaController extends Controller
         ]);
 
         return back()->with('success', 'Plantilla creada.');
+    }
+
+    public function fromAi(
+        DocumentoAutorizacionPlantillaFromAiRequest $request,
+        DocumentoAutorizacionPlantillaFromAiService $ai,
+    ): JsonResponse {
+        $file = $request->file('archivo');
+        if ($file === null) {
+            return response()->json(['message' => 'Adjunta un PDF o una imagen.'], 422);
+        }
+
+        try {
+            $draft = $ai->generateFromUpload($file);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json($draft);
     }
 
     public function update(

@@ -1266,6 +1266,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('documentos-autorizacion', [DocumentoAutorizacionPlantillaController::class, 'index'])
             ->name('documentos-autorizacion.index');
         Route::middleware(['tenant.required', 'permission:config-general.update'])
+            ->post('documentos-autorizacion/desde-ia', [DocumentoAutorizacionPlantillaController::class, 'fromAi'])
+            ->name('documentos-autorizacion.from-ai');
+        Route::middleware(['tenant.required', 'permission:config-general.update'])
             ->post('documentos-autorizacion', [DocumentoAutorizacionPlantillaController::class, 'store'])
             ->name('documentos-autorizacion.store');
         Route::middleware(['tenant.required', 'permission:config-general.update'])
