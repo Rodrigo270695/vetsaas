@@ -45,6 +45,7 @@
         "leads_title": "Captured contacts",
         "leads_hint": "People who left a phone or email in the demo (works even without GPS).",
         "leads_empty": "No demo leads yet.",
+        "leads_open_wa": "Open WhatsApp",
         "leads_gps_yes": "On map",
         "leads_gps_no": "IP only",
         "leads_cols": {

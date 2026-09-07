@@ -89,6 +89,7 @@ function MapaDemos({
             hint: t('mapa_demos.kpis.lead_hint'),
             icon: UserRound,
             accent: 'sky',
+            href: '#demo-leads',
         },
     ];
 
@@ -133,15 +134,10 @@ function MapaDemos({
 
                 <DashboardKpiGrid items={kpiItems} />
 
-                <TenantsMarketingMap
-                    markers={markers}
-                    title={t('mapa_demos.map_title')}
-                    description={t('mapa_demos.map_hint')}
-                    emptyLabel={t('mapa_demos.empty')}
-                    mapClassName="h-[min(70vh,720px)] min-h-[420px]"
-                />
-
-                <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
+                <div
+                    id="demo-leads"
+                    className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm"
+                >
                     <div className="border-b border-border/60 px-4 py-3">
                         <h3 className="text-sm font-semibold">
                             {t('mapa_demos.leads_title')}
@@ -204,10 +200,40 @@ function MapaDemos({
                                                     {row.clinic_name ?? '—'}
                                                 </td>
                                                 <td className="px-3 py-2.5 font-mono">
-                                                    {row.phone ?? '—'}
+                                                    {row.phone ? (
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <a
+                                                                href={`tel:${row.phone}`}
+                                                                className="text-primary underline-offset-2 hover:underline"
+                                                            >
+                                                                {row.phone}
+                                                            </a>
+                                                            <a
+                                                                href={`https://wa.me/${row.phone.replace(/\D/g, '')}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="text-[11px] text-emerald-700 hover:underline dark:text-emerald-300"
+                                                            >
+                                                                {t(
+                                                                    'mapa_demos.leads_open_wa',
+                                                                )}
+                                                            </a>
+                                                        </div>
+                                                    ) : (
+                                                        '—'
+                                                    )}
                                                 </td>
                                                 <td className="px-3 py-2.5">
-                                                    {row.email ?? '—'}
+                                                    {row.email ? (
+                                                        <a
+                                                            href={`mailto:${row.email}`}
+                                                            className="text-primary underline-offset-2 hover:underline"
+                                                        >
+                                                            {row.email}
+                                                        </a>
+                                                    ) : (
+                                                        '—'
+                                                    )}
                                                 </td>
                                                 <td className="px-3 py-2.5 text-muted-foreground">
                                                     {row.has_gps
@@ -276,6 +302,14 @@ function MapaDemos({
                         </div>
                     )}
                 </div>
+
+                <TenantsMarketingMap
+                    markers={markers}
+                    title={t('mapa_demos.map_title')}
+                    description={t('mapa_demos.map_hint')}
+                    emptyLabel={t('mapa_demos.empty')}
+                    mapClassName="h-[min(70vh,720px)] min-h-[420px]"
+                />
             </div>
         </>
     );
