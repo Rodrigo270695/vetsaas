@@ -7,6 +7,7 @@ namespace App\Services\Notifications;
 use App\Models\ClinicSetting;
 use App\Models\NotificationQueue;
 use App\Models\VacunaAplicada;
+use App\Support\Notifications\ReminderSendWindow;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
@@ -82,7 +83,7 @@ final class VaccineReminderScanner
                     (string) $vacuna->nombre_vacuna,
                     Carbon::parse($targetDate),
                 ),
-                enviarAt: now(),
+                enviarAt: ReminderSendWindow::enqueueAt(),
                 destinatarioNombre: $owner !== '' ? $owner : null,
                 referenciaTipo: 'vacuna',
                 referenciaId: $vacuna->id,

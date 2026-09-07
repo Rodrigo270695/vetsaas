@@ -6,6 +6,7 @@ namespace App\Services\Notifications;
 
 use App\Models\ClinicSetting;
 use App\Models\Paciente;
+use App\Support\Notifications\ReminderSendWindow;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
 
@@ -58,7 +59,7 @@ final class BirthdayReminderScanner
                     $owner !== '' ? $owner : 'cliente',
                     (string) $paciente->nombre,
                 ),
-                enviarAt: now(),
+                enviarAt: ReminderSendWindow::enqueueAt(),
                 destinatarioNombre: $owner !== '' ? $owner : null,
                 referenciaTipo: 'paciente',
                 referenciaId: $paciente->id,
