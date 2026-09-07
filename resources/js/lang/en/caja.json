@@ -93,8 +93,8 @@
             "cancel": "Cancel"
         },
         "dialog_egreso": {
-            "title": "Record cash expense",
-            "description": "Cash leaving the drawer for this session. It is subtracted from the closing reconciliation.",
+            "title": "Record expense",
+            "description": "Choose where the money comes from: cash, Yape, Plin or bank transfer. It is subtracted from that channel at closing.",
             "submit": "Record expense",
             "cancel": "Cancel",
             "list_title": "Session expenses",
@@ -113,6 +113,12 @@
                 "personal": "Staff / advances",
                 "cambio": "Change / float",
                 "otros": "Other"
+            },
+            "medios": {
+                "efectivo": "Cash",
+                "yape": "Yape",
+                "plin": "Plin",
+                "transferencia": "Transfer"
             }
         },
         "dialog_cerrar": {
@@ -124,9 +130,9 @@
             "arqueo_error": "Could not load reconciliation. You can still close with counted cash.",
             "kpi_ventas": "Shift sales",
             "kpi_esperado": "Cash to reconcile",
-            "kpi_esperado_hint": "Opening + cash − expenses",
+            "kpi_esperado_hint": "Opening + cash − cash expenses",
             "kpi_egresos": "Expenses",
-            "kpi_egresos_hint": "{{count}} cash outflow(s)",
+            "kpi_egresos_hint": "{{count}} outflow(s)",
             "kpi_otros": "Other methods",
             "kpi_otros_hint": "Yape, card, etc.",
             "kpi_diferencia": "Difference",
@@ -139,7 +145,7 @@
             "ventas_empty": "No paid sales in this session.",
             "egresos_title": "Shift expenses",
             "egresos_total": "Expenses total",
-            "clarify": "{{count}} sales = {{total}} (products {{productos}} + services {{servicios}}). Cash to reconcile is {{esperado}}: opening + cash payments − expenses ({{egresos}}). Other methods ({{otros}}) do not go into the drawer.",
+            "clarify": "{{count}} sales = {{total}} (products {{productos}} + services {{servicios}}). Cash to reconcile is {{esperado}}: opening + cash payments − cash expenses ({{egresos}}). Other methods ({{otros}}) do not go into the drawer.",
             "comprobantes": {
                 "tickets": "Tickets",
                 "boletas": "Receipts",
@@ -155,13 +161,14 @@
             },
             "metodos_total": "Total collected",
             "rubros": "Includes products {{productos}} · services {{servicios}}",
-            "formula": "Cash to reconcile = {{apertura}} (opening) + {{ventas}} (cash) − {{egresos}} (expenses) → {{esperado}}",
+            "formula": "Cash to reconcile = {{apertura}} (opening) + {{ventas}} (cash) − {{egresos}} (cash expenses) → {{esperado}}",
             "anuladas_hint": "{{count}} voided sale(s) excluded ({{total}}).",
             "contado_hint": "Count physical cash only (not Yape/card).",
             "billeteras_title": "Wallets at closing",
-            "billeteras_hint": "Count what remains in each channel. Expected is that channel’s opening + collections (expenses are not subtracted here).",
+            "billeteras_hint": "Count what remains in each channel. Expected is opening + collections − expenses of that same source.",
             "billeteras_col_apertura": "Opening",
             "billeteras_col_ventas": "Collected",
+            "billeteras_col_egresos": "Expenses",
             "billeteras_col_esperado": "Expected",
             "billeteras_col_contado": "Counted",
             "billeteras_col_diff": "Diff.",
@@ -177,6 +184,7 @@
             "saldo_cierre": "Cash counted at closing",
             "notas_cierre": "Closing notes (optional)",
             "egreso_monto": "Amount",
+            "egreso_medio": "Paid from",
             "egreso_motivo": "Reason",
             "egreso_notas": "Detail (optional)"
         }

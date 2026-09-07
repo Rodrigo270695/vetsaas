@@ -25,12 +25,14 @@ class ReporteEgresosXlsxExport
      * @param  list<array<string, mixed>>  $items
      * @param  array{cantidad: int, monto: float}  $totales
      * @param  list<array{motivo: string, motivo_label: string, cantidad: int, monto: float}>  $porMotivo
-     * @param  array{fecha_desde: string, fecha_hasta: string, periodo: string, sede_id: ?string, motivo: ?string}  $filtros
+     * @param  list<array{medio: string, medio_label: string, cantidad: int, monto: float}>  $porMedio
+     * @param  array{fecha_desde: string, fecha_hasta: string, periodo: string, sede_id: ?string, motivo: ?string, medio?: ?string}  $filtros
      */
     public function streamTo(
         array $items,
         array $totales,
         array $porMotivo,
+        array $porMedio,
         array $filtros,
         string $moneda,
         string $output = 'php://output',
@@ -47,6 +49,7 @@ class ReporteEgresosXlsxExport
         $headers = [
             'Fecha',
             'Sede',
+            'Origen',
             'Motivo',
             'Monto',
             'Notas',
@@ -101,6 +104,7 @@ class ReporteEgresosXlsxExport
             $values = [
                 $this->fechaDisplay($item['fecha'] ?? null),
                 (string) ($item['sede_nombre'] ?? '—'),
+                (string) ($item['medio_label'] ?? $item['medio'] ?? '—'),
                 (string) ($item['motivo_label'] ?? $item['motivo'] ?? '—'),
                 $this->money($item['monto'] ?? 0),
                 (string) ($item['notas'] ?? '—'),
@@ -160,6 +164,46 @@ class ReporteEgresosXlsxExport
             );
             foreach (range('A', $resumenLast) as $col) {
                 $resumen->getColumnDimension($col)->setAutoSize(true);
+            }
+        }
+
+        if ($porMedio !== []) {
+            $resumenMedio = $spreadsheet->createSheet();
+            $resumenMedio->setTitle('Por origen');
+            $resumenHeaders = ['Origen', 'Cantidad', 'Monto'];
+            $resumenLast = Coordinate::stringFromColumnIndex(count($resumenHeaders));
+            $resumenMedio->setCellValue('A1', 'Egresos por origen');
+            $resumenMedio->mergeCells("A1:{$resumenLast}1");
+            $resumenMedio->getStyle('A1')->applyFromArray([
+                'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '0E5236']],
+            ]);
+            $resumenHeaderRow = 3;
+            foreach ($resumenHeaders as $index => $label) {
+                $colLetter = Coordinate::stringFromColumnIndex($index + 1);
+                $resumenMedio->setCellValue("{$colLetter}{$resumenHeaderRow}", $label);
+            }
+            $r = $resumenHeaderRow + 1;
+            foreach ($porMedio as $slice) {
+                $values = [
+                    (string) ($slice['medio_label'] ?? ''),
+                    (string) (int) ($slice['cantidad'] ?? 0),
+                    $this->money($slice['monto'] ?? 0),
+                ];
+                foreach ($values as $index => $value) {
+                    $colLetter = Coordinate::stringFromColumnIndex($index + 1);
+                    $resumenMedio->setCellValueExplicit("{$colLetter}{$r}", $value, DataType::TYPE_STRING);
+                }
+                $r++;
+            }
+            $this->styleTable(
+                $resumenMedio,
+                $resumenLast,
+                $resumenHeaderRow,
+                max($resumenHeaderRow + 1, $r - 1),
+                'TablaEgresosMedio',
+            );
+            foreach (range('A', $resumenLast) as $col) {
+                $resumenMedio->getColumnDimension($col)->setAutoSize(true);
             }
         }
 

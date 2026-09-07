@@ -1,7 +1,7 @@
 {
     "title": "Egresos de caja",
-    "description": "Salidas de efectivo registradas en sesiones de caja, para arqueo y control.",
-    "search_placeholder": "Buscar por sede, motivo, notas…",
+    "description": "Salidas de efectivo y billeteras registradas en sesiones de caja, para arqueo y control.",
+    "search_placeholder": "Buscar por sede, origen, motivo, notas…",
     "hint": "Montos según egresos registrados en cada sesión de caja.",
     "sin_datos": "No hay egresos en el periodo seleccionado.",
     "common": {
@@ -21,7 +21,9 @@
         "sede": "Sede",
         "sede_todas": "Todas las sedes",
         "motivo": "Motivo",
-        "motivo_todos": "Todos los motivos"
+        "motivo_todos": "Todos los motivos",
+        "medio": "Origen",
+        "medio_todos": "Todos los orígenes"
     },
     "kpis": {
         "cantidad": "Egresos",
@@ -29,9 +31,11 @@
         "motivos_distintos": "Motivos",
         "movimientos": "{{count}} movimiento(s)"
     },
+    "por_medio_title": "Por origen",
     "columns": {
         "fecha": "Fecha",
         "sede": "Sede",
+        "medio": "Origen",
         "motivo": "Motivo",
         "monto": "Monto",
         "notas": "Notas",

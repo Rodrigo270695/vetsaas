@@ -18,6 +18,7 @@ return [
         ],
         'notas' => 'notes',
         'egreso_monto' => 'expense amount',
+        'egreso_medio' => 'expense source',
         'egreso_motivo' => 'expense reason',
     ],
     'validation' => [

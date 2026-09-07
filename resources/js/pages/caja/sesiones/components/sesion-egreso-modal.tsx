@@ -21,10 +21,13 @@ import { arqueoCsrfToken, formatArqueoMoney } from './arqueo-types';
 import type { CajaSesionRow } from '../types';
 
 const MOTIVOS = ['insumos', 'delivery', 'servicios', 'personal', 'cambio', 'otros'] as const;
+const MEDIOS = ['efectivo', 'yape', 'plin', 'transferencia'] as const;
 
 type EgresoRow = {
     id: string;
     monto: string;
+    medio?: string;
+    medio_label?: string;
     motivo: string;
     motivo_label: string;
     notas: string | null;
@@ -41,12 +44,14 @@ type SesionEgresoModalProps = {
 
 type FormData = {
     monto: string;
+    medio: string;
     motivo: string;
     notas: string;
 };
 
 const empty: FormData = {
     monto: '',
+    medio: 'efectivo',
     motivo: 'otros',
     notas: '',
 };
@@ -151,6 +156,7 @@ export function SesionEgresoModal({
                 },
                 body: JSON.stringify({
                     monto: data.monto,
+                    medio: data.medio,
                     motivo: data.motivo,
                     notas: data.notas.trim() === '' ? null : data.notas.trim(),
                 }),
@@ -166,7 +172,7 @@ export function SesionEgresoModal({
 
             if (res.status === 422 && json.errors) {
                 const next: Partial<Record<keyof FormData, string>> = {};
-                for (const key of ['monto', 'motivo', 'notas'] as const) {
+                for (const key of ['monto', 'medio', 'motivo', 'notas'] as const) {
                     const msg = json.errors[key]?.[0];
                     if (msg) {
                         next[key] = msg;
@@ -276,6 +282,24 @@ export function SesionEgresoModal({
                     />
                 </FormField>
 
+                <FormField label={t('sesiones.fields.egreso_medio')} error={errors.medio} required>
+                    <Select
+                        value={data.medio}
+                        onValueChange={(v) => setData((prev) => ({ ...prev, medio: v }))}
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {MEDIOS.map((m) => (
+                                <SelectItem key={m} value={m}>
+                                    {t(`sesiones.dialog_egreso.medios.${m}`)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </FormField>
+
                 <FormField label={t('sesiones.fields.egreso_motivo')} error={errors.motivo} required>
                     <Select
                         value={data.motivo}
@@ -329,11 +353,13 @@ export function SesionEgresoModal({
                                 >
                                     <div className="min-w-0">
                                         <p className="truncate font-medium">{row.motivo_label}</p>
-                                        {row.notas ? (
-                                            <p className="truncate text-xs text-muted-foreground">
-                                                {row.notas}
-                                            </p>
-                                        ) : null}
+                                        <p className="truncate text-xs text-muted-foreground">
+                                            {row.medio_label ??
+                                                (row.medio
+                                                    ? t(`sesiones.dialog_egreso.medios.${row.medio}`)
+                                                    : t('sesiones.dialog_egreso.medios.efectivo'))}
+                                            {row.notas ? ` · ${row.notas}` : ''}
+                                        </p>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-1">
                                         <span className="tabular-nums text-rose-700 dark:text-rose-300">

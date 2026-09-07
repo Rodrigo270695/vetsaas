@@ -120,7 +120,11 @@ export function ArqueoResumen({
                     servicios: formatArqueoMoney(arqueo.servicios_total, moneda, locale),
                     esperado: formatArqueoMoney(arqueo.efectivo_esperado, moneda, locale),
                     otros: formatArqueoMoney(arqueo.no_efectivo_total, moneda, locale),
-                    egresos: formatArqueoMoney(arqueo.egresos_total ?? '0.00', moneda, locale),
+                    egresos: formatArqueoMoney(
+                        arqueo.egresos_efectivo ?? arqueo.egresos_total ?? '0.00',
+                        moneda,
+                        locale,
+                    ),
                 })}
             </div>
 
@@ -142,6 +146,9 @@ export function ArqueoResumen({
                                     </th>
                                     <th className="px-3 py-2 font-medium tabular-nums">
                                         {t('sesiones.dialog_cerrar.billeteras_col_ventas')}
+                                    </th>
+                                    <th className="px-3 py-2 font-medium tabular-nums">
+                                        {t('sesiones.dialog_cerrar.billeteras_col_egresos')}
                                     </th>
                                     <th className="px-3 py-2 font-medium tabular-nums">
                                         {t('sesiones.dialog_cerrar.billeteras_col_esperado')}
@@ -185,6 +192,9 @@ export function ArqueoResumen({
                                             <td className="px-3 py-2 tabular-nums text-muted-foreground">
                                                 {formatArqueoMoney(row.ventas, moneda, locale)}
                                             </td>
+                                            <td className="px-3 py-2 tabular-nums text-rose-700 dark:text-rose-300">
+                                                {formatArqueoMoney(row.egresos ?? '0.00', moneda, locale)}
+                                            </td>
                                             <td className="px-3 py-2 tabular-nums font-medium">
                                                 {formatArqueoMoney(row.esperado, moneda, locale)}
                                             </td>
@@ -226,6 +236,9 @@ export function ArqueoResumen({
                             >
                                 <span className="min-w-0 truncate font-medium">
                                     {row.motivo_label}
+                                    {row.medio_label ? (
+                                        <span className="text-muted-foreground"> · {row.medio_label}</span>
+                                    ) : null}
                                     {row.notas ? (
                                         <span className="text-muted-foreground"> · {row.notas}</span>
                                     ) : null}
@@ -316,7 +329,11 @@ export function ArqueoResumen({
                         {t('sesiones.dialog_cerrar.formula', {
                             apertura: formatArqueoMoney(arqueo.saldo_apertura, moneda, locale),
                             ventas: formatArqueoMoney(arqueo.efectivo_ventas, moneda, locale),
-                            egresos: formatArqueoMoney(arqueo.egresos_total ?? '0.00', moneda, locale),
+                            egresos: formatArqueoMoney(
+                                arqueo.egresos_efectivo ?? arqueo.egresos_total ?? '0.00',
+                                moneda,
+                                locale,
+                            ),
                             esperado: formatArqueoMoney(arqueo.efectivo_esperado, moneda, locale),
                         })}
                     </p>

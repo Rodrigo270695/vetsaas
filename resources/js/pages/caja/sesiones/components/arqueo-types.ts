@@ -8,6 +8,7 @@ export type ArqueoBilletera = {
     codigo: string;
     apertura: string;
     ventas: string;
+    egresos?: string;
     esperado: string;
     contado: string | null;
     diferencia: string | null;
@@ -30,6 +31,8 @@ export function emptySaldosBilleteras(fill = '0'): SaldosBilleterasForm {
 export type ArqueoEgreso = {
     id: string;
     monto: string;
+    medio?: string;
+    medio_label?: string;
     motivo: string;
     motivo_label: string;
     notas: string | null;
@@ -48,6 +51,7 @@ export type ArqueoPayload = {
     anuladas_total: string;
     egresos_count?: number;
     egresos_total?: string;
+    egresos_efectivo?: string;
     egresos?: ArqueoEgreso[];
     comprobantes: {
         tickets: { count: number; total: string };

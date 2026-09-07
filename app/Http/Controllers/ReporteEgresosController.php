@@ -38,6 +38,7 @@ class ReporteEgresosController extends Controller
             $this->stringOrNull($request->query('periodo')),
             $this->stringOrNull($request->query('sede_id')),
             $this->stringOrNull($request->query('motivo')),
+            $this->stringOrNull($request->query('medio')),
         );
 
         return Inertia::render('reportes/egresos/index', [
@@ -45,9 +46,11 @@ class ReporteEgresosController extends Controller
             'filtros' => $payload['filtros'],
             'totales' => $payload['totales'],
             'por_motivo' => $payload['por_motivo'],
+            'por_medio' => $payload['por_medio'],
             'items' => $payload['items'],
             'sedes' => $payload['sedes'],
             'motivos' => $payload['motivos'],
+            'medios' => $payload['medios'],
             'can_export' => $user->can('reporte-financiero.export'),
         ]);
     }
@@ -67,6 +70,7 @@ class ReporteEgresosController extends Controller
             $this->stringOrNull($request->query('periodo')),
             $this->stringOrNull($request->query('sede_id')),
             $this->stringOrNull($request->query('motivo')),
+            $this->stringOrNull($request->query('medio')),
         );
 
         $items = $payload['items'];
@@ -79,6 +83,7 @@ class ReporteEgresosController extends Controller
                     $haystack = mb_strtolower(trim(
                         ($item['sede_nombre'] ?? '').' '
                         .($item['motivo_label'] ?? '').' '
+                        .($item['medio_label'] ?? '').' '
                         .($item['notas'] ?? '').' '
                         .($item['registrado_por'] ?? ''),
                     ));
@@ -99,6 +104,7 @@ class ReporteEgresosController extends Controller
                     $items,
                     $payload['totales'],
                     $payload['por_motivo'],
+                    $payload['por_medio'] ?? [],
                     $payload['filtros'],
                     (string) $payload['moneda'],
                 );

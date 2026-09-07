@@ -233,7 +233,8 @@
                     <tr><td class="k">Productos (cobrado)</td><td class="v">{{ $fmt($arqueo['productos_total'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Servicios (cobrado)</td><td class="v">{{ $fmt($arqueo['servicios_total'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Ventas en efectivo</td><td class="v">{{ $fmt($arqueo['efectivo_ventas'] ?? null, $moneda) }}</td></tr>
-                    <tr><td class="k">Egresos</td><td class="v">{{ $fmt($arqueo['egresos_total'] ?? '0.00', $moneda) }}</td></tr>
+                    <tr><td class="k">Egresos (todos)</td><td class="v">{{ $fmt($arqueo['egresos_total'] ?? '0.00', $moneda) }}</td></tr>
+                    <tr><td class="k">Egresos en efectivo</td><td class="v">{{ $fmt($arqueo['egresos_efectivo'] ?? '0.00', $moneda) }}</td></tr>
                     <tr><td class="k">Efectivo esperado</td><td class="v">{{ $fmt($arqueo['efectivo_esperado'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Efectivo contado</td><td class="v">{{ $fmt($arqueo['efectivo_contado'] ?? null, $moneda) }}</td></tr>
                     <tr>
@@ -306,6 +307,8 @@
                     {{ $fmt($b['apertura'] ?? '0.00', $moneda) }}
                     <span class="muted">+</span>
                     {{ $fmt($b['ventas'] ?? '0.00', $moneda) }}
+                    <span class="muted">−</span>
+                    {{ $fmt($b['egresos'] ?? '0.00', $moneda) }}
                     <span class="muted">→</span>
                     {{ $fmt($b['esperado'] ?? '0.00', $moneda) }}
                     <span class="muted">|</span>
@@ -316,7 +319,7 @@
             </tr>
         @endforeach
     </table>
-    <p class="muted" style="margin:8px 0 0;">Esperado = apertura del canal + cobros. Los egresos solo afectan el efectivo.</p>
+    <p class="muted" style="margin:8px 0 0;">Esperado = apertura del canal + cobros − egresos de ese mismo origen.</p>
 </div>
 @endif
 
@@ -377,9 +380,10 @@
         <table class="detail">
             <thead>
                 <tr>
-                    <th style="width:18%;">Fecha</th>
-                    <th style="width:28%;">Motivo</th>
-                    <th style="width:28%;">Detalle</th>
+                    <th style="width:16%;">Fecha</th>
+                    <th style="width:14%;">Origen</th>
+                    <th style="width:22%;">Motivo</th>
+                    <th style="width:22%;">Detalle</th>
                     <th style="width:14%;">Registró</th>
                     <th style="width:12%; text-align:right;">Monto</th>
                 </tr>
@@ -388,6 +392,7 @@
                 @foreach($egresosDetalle as $egreso)
                     <tr>
                         <td>{{ $fmtDate($egreso['created_at'] ?? null) }}</td>
+                        <td>{{ $egreso['medio_label'] ?? 'Efectivo' }}</td>
                         <td>{{ $egreso['motivo_label'] ?? ($egreso['motivo'] ?? '—') }}</td>
                         <td>{{ $egreso['notas'] ?? '—' }}</td>
                         <td>{{ $egreso['created_by'] ?? '—' }}</td>
@@ -395,7 +400,7 @@
                     </tr>
                 @endforeach
                 <tr>
-                    <td colspan="4" style="font-weight:bold; text-align:right;">Total egresos</td>
+                    <td colspan="5" style="font-weight:bold; text-align:right;">Total egresos</td>
                     <td class="num" style="font-weight:bold;">− {{ $fmt($arqueo['egresos_total'] ?? '0.00', $moneda) }}</td>
                 </tr>
             </tbody>

@@ -1,7 +1,7 @@
 {
     "title": "Cash expenses",
-    "description": "Cash outflows recorded in register sessions, for reconciliation and control.",
-    "search_placeholder": "Search by branch, reason, notes…",
+    "description": "Cash and wallet outflows recorded in register sessions, for reconciliation and control.",
+    "search_placeholder": "Search by branch, source, reason, notes…",
     "hint": "Amounts come from expenses recorded in each cash session.",
     "sin_datos": "No expenses in the selected period.",
     "common": {
@@ -21,7 +21,9 @@
         "sede": "Branch",
         "sede_todas": "All branches",
         "motivo": "Reason",
-        "motivo_todos": "All reasons"
+        "motivo_todos": "All reasons",
+        "medio": "Source",
+        "medio_todos": "All sources"
     },
     "kpis": {
         "cantidad": "Expenses",
@@ -29,9 +31,11 @@
         "motivos_distintos": "Reasons",
         "movimientos": "{{count}} movement(s)"
     },
+    "por_medio_title": "By source",
     "columns": {
         "fecha": "Date",
         "sede": "Branch",
+        "medio": "Source",
         "motivo": "Reason",
         "monto": "Amount",
         "notas": "Notes",

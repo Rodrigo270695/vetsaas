@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Salida de efectivo registrada en una sesión de caja abierta.
+ * Salida de caja registrada en una sesión abierta (efectivo o billetera).
  *
  * @property string $id
  * @property string $caja_sesion_id
  * @property string $monto
+ * @property string $medio
  * @property string $motivo
  * @property ?string $notas
  * @property string $created_by_id
@@ -34,6 +35,14 @@ class CajaEgreso extends Model
 
     public const MOTIVO_OTROS = 'otros';
 
+    public const MEDIO_EFECTIVO = 'efectivo';
+
+    public const MEDIO_YAPE = 'yape';
+
+    public const MEDIO_PLIN = 'plin';
+
+    public const MEDIO_TRANSFERENCIA = 'transferencia';
+
     public const MOTIVOS = [
         self::MOTIVO_INSUMOS,
         self::MOTIVO_DELIVERY,
@@ -43,11 +52,24 @@ class CajaEgreso extends Model
         self::MOTIVO_OTROS,
     ];
 
+    /** @var list<string> */
+    public const MEDIOS = [
+        self::MEDIO_EFECTIVO,
+        self::MEDIO_YAPE,
+        self::MEDIO_PLIN,
+        self::MEDIO_TRANSFERENCIA,
+    ];
+
     protected $table = 'caja_egresos';
+
+    protected $attributes = [
+        'medio' => 'efectivo',
+    ];
 
     protected $fillable = [
         'caja_sesion_id',
         'monto',
+        'medio',
         'motivo',
         'notas',
         'created_by_id',
@@ -79,6 +101,23 @@ class CajaEgreso extends Model
             self::MOTIVO_PERSONAL => 'Personal / anticipos',
             self::MOTIVO_CAMBIO => 'Cambio / vuelto',
             default => 'Otros',
+        };
+    }
+
+    public static function normalizeMedio(?string $medio): string
+    {
+        $value = is_string($medio) ? strtolower(trim($medio)) : '';
+
+        return in_array($value, self::MEDIOS, true) ? $value : self::MEDIO_EFECTIVO;
+    }
+
+    public static function labelMedio(?string $medio): string
+    {
+        return match (self::normalizeMedio($medio)) {
+            self::MEDIO_YAPE => 'Yape',
+            self::MEDIO_PLIN => 'Plin',
+            self::MEDIO_TRANSFERENCIA => 'Transferencia',
+            default => 'Efectivo',
         };
     }
 }

@@ -46,6 +46,7 @@ class CajaEgresoController extends Controller
             return CajaEgreso::query()->create([
                 'caja_sesion_id' => $cajaSesion->getKey(),
                 'monto' => number_format((float) $data['monto'], 2, '.', ''),
+                'medio' => CajaEgreso::normalizeMedio($data['medio'] ?? null),
                 'motivo' => $data['motivo'],
                 'notas' => isset($data['notas']) && is_string($data['notas']) && trim($data['notas']) !== ''
                     ? trim($data['notas'])
@@ -127,6 +128,8 @@ class CajaEgresoController extends Controller
      * @return array{
      *     id: string,
      *     monto: string,
+     *     medio: string,
+     *     medio_label: string,
      *     motivo: string,
      *     motivo_label: string,
      *     notas: string|null,
@@ -139,6 +142,8 @@ class CajaEgresoController extends Controller
         return [
             'id' => (string) $egreso->getKey(),
             'monto' => number_format((float) $egreso->monto, 2, '.', ''),
+            'medio' => CajaEgreso::normalizeMedio($egreso->medio ?? null),
+            'medio_label' => CajaEgreso::labelMedio($egreso->medio ?? null),
             'motivo' => (string) $egreso->motivo,
             'motivo_label' => CajaEgreso::labelMotivo((string) $egreso->motivo),
             'notas' => $egreso->notas,

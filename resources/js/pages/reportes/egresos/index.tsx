@@ -19,6 +19,7 @@ import { ReporteVentasFilters } from '@/pages/reportes/components/reporte-ventas
 
 type SedeOpcion = { id: string; nombre: string };
 type MotivoOpcion = { value: string; label: string };
+type MedioOpcion = { value: string; label: string };
 
 type Filtros = {
     fecha_desde: string;
@@ -26,6 +27,7 @@ type Filtros = {
     periodo: string;
     sede_id: string | null;
     motivo: string | null;
+    medio: string | null;
 };
 
 type Totales = {
@@ -40,6 +42,13 @@ type PorMotivo = {
     monto: number;
 };
 
+type PorMedio = {
+    medio: string;
+    medio_label: string;
+    cantidad: number;
+    monto: number;
+};
+
 type EgresoItem = {
     id: string;
     fecha: string | null;
@@ -47,6 +56,8 @@ type EgresoItem = {
     sede_nombre: string | null;
     motivo: string;
     motivo_label: string;
+    medio: string;
+    medio_label: string;
     monto: number;
     notas: string | null;
     caja_sesion_id: string;
@@ -58,13 +69,15 @@ type Props = {
     filtros: Filtros;
     totales: Totales;
     por_motivo: PorMotivo[];
+    por_medio: PorMedio[];
     items: EgresoItem[];
     sedes: SedeOpcion[];
     motivos: MotivoOpcion[];
+    medios: MedioOpcion[];
     can_export?: boolean;
 };
 
-type SortKey = 'fecha' | 'sede_nombre' | 'motivo_label' | 'monto' | 'registrado_por';
+type SortKey = 'fecha' | 'sede_nombre' | 'motivo_label' | 'medio_label' | 'monto' | 'registrado_por';
 type SortDir = 'asc' | 'desc';
 
 function formatFecha(iso: string | null, locale: string): string {
@@ -93,9 +106,11 @@ export default function ReportesEgresosIndex({
     filtros,
     totales,
     por_motivo,
+    por_medio = [],
     items,
     sedes,
     motivos,
+    medios = [],
     can_export,
 }: Props) {
     const { t, i18n } = useTranslation(['reportes-egresos', 'common']);
@@ -120,7 +135,7 @@ export default function ReportesEgresosIndex({
     }, [t]);
 
     const navigateFilter = useCallback(
-        (patch: { sede_id?: string; motivo?: string }) => {
+        (patch: { sede_id?: string; motivo?: string; medio?: string }) => {
             router.get(
                 '/reportes/egresos',
                 {
@@ -134,6 +149,10 @@ export default function ReportesEgresosIndex({
                         patch.motivo !== undefined
                             ? patch.motivo || undefined
                             : (filtros.motivo ?? undefined),
+                    medio:
+                        patch.medio !== undefined
+                            ? patch.medio || undefined
+                            : (filtros.medio ?? undefined),
                 },
                 {
                     preserveScroll: true,
@@ -142,7 +161,7 @@ export default function ReportesEgresosIndex({
                 },
             );
         },
-        [filtros.fecha_desde, filtros.fecha_hasta, filtros.motivo, filtros.sede_id],
+        [filtros.fecha_desde, filtros.fecha_hasta, filtros.motivo, filtros.medio, filtros.sede_id],
     );
 
     const sedeOptions = useMemo<FilterChip<string>[]>(
@@ -169,13 +188,25 @@ export default function ReportesEgresosIndex({
         [motivos, t],
     );
 
+    const medioOptions = useMemo<FilterChip<string>[]>(
+        () => [
+            { value: 'all', label: t('filters.medio_todos'), tone: 'muted' },
+            ...medios.map((m) => ({
+                value: m.value,
+                label: m.label,
+                tone: 'info' as const,
+            })),
+        ],
+        [medios, t],
+    );
+
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
         let rows = items;
         if (q) {
             rows = rows.filter((item) => {
                 const haystack =
-                    `${item.sede_nombre ?? ''} ${item.motivo_label} ${item.notas ?? ''} ${item.registrado_por ?? ''}`.toLowerCase();
+                    `${item.sede_nombre ?? ''} ${item.motivo_label} ${item.medio_label} ${item.notas ?? ''} ${item.registrado_por ?? ''}`.toLowerCase();
 
                 return haystack.includes(q);
             });
@@ -222,12 +253,15 @@ export default function ReportesEgresosIndex({
         if (filtros.motivo) {
             params.set('motivo', filtros.motivo);
         }
+        if (filtros.medio) {
+            params.set('medio', filtros.medio);
+        }
         if (search.trim()) {
             params.set('search', search.trim());
         }
 
         return `/reportes/egresos/export?${params.toString()}`;
-    }, [filtros.fecha_desde, filtros.fecha_hasta, filtros.motivo, filtros.sede_id, search]);
+    }, [filtros.fecha_desde, filtros.fecha_hasta, filtros.motivo, filtros.medio, filtros.sede_id, search]);
 
     const toggleSort = (key: SortKey) => {
         if (sortKey === key) {
@@ -318,6 +352,7 @@ export default function ReportesEgresosIndex({
                     extraQuery={{
                         sede_id: filtros.sede_id ?? undefined,
                         motivo: filtros.motivo ?? undefined,
+                        medio: filtros.medio ?? undefined,
                     }}
                 >
                     {sedes.length > 0 ? (
@@ -334,6 +369,13 @@ export default function ReportesEgresosIndex({
                         value={filtros.motivo ?? 'all'}
                         onChange={(v) => navigateFilter({ motivo: v === 'all' ? '' : v })}
                         options={motivoOptions}
+                        className="sm:min-w-56"
+                    />
+                    <FilterChips
+                        ariaLabel={t('filters.medio')}
+                        value={filtros.medio ?? 'all'}
+                        onChange={(v) => navigateFilter({ medio: v === 'all' ? '' : v })}
+                        options={medioOptions}
                         className="sm:min-w-56"
                     />
                 </ReporteVentasFilters>
@@ -354,6 +396,33 @@ export default function ReportesEgresosIndex({
                         </div>
                     ))}
                 </div>
+
+                {por_medio.length > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {por_medio.map((slice) => (
+                            <div
+                                key={slice.medio}
+                                className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"
+                            >
+                                <h3 className="font-semibold tracking-tight">{slice.medio_label}</h3>
+                                <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <dt className="text-muted-foreground">{t('kpis.cantidad')}</dt>
+                                        <dd className="font-medium tabular-nums">
+                                            {formatNumber(slice.cantidad, locale, 0)}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-muted-foreground">{t('kpis.monto')}</dt>
+                                        <dd className="font-medium tabular-nums text-amber-700 dark:text-amber-400">
+                                            {formatMoney(slice.monto, moneda, locale)}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
 
                 {por_motivo.length > 0 ? (
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -399,6 +468,12 @@ export default function ReportesEgresosIndex({
                                     </th>
                                     <th className="px-3 py-2 text-left font-medium">
                                         <SortButton
+                                            column="medio_label"
+                                            label={t('columns.medio')}
+                                        />
+                                    </th>
+                                    <th className="px-3 py-2 text-left font-medium">
+                                        <SortButton
                                             column="motivo_label"
                                             label={t('columns.motivo')}
                                         />
@@ -429,6 +504,7 @@ export default function ReportesEgresosIndex({
                                         <td className="px-3 py-2.5">
                                             {row.sede_nombre ?? t('common.na')}
                                         </td>
+                                        <td className="px-3 py-2.5">{row.medio_label}</td>
                                         <td className="px-3 py-2.5 font-medium">
                                             {row.motivo_label}
                                         </td>

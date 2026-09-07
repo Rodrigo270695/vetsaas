@@ -94,7 +94,7 @@
         },
         "dialog_egreso": {
             "title": "Registrar egreso",
-            "description": "Salida de efectivo de la caja física de esta sesión. Se descuenta del arqueo al cerrar.",
+            "description": "Indica de dónde sale el dinero: efectivo, Yape, Plin o transferencia. Se descuenta de ese canal en el arqueo.",
             "submit": "Registrar egreso",
             "cancel": "Cancelar",
             "list_title": "Egresos de la sesión",
@@ -113,6 +113,12 @@
                 "personal": "Personal / anticipos",
                 "cambio": "Cambio / vuelto",
                 "otros": "Otros"
+            },
+            "medios": {
+                "efectivo": "Efectivo",
+                "yape": "Yape",
+                "plin": "Plin",
+                "transferencia": "Transferencia"
             }
         },
         "dialog_cerrar": {
@@ -124,9 +130,9 @@
             "arqueo_error": "No se pudo cargar el arqueo. Puedes cerrar igual con el efectivo contado.",
             "kpi_ventas": "Ventas del turno",
             "kpi_esperado": "Efectivo a cuadrar",
-            "kpi_esperado_hint": "Apertura + efectivo − egresos",
+            "kpi_esperado_hint": "Apertura + efectivo − egresos en efectivo",
             "kpi_egresos": "Egresos",
-            "kpi_egresos_hint": "{{count}} salida(s) de efectivo",
+            "kpi_egresos_hint": "{{count}} salida(s)",
             "kpi_otros": "Otros medios",
             "kpi_otros_hint": "Yape, tarjeta, etc.",
             "kpi_diferencia": "Diferencia",
@@ -139,7 +145,7 @@
             "ventas_empty": "No hay ventas pagadas en esta sesión.",
             "egresos_title": "Egresos del turno",
             "egresos_total": "Total egresos",
-            "clarify": "{{count}} ventas = {{total}} (productos {{productos}} + servicios {{servicios}}). El efectivo a cuadrar es {{esperado}}: apertura + cobros en efectivo − egresos ({{egresos}}). Los otros medios ({{otros}}) no entran a la caja física.",
+            "clarify": "{{count}} ventas = {{total}} (productos {{productos}} + servicios {{servicios}}). El efectivo a cuadrar es {{esperado}}: apertura + cobros en efectivo − egresos en efectivo ({{egresos}}). Los otros medios ({{otros}}) no entran a la caja física.",
             "comprobantes": {
                 "tickets": "Tickets",
                 "boletas": "Boletas",
@@ -155,13 +161,14 @@
             },
             "metodos_total": "Total cobrado",
             "rubros": "Incluye productos {{productos}} · servicios {{servicios}}",
-            "formula": "Efectivo a cuadrar = {{apertura}} (apertura) + {{ventas}} (efectivo) − {{egresos}} (egresos) → {{esperado}}",
+            "formula": "Efectivo a cuadrar = {{apertura}} (apertura) + {{ventas}} (efectivo) − {{egresos}} (egresos en efectivo) → {{esperado}}",
             "anuladas_hint": "{{count}} anulada(s) excluidas ({{total}}).",
             "contado_hint": "Cuenta solo el efectivo físico en caja (no Yape/tarjeta).",
             "billeteras_title": "Billeteras al cierre",
-            "billeteras_hint": "Cuenta lo que queda en cada canal. Lo esperado es apertura de ese medio + cobros (los egresos no se descuentan aquí).",
+            "billeteras_hint": "Cuenta lo que queda en cada canal. Lo esperado es apertura + cobros − egresos de ese mismo origen.",
             "billeteras_col_apertura": "Apertura",
             "billeteras_col_ventas": "Cobrado",
+            "billeteras_col_egresos": "Egresos",
             "billeteras_col_esperado": "Esperado",
             "billeteras_col_contado": "Contado",
             "billeteras_col_diff": "Dif.",
@@ -177,6 +184,7 @@
             "saldo_cierre": "Efectivo contado al cierre",
             "notas_cierre": "Notas de cierre (opcional)",
             "egreso_monto": "Monto",
+            "egreso_medio": "De dónde sale",
             "egreso_motivo": "Motivo",
             "egreso_notas": "Detalle (opcional)"
         }

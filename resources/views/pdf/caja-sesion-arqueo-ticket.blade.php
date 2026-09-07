@@ -202,8 +202,8 @@
             <td class="val">{{ $fmt($arqueo['efectivo_ventas'] ?? null, $moneda) }}</td>
         </tr>
         <tr>
-            <td class="lbl">− Egresos</td>
-            <td class="val">{{ $fmt($arqueo['egresos_total'] ?? '0.00', $moneda) }}</td>
+            <td class="lbl">− Egresos efectivo</td>
+            <td class="val">{{ $fmt($arqueo['egresos_efectivo'] ?? $arqueo['egresos_total'] ?? '0.00', $moneda) }}</td>
         </tr>
         <tr>
             <td class="lbl">= Esperado</td>

@@ -18,6 +18,7 @@ return [
         ],
         'notas' => 'notas',
         'egreso_monto' => 'monto del egreso',
+        'egreso_medio' => 'origen del egreso',
         'egreso_motivo' => 'motivo del egreso',
     ],
     'validation' => [

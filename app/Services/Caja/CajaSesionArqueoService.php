@@ -76,13 +76,23 @@ final class CajaSesionArqueoService
             ->get();
 
         $egresosTotal = '0.00';
+        $egresosEfectivo = '0.00';
+        $egresosPorBilletera = array_fill_keys(CajaBilleteras::CODIGOS, '0.00');
         $egresosDetalle = [];
         foreach ($egresos as $egreso) {
             $monto = $this->money((string) $egreso->monto);
+            $medio = CajaEgreso::normalizeMedio($egreso->medio ?? null);
             $egresosTotal = $this->add($egresosTotal, $monto);
+            if ($medio === CajaEgreso::MEDIO_EFECTIVO) {
+                $egresosEfectivo = $this->add($egresosEfectivo, $monto);
+            } elseif (isset($egresosPorBilletera[$medio])) {
+                $egresosPorBilletera[$medio] = $this->add($egresosPorBilletera[$medio], $monto);
+            }
             $egresosDetalle[] = [
                 'id' => (string) $egreso->getKey(),
                 'monto' => $monto,
+                'medio' => $medio,
+                'medio_label' => CajaEgreso::labelMedio($medio),
                 'motivo' => (string) $egreso->motivo,
                 'motivo_label' => CajaEgreso::labelMotivo((string) $egreso->motivo),
                 'notas' => $egreso->notas,
@@ -104,8 +114,8 @@ final class CajaSesionArqueoService
         $efectivoVentas = $this->sumMetodo($metodos, 'efectivo');
         $noEfectivoTotal = $this->sub($ventasTotal, $efectivoVentas);
         $saldoApertura = $this->money((string) $sesion->saldo_apertura);
-        // Efectivo esperado = caja física (apertura + ventas en efectivo − egresos).
-        $esperado = $this->sub($this->add($saldoApertura, $efectivoVentas), $egresosTotal);
+        // Efectivo esperado = caja física (apertura + ventas en efectivo − egresos en efectivo).
+        $esperado = $this->sub($this->add($saldoApertura, $efectivoVentas), $egresosEfectivo);
 
         $contado = null;
         $diferencia = null;
@@ -142,33 +152,40 @@ final class CajaSesionArqueoService
             'ventas' => $ventasDetalle,
             'egresos_count' => $egresos->count(),
             'egresos_total' => $egresosTotal,
+            'egresos_efectivo' => $egresosEfectivo,
             'egresos' => $egresosDetalle,
             'saldo_apertura' => $saldoApertura,
             'efectivo_ventas' => $efectivoVentas,
             'efectivo_esperado' => $esperado,
             'efectivo_contado' => $contado,
             'diferencia' => $diferencia,
-            'billeteras' => $this->billeteras($sesion, $metodos, $billeterasContadas),
+            'billeteras' => $this->billeteras($sesion, $metodos, $billeterasContadas, $egresosPorBilletera),
             'generated_at' => now()->toIso8601String(),
         ];
     }
 
     /**
-     * Esperado por billetera = apertura de ese canal + cobros (sin egresos).
+     * Esperado por billetera = apertura de ese canal + cobros − egresos de ese canal.
      *
      * @param  list<array{codigo: string, count: int, total: string}>  $metodos
      * @param  array<string, string>|null  $billeterasContadas
+     * @param  array<string, string>  $egresosPorBilletera
      * @return list<array{
      *     codigo: string,
      *     apertura: string,
      *     ventas: string,
+     *     egresos: string,
      *     esperado: string,
      *     contado: string|null,
      *     diferencia: string|null
      * }>
      */
-    private function billeteras(CajaSesion $sesion, array $metodos, ?array $billeterasContadas): array
-    {
+    private function billeteras(
+        CajaSesion $sesion,
+        array $metodos,
+        ?array $billeterasContadas,
+        array $egresosPorBilletera,
+    ): array {
         $aperturaMap = CajaBilleteras::normalize(
             is_array($sesion->saldos_apertura_json) ? $sesion->saldos_apertura_json : null,
         );
@@ -181,7 +198,8 @@ final class CajaSesionArqueoService
         foreach (CajaBilleteras::CODIGOS as $codigo) {
             $apertura = $aperturaMap[$codigo];
             $ventas = $this->sumMetodo($metodos, $codigo);
-            $esperado = $this->add($apertura, $ventas);
+            $egresosCanal = $this->money((string) ($egresosPorBilletera[$codigo] ?? '0.00'));
+            $esperado = $this->sub($this->add($apertura, $ventas), $egresosCanal);
 
             $contado = null;
             if (is_array($billeterasContadas) && array_key_exists($codigo, $billeterasContadas)) {
@@ -196,6 +214,7 @@ final class CajaSesionArqueoService
                 'codigo' => $codigo,
                 'apertura' => $apertura,
                 'ventas' => $ventas,
+                'egresos' => $egresosCanal,
                 'esperado' => $esperado,
                 'contado' => $contado,
                 'diferencia' => $diferencia,
