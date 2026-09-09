@@ -1,6 +1,7 @@
 {
     "page_title": "Charges — {{paciente}}",
     "page_description": "Consultation pre-invoice (services and products). Amounts follow your clinic IGV settings.",
+    "flash_confirmar_error": "Could not confirm the pre-invoice. Check stock, branch and line items.",
     "back_list": "Back to medical records list",
     "solo_lectura_sin_permiso": "You can open this screen but cannot enter amounts. Ask an admin to grant «Consultation charges → manage» (consulta-cargos.manage) or re-sync roles: php artisan db:seed --class=TenantRolesSeeder",
     "estado_confirmado_aviso": "Pre-invoice confirmed. You can edit it until it has been paid at checkout.",

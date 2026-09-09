@@ -215,6 +215,7 @@ function StatusBanners({
     puedeCerrarConsulta,
     onSolicitarCerrarConsulta,
     t,
+    formError,
 }: Pick<
     ConsultaCargosMainProps,
     | 'esBorrador'
@@ -224,9 +225,17 @@ function StatusBanners({
     | 'consulta'
     | 'puedeCerrarConsulta'
     | 'onSolicitarCerrarConsulta'
-> & { t: (key: string, opts?: Record<string, unknown>) => string }) {
+> & { t: (key: string, opts?: Record<string, unknown>) => string; formError?: string }) {
     const items: ReactNode[] = [];
     const consultaAbierta = consulta.cerrada_at === null;
+
+    if (formError) {
+        items.push(
+            <StatusBanner key="form-error" icon={AlertTriangle} tone="danger">
+                {formError}
+            </StatusBanner>,
+        );
+    }
 
     if (consultaAbierta) {
         items.push(
@@ -663,6 +672,7 @@ export function ConsultaCargosMain({
                 puedeCerrarConsulta={puedeCerrarConsulta}
                 onSolicitarCerrarConsulta={onSolicitarCerrarConsulta}
                 t={t}
+                formError={errors.cantidad || errors.sede_id}
             />
 
             <form
@@ -812,7 +822,10 @@ export function ConsultaCargosMain({
                                                         label={t('field_concepto')}
                                                         labelClassName="text-[0.65rem]"
                                                         className="gap-1"
-                                                        error={errors[`lineas.${idx}.concepto`]}
+                                                        error={
+                                                            errors[`lineas.${idx}.concepto`] ||
+                                                            errors[`lineas.${idx}.producto_id`]
+                                                        }
                                                     >
                                                         {linea.tipo_linea === 'producto' ? (
                                                             <CargoProductoPicker

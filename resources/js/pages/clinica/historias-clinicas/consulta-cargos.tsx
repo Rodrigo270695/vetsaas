@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { useTranslation } from 'react-i18next';
 import { TicketPrintDialog } from '@/components/tickets/ticket-print-dialog';
 import { usePermission } from '@/hooks/use-permission';
+import { toastManager } from '@/lib/toast';
 import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
@@ -215,7 +216,7 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
         [cargo],
     );
 
-    const { data, setData, post, delete: destroyForm, processing, errors, clearErrors } =
+    const { data, setData, post, delete: destroyForm, processing, errors, clearErrors, transform } =
         useForm<FormState>(initial);
 
     const entrarEnEdicion = useCallback(() => {
@@ -292,11 +293,30 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
             return;
         }
 
+        transform((form) => ({
+            notas: form.notas,
+            lineas: form.lineas.map(({ producto_label: _label, ...rest }) => ({
+                ...rest,
+                producto_id: rest.producto_id || null,
+                descuento_importe: rest.descuento_importe || '0.00',
+            })),
+        }));
+
         post(clinica.historiasClinicas.consultas.cargos.confirmar.url(consulta.id), {
             preserveScroll: true,
             onSuccess: () => {
                 clearErrors();
                 setEditandoConfirmada(false);
+            },
+            onError: (errs) => {
+                const first = Object.values(errs)[0];
+                toastManager.add({
+                    type: 'error',
+                    title:
+                        typeof first === 'string'
+                            ? first
+                            : t('flash_confirmar_error'),
+                });
             },
         });
     };

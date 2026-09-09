@@ -1,6 +1,7 @@
 {
     "page_title": "Cargos — {{paciente}}",
     "page_description": "Pre-cuenta de la consulta (servicios y productos). Los importes usan la configuración de IGV de la clínica.",
+    "flash_confirmar_error": "No se pudo confirmar la pre-cuenta. Revisa stock, sede y las líneas.",
     "back_list": "Volver al listado de historias",
     "solo_lectura_sin_permiso": "Tu usuario puede abrir esta pantalla pero no tiene permiso para cargar importes. Pide a un administrador que active «Cargos de consulta → gestionar» (consulta-cargos.manage) o que vuelva a sincronizar roles: php artisan db:seed --class=TenantRolesSeeder",
     "estado_confirmado_aviso": "Pre-cuenta confirmada. Puedes editarla mientras no haya sido cobrada en caja.",
