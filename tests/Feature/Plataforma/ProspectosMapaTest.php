@@ -68,3 +68,44 @@ it('importa veterinarias OSM con lat lng y arma ruta en Lambayeque', function ()
             ->where('ruta.0.nombre', 'Clínica Vet Norte')
         );
 });
+
+it('genera una ruta persistida y la deja en el historial al completar', function (): void {
+    Http::fake();
+
+    VeterinariaProspecto::query()->create([
+        'nombre' => 'Vet Ruta Uno',
+        'tipo' => VeterinariaProspecto::TIPO_CLINICA,
+        'departamento' => 'Lambayeque',
+        'lat' => -6.771,
+        'lng' => -79.84,
+        'origen' => VeterinariaProspecto::ORIGEN_OSM,
+        'estado' => 'nuevo',
+        'capturado_at' => now(),
+    ]);
+
+    $this->actingAs($this->superadmin)
+        ->post('http://127.0.0.1/plataforma/prospectos-veterinarias/mapa/ruta', [
+            'departamento' => 'Lambayeque',
+            'origin_lat' => -6.70,
+            'origin_lng' => -79.90,
+            'max' => 10,
+        ])
+        ->assertRedirect();
+
+    $ruta = \App\Models\VolanteRuta::query()->first();
+    expect($ruta)->not->toBeNull()
+        ->and($ruta->estado)->toBe('abierta')
+        ->and($ruta->paradas_count)->toBe(1);
+
+    $this->post('http://127.0.0.1/plataforma/prospectos-veterinarias/mapa/ruta/'.$ruta->id.'/completar')
+        ->assertRedirect();
+
+    expect($ruta->fresh()->estado)->toBe('completada');
+
+    $this->get('http://127.0.0.1/plataforma/prospectos-veterinarias/mapa')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('historial.0.estado', 'completada')
+            ->where('ruta_activa', null)
+        );
+});

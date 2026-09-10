@@ -1822,9 +1822,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-prospectos.create')
             ->post('prospectos-veterinarias/mapa/import', [ProspectoVeterinariaController::class, 'importMapa'])
             ->name('prospectos-veterinarias.mapa.import');
-        Route::middleware('permission:plataforma-prospectos.create')
-            ->post('prospectos-veterinarias/mapa/geocode', [ProspectoVeterinariaController::class, 'geocodeMapa'])
-            ->name('prospectos-veterinarias.mapa.geocode');
+        Route::middleware('permission:plataforma-prospectos.update')
+            ->post('prospectos-veterinarias/mapa/ruta', [ProspectoVeterinariaController::class, 'generarRuta'])
+            ->name('prospectos-veterinarias.mapa.ruta');
+        Route::middleware('permission:plataforma-prospectos.update')
+            ->post('prospectos-veterinarias/mapa/ruta/{ruta}/completar', [ProspectoVeterinariaController::class, 'completarRuta'])
+            ->name('prospectos-veterinarias.mapa.completar');
+        Route::middleware('permission:plataforma-prospectos.update')
+            ->post('prospectos-veterinarias/mapa/ruta/{ruta}/cancelar', [ProspectoVeterinariaController::class, 'cancelarRuta'])
+            ->name('prospectos-veterinarias.mapa.cancelar');
         Route::middleware('permission:plataforma-prospectos.view')
             ->get('prospectos-veterinarias', [ProspectoVeterinariaController::class, 'index'])
             ->name('prospectos-veterinarias.index');

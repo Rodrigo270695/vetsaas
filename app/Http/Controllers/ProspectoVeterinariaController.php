@@ -13,6 +13,8 @@ use App\Services\Prospectos\VeterinariaProspectoMapaImportService;
 use App\Services\Prospectos\VeterinariaProspectoOutreachService;
 use App\Services\Prospectos\VeterinariaProspectoRutaService;
 use App\Services\Prospectos\VeterinariaProspectoScraperService;
+use App\Services\Prospectos\VolanteRutaPlanService;
+use App\Models\VolanteRuta;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -501,6 +503,7 @@ final class ProspectoVeterinariaController extends Controller
         Request $request,
         VeterinariaProspectoMapaImportService $import,
         VeterinariaProspectoRutaService $rutas,
+        VolanteRutaPlanService $plan,
     ): Response {
         $deps = $import->departamentosNorte();
         $departamento = trim((string) $request->input('departamento', 'Lambayeque'));
@@ -514,35 +517,78 @@ final class ProspectoVeterinariaController extends Controller
         $max = (int) $request->input('max', (int) config('prospectos.norte_ruta_max', 18));
         $max = max(5, min(30, $max));
 
-        $query = VeterinariaProspecto::query()
-            ->whereNotNull('lat')
-            ->whereNotNull('lng')
-            ->whereNull('volante_visitado_at')
-            ->where('estado', '!=', 'no_interesado');
+        $guardada = null;
+        $rutaId = trim((string) $request->input('ruta', ''));
+        if ($rutaId !== '') {
+            $guardada = $plan->find($rutaId);
+        }
+        $guardada ??= $plan->abierta();
 
-        if ($departamento !== 'todos') {
-            $query->where('departamento', $departamento);
+        $soloLectura = false;
+        if ($guardada !== null) {
+            $departamento = $guardada->departamento;
+            $originLat = (float) $guardada->origin_lat;
+            $originLng = (float) $guardada->origin_lng;
+            $ruta = $plan->paradasComoRuta($guardada, $rutas);
+            $calles = [
+                'polyline' => is_array($guardada->polyline) ? $guardada->polyline : [],
+                'ok' => is_array($guardada->polyline) && $guardada->polyline !== [],
+                'km' => (float) ($guardada->km ?? 0),
+                'minutos' => (int) ($guardada->minutos ?? 0),
+                'pasos' => [],
+            ];
+            if ($calles['polyline'] === []) {
+                $calles = $rutas->trazarCalles($originLat, $originLng, array_map(
+                    static fn (array $s): array => ['lat' => $s['lat'], 'lng' => $s['lng'], 'nombre' => $s['nombre']],
+                    $ruta,
+                ));
+            }
+            $soloLectura = $guardada->estado !== VolanteRuta::ABIERTA;
+            $mapsUrl = $rutas->osrmNavUrl($originLat, $originLng, $ruta);
         } else {
-            $query->whereIn('departamento', $deps);
+            $ocupados = [];
+            if ($plan->tablasListas()) {
+                $ocupados = \App\Models\VolanteRutaParada::query()
+                    ->whereHas('ruta', fn ($q) => $q->where('estado', VolanteRuta::ABIERTA))
+                    ->pluck('prospecto_id')
+                    ->all();
+            }
+
+            $query = VeterinariaProspecto::query()
+                ->whereNotNull('lat')
+                ->whereNotNull('lng')
+                ->whereNull('volante_visitado_at')
+                ->where('estado', '!=', 'no_interesado');
+
+            if ($ocupados !== []) {
+                $query->whereNotIn('id', $ocupados);
+            }
+
+            if ($departamento !== 'todos') {
+                $query->where('departamento', $departamento);
+            } else {
+                $query->whereIn('departamento', $deps);
+            }
+
+            $candidatos = $query->limit(400)->get();
+            $ruta = $rutas->ordenar($candidatos, $originLat, $originLng, $max);
+            foreach ($ruta as $i => $stop) {
+                $ruta[$i]['visitado'] = false;
+                $ruta[$i]['nav_url'] = $rutas->osmDireccionUrl(
+                    $originLat,
+                    $originLng,
+                    (float) $stop['lat'],
+                    (float) $stop['lng'],
+                );
+            }
+            $calles = $rutas->trazarCalles($originLat, $originLng, array_map(
+                static fn (array $s): array => ['lat' => $s['lat'], 'lng' => $s['lng'], 'nombre' => $s['nombre']],
+                $ruta,
+            ));
+            $mapsUrl = $rutas->osrmNavUrl($originLat, $originLng, $ruta);
         }
 
-        $candidatos = $query->limit(400)->get();
-        $ruta = $rutas->ordenar($candidatos, $originLat, $originLng, $max);
-        $stopsLatLng = array_map(
-            static fn (array $s): array => ['lat' => $s['lat'], 'lng' => $s['lng'], 'nombre' => $s['nombre']],
-            $ruta,
-        );
-        $calles = $rutas->trazarCalles($originLat, $originLng, $stopsLatLng);
-        $mapsUrl = $rutas->osrmNavUrl($originLat, $originLng, $stopsLatLng);
-        $mapsNavUrl = $mapsUrl;
-
         foreach ($ruta as $i => $stop) {
-            $ruta[$i]['nav_url'] = $rutas->osmDireccionUrl(
-                $originLat,
-                $originLng,
-                (float) $stop['lat'],
-                (float) $stop['lng'],
-            );
             if (isset($calles['pasos'][$i]['textos'][0])) {
                 $ruta[$i]['indicacion'] = $calles['pasos'][$i]['textos'][0];
             }
@@ -558,6 +604,8 @@ final class ProspectoVeterinariaController extends Controller
             ->whereIn('departamento', $deps)
             ->count();
 
+        $visitadas = count(array_filter($ruta, static fn (array $s): bool => ($s['visitado'] ?? false) === true));
+
         return Inertia::render('plataforma/prospectos-veterinarias/mapa', [
             'departamento' => $departamento,
             'departamentos' => array_merge(['todos'], $deps),
@@ -570,18 +618,72 @@ final class ProspectoVeterinariaController extends Controller
             'ruta' => $ruta,
             'calle_polyline' => $calles['polyline'],
             'calles_ok' => $calles['ok'],
-            'pasos' => $calles['pasos'],
+            'pasos' => $calles['pasos'] ?? [],
             'maps_url' => $mapsUrl,
-            'maps_nav_url' => $mapsNavUrl,
+            'maps_nav_url' => $mapsUrl,
             'places_configurado' => trim((string) config('prospectos.places_api_key', '')) !== '',
+            'ruta_activa' => $guardada === null ? null : [
+                'id' => $guardada->id,
+                'estado' => $guardada->estado,
+                'departamento' => $guardada->departamento,
+                'solo_lectura' => $soloLectura,
+            ],
+            'historial' => $plan->historial(),
             'stats' => [
                 'con_xy' => $conXy,
                 'sin_xy' => $sinXy,
                 'en_ruta' => count($ruta),
+                'visitadas' => $visitadas,
                 'km_aprox' => $calles['ok'] ? $calles['km'] : round(array_sum(array_column($ruta, 'km_desde_anterior')), 1),
-                'minutos' => $calles['minutos'],
+                'minutos' => $calles['minutos'] ?? 0,
             ],
         ]);
+    }
+
+    public function generarRuta(
+        Request $request,
+        VolanteRutaPlanService $plan,
+    ): RedirectResponse {
+        $data = $request->validate([
+            'departamento' => ['required', 'string', 'max:100'],
+            'origin_lat' => ['required', 'numeric'],
+            'origin_lng' => ['required', 'numeric'],
+            'max' => ['nullable', 'integer', 'min:5', 'max:30'],
+        ]);
+
+        try {
+            $ruta = $plan->generar(
+                $data['departamento'],
+                (float) $data['origin_lat'],
+                (float) $data['origin_lng'],
+                (int) ($data['max'] ?? 18),
+                $request->user()?->id,
+            );
+        } catch (Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('prospectos-veterinarias.mapa', ['ruta' => $ruta->id])
+            ->with('success', "Ruta de hoy lista: {$ruta->paradas_count} paradas en {$ruta->departamento}.");
+    }
+
+    public function completarRuta(VolanteRuta $ruta, VolanteRutaPlanService $plan): RedirectResponse
+    {
+        $plan->completar($ruta);
+
+        return redirect()
+            ->route('prospectos-veterinarias.mapa')
+            ->with('success', 'Ruta marcada como completada. Ya está en el historial.');
+    }
+
+    public function cancelarRuta(VolanteRuta $ruta, VolanteRutaPlanService $plan): RedirectResponse
+    {
+        $plan->cancelar($ruta);
+
+        return redirect()
+            ->route('prospectos-veterinarias.mapa')
+            ->with('success', 'Ruta cancelada. Las clínicas sin volante vuelven al pozo.');
     }
 
     public function importMapa(
@@ -620,11 +722,12 @@ final class ProspectoVeterinariaController extends Controller
         );
     }
 
-    public function marcarVolante(VeterinariaProspecto $prospecto): RedirectResponse
-    {
-        $prospecto->forceFill([
-            'volante_visitado_at' => $prospecto->volante_visitado_at ? null : now(),
-        ])->save();
+    public function marcarVolante(
+        VeterinariaProspecto $prospecto,
+        VolanteRutaPlanService $plan,
+    ): RedirectResponse {
+        $dejar = $prospecto->volante_visitado_at === null;
+        $plan->marcarParada($prospecto, $dejar);
 
         return back();
     }

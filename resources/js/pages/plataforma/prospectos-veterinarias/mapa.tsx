@@ -1,11 +1,15 @@
 import { Head, Link, router } from '@inertiajs/react';
 import L from 'leaflet';
 import {
+    Ban,
     Check,
+    Flag,
+    History,
     Loader2,
     MapPin,
     Navigation,
     Play,
+    Plus,
     Radar,
     Route as RouteIcon,
 } from 'lucide-react';
@@ -40,6 +44,25 @@ type Stop = {
     maps_url: string;
     nav_url?: string | null;
     indicacion?: string;
+    visitado?: boolean;
+};
+
+type HistorialItem = {
+    id: string;
+    departamento: string;
+    estado: string;
+    paradas: number;
+    visitadas: number;
+    km: number | null;
+    minutos: number | null;
+    fecha: string | null;
+};
+
+type RutaActiva = {
+    id: string;
+    estado: string;
+    departamento: string;
+    solo_lectura: boolean;
 };
 
 type PasoLeg = {
@@ -59,10 +82,13 @@ type Props = {
     maps_url: string | null;
     maps_nav_url: string | null;
     places_configurado: boolean;
+    ruta_activa: RutaActiva | null;
+    historial: HistorialItem[];
     stats: {
         con_xy: number;
         sin_xy: number;
         en_ruta: number;
+        visitadas: number;
         km_aprox: number;
         minutos: number;
     };
@@ -97,8 +123,8 @@ function Fit({
     return null;
 }
 
-function pinIcon(n: number, origin = false): L.DivIcon {
-    const bg = origin ? '#059669' : '#0369a1';
+function pinIcon(n: number, origin = false, done = false): L.DivIcon {
+    const bg = origin ? '#059669' : done ? '#0f766e' : '#0369a1';
     const label = origin ? 'Tú' : String(n);
     return L.divIcon({
         className: 'vetsaas-volante-pin',
@@ -120,6 +146,8 @@ function MapaVolantes({
     maps_url,
     maps_nav_url,
     places_configurado,
+    ruta_activa,
+    historial = [],
     stats,
 }: Props) {
     const { can } = usePermission();
@@ -134,6 +162,9 @@ function MapaVolantes({
         return [[origin.lat, origin.lng], ...ruta.map((s) => [s.lat, s.lng] as [number, number])];
     }, [calle_polyline, origin.lat, origin.lng, ruta]);
 
+    const abierta = ruta_activa?.estado === 'abierta';
+    const soloLectura = ruta_activa?.solo_lectura === true;
+
     const reload = (extra: Record<string, string | number> = {}) => {
         router.get(
             '/plataforma/prospectos-veterinarias/mapa',
@@ -142,9 +173,36 @@ function MapaVolantes({
                 max,
                 origin_lat: origin.lat,
                 origin_lng: origin.lng,
+                ...(ruta_activa && extra.ruta === undefined ? { ruta: ruta_activa.id } : {}),
                 ...extra,
             },
             { preserveScroll: true },
+        );
+    };
+
+    const generarHoy = () => {
+        const post = (lat: number, lng: number) => {
+            setBusy('gen');
+            router.post(
+                '/plataforma/prospectos-veterinarias/mapa/ruta',
+                {
+                    departamento,
+                    origin_lat: lat,
+                    origin_lng: lng,
+                    max,
+                },
+                { onFinish: () => setBusy(null) },
+            );
+        };
+        if (!navigator.geolocation) {
+            post(origin.lat, origin.lng);
+            return;
+        }
+        setBusy('gen');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => post(pos.coords.latitude, pos.coords.longitude),
+            () => post(origin.lat, origin.lng),
+            { enableHighAccuracy: true, timeout: 12_000 },
         );
     };
 
@@ -218,6 +276,7 @@ function MapaVolantes({
                         { label: 'Con XY', value: stats.con_xy, variant: 'success', icon: MapPin },
                         { label: 'Sin XY', value: stats.sin_xy, variant: 'warning', icon: Radar },
                         { label: 'Paradas hoy', value: stats.en_ruta, variant: 'primary', icon: RouteIcon },
+                        { label: 'Volantes', value: stats.visitadas ?? 0, variant: 'success', icon: Check },
                         {
                             label: stats.minutos > 0 ? `~${stats.minutos} min` : 'Km ruta',
                             value: stats.km_aprox,
@@ -244,6 +303,61 @@ function MapaVolantes({
                                 )}
                                 Iniciar ruta
                             </Button>
+                            {canUpdate && !abierta && !soloLectura ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="cursor-pointer gap-1.5"
+                                    disabled={busy === 'gen' || ruta.length === 0}
+                                    onClick={generarHoy}
+                                >
+                                    {busy === 'gen' ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
+                                    Generar ruta de hoy
+                                </Button>
+                            ) : null}
+                            {canUpdate && abierta && ruta_activa ? (
+                                <>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="cursor-pointer gap-1.5"
+                                        onClick={() =>
+                                            router.post(
+                                                `/plataforma/prospectos-veterinarias/mapa/ruta/${ruta_activa.id}/completar`,
+                                            )
+                                        }
+                                    >
+                                        <Flag className="size-3.5" />
+                                        Completar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="cursor-pointer gap-1.5 text-destructive"
+                                        onClick={() =>
+                                            router.post(
+                                                `/plataforma/prospectos-veterinarias/mapa/ruta/${ruta_activa.id}/cancelar`,
+                                            )
+                                        }
+                                    >
+                                        <Ban className="size-3.5" />
+                                        Cancelar
+                                    </Button>
+                                </>
+                            ) : null}
+                            {soloLectura ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="cursor-pointer"
+                                    onClick={() => reload({ ruta: '' })}
+                                >
+                                    Ruta de hoy
+                                </Button>
+                            ) : null}
                             <Button
                                 type="button"
                                 variant="outline"
@@ -314,7 +428,7 @@ function MapaVolantes({
                 <div className="flex flex-wrap items-center gap-2">
                     <Select
                         value={departamento}
-                        onValueChange={(v) => reload({ departamento: v })}
+                        onValueChange={(v) => reload({ departamento: v, ruta: '' })}
                     >
                         <SelectTrigger className="h-9 w-52 cursor-pointer">
                             <SelectValue />
@@ -327,9 +441,31 @@ function MapaVolantes({
                             ))}
                         </SelectContent>
                     </Select>
+                    {ruta_activa ? (
+                        <span className="text-xs text-muted-foreground">
+                            {ruta_activa.estado === 'abierta'
+                                ? 'Ruta abierta: lo que marques queda en el historial.'
+                                : `Viendo ruta ${ruta_activa.estado}.`}
+                        </span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">
+                            Vista previa. Pulsá «Generar ruta de hoy» para congelarla.
+                        </span>
+                    )}
+                    {soloLectura ? (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 cursor-pointer px-2 text-xs"
+                            onClick={() => reload({ ruta: '' })}
+                        >
+                            Ruta de hoy
+                        </Button>
+                    ) : null}
                 </div>
 
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem_16rem]">
                     <div className="overflow-hidden rounded-xl border border-border/70 bg-card">
                         <div className="relative z-0 h-[min(70vh,560px)] w-full">
                             {typeof window !== 'undefined' ? (
@@ -358,7 +494,7 @@ function MapaVolantes({
                                         <Popup>Punto de partida</Popup>
                                     </Marker>
                                     {ruta.map((s) => (
-                                        <Marker key={s.id} position={[s.lat, s.lng]} icon={pinIcon(s.orden)}>
+                                        <Marker key={s.id} position={[s.lat, s.lng]} icon={pinIcon(s.orden, false, s.visitado === true)}>
                                             <Popup>
                                                 <p className="font-semibold">{s.orden}. {s.nombre}</p>
                                                 <p className="text-xs">{s.direccion || s.distrito}</p>
@@ -373,7 +509,7 @@ function MapaVolantes({
                     <div className="max-h-[min(70vh,560px)] overflow-y-auto rounded-xl border border-border/70 bg-card">
                         {ruta.length === 0 ? (
                             <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-                                Aún no hay pines. Pulsa «Traer XY norte» (tarda ~1 min) o «Completar XY» para geocodificar los de Lambayeque que ya están en la lista.
+                                No hay paradas. Traé XY o generá una ruta en una zona con clínicas pendientes.
                             </p>
                         ) : (
                             <ol className="divide-y divide-border/60">
@@ -421,11 +557,14 @@ function MapaVolantes({
                                                             Maps
                                                         </a>
                                                     )}
-                                                    {canUpdate ? (
+                                                    {canUpdate && !soloLectura ? (
                                                         <button
                                                             type="button"
                                                             className={cn(
-                                                                'inline-flex cursor-pointer items-center gap-0.5 text-[11px] text-emerald-700',
+                                                                'inline-flex cursor-pointer items-center gap-0.5 text-[11px]',
+                                                                s.visitado
+                                                                    ? 'text-muted-foreground'
+                                                                    : 'text-emerald-700',
                                                                 busy === s.id && 'opacity-50',
                                                             )}
                                                             onClick={() => {
@@ -438,8 +577,10 @@ function MapaVolantes({
                                                             }}
                                                         >
                                                             <Check className="size-3" />
-                                                            Volante dejado
+                                                            {s.visitado ? 'Quitar volante' : 'Volante dejado'}
                                                         </button>
+                                                    ) : s.visitado ? (
+                                                        <span className="text-[11px] text-emerald-700">Volante ok</span>
                                                     ) : null}
                                                 </div>
                                             </div>
@@ -447,6 +588,41 @@ function MapaVolantes({
                                     </li>
                                 ))}
                             </ol>
+                        )}
+                    </div>
+
+                    <div className="max-h-[min(70vh,560px)] overflow-y-auto rounded-xl border border-border/70 bg-card">
+                        <div className="sticky top-0 z-10 flex items-center gap-1.5 border-b border-border/60 bg-card px-3 py-2 text-xs font-semibold">
+                            <History className="size-3.5" />
+                            Historial
+                        </div>
+                        {historial.length === 0 ? (
+                            <p className="px-3 py-8 text-center text-xs text-muted-foreground">
+                                Todavía no hay rutas guardadas.
+                            </p>
+                        ) : (
+                            <ul className="divide-y divide-border/60">
+                                {historial.map((h) => (
+                                    <li key={h.id}>
+                                        <button
+                                            type="button"
+                                            className={cn(
+                                                'w-full cursor-pointer px-3 py-2.5 text-left text-xs hover:bg-muted/60',
+                                                ruta_activa?.id === h.id && 'bg-muted/80',
+                                            )}
+                                            onClick={() => reload({ ruta: h.id })}
+                                        >
+                                            <p className="font-medium">{h.fecha} · {h.departamento}</p>
+                                            <p className="text-muted-foreground">
+                                                {h.visitadas}/{h.paradas} volantes
+                                                {h.km != null ? ` · ${h.km} km` : ''}
+                                                {' · '}
+                                                {h.estado}
+                                            </p>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
                         )}
                     </div>
                 </div>
