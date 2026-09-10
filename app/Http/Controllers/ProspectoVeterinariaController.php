@@ -528,10 +528,25 @@ final class ProspectoVeterinariaController extends Controller
 
         $candidatos = $query->limit(400)->get();
         $ruta = $rutas->ordenar($candidatos, $originLat, $originLng, $max);
-        $mapsUrl = $rutas->googleMapsDirUrl($originLat, $originLng, array_map(
-            static fn (array $s): array => ['lat' => $s['lat'], 'lng' => $s['lng']],
+        $stopsLatLng = array_map(
+            static fn (array $s): array => ['lat' => $s['lat'], 'lng' => $s['lng'], 'nombre' => $s['nombre']],
             $ruta,
-        ));
+        );
+        $calles = $rutas->trazarCalles($originLat, $originLng, $stopsLatLng);
+        $mapsUrl = $rutas->googleMapsDirUrl($originLat, $originLng, $stopsLatLng, navegar: false);
+        $mapsNavUrl = $rutas->googleMapsDirUrl($originLat, $originLng, $stopsLatLng, navegar: true);
+
+        foreach ($ruta as $i => $stop) {
+            $ruta[$i]['nav_url'] = $rutas->googleMapsDirUrl(
+                $originLat,
+                $originLng,
+                [['lat' => $stop['lat'], 'lng' => $stop['lng']]],
+                navegar: true,
+            );
+            if (isset($calles['pasos'][$i]['textos'][0])) {
+                $ruta[$i]['indicacion'] = $calles['pasos'][$i]['textos'][0];
+            }
+        }
 
         $conXy = VeterinariaProspecto::query()
             ->whereNotNull('lat')
@@ -553,13 +568,18 @@ final class ProspectoVeterinariaController extends Controller
             ],
             'max' => $max,
             'ruta' => $ruta,
+            'calle_polyline' => $calles['polyline'],
+            'calles_ok' => $calles['ok'],
+            'pasos' => $calles['pasos'],
             'maps_url' => $mapsUrl,
+            'maps_nav_url' => $mapsNavUrl,
             'places_configurado' => trim((string) config('prospectos.places_api_key', '')) !== '',
             'stats' => [
                 'con_xy' => $conXy,
                 'sin_xy' => $sinXy,
                 'en_ruta' => count($ruta),
-                'km_aprox' => round(array_sum(array_column($ruta, 'km_desde_anterior')), 1),
+                'km_aprox' => $calles['ok'] ? $calles['km'] : round(array_sum(array_column($ruta, 'km_desde_anterior')), 1),
+                'minutos' => $calles['minutos'],
             ],
         ]);
     }

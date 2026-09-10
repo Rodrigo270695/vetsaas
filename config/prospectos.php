@@ -51,6 +51,8 @@ return [
 
     'norte_ruta_max' => 18,
 
+    'osrm_url' => env('PROSPECTOS_OSRM_URL', 'https://router.project-osrm.org'),
+
     'norte_ciudades' => [
         ['slug' => 'lambayeque', 'departamento' => 'Lambayeque', 'provincia' => 'Lambayeque', 'distrito' => 'Lambayeque', 'lat' => -6.7018, 'lng' => -79.9061, 'radio_m' => 14000],
         ['slug' => 'chiclayo', 'departamento' => 'Lambayeque', 'provincia' => 'Chiclayo', 'distrito' => 'Chiclayo', 'lat' => -6.7714, 'lng' => -79.8409, 'radio_m' => 16000],

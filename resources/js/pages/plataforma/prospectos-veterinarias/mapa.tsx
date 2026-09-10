@@ -5,6 +5,7 @@ import {
     Loader2,
     MapPin,
     Navigation,
+    Play,
     Radar,
     Route as RouteIcon,
 } from 'lucide-react';
@@ -37,6 +38,13 @@ type Stop = {
     lng: number;
     km_desde_anterior: number;
     maps_url: string;
+    nav_url?: string | null;
+    indicacion?: string;
+};
+
+type PasoLeg = {
+    hasta: string;
+    textos: string[];
 };
 
 type Props = {
@@ -45,25 +53,46 @@ type Props = {
     origin: { lat: number; lng: number; label: string };
     max: number;
     ruta: Stop[];
+    calle_polyline: [number, number][];
+    calles_ok: boolean;
+    pasos: PasoLeg[];
     maps_url: string | null;
+    maps_nav_url: string | null;
     places_configurado: boolean;
-    stats: { con_xy: number; sin_xy: number; en_ruta: number; km_aprox: number };
+    stats: {
+        con_xy: number;
+        sin_xy: number;
+        en_ruta: number;
+        km_aprox: number;
+        minutos: number;
+    };
 };
 
-function Fit({ origin, ruta }: { origin: Props['origin']; ruta: Stop[] }) {
+function Fit({
+    origin,
+    ruta,
+    callePolyline,
+}: {
+    origin: Props['origin'];
+    ruta: Stop[];
+    callePolyline: [number, number][];
+}) {
     const map = useMap();
 
     useEffect(() => {
-        const pts: [number, number][] = [
-            [origin.lat, origin.lng],
-            ...ruta.map((s) => [s.lat, s.lng] as [number, number]),
-        ];
+        const pts: [number, number][] =
+            callePolyline.length > 2
+                ? callePolyline
+                : [
+                      [origin.lat, origin.lng],
+                      ...ruta.map((s) => [s.lat, s.lng] as [number, number]),
+                  ];
         if (pts.length === 1) {
             map.setView(pts[0], 13);
             return;
         }
         map.fitBounds(L.latLngBounds(pts).pad(0.18));
-    }, [map, origin.lat, origin.lng, ruta]);
+    }, [map, origin.lat, origin.lng, ruta, callePolyline]);
 
     return null;
 }
@@ -85,19 +114,25 @@ function MapaVolantes({
     origin,
     max,
     ruta,
+    calle_polyline,
+    calles_ok,
+    pasos,
     maps_url,
+    maps_nav_url,
     places_configurado,
     stats,
 }: Props) {
     const { can } = usePermission();
     const canCreate = can('plataforma-prospectos.create');
     const canUpdate = can('plataforma-prospectos.update');
-    const [busy, setBusy] = useState<'import' | 'geo' | 'gps' | string | null>(null);
+    const [busy, setBusy] = useState<'import' | 'geo' | 'gps' | 'nav' | string | null>(null);
 
-    const line = useMemo<[number, number][]>(
-        () => [[origin.lat, origin.lng], ...ruta.map((s) => [s.lat, s.lng] as [number, number])],
-        [origin.lat, origin.lng, ruta],
-    );
+    const line = useMemo<[number, number][]>(() => {
+        if (calle_polyline.length > 1) {
+            return calle_polyline;
+        }
+        return [[origin.lat, origin.lng], ...ruta.map((s) => [s.lat, s.lng] as [number, number])];
+    }, [calle_polyline, origin.lat, origin.lng, ruta]);
 
     const reload = (extra: Record<string, string | number> = {}) => {
         router.get(
@@ -110,6 +145,47 @@ function MapaVolantes({
                 ...extra,
             },
             { preserveScroll: true },
+        );
+    };
+
+    const iniciarRuta = () => {
+        const abrir = (url: string | null | undefined) => {
+            if (url) {
+                window.location.href = url;
+            }
+        };
+
+        if (!navigator.geolocation) {
+            abrir(maps_nav_url ?? maps_url);
+            return;
+        }
+
+        setBusy('nav');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                router.get(
+                    '/plataforma/prospectos-veterinarias/mapa',
+                    {
+                        departamento,
+                        max,
+                        origin_lat: pos.coords.latitude,
+                        origin_lng: pos.coords.longitude,
+                    },
+                    {
+                        preserveScroll: true,
+                        onSuccess: (page) => {
+                            const url = (page.props as { maps_nav_url?: string | null }).maps_nav_url;
+                            abrir(url ?? maps_nav_url ?? maps_url);
+                        },
+                        onFinish: () => setBusy(null),
+                    },
+                );
+            },
+            () => {
+                setBusy(null);
+                abrir(maps_nav_url ?? maps_url);
+            },
+            { enableHighAccuracy: true, timeout: 12_000 },
         );
     };
 
@@ -137,17 +213,36 @@ function MapaVolantes({
             <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
                 <PageHeader
                     title="Ruta de volantes — costa norte"
-                    description="Pines con XY (OpenStreetMap). Prioridad Lambayeque, luego Piura, Trujillo, Tumbes y cercanos. No scrapea Google Maps."
+                    description="La línea sigue las calles. Iniciar ruta toma tu GPS y abre Google Maps en modo navegación (giros, recálculo, voz)."
                     stats={[
                         { label: 'Con XY', value: stats.con_xy, variant: 'success', icon: MapPin },
                         { label: 'Sin XY', value: stats.sin_xy, variant: 'warning', icon: Radar },
                         { label: 'Paradas hoy', value: stats.en_ruta, variant: 'primary', icon: RouteIcon },
-                        { label: 'Km aprox.', value: stats.km_aprox, variant: 'info', icon: Navigation },
+                        {
+                            label: stats.minutos > 0 ? `~${stats.minutos} min` : 'Km ruta',
+                            value: stats.km_aprox,
+                            variant: 'info',
+                            icon: Navigation,
+                        },
                     ]}
                     action={
                         <div className="flex flex-wrap items-center gap-2">
                             <Button variant="outline" size="sm" asChild>
                                 <Link href="/plataforma/prospectos-veterinarias">Lista</Link>
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="cursor-pointer gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                                disabled={busy === 'nav' || ruta.length === 0}
+                                onClick={iniciarRuta}
+                            >
+                                {busy === 'nav' ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                ) : (
+                                    <Play className="size-3.5 fill-current" />
+                                )}
+                                Iniciar ruta
                             </Button>
                             <Button
                                 type="button"
@@ -210,9 +305,10 @@ function MapaVolantes({
                 />
 
                 <p className="text-xs text-muted-foreground">
-                    {places_configurado
-                        ? 'Places API activa: la importación mezcla OSM + Google Places.'
-                        : 'Sin GOOGLE_PLACES_API_KEY. La importación usa solo OpenStreetMap (legal, con coordenadas).'}
+                    {calles_ok
+                        ? 'Trazado por calles (OSRM). Iniciar ruta abre Google Maps con voz y recálculo.'
+                        : 'No se pudo trazar por calles ahora; se muestra línea directa. Igual podés iniciar navegación en Google Maps.'}
+                    {places_configurado ? ' Places API activa.' : ''}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -247,9 +343,16 @@ function MapaVolantes({
                                         attribution='&copy; OpenStreetMap'
                                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                     />
-                                    <Fit origin={origin} ruta={ruta} />
+                                    <Fit origin={origin} ruta={ruta} callePolyline={calle_polyline} />
                                     {line.length > 1 ? (
-                                        <Polyline positions={line} pathOptions={{ color: '#0369a1', weight: 3 }} />
+                                        <Polyline
+                                            positions={line}
+                                            pathOptions={{
+                                                color: calles_ok ? '#0f766e' : '#0369a1',
+                                                weight: calles_ok ? 5 : 3,
+                                                opacity: 0.9,
+                                            }}
+                                        />
                                     ) : null}
                                     <Marker position={[origin.lat, origin.lng]} icon={pinIcon(0, true)}>
                                         <Popup>Punto de partida</Popup>
@@ -274,7 +377,7 @@ function MapaVolantes({
                             </p>
                         ) : (
                             <ol className="divide-y divide-border/60">
-                                {ruta.map((s) => (
+                                {ruta.map((s, idx) => (
                                     <li key={s.id} className="px-3 py-2.5">
                                         <div className="flex items-start gap-2">
                                             <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-sky-700 text-[11px] font-bold text-white">
@@ -285,19 +388,37 @@ function MapaVolantes({
                                                 <p className="text-xs text-muted-foreground">
                                                     {[s.distrito, s.direccion].filter(Boolean).join(' · ') || s.departamento}
                                                 </p>
+                                                {pasos[idx]?.textos?.length ? (
+                                                    <ul className="mt-1 space-y-0.5 text-[11px] text-teal-800 dark:text-teal-200">
+                                                        {pasos[idx].textos.slice(0, 4).map((t) => (
+                                                            <li key={t}>→ {t}</li>
+                                                        ))}
+                                                    </ul>
+                                                ) : s.indicacion ? (
+                                                    <p className="mt-0.5 text-[11px] text-teal-800">→ {s.indicacion}</p>
+                                                ) : null}
                                                 <p className="text-[11px] text-muted-foreground">
                                                     +{s.km_desde_anterior} km
                                                     {s.telefono ? ` · ${s.telefono}` : ''}
                                                 </p>
-                                                <div className="mt-1 flex gap-2">
-                                                    <a
-                                                        className="text-[11px] text-sky-700 underline"
-                                                        href={s.maps_url}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                    >
-                                                        Maps
-                                                    </a>
+                                                <div className="mt-1 flex flex-wrap gap-2">
+                                                    {s.nav_url ? (
+                                                        <a
+                                                            className="text-[11px] font-medium text-emerald-700 underline"
+                                                            href={s.nav_url}
+                                                        >
+                                                            Ir a esta parada
+                                                        </a>
+                                                    ) : (
+                                                        <a
+                                                            className="text-[11px] text-sky-700 underline"
+                                                            href={s.maps_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                        >
+                                                            Maps
+                                                        </a>
+                                                    )}
                                                     {canUpdate ? (
                                                         <button
                                                             type="button"

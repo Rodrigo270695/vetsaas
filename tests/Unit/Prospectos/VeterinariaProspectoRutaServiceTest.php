@@ -34,3 +34,13 @@ it('ordena la ruta por vecino más cercano desde Lambayeque', function (): void 
         ->and($ruta[0]['nombre'])->toBe('Chiclayo Vet')
         ->and($ruta[1]['nombre'])->toBe('Piura Vet');
 });
+
+it('traduce un giro de OSRM al español', function (): void {
+    $texto = (new VeterinariaProspectoRutaService)->pasoEnEspanol([
+        'name' => 'Avenida Bolognesi',
+        'distance' => 180,
+        'maneuver' => ['type' => 'turn', 'modifier' => 'right'],
+    ]);
+
+    expect($texto)->toBe('Girá a la derecha por Avenida Bolognesi (180 m)');
+});
