@@ -77,6 +77,7 @@ use App\Http\Controllers\ProspectoVeterinariaController;
 use App\Http\Controllers\ProveedorInventarioController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RecetaController;
+use App\Http\Controllers\SalaEsperaController;
 use App\Http\Controllers\RecordatorioTemplateController;
 use App\Http\Controllers\ReporteEgresosController;
 use App\Http\Controllers\ReporteFinancieroController;
@@ -533,6 +534,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:vacunaciones.delete')
                 ->delete('vacunaciones/{vacuna_aplicada}', [VacunacionController::class, 'destroy'])
                 ->name('vacunaciones.destroy');
+
+            Route::middleware('permission:citas.view|grooming.view')
+                ->get('sala-espera', SalaEsperaController::class)
+                ->name('sala-espera');
 
             Route::middleware('permission:citas.view')
                 ->get('citas/export', [CitaController::class, 'exportExcel'])

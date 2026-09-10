@@ -51,6 +51,12 @@ class GroomingTurno extends Model
 
     public const ESTADO_NO_ASISTIO = 'no_asistio';
 
+    /** Estados en cola (aún no en peluquería). */
+    public const ESTADOS_EN_ESPERA = [
+        self::ESTADO_PROGRAMADA,
+        self::ESTADO_CONFIRMADA,
+    ];
+
     /** @var list<string> */
     public const ESTADOS = [
         self::ESTADO_PROGRAMADA,

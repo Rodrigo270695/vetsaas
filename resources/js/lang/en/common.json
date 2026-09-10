@@ -152,5 +152,16 @@
         "banner_title": "Action required: link WhatsApp",
         "banner_body_tenant": "We updated notifications. Without scanning the QR, reminders and queue messages will not send. Tap «Go connect».",
         "banner_body_platform": "We updated the gateway. Re-link platform WhatsApp for renewal notices."
+    },
+    "sala_espera": {
+        "title": "Waiting room",
+        "subtitle": "Today’s appointments",
+        "empty": "Nobody waiting right now.",
+        "en_curso": "In progress",
+        "cita": "Consult",
+        "grooming": "Grooming",
+        "ver_citas": "View appointments",
+        "ver_grooming": "View grooming",
+        "error": "Could not load the waiting room."
     }
 }

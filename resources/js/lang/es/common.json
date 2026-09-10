@@ -152,5 +152,16 @@
         "banner_title": "Acción requerida: vincular WhatsApp",
         "banner_body_tenant": "Actualizamos las notificaciones. Sin escanear el QR no saldrán recordatorios ni mensajes de la cola. Pulsa «Ir a conectar».",
         "banner_body_platform": "Actualizamos el gateway. Vincula de nuevo el WhatsApp de plataforma para avisos de renovación."
+    },
+    "sala_espera": {
+        "title": "Sala de espera",
+        "subtitle": "Turnos de hoy",
+        "empty": "Nadie en espera ahora.",
+        "en_curso": "En atención",
+        "cita": "Consulta",
+        "grooming": "Peluquería",
+        "ver_citas": "Ver citas",
+        "ver_grooming": "Ver peluquería",
+        "error": "No se pudo cargar la sala de espera."
     }
 }

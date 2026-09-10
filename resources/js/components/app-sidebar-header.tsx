@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import { OPEN_IN_APP_ASSISTANT_EVENT } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
 import { InAppAssistantPanel } from '@/components/in-app-assistant/in-app-assistant-panel';
 import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
+import { SalaEsperaHeaderPopover } from '@/components/sala-espera-header-popover';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
@@ -51,6 +52,7 @@ export function AppSidebarHeader({
                 </div>
 
                 <div className="ml-auto flex shrink-0 items-center gap-1">
+                    <SalaEsperaHeaderPopover />
                     {showPushBell && <PushNotificationPrompt />}
 
                     {showAssistant && (
