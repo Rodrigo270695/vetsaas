@@ -176,6 +176,7 @@
         "send_ok": "Paciente en sala de espera.",
         "send_exists": "Ya estaba en la cola de hoy.",
         "send_error": "No se pudo pasar a sala de espera.",
-        "marcar": "Marcar atendido"
+        "marcar": "Marcar atendido",
+        "ir_citas": "Ir a citas"
     }
 }

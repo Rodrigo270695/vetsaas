@@ -176,6 +176,7 @@
         "send_ok": "Patient added to the waiting room.",
         "send_exists": "Already in today’s queue.",
         "send_error": "Could not add to the waiting room.",
-        "marcar": "Mark attended"
+        "marcar": "Mark attended",
+        "ir_citas": "Go to appointments"
     }
 }

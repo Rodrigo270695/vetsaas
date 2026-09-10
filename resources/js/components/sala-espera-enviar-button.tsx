@@ -8,6 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { SALA_ESPERA_CHANGED_EVENT } from '@/components/sala-espera-header-popover';
 import { toastManager } from '@/lib/toast';
 
 type Props = {
@@ -64,6 +65,7 @@ export function SalaEsperaEnviarButton({
                         ? t('sala_espera.send_exists')
                         : t('sala_espera.send_ok'),
             });
+            window.dispatchEvent(new Event(SALA_ESPERA_CHANGED_EVENT));
             setOpen(false);
         } catch {
             toastManager.error({ title: t('sala_espera.send_error') });

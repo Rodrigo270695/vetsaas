@@ -90,6 +90,7 @@ class GroomingTurno extends Model
         'confirmed_via',
         'owner_responded_at',
         'sala_espera_atendido_at',
+        'sala_espera_enviado_at',
     ];
 
     protected function casts(): array
@@ -102,6 +103,7 @@ class GroomingTurno extends Model
             'confirmed_at' => 'datetime',
             'owner_responded_at' => 'datetime',
             'sala_espera_atendido_at' => 'datetime',
+            'sala_espera_enviado_at' => 'datetime',
         ];
     }
 

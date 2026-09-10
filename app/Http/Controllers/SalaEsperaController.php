@@ -27,6 +27,17 @@ class SalaEsperaController extends Controller
         return response()->json($salaEspera->forQueue($user, $tenant, $tipo));
     }
 
+    public function resumen(
+        Request $request,
+        TenantManager $tenants,
+        SalaEsperaHoyService $salaEspera,
+    ): JsonResponse {
+        $user = $request->user();
+        abort_if($user === null, 401);
+
+        return response()->json($salaEspera->iconosVisibles($user, $tenants->current()?->tenant));
+    }
+
     public function enviar(
         Request $request,
         TenantManager $tenants,

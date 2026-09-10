@@ -28,7 +28,8 @@ final class SalaEsperaHoyService
      *     espera: list<array<string, mixed>>,
      *     proximas: list<array<string, mixed>>,
      *     en_curso: list<array<string, mixed>>,
-     *     can_marcar: bool
+     *     can_marcar: bool,
+     *     visible: bool
      * }
      */
     public function forQueue(User $user, ?Tenant $tenant, string $tipo): array
@@ -56,9 +57,7 @@ final class SalaEsperaHoyService
                     ->orderBy('inicio_at')
                     ->limit(50);
 
-                if (Schema::hasColumn('citas', 'sala_espera_atendido_at')) {
-                    $query->whereNull('sala_espera_atendido_at');
-                }
+                $this->constrainSalaActiva($query, 'citas');
 
                 foreach ($query->get() as $cita) {
                     $item = $this->serialize(
@@ -96,9 +95,7 @@ final class SalaEsperaHoyService
                     ->orderBy('inicio_at')
                     ->limit(50);
 
-                if (Schema::hasColumn('grooming_turnos', 'sala_espera_atendido_at')) {
-                    $query->whereNull('sala_espera_atendido_at');
-                }
+                $this->constrainSalaActiva($query, 'grooming_turnos');
 
                 foreach ($query->get() as $turno) {
                     $item = $this->serialize(
@@ -133,6 +130,7 @@ final class SalaEsperaHoyService
             'proximas' => $proximas,
             'en_curso' => $enCurso,
             'can_marcar' => $user->can('sala-espera.marcar-atendido'),
+            'visible' => (count($espera) + count($proximas) + count($enCurso)) > 0,
         ];
     }
 
@@ -150,6 +148,8 @@ final class SalaEsperaHoyService
             $this->assertModule($tenant, 'citas');
             $existing = $this->citaEnColaHoy($paciente, $now);
             if ($existing !== null) {
+                $this->marcarEnviado($existing);
+
                 return [
                     'created' => false,
                     'item' => $this->serialize(
@@ -170,6 +170,7 @@ final class SalaEsperaHoyService
                 'duracion_minutos' => 15,
                 'estado' => Cita::ESTADO_PROGRAMADA,
                 'motivo' => 'Sala de espera',
+                'sala_espera_enviado_at' => $now,
                 'created_by_id' => $user->id,
                 'updated_by_id' => $user->id,
             ]);
@@ -191,6 +192,8 @@ final class SalaEsperaHoyService
         $this->assertModule($tenant, 'grooming');
         $existing = $this->groomingEnColaHoy($paciente, $now);
         if ($existing !== null) {
+            $this->marcarEnviado($existing);
+
             return [
                 'created' => false,
                 'item' => $this->serialize(
@@ -211,6 +214,7 @@ final class SalaEsperaHoyService
             'duracion_minutos' => 30,
             'estado' => GroomingTurno::ESTADO_PROGRAMADA,
             'servicio' => 'bano_higienico',
+            'sala_espera_enviado_at' => $now,
             'created_by_id' => $user->id,
             'updated_by_id' => $user->id,
         ]);
@@ -255,9 +259,7 @@ final class SalaEsperaHoyService
             ->whereBetween('inicio_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])
             ->whereIn('estado', Cita::ESTADOS_EN_ESPERA);
 
-        if (Schema::hasColumn('citas', 'sala_espera_atendido_at')) {
-            $query->whereNull('sala_espera_atendido_at');
-        }
+        $this->constrainColaPendiente($query, 'citas');
 
         return $query->orderBy('inicio_at')->first();
     }
@@ -269,9 +271,7 @@ final class SalaEsperaHoyService
             ->whereBetween('inicio_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])
             ->whereIn('estado', GroomingTurno::ESTADOS_EN_ESPERA);
 
-        if (Schema::hasColumn('grooming_turnos', 'sala_espera_atendido_at')) {
-            $query->whereNull('sala_espera_atendido_at');
-        }
+        $this->constrainColaPendiente($query, 'grooming_turnos');
 
         return $query->orderBy('inicio_at')->first();
     }
@@ -310,6 +310,78 @@ final class SalaEsperaHoyService
         }
 
         return $tipo;
+    }
+
+    /**
+     * Solo lo que recepción mandó a sala (no la agenda normal).
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Cita>| \Illuminate\Database\Eloquent\Builder<GroomingTurno>  $query
+     */
+    private function constrainSalaActiva($query, string $table): void
+    {
+        if (Schema::hasColumn($table, 'sala_espera_enviado_at')) {
+            $query->whereNotNull('sala_espera_enviado_at');
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+
+        if (Schema::hasColumn($table, 'sala_espera_atendido_at')) {
+            $query->whereNull('sala_espera_atendido_at');
+        }
+    }
+
+    /**
+     * Pendiente de sala o cita/turno del día aún no enviada (para reutilizar al pulsar Sala).
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Cita>| \Illuminate\Database\Eloquent\Builder<GroomingTurno>  $query
+     */
+    private function constrainColaPendiente($query, string $table): void
+    {
+        if (Schema::hasColumn($table, 'sala_espera_atendido_at')) {
+            $query->whereNull('sala_espera_atendido_at');
+        }
+    }
+
+    private function marcarEnviado(Cita|GroomingTurno $record): void
+    {
+        if (! Schema::hasColumn($record->getTable(), 'sala_espera_enviado_at')) {
+            return;
+        }
+
+        if ($record->sala_espera_enviado_at !== null) {
+            return;
+        }
+
+        $record->forceFill(['sala_espera_enviado_at' => now()])->save();
+    }
+
+    /**
+     * @return array{consulta: bool, grooming: bool}
+     */
+    public function iconosVisibles(User $user, ?Tenant $tenant): array
+    {
+        $consulta = false;
+        $grooming = false;
+
+        if ($user->can('sala-espera.consulta') && TenantModuleAccess::isEnabled($tenant, 'citas')) {
+            $consulta = $this->colaTieneGente($user, $tenant, self::TIPO_CONSULTA);
+        }
+
+        if ($user->can('sala-espera.grooming') && TenantModuleAccess::isEnabled($tenant, 'grooming')) {
+            $grooming = $this->colaTieneGente($user, $tenant, self::TIPO_GROOMING);
+        }
+
+        return [
+            'consulta' => $consulta,
+            'grooming' => $grooming,
+        ];
+    }
+
+    private function colaTieneGente(User $user, ?Tenant $tenant, string $tipo): bool
+    {
+        $queue = $this->forQueue($user, $tenant, $tipo);
+
+        return ($queue['visible'] ?? false) === true;
     }
 
     private function assertCanVerConsulta(User $user, ?Tenant $tenant): void

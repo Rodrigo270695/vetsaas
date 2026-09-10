@@ -536,6 +536,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->name('vacunaciones.destroy');
 
             Route::middleware('permission:sala-espera.consulta|sala-espera.grooming')
+                ->get('sala-espera/resumen', [SalaEsperaController::class, 'resumen'])
+                ->name('sala-espera.resumen');
+            Route::middleware('permission:sala-espera.consulta|sala-espera.grooming')
                 ->get('sala-espera', [SalaEsperaController::class, 'show'])
                 ->name('sala-espera');
             Route::middleware('permission:sala-espera.enviar')

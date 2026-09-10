@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bath, Check, Stethoscope } from 'lucide-react';
+import { Bath, CalendarDays, Check, Stethoscope } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -60,11 +60,66 @@ function notifyOs(title: string, body: string): void {
     }
 }
 
+export const SALA_ESPERA_CHANGED_EVENT = 'vetsaas:sala-espera-changed';
+
 export function SalaEsperaHeaderIcons() {
+    const { t } = useTranslation('common');
     const { tenant } = usePage().props;
     const { can } = usePermission();
     const citasOn = useTenantModuleEnabled('citas');
     const groomingOn = useTenantModuleEnabled('grooming');
+    const canConsulta = can('sala-espera.consulta') && citasOn;
+    const canGrooming = can('sala-espera.grooming') && groomingOn;
+    const canCitas = can('citas.view') && citasOn;
+    const canSala = canConsulta || canGrooming;
+    const [visibles, setVisibles] = useState({ consulta: false, grooming: false });
+
+    const loadResumen = useCallback(async () => {
+        if (!canSala) {
+            return;
+        }
+        try {
+            const res = await fetch('/clinica/sala-espera/resumen', {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+            if (!res.ok) {
+                return;
+            }
+            const json = (await res.json()) as {
+                consulta?: boolean;
+                grooming?: boolean;
+            };
+            setVisibles({
+                consulta: json.consulta === true,
+                grooming: json.grooming === true,
+            });
+        } catch {
+            // El poll reintenta.
+        }
+    }, [canSala]);
+
+    useEffect(() => {
+        void loadResumen();
+        if (!canSala) {
+            return;
+        }
+        const id = window.setInterval(() => {
+            void loadResumen();
+        }, 20_000);
+        const onChanged = () => {
+            void loadResumen();
+        };
+        window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
+
+        return () => {
+            window.clearInterval(id);
+            window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
+        };
+    }, [canSala, loadResumen]);
 
     if (tenant == null) {
         return null;
@@ -72,10 +127,23 @@ export function SalaEsperaHeaderIcons() {
 
     return (
         <>
-            {can('sala-espera.consulta') && citasOn ? (
+            {canCitas ? (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="relative size-9 cursor-pointer text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                    asChild
+                >
+                    <Link href="/clinica/citas" aria-label={t('sala_espera.ir_citas')} title={t('sala_espera.ir_citas')}>
+                        <CalendarDays className="size-4" strokeWidth={2.25} />
+                    </Link>
+                </Button>
+            ) : null}
+            {canConsulta && visibles.consulta ? (
                 <SalaEsperaTipoPopover tipo="consulta" />
             ) : null}
-            {can('sala-espera.grooming') && groomingOn ? (
+            {canGrooming && visibles.grooming ? (
                 <SalaEsperaTipoPopover tipo="grooming" />
             ) : null}
         </>
@@ -165,6 +233,7 @@ function SalaEsperaTipoPopover({ tipo }: { tipo: 'consulta' | 'grooming' }) {
                 },
             );
             if (res.ok) {
+                window.dispatchEvent(new Event(SALA_ESPERA_CHANGED_EVENT));
                 void load();
             }
         },
