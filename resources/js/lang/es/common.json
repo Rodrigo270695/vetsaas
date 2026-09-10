@@ -155,15 +155,27 @@
     },
     "sala_espera": {
         "title": "Sala de espera",
+        "title_consulta": "Sala consulta",
+        "title_grooming": "Sala peluquería",
         "subtitle": "Turnos de hoy",
         "empty": "Nadie en espera ahora.",
         "count_waiting": "{{count}} en espera",
-        "scroll_hint": "Desplazá la lista. Para el día completo usá Citas o Peluquería.",
+        "count_now": "{{count}} en hora",
+        "push_body": "{{count}} paciente(s) en sala.",
+        "scroll_hint": "Desplazá la lista. El día completo está en Citas o Peluquería.",
+        "ahora": "En hora",
+        "proximas": "Más tarde",
         "en_curso": "En atención",
         "cita": "Consulta",
         "grooming": "Peluquería",
         "ver_citas": "Ver citas",
         "ver_grooming": "Ver peluquería",
-        "error": "No se pudo cargar la sala de espera."
+        "error": "No se pudo cargar la sala de espera.",
+        "action_short": "Sala",
+        "send_title": "¿Consulta o peluquería?",
+        "send_ok": "Paciente en sala de espera.",
+        "send_exists": "Ya estaba en la cola de hoy.",
+        "send_error": "No se pudo pasar a sala de espera.",
+        "marcar": "Marcar atendido"
     }
 }

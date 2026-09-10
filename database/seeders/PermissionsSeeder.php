@@ -39,6 +39,7 @@ class PermissionsSeeder extends Seeder
         'petpass' => ['view', 'register'],
         'propietarios' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
         'citas' => ['view', 'create', 'update', 'delete', 'cancel', 'aperturar'],
+        'sala-espera' => ['consulta', 'grooming', 'enviar', 'marcar-atendido'],
         'historias-clinicas' => ['view', 'create', 'update', 'delete'],
         'historias-clinicas-planes' => ['view', 'manage'],
         'vacunaciones' => ['view', 'create', 'update', 'delete'],

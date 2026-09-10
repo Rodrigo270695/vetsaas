@@ -399,6 +399,7 @@ class PacienteController extends Controller
                 'laboratorio_crear' => $canLabCreate,
                 'laboratorio_eliminar' => $canLabDelete,
                 'citas_crear' => $canCrearCita,
+                'sala_espera_enviar' => $request->user()?->can('sala-espera.enviar') ?? false,
                 'petpass_register' => $canPetPassRegister,
                 'autorizacion_enviar' => $canEditarConsulta,
             ],

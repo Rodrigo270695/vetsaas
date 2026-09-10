@@ -76,6 +76,7 @@ class Cita extends Model
         'confirmed_at',
         'confirmed_via',
         'owner_responded_at',
+        'sala_espera_atendido_at',
         'created_by_id',
         'updated_by_id',
     ];
@@ -86,7 +87,9 @@ class Cita extends Model
             'inicio_at' => 'datetime',
             'duracion_minutos' => 'integer',
             'confirmed_at' => 'datetime',
+            'confirmed_via' => 'string',
             'owner_responded_at' => 'datetime',
+            'sala_espera_atendido_at' => 'datetime',
         ];
     }
 

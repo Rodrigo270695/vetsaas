@@ -155,15 +155,27 @@
     },
     "sala_espera": {
         "title": "Waiting room",
+        "title_consulta": "Consult waiting room",
+        "title_grooming": "Grooming waiting room",
         "subtitle": "Today’s appointments",
         "empty": "Nobody waiting right now.",
         "count_waiting": "{{count}} waiting",
-        "scroll_hint": "Scroll the list. For the full day use Appointments or Grooming.",
+        "count_now": "{{count}} due now",
+        "push_body": "{{count}} patient(s) in the waiting room.",
+        "scroll_hint": "Scroll the list. The full day is in Appointments or Grooming.",
+        "ahora": "Due now",
+        "proximas": "Later",
         "en_curso": "In progress",
         "cita": "Consult",
         "grooming": "Grooming",
         "ver_citas": "View appointments",
         "ver_grooming": "View grooming",
-        "error": "Could not load the waiting room."
+        "error": "Could not load the waiting room.",
+        "action_short": "Wait",
+        "send_title": "Consult or grooming?",
+        "send_ok": "Patient added to the waiting room.",
+        "send_exists": "Already in today’s queue.",
+        "send_error": "Could not add to the waiting room.",
+        "marcar": "Mark attended"
     }
 }

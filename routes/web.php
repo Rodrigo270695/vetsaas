@@ -535,9 +535,17 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->delete('vacunaciones/{vacuna_aplicada}', [VacunacionController::class, 'destroy'])
                 ->name('vacunaciones.destroy');
 
-            Route::middleware('permission:citas.view|grooming.view')
-                ->get('sala-espera', SalaEsperaController::class)
+            Route::middleware('permission:sala-espera.consulta|sala-espera.grooming')
+                ->get('sala-espera', [SalaEsperaController::class, 'show'])
                 ->name('sala-espera');
+            Route::middleware('permission:sala-espera.enviar')
+                ->post('sala-espera/enviar', [SalaEsperaController::class, 'enviar'])
+                ->name('sala-espera.enviar');
+            Route::middleware('permission:sala-espera.marcar-atendido')
+                ->post('sala-espera/{tipo}/{id}/atendido', [SalaEsperaController::class, 'marcarAtendido'])
+                ->where('tipo', 'consulta|grooming|cita')
+                ->whereUuid('id')
+                ->name('sala-espera.atendido');
 
             Route::middleware('permission:citas.view')
                 ->get('citas/export', [CitaController::class, 'exportExcel'])

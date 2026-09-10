@@ -24,7 +24,8 @@ import { calcularEdadMascota } from '@/lib/edad-desde-fecha-nacimiento';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import clinica from '@/routes/clinica';
-import type { Paciente } from '../../propietarios/types';
+import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
+import { useTenantModuleEnabled } from '@/hooks/use-tenant-modules';
 
 type Props = {
     paciente: Paciente;
@@ -44,6 +45,7 @@ type Props = {
         vacunas_crear: boolean;
         laboratorio_crear: boolean;
         citas_crear?: boolean;
+        sala_espera_enviar?: boolean;
         petpass_register?: boolean;
     };
     timelineStats: {
@@ -144,6 +146,8 @@ export function PacienteHistorialHero({
 }: Props) {
     const { t } = useTranslation(['pacientes']);
     const isPublic = variant === 'public';
+    const citasModule = useTenantModuleEnabled('citas');
+    const groomingModule = useTenantModuleEnabled('grooming');
     const [petpassBusy, setPetpassBusy] = useState(false);
     const subline = [paciente.especie, paciente.raza].filter(Boolean).join(' · ');
     const sexo = sexoLabel(t, paciente.sexo);
@@ -420,6 +424,13 @@ export function PacienteHistorialHero({
                             <CalendarPlus className="size-4" strokeWidth={2.25} />
                             {t('historial.action_agendar_cita')}
                         </Button>
+                    ) : null}
+                    {!isPublic && permisos.sala_espera_enviar ? (
+                        <SalaEsperaEnviarButton
+                            pacienteId={paciente.id}
+                            canConsulta={citasModule}
+                            canGrooming={groomingModule}
+                        />
                     ) : null}
                     {links.historial_pdf && (isPublic || hasTimeline) ? (
                         <Button type="button" size="sm" variant="outline" className="gap-2" asChild>
