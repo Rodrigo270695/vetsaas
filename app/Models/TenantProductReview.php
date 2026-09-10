@@ -23,6 +23,7 @@ class TenantProductReview extends Model
         'clinic_name',
         'submitted_at',
         'prompt_dismissed_on',
+        'prompt_dismiss_count',
         'published',
     ];
 
@@ -32,6 +33,7 @@ class TenantProductReview extends Model
             'rating' => 'integer',
             'submitted_at' => 'datetime',
             'prompt_dismissed_on' => 'date',
+            'prompt_dismiss_count' => 'integer',
             'published' => 'boolean',
         ];
     }

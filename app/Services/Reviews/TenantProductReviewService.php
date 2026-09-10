@@ -18,6 +18,8 @@ use Illuminate\Support\Str;
 final class TenantProductReviewService
 {
     public const DISMISS_COOLDOWN_DAYS = 14;
+
+    public const MAX_FREE_DISMISSES = 3;
     /** @var array<string, string> */
     public const ROLE_LABELS = [
         'admin_clinica' => 'Administración',
@@ -36,11 +38,15 @@ final class TenantProductReviewService
         $clinic = $this->clinicDisplayName($tenant);
         $role = $this->roleLabelFor($user);
 
+        $dismissCount = $this->dismissCount($this->rowFor($user));
+
         return [
             'clinic_name' => $clinic,
             'role_label' => $role,
             'author_name' => $this->authorDisplayName($user),
             'role_line' => $this->roleLine($role, $clinic),
+            'required' => $dismissCount >= self::MAX_FREE_DISMISSES,
+            'dismiss_count' => $dismissCount,
         ];
     }
 
@@ -58,9 +64,13 @@ final class TenantProductReviewService
             return false;
         }
 
-        $row = TenantProductReview::query()->where('user_id', $user->id)->first();
+        $row = $this->rowFor($user);
         if ($row !== null && $row->isSubmitted()) {
             return false;
+        }
+
+        if ($this->dismissCount($row) >= self::MAX_FREE_DISMISSES) {
+            return true;
         }
 
         $today = $this->todayForTenant($tenant);
@@ -87,8 +97,17 @@ final class TenantProductReviewService
             return;
         }
 
+        abort_if(
+            $this->dismissCount($row) >= self::MAX_FREE_DISMISSES,
+            422,
+            'Ya pospusiste la reseña tres veces. Publícala para continuar.',
+        );
+
         $row->tenant_id = $tenant->id;
         $row->prompt_dismissed_on = $this->todayForTenant($tenant);
+        if (PublicSchema::hasColumn('tenant_product_reviews', 'prompt_dismiss_count')) {
+            $row->prompt_dismiss_count = $this->dismissCount($row) + 1;
+        }
         $row->save();
     }
 
@@ -116,6 +135,9 @@ final class TenantProductReviewService
             'prompt_dismissed_on' => null,
             'published' => true,
         ]);
+        if (PublicSchema::hasColumn('tenant_product_reviews', 'prompt_dismiss_count')) {
+            $row->prompt_dismiss_count = 0;
+        }
         $row->save();
 
         app(VetSaaSPublicMarketingService::class)->forgetCache();
@@ -246,6 +268,20 @@ final class TenantProductReviewService
         $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
 
         return trim($text);
+    }
+
+    private function rowFor(User $user): ?TenantProductReview
+    {
+        return TenantProductReview::query()->where('user_id', $user->id)->first();
+    }
+
+    private function dismissCount(?TenantProductReview $row): int
+    {
+        if ($row === null || ! PublicSchema::hasColumn('tenant_product_reviews', 'prompt_dismiss_count')) {
+            return 0;
+        }
+
+        return max(0, (int) $row->prompt_dismiss_count);
     }
 
     private function todayForTenant(Tenant $tenant): Carbon

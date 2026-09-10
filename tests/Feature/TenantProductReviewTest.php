@@ -36,6 +36,7 @@ it('expone el prompt de reseña a cada usuario de la clínica hasta que envía',
             ->where('product_review_prompt.clinic_name', 'Test Clinic')
             ->where('product_review_prompt.role_label', 'Administración')
             ->where('product_review_prompt.role_line', 'Administración de Test Clinic')
+            ->where('product_review_prompt.required', false)
         );
 });
 
@@ -100,6 +101,62 @@ it('publica la reseña con nombre, cargo y clínica para Orvae', function (): vo
         ->and($public[0]['author_name'])->toBe($this->testTenantAdmin->name)
         ->and($public[0]['rating'])->toBe(5)
         ->and($public[0]['comment'])->toBe($comment);
+});
+
+it('muestra el aviso a recepcion y al resto del equipo, no solo al admin', function (): void {
+    $previousTeam = getPermissionsTeamId();
+    setPermissionsTeamId((string) $this->testTenant->id);
+
+    try {
+        $recepcion = User::factory()->create([
+            'name' => 'Carla Ruiz',
+            'email' => 'carla-'.$this->testTenantSlug.'@test.local',
+            'tenant_id' => $this->testTenant->id,
+            'password' => Hash::make('password'),
+            'is_active' => true,
+            'must_change_password' => false,
+            'email_verified_at' => now(),
+        ]);
+        $recepcion->assignRole('recepcionista');
+    } finally {
+        setPermissionsTeamId($previousTeam);
+    }
+
+    $this->actingAs($recepcion)
+        ->get('http://'.$this->testTenantHost.'/dashboard')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('product_review_prompt.role_label', 'Recepcionista')
+            ->where('product_review_prompt.role_line', 'Recepcionista de Test Clinic')
+            ->where('product_review_prompt.required', false)
+        );
+});
+
+it('tras tres cierres el aviso es obligatorio y no se puede posponer', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-08-01 10:00:00', 'America/Lima'));
+
+    $this->actingAs($this->testTenantAdmin);
+
+    $this->post('http://'.$this->testTenantHost.'/tenant/product-review/dismiss')->assertRedirect();
+    Carbon::setTestNow(Carbon::parse('2026-08-15 10:00:00', 'America/Lima'));
+    $this->post('http://'.$this->testTenantHost.'/tenant/product-review/dismiss')->assertRedirect();
+    Carbon::setTestNow(Carbon::parse('2026-08-29 10:00:00', 'America/Lima'));
+    $this->post('http://'.$this->testTenantHost.'/tenant/product-review/dismiss')->assertRedirect();
+
+    $row = TenantProductReview::query()->where('user_id', $this->testTenantAdmin->id)->first();
+    expect($row)->not->toBeNull()
+        ->and((int) $row->prompt_dismiss_count)->toBe(3);
+
+    $this->get('http://'.$this->testTenantHost.'/dashboard')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('product_review_prompt.required', true)
+        );
+
+    $this->post('http://'.$this->testTenantHost.'/tenant/product-review/dismiss')
+        ->assertStatus(422);
+
+    Carbon::setTestNow();
 });
 
 it('atribuye recepcionista de la clínica con nombre y apellido', function (): void {
