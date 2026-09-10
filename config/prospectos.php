@@ -39,7 +39,12 @@ return [
      * Mapa / ruta de volantes. XY desde OpenStreetMap (Overpass).
      * Opcional: GOOGLE_PLACES_API_KEY para densificar con Places.
      */
-    'overpass_url' => env('PROSPECTOS_OVERPASS_URL', 'https://overpass-api.de/api/interpreter'),
+    'overpass_url' => env('PROSPECTOS_OVERPASS_URL', 'https://overpass.kumi.systems/api/interpreter'),
+
+    'overpass_mirrors' => [
+        'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass-api.de/api/interpreter',
+    ],
 
     'places_api_key' => env('GOOGLE_PLACES_API_KEY', ''),
 
@@ -47,6 +52,18 @@ return [
         'lat' => -6.7018,
         'lng' => -79.9061,
         'label' => 'Lambayeque',
+    ],
+
+    /**
+     * Un bbox por departamento (sur, oeste, norte, este). Una sola query Overpass.
+     */
+    'norte_bboxes' => [
+        'Lambayeque' => [-7.22, -80.12, -5.92, -79.32],
+        'Piura' => [-6.35, -81.35, -4.08, -79.38],
+        'Tumbes' => [-4.25, -80.72, -3.38, -80.08],
+        'La Libertad' => [-8.85, -79.75, -7.55, -78.35],
+        'Cajamarca' => [-7.55, -79.05, -4.55, -77.85],
+        'Áncash' => [-9.35, -78.85, -8.75, -78.25],
     ],
 
     'norte_ruta_max' => 18,

@@ -151,7 +151,7 @@ function MapaVolantes({
     const iniciarRuta = () => {
         const abrir = (url: string | null | undefined) => {
             if (url) {
-                window.location.href = url;
+                window.open(url, '_blank', 'noopener,noreferrer');
             }
         };
 
@@ -213,7 +213,7 @@ function MapaVolantes({
             <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
                 <PageHeader
                     title="Ruta de volantes — costa norte"
-                    description="La línea sigue las calles. Iniciar ruta toma tu GPS y abre Google Maps en modo navegación (giros, recálculo, voz)."
+                    description="La línea sigue las calles. Iniciar ruta abre el GPS de OpenStreetMap (no usa Google Maps: tu Workspace lo tiene bloqueado)."
                     stats={[
                         { label: 'Con XY', value: stats.con_xy, variant: 'success', icon: MapPin },
                         { label: 'Sin XY', value: stats.sin_xy, variant: 'warning', icon: Radar },
@@ -266,13 +266,13 @@ function MapaVolantes({
                                             setBusy('import');
                                             router.post(
                                                 '/plataforma/prospectos-veterinarias/mapa/import',
-                                                {},
+                                                { departamento },
                                                 { preserveScroll: true, onFinish: () => setBusy(null) },
                                             );
                                         }}
                                     >
                                         {busy === 'import' ? <Loader2 className="size-3.5 animate-spin" /> : <Radar className="size-3.5" />}
-                                        Traer XY norte
+                                        Traer XY {departamento === 'todos' ? 'norte' : departamento}
                                     </Button>
                                     <Button
                                         type="button"
@@ -284,7 +284,7 @@ function MapaVolantes({
                                             setBusy('geo');
                                             router.post(
                                                 '/plataforma/prospectos-veterinarias/mapa/geocode',
-                                                {},
+                                                { departamento },
                                                 { preserveScroll: true, onFinish: () => setBusy(null) },
                                             );
                                         }}
@@ -296,7 +296,7 @@ function MapaVolantes({
                             {maps_url ? (
                                 <Button size="sm" className="cursor-pointer gap-1.5" asChild>
                                     <a href={maps_url} target="_blank" rel="noreferrer">
-                                        Abrir ruta en Google Maps
+                                        Abrir navegación
                                     </a>
                                 </Button>
                             ) : null}
@@ -306,8 +306,8 @@ function MapaVolantes({
 
                 <p className="text-xs text-muted-foreground">
                     {calles_ok
-                        ? 'Trazado por calles (OSRM). Iniciar ruta abre Google Maps con voz y recálculo.'
-                        : 'No se pudo trazar por calles ahora; se muestra línea directa. Igual podés iniciar navegación en Google Maps.'}
+                        ? 'Navegación por calles (OSRM / OpenStreetMap). No pasa por Google Maps.'
+                        : 'No se pudo trazar por calles ahora; igual podés iniciar navegación en OpenStreetMap.'}
                     {places_configurado ? ' Places API activa.' : ''}
                 </p>
 
@@ -406,6 +406,8 @@ function MapaVolantes({
                                                         <a
                                                             className="text-[11px] font-medium text-emerald-700 underline"
                                                             href={s.nav_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
                                                         >
                                                             Ir a esta parada
                                                         </a>

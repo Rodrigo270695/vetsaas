@@ -240,6 +240,34 @@ final class VeterinariaProspectoRutaService
         return 'https://www.google.com/maps/dir/?'.http_build_query($params);
     }
 
+    /**
+     * Navegación por calles sin cuenta Google (OSRM público).
+     *
+     * @param  list<array{lat: float, lng: float}>  $stops
+     */
+    public function osrmNavUrl(float $originLat, float $originLng, array $stops): ?string
+    {
+        if ($stops === []) {
+            return null;
+        }
+
+        $chunk = array_slice($stops, 0, 12);
+        $locs = ['loc='.$originLat.','.$originLng];
+        foreach ($chunk as $stop) {
+            $locs[] = 'loc='.$stop['lat'].','.$stop['lng'];
+        }
+
+        return 'https://map.project-osrm.org/?z=14&center='.$originLat.','.$originLng
+            .'&'.implode('&', $locs)
+            .'&hl=es&alt=0&srv=1';
+    }
+
+    public function osmDireccionUrl(float $fromLat, float $fromLng, float $toLat, float $toLng): string
+    {
+        return 'https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route='
+            .$fromLat.'%2C'.$fromLng.';'.$toLat.'%2C'.$toLng;
+    }
+
     public function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
         $earth = 6371.0;
@@ -269,7 +297,7 @@ final class VeterinariaProspectoRutaService
             'lng' => (float) $p->lng,
             'km_desde_anterior' => $kmDesdeAnterior,
             'volante_visitado_at' => $p->volante_visitado_at?->toIso8601String(),
-            'maps_url' => 'https://www.google.com/maps/search/?api=1&query='.$p->lat.','.$p->lng,
+            'maps_url' => 'https://www.openstreetmap.org/?mlat='.$p->lat.'&mlon='.$p->lng.'#map=18/'.$p->lat.'/'.$p->lng,
         ];
     }
 }

@@ -533,15 +533,15 @@ final class ProspectoVeterinariaController extends Controller
             $ruta,
         );
         $calles = $rutas->trazarCalles($originLat, $originLng, $stopsLatLng);
-        $mapsUrl = $rutas->googleMapsDirUrl($originLat, $originLng, $stopsLatLng, navegar: false);
-        $mapsNavUrl = $rutas->googleMapsDirUrl($originLat, $originLng, $stopsLatLng, navegar: true);
+        $mapsUrl = $rutas->osrmNavUrl($originLat, $originLng, $stopsLatLng);
+        $mapsNavUrl = $mapsUrl;
 
         foreach ($ruta as $i => $stop) {
-            $ruta[$i]['nav_url'] = $rutas->googleMapsDirUrl(
+            $ruta[$i]['nav_url'] = $rutas->osmDireccionUrl(
                 $originLat,
                 $originLng,
-                [['lat' => $stop['lat'], 'lng' => $stop['lng']]],
-                navegar: true,
+                (float) $stop['lat'],
+                (float) $stop['lng'],
             );
             if (isset($calles['pasos'][$i]['textos'][0])) {
                 $ruta[$i]['indicacion'] = $calles['pasos'][$i]['textos'][0];
@@ -588,9 +588,15 @@ final class ProspectoVeterinariaController extends Controller
         Request $request,
         VeterinariaProspectoMapaImportService $import,
     ): RedirectResponse {
-        $result = $import->importNorte(iniciadoPorId: $request->user()?->id);
+        $data = $request->validate([
+            'departamento' => ['nullable', 'string', 'max:100'],
+        ]);
+        $result = $import->importNorte(
+            iniciadoPorId: $request->user()?->id,
+            departamento: $data['departamento'] ?? 'Lambayeque',
+        );
 
-        $msg = "Mapa norte: {$result['nuevos']} nuevas, {$result['actualizados']} con XY actualizado.";
+        $msg = "XY listo en segundos: {$result['nuevos']} nuevas, {$result['actualizados']} con pin de calle (OSM).";
         if ($result['errores'] !== []) {
             $msg .= ' Algunos puntos fallaron ('.count($result['errores']).').';
         }
@@ -601,9 +607,12 @@ final class ProspectoVeterinariaController extends Controller
         return back()->with('success', $msg);
     }
 
-    public function geocodeMapa(VeterinariaProspectoMapaImportService $import): RedirectResponse
+    public function geocodeMapa(Request $request, VeterinariaProspectoMapaImportService $import): RedirectResponse
     {
-        $result = $import->geocodePendientesNorte(20);
+        $data = $request->validate([
+            'departamento' => ['nullable', 'string', 'max:100'],
+        ]);
+        $result = $import->geocodePendientesNorte(20, $data['departamento'] ?? 'Lambayeque');
 
         return back()->with(
             'success',

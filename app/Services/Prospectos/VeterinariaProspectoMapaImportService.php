@@ -23,20 +23,31 @@ final class VeterinariaProspectoMapaImportService
     /**
      * @return array{nuevos: int, actualizados: int, ciudades: list<string>, errores: list<string>, places: bool}
      */
-    public function importNorte(?string $iniciadoPorId = null): array
+    public function importNorte(?string $iniciadoPorId = null, ?string $departamento = null): array
     {
-        $ciudades = config('prospectos.norte_ciudades', []);
+        $bboxes = config('prospectos.norte_bboxes', []);
+        $deps = $departamento !== null && $departamento !== '' && $departamento !== 'todos'
+            ? [$departamento]
+            : ['Lambayeque'];
+
         $nuevos = 0;
         $actualizados = 0;
         $visitadas = [];
         $errores = [];
 
-        foreach ($ciudades as $ciudad) {
-            $visitadas[] = (string) $ciudad['slug'];
+        foreach ($deps as $dep) {
+            if (! isset($bboxes[$dep]) || ! is_array($bboxes[$dep])) {
+                $errores[] = $dep.': sin bbox';
+
+                continue;
+            }
+
+            $visitadas[] = $dep;
 
             try {
-                $puntos = $this->fetchOverpass($ciudad);
+                $puntos = $this->fetchOverpassBbox($dep, $bboxes[$dep]);
                 foreach ($puntos as $punto) {
+                    $ciudad = $this->ciudadCercana($punto['lat'], $punto['lng'], $dep);
                     $result = $this->upsertPunto($punto, $ciudad, self::ORIGEN_OSM, $iniciadoPorId);
                     if ($result === 'nuevo') {
                         $nuevos++;
@@ -44,19 +55,23 @@ final class VeterinariaProspectoMapaImportService
                         $actualizados++;
                     }
                 }
+
+                $matched = $this->pegarOsmAListaExistente($dep, $puntos);
+                $actualizados += $matched;
             } catch (Throwable $e) {
                 Log::warning('[prospectos-mapa] Overpass falló', [
-                    'slug' => $ciudad['slug'] ?? null,
+                    'departamento' => $dep,
                     'error' => $e->getMessage(),
                 ]);
-                $errores[] = ($ciudad['slug'] ?? '?').': '.$e->getMessage();
+                $errores[] = $dep.': '.$e->getMessage();
             }
 
             $placesKey = trim((string) config('prospectos.places_api_key', ''));
             if ($placesKey !== '') {
+                $hub = $this->hubDepartamento($dep);
                 try {
-                    foreach ($this->fetchPlaces($ciudad, $placesKey) as $punto) {
-                        $result = $this->upsertPunto($punto, $ciudad, self::ORIGEN_PLACES, $iniciadoPorId);
+                    foreach ($this->fetchPlaces($hub, $placesKey) as $punto) {
+                        $result = $this->upsertPunto($punto, $hub, self::ORIGEN_PLACES, $iniciadoPorId);
                         if ($result === 'nuevo') {
                             $nuevos++;
                         } elseif ($result === 'actualizado') {
@@ -64,7 +79,7 @@ final class VeterinariaProspectoMapaImportService
                         }
                     }
                 } catch (Throwable $e) {
-                    $errores[] = ($ciudad['slug'] ?? '?').' Places: '.$e->getMessage();
+                    $errores[] = $dep.' Places: '.$e->getMessage();
                 }
             }
         }
@@ -80,88 +95,111 @@ final class VeterinariaProspectoMapaImportService
 
     /**
      * Completa XY de prospectos norte que ya están en la lista pero sin GPS.
+     * Photon (rápido) + sesgo al departamento. Descarta resultados de “ciudad”.
      *
      * @return array{geocodificados: int, fallidos: int}
      */
-    public function geocodePendientesNorte(int $max = 25): array
+    public function geocodePendientesNorte(int $max = 25, ?string $departamento = null): array
     {
-        $deps = $this->departamentosNorte();
+        $deps = $departamento && $departamento !== 'todos'
+            ? [$departamento]
+            : $this->departamentosNorte();
+
         $rows = VeterinariaProspecto::query()
             ->whereNull('lat')
             ->whereIn('departamento', $deps)
+            ->where(function ($q): void {
+                $q->whereNotNull('direccion')->where('direccion', '!=', '');
+            })
             ->orderByDesc('capturado_at')
             ->limit($max)
             ->get();
 
         $ok = 0;
         $fail = 0;
+        $hubs = [];
 
         foreach ($rows as $row) {
+            $dep = (string) $row->departamento;
+            $hubs[$dep] ??= $this->hubDepartamento($dep);
             $q = trim(implode(', ', array_filter([
-                $row->nombre,
                 $row->direccion,
                 $row->distrito,
-                $row->provincia,
                 $row->departamento,
                 'Perú',
             ])));
 
-            try {
-                $hit = $this->nominatim($q);
-                if ($hit === null) {
-                    $fail++;
-                    usleep(1_100_000);
-
-                    continue;
-                }
-                $row->forceFill([
-                    'lat' => $hit['lat'],
-                    'lng' => $hit['lng'],
-                    'geo_source' => 'nominatim',
-                ])->save();
-                $ok++;
-            } catch (Throwable) {
+            $hit = $this->photon($q, (float) $hubs[$dep]['lat'], (float) $hubs[$dep]['lng']);
+            if ($hit === null) {
                 $fail++;
+
+                continue;
             }
 
-            usleep(1_100_000);
+            $row->forceFill([
+                'lat' => $hit['lat'],
+                'lng' => $hit['lng'],
+                'geo_source' => 'photon',
+            ])->save();
+            $ok++;
         }
 
         return ['geocodificados' => $ok, 'fallidos' => $fail];
     }
 
     /**
-     * @param  array{slug: string, departamento: string, provincia: string, distrito: ?string, lat: float, lng: float, radio_m: int}  $ciudad
+     * @param  array{0: float, 1: float, 2: float, 3: float}  $bbox  south, west, north, east
      * @return list<array{nombre: string, lat: float, lng: float, telefono: ?string, direccion: ?string, osm_id: ?string}>
      */
-    private function fetchOverpass(array $ciudad): array
+    private function fetchOverpassBbox(string $departamento, array $bbox): array
     {
-        $lat = (float) $ciudad['lat'];
-        $lng = (float) $ciudad['lng'];
-        $radio = (int) $ciudad['radio_m'];
+        [$s, $w, $n, $e] = array_map('floatval', $bbox);
         $ql = <<<QL
-[out:json][timeout:40];
+[out:json][timeout:20];
 (
-  nwr["amenity"="veterinary"](around:{$radio},{$lat},{$lng});
-  nwr["healthcare"="veterinary"](around:{$radio},{$lat},{$lng});
+  nwr["amenity"="veterinary"]({$s},{$w},{$n},{$e});
+  nwr["healthcare"="veterinary"]({$s},{$w},{$n},{$e});
 );
 out center tags;
 QL;
 
-        $url = (string) config('prospectos.overpass_url');
-        $response = Http::timeout(50)
-            ->withHeaders([
-                'User-Agent' => 'VetSaaSProspectos/1.0 (https://vetsaas.orvae.pe)',
-                'Accept' => 'application/json',
-            ])
-            ->asForm()
-            ->post($url, ['data' => $ql]);
+        $urls = array_values(array_unique(array_filter([
+            (string) config('prospectos.overpass_url'),
+            ...config('prospectos.overpass_mirrors', []),
+        ])));
 
-        if ($response->failed()) {
-            throw new \RuntimeException('HTTP '.$response->status());
+        $lastError = 'sin respuesta';
+        foreach ($urls as $url) {
+            try {
+                $response = Http::timeout(22)
+                    ->withHeaders([
+                        'User-Agent' => 'VetSaaSProspectos/1.0 (https://vetsaas.orvae.pe)',
+                        'Accept' => 'application/json',
+                    ])
+                    ->asForm()
+                    ->post($url, ['data' => $ql]);
+
+                if ($response->failed()) {
+                    $lastError = 'HTTP '.$response->status();
+
+                    continue;
+                }
+
+                return $this->parseOverpassElements($response->json('elements'));
+            } catch (Throwable $e) {
+                $lastError = $e->getMessage();
+            }
         }
 
-        $elements = $response->json('elements');
+        throw new \RuntimeException($departamento.': '.$lastError);
+    }
+
+    /**
+     * @param  mixed  $elements
+     * @return list<array{nombre: string, lat: float, lng: float, telefono: ?string, direccion: ?string, osm_id: ?string}>
+     */
+    private function parseOverpassElements(mixed $elements): array
+    {
         if (! is_array($elements)) {
             return [];
         }
@@ -183,14 +221,12 @@ QL;
             }
 
             $phone = $tags['phone'] ?? $tags['contact:phone'] ?? $tags['mobile'] ?? null;
-            $addr = $this->osmAddress($tags);
-
             $out[] = [
                 'nombre' => Str::limit($nombre, 195, ''),
                 'lat' => $ptLat,
                 'lng' => $ptLng,
                 'telefono' => is_string($phone) ? $phone : null,
-                'direccion' => $addr,
+                'direccion' => $this->osmAddress($tags),
                 'osm_id' => ($el['type'] ?? 'node').'/'.($el['id'] ?? ''),
             ];
         }
@@ -223,7 +259,7 @@ QL;
             'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
             [
                 'location' => $ciudad['lat'].','.$ciudad['lng'],
-                'radius' => min(40000, (int) $ciudad['radio_m']),
+                'radius' => 40000,
                 'type' => 'veterinary_care',
                 'language' => 'es',
                 'key' => $key,
@@ -270,32 +306,172 @@ QL;
     /**
      * @return array{lat: float, lng: float}|null
      */
-    private function nominatim(string $q): ?array
+    private function photon(string $q, float $biasLat, float $biasLng): ?array
     {
-        $response = Http::timeout(20)
-            ->withHeaders([
-                'User-Agent' => 'VetSaaSProspectos/1.0 (https://vetsaas.orvae.pe)',
-            ])
-            ->get('https://nominatim.openstreetmap.org/search', [
-                'q' => $q,
-                'format' => 'json',
-                'limit' => 1,
-                'countrycodes' => 'pe',
-            ]);
+        if ($q === '') {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(8)
+                ->withHeaders(['User-Agent' => 'VetSaaSProspectos/1.0 (https://vetsaas.orvae.pe)'])
+                ->get('https://photon.komoot.io/api/', [
+                    'q' => $q,
+                    'lat' => $biasLat,
+                    'lon' => $biasLng,
+                    'limit' => 1,
+                    'lang' => 'es',
+                ]);
+        } catch (Throwable) {
+            return null;
+        }
 
         if ($response->failed()) {
             return null;
         }
 
-        $first = $response->json('0');
-        if (! is_array($first) || ! isset($first['lat'], $first['lon'])) {
+        $props = $response->json('features.0.properties');
+        $coords = $response->json('features.0.geometry.coordinates');
+        if (! is_array($coords) || ! isset($coords[0], $coords[1])) {
             return null;
         }
 
+        $osmValue = is_array($props) ? (string) ($props['osm_value'] ?? '') : '';
+        if (in_array($osmValue, ['city', 'town', 'state', 'county', 'country', 'region'], true)) {
+            return null;
+        }
+
+        $lat = (float) $coords[1];
+        $lng = (float) $coords[0];
+        $km = $this->haversineKm($biasLat, $biasLng, $lat, $lng);
+        if ($km > 40) {
+            return null;
+        }
+
+        return ['lat' => $lat, 'lng' => $lng];
+    }
+
+    /**
+     * Pega coordenadas OSM (buenas) a prospectos de la lista sin XY o con geocode flojo.
+     *
+     * @param  list<array{nombre: string, lat: float, lng: float, osm_id: ?string, direccion: ?string}>  $puntos
+     */
+    private function pegarOsmAListaExistente(string $departamento, array $puntos): int
+    {
+        if ($puntos === []) {
+            return 0;
+        }
+
+        $rows = VeterinariaProspecto::query()
+            ->where('departamento', $departamento)
+            ->where(function ($q): void {
+                $q->whereNull('lat')
+                    ->orWhereIn('geo_source', ['nominatim', 'photon']);
+            })
+            ->get();
+
+        $n = 0;
+        foreach ($rows as $row) {
+            foreach ($puntos as $punto) {
+                if (! $this->nombresParecidos((string) $row->nombre, $punto['nombre'])) {
+                    continue;
+                }
+                $row->forceFill([
+                    'lat' => $punto['lat'],
+                    'lng' => $punto['lng'],
+                    'osm_id' => $row->osm_id ?: $punto['osm_id'],
+                    'geo_source' => 'osm',
+                    'direccion' => $row->direccion ?: $punto['direccion'],
+                ])->save();
+                $n++;
+                break;
+            }
+        }
+
+        return $n;
+    }
+
+    private function nombresParecidos(string $a, string $b): bool
+    {
+        $na = $this->normNombre($a);
+        $nb = $this->normNombre($b);
+        if ($na === '' || $nb === '') {
+            return false;
+        }
+        if ($na === $nb) {
+            return true;
+        }
+        if (mb_strlen($na) >= 5 && (str_contains($nb, $na) || str_contains($na, $nb))) {
+            return true;
+        }
+        similar_text($na, $nb, $pct);
+
+        return $pct >= 84;
+    }
+
+    private function normNombre(string $name): string
+    {
+        $n = mb_strtolower($name);
+        $n = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'u', 'n'], $n);
+        $n = (string) preg_replace('/\b(clinica|clínica|veterinaria|veterinario|hospital|consultorio|centro|pet|shop|spa)\b/u', '', $n);
+
+        return trim((string) preg_replace('/[^a-z0-9]+/u', ' ', $n));
+    }
+
+    /**
+     * @return array{departamento: string, provincia: string, distrito: ?string, lat: float, lng: float, radio_m: int, slug: string}
+     */
+    private function ciudadCercana(float $lat, float $lng, string $departamento): array
+    {
+        $best = $this->hubDepartamento($departamento);
+        $bestKm = PHP_FLOAT_MAX;
+        foreach (config('prospectos.norte_ciudades', []) as $c) {
+            if (($c['departamento'] ?? '') !== $departamento) {
+                continue;
+            }
+            $km = $this->haversineKm($lat, $lng, (float) $c['lat'], (float) $c['lng']);
+            if ($km < $bestKm) {
+                $bestKm = $km;
+                $best = $c;
+            }
+        }
+
+        return $best;
+    }
+
+    /**
+     * @return array{departamento: string, provincia: string, distrito: ?string, lat: float, lng: float, radio_m: int, slug: string}
+     */
+    private function hubDepartamento(string $departamento): array
+    {
+        foreach (config('prospectos.norte_ciudades', []) as $c) {
+            if (($c['departamento'] ?? '') === $departamento) {
+                return $c;
+            }
+        }
+
+        $origin = config('prospectos.norte_origin');
+
         return [
-            'lat' => (float) $first['lat'],
-            'lng' => (float) $first['lon'],
+            'slug' => Str::slug($departamento),
+            'departamento' => $departamento,
+            'provincia' => $departamento,
+            'distrito' => null,
+            'lat' => (float) ($origin['lat'] ?? -6.77),
+            'lng' => (float) ($origin['lng'] ?? -79.84),
+            'radio_m' => 20000,
         ];
+    }
+
+    private function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earth = 6371.0;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
+        return $earth * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     /**
@@ -307,7 +483,7 @@ QL;
         $existing = $this->findExistente($punto, $ciudad);
         if ($existing !== null) {
             $dirty = false;
-            if ($existing->lat === null) {
+            if ($existing->lat === null || in_array((string) $existing->geo_source, ['nominatim', 'photon', ''], true)) {
                 $existing->lat = $punto['lat'];
                 $existing->lng = $punto['lng'];
                 $existing->geo_source = $origen === self::ORIGEN_PLACES ? 'places' : 'osm';
@@ -376,10 +552,25 @@ QL;
             }
         }
 
-        return VeterinariaProspecto::query()
+        $exact = VeterinariaProspecto::query()
             ->where('departamento', $ciudad['departamento'])
             ->whereRaw('lower(nombre) = ?', [mb_strtolower($punto['nombre'])])
             ->first();
+        if ($exact !== null) {
+            return $exact;
+        }
+
+        $candidatos = VeterinariaProspecto::query()
+            ->where('departamento', $ciudad['departamento'])
+            ->get(['id', 'nombre']);
+
+        foreach ($candidatos as $row) {
+            if ($this->nombresParecidos((string) $row->nombre, $punto['nombre'])) {
+                return VeterinariaProspecto::query()->whereKey($row->id)->first();
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -387,7 +578,7 @@ QL;
      */
     public function departamentosNorte(): array
     {
-        $deps = [];
+        $deps = array_keys(config('prospectos.norte_bboxes', []));
         foreach (config('prospectos.norte_ciudades', []) as $c) {
             $dep = $c['departamento'] ?? null;
             if (is_string($dep) && ! in_array($dep, $deps, true)) {
@@ -395,6 +586,6 @@ QL;
             }
         }
 
-        return $deps;
+        return array_values($deps);
     }
 }

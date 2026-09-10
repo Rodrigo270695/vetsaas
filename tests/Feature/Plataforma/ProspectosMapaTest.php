@@ -29,15 +29,9 @@ beforeEach(function (): void {
 });
 
 it('importa veterinarias OSM con lat lng y arma ruta en Lambayeque', function (): void {
-    config(['prospectos.norte_ciudades' => [[
-        'slug' => 'lambayeque',
-        'departamento' => 'Lambayeque',
-        'provincia' => 'Lambayeque',
-        'distrito' => 'Lambayeque',
-        'lat' => -6.7018,
-        'lng' => -79.9061,
-        'radio_m' => 5000,
-    ]]]);
+    config(['prospectos.norte_bboxes' => [
+        'Lambayeque' => [-7.22, -80.12, -5.92, -79.32],
+    ]]);
     config(['prospectos.places_api_key' => '']);
 
     Http::fake([
