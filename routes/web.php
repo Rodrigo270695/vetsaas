@@ -1817,6 +1817,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
 
         // ── Prospección comercial: veterinarias capturadas por scraping o a mano ──
         Route::middleware('permission:plataforma-prospectos.view')
+            ->get('prospectos-veterinarias/mapa', [ProspectoVeterinariaController::class, 'mapa'])
+            ->name('prospectos-veterinarias.mapa');
+        Route::middleware('permission:plataforma-prospectos.create')
+            ->post('prospectos-veterinarias/mapa/import', [ProspectoVeterinariaController::class, 'importMapa'])
+            ->name('prospectos-veterinarias.mapa.import');
+        Route::middleware('permission:plataforma-prospectos.create')
+            ->post('prospectos-veterinarias/mapa/geocode', [ProspectoVeterinariaController::class, 'geocodeMapa'])
+            ->name('prospectos-veterinarias.mapa.geocode');
+        Route::middleware('permission:plataforma-prospectos.view')
             ->get('prospectos-veterinarias', [ProspectoVeterinariaController::class, 'index'])
             ->name('prospectos-veterinarias.index');
         Route::middleware('permission:plataforma-prospectos.create')
@@ -1825,6 +1834,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-prospectos.create')
             ->post('prospectos-veterinarias/scrape', [ProspectoVeterinariaController::class, 'scrapeNow'])
             ->name('prospectos-veterinarias.scrape');
+        Route::middleware('permission:plataforma-prospectos.update')
+            ->post('prospectos-veterinarias/{prospecto}/volante', [ProspectoVeterinariaController::class, 'marcarVolante'])
+            ->name('prospectos-veterinarias.volante');
         Route::middleware('permission:plataforma-prospectos.update')
             ->post('prospectos-veterinarias/{prospecto}/estado', [ProspectoVeterinariaController::class, 'updateEstado'])
             ->name('prospectos-veterinarias.update-estado');

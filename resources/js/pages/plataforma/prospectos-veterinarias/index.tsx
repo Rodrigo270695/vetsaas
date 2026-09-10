@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     Bot,
     Building2,
@@ -48,7 +48,7 @@ import { OutreachConfigModal, type OutreachSettings } from './components/outreac
 import { ScrapingLoaderModal } from './components/scraping-loader-modal';
 
 type Tipo = 'clinica' | 'hospital';
-type Origen = 'manual' | 'scraping_auto';
+type Origen = 'manual' | 'scraping_auto' | 'osm_mapa' | 'google_places';
 type Estado =
     | 'nuevo'
     | 'contactado'
@@ -716,6 +716,13 @@ export default function ProspectosVeterinariasIndex({
                             variant="info"
                             icon={UserPlus}
                         />
+                    ) : p.origen === 'osm_mapa' || p.origen === 'google_places' ? (
+                        <StatBadge
+                            label="Mapa"
+                            value=""
+                            variant="success"
+                            icon={MapPin}
+                        />
                     ) : (
                         <StatBadge
                             label="Scraping"
@@ -891,6 +898,12 @@ export default function ProspectosVeterinariasIndex({
                     ]}
                     action={
                         <div className="flex flex-wrap items-center gap-2">
+                            <Button variant="outline" size="sm" className="cursor-pointer gap-1.5" asChild>
+                                <Link href="/plataforma/prospectos-veterinarias/mapa">
+                                    <MapPin className="size-3.5" />
+                                    Ruta volantes
+                                </Link>
+                            </Button>
                             {canCreate && (
                                 <Button
                                     type="button"

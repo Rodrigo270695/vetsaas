@@ -9,7 +9,9 @@ use App\Models\VeterinariaProspecto;
 use App\Models\VeterinariaProspectoOutreachSetting;
 use App\Models\VeterinariaProspectoScrapeRun;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
+use App\Services\Prospectos\VeterinariaProspectoMapaImportService;
 use App\Services\Prospectos\VeterinariaProspectoOutreachService;
+use App\Services\Prospectos\VeterinariaProspectoRutaService;
 use App\Services\Prospectos\VeterinariaProspectoScraperService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -493,5 +495,108 @@ final class ProspectoVeterinariaController extends Controller
         $setting->update($payload);
 
         return back()->with('success', 'Configuración de envío guardada.');
+    }
+
+    public function mapa(
+        Request $request,
+        VeterinariaProspectoMapaImportService $import,
+        VeterinariaProspectoRutaService $rutas,
+    ): Response {
+        $deps = $import->departamentosNorte();
+        $departamento = trim((string) $request->input('departamento', 'Lambayeque'));
+        if ($departamento !== 'todos' && ! in_array($departamento, $deps, true)) {
+            $departamento = 'Lambayeque';
+        }
+
+        $origin = config('prospectos.norte_origin');
+        $originLat = (float) $request->input('origin_lat', $origin['lat']);
+        $originLng = (float) $request->input('origin_lng', $origin['lng']);
+        $max = (int) $request->input('max', (int) config('prospectos.norte_ruta_max', 18));
+        $max = max(5, min(30, $max));
+
+        $query = VeterinariaProspecto::query()
+            ->whereNotNull('lat')
+            ->whereNotNull('lng')
+            ->whereNull('volante_visitado_at')
+            ->where('estado', '!=', 'no_interesado');
+
+        if ($departamento !== 'todos') {
+            $query->where('departamento', $departamento);
+        } else {
+            $query->whereIn('departamento', $deps);
+        }
+
+        $candidatos = $query->limit(400)->get();
+        $ruta = $rutas->ordenar($candidatos, $originLat, $originLng, $max);
+        $mapsUrl = $rutas->googleMapsDirUrl($originLat, $originLng, array_map(
+            static fn (array $s): array => ['lat' => $s['lat'], 'lng' => $s['lng']],
+            $ruta,
+        ));
+
+        $conXy = VeterinariaProspecto::query()
+            ->whereNotNull('lat')
+            ->whereIn('departamento', $deps)
+            ->count();
+
+        $sinXy = VeterinariaProspecto::query()
+            ->whereNull('lat')
+            ->whereIn('departamento', $deps)
+            ->count();
+
+        return Inertia::render('plataforma/prospectos-veterinarias/mapa', [
+            'departamento' => $departamento,
+            'departamentos' => array_merge(['todos'], $deps),
+            'origin' => [
+                'lat' => $originLat,
+                'lng' => $originLng,
+                'label' => $origin['label'] ?? 'Origen',
+            ],
+            'max' => $max,
+            'ruta' => $ruta,
+            'maps_url' => $mapsUrl,
+            'places_configurado' => trim((string) config('prospectos.places_api_key', '')) !== '',
+            'stats' => [
+                'con_xy' => $conXy,
+                'sin_xy' => $sinXy,
+                'en_ruta' => count($ruta),
+                'km_aprox' => round(array_sum(array_column($ruta, 'km_desde_anterior')), 1),
+            ],
+        ]);
+    }
+
+    public function importMapa(
+        Request $request,
+        VeterinariaProspectoMapaImportService $import,
+    ): RedirectResponse {
+        $result = $import->importNorte(iniciadoPorId: $request->user()?->id);
+
+        $msg = "Mapa norte: {$result['nuevos']} nuevas, {$result['actualizados']} con XY actualizado.";
+        if ($result['errores'] !== []) {
+            $msg .= ' Algunos puntos fallaron ('.count($result['errores']).').';
+        }
+        if (! $result['places']) {
+            $msg .= ' Sin GOOGLE_PLACES_API_KEY: se usó OpenStreetMap.';
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    public function geocodeMapa(VeterinariaProspectoMapaImportService $import): RedirectResponse
+    {
+        $result = $import->geocodePendientesNorte(20);
+
+        return back()->with(
+            'success',
+            "Geocodificados {$result['geocodificados']} de la lista norte. Fallaron {$result['fallidos']}.",
+        );
+    }
+
+    public function marcarVolante(VeterinariaProspecto $prospecto): RedirectResponse
+    {
+        $prospecto->forceFill([
+            'volante_visitado_at' => $prospecto->volante_visitado_at ? null : now(),
+        ])->save();
+
+        return back();
     }
 }

@@ -35,6 +35,43 @@ return [
 
     'outreach_imagen_url' => env('PROSPECTOS_OUTREACH_IMAGEN_URL'),
 
+    /**
+     * Mapa / ruta de volantes. XY desde OpenStreetMap (Overpass).
+     * Opcional: GOOGLE_PLACES_API_KEY para densificar con Places.
+     */
+    'overpass_url' => env('PROSPECTOS_OVERPASS_URL', 'https://overpass-api.de/api/interpreter'),
+
+    'places_api_key' => env('GOOGLE_PLACES_API_KEY', ''),
+
+    'norte_origin' => [
+        'lat' => -6.7018,
+        'lng' => -79.9061,
+        'label' => 'Lambayeque',
+    ],
+
+    'norte_ruta_max' => 18,
+
+    'norte_ciudades' => [
+        ['slug' => 'lambayeque', 'departamento' => 'Lambayeque', 'provincia' => 'Lambayeque', 'distrito' => 'Lambayeque', 'lat' => -6.7018, 'lng' => -79.9061, 'radio_m' => 14000],
+        ['slug' => 'chiclayo', 'departamento' => 'Lambayeque', 'provincia' => 'Chiclayo', 'distrito' => 'Chiclayo', 'lat' => -6.7714, 'lng' => -79.8409, 'radio_m' => 16000],
+        ['slug' => 'jose-leonardo-ortiz', 'departamento' => 'Lambayeque', 'provincia' => 'Chiclayo', 'distrito' => 'José Leonardo Ortiz', 'lat' => -6.7630, 'lng' => -79.8340, 'radio_m' => 8000],
+        ['slug' => 'la-victoria-lambayeque', 'departamento' => 'Lambayeque', 'provincia' => 'Chiclayo', 'distrito' => 'La Victoria', 'lat' => -6.7950, 'lng' => -79.8440, 'radio_m' => 8000],
+        ['slug' => 'pimentel', 'departamento' => 'Lambayeque', 'provincia' => 'Chiclayo', 'distrito' => 'Pimentel', 'lat' => -6.8360, 'lng' => -79.9340, 'radio_m' => 7000],
+        ['slug' => 'ferrenafe', 'departamento' => 'Lambayeque', 'provincia' => 'Ferreñafe', 'distrito' => 'Ferreñafe', 'lat' => -6.6390, 'lng' => -79.7880, 'radio_m' => 9000],
+        ['slug' => 'monsefu', 'departamento' => 'Lambayeque', 'provincia' => 'Chiclayo', 'distrito' => 'Monsefú', 'lat' => -6.8780, 'lng' => -79.8720, 'radio_m' => 7000],
+        ['slug' => 'piura', 'departamento' => 'Piura', 'provincia' => 'Piura', 'distrito' => 'Piura', 'lat' => -5.1945, 'lng' => -80.6328, 'radio_m' => 16000],
+        ['slug' => 'castilla', 'departamento' => 'Piura', 'provincia' => 'Piura', 'distrito' => 'Castilla', 'lat' => -5.2010, 'lng' => -80.6220, 'radio_m' => 7000],
+        ['slug' => 'sullana', 'departamento' => 'Piura', 'provincia' => 'Sullana', 'distrito' => 'Sullana', 'lat' => -4.9036, 'lng' => -80.6853, 'radio_m' => 10000],
+        ['slug' => 'paita', 'departamento' => 'Piura', 'provincia' => 'Paita', 'distrito' => 'Paita', 'lat' => -5.0892, 'lng' => -81.1144, 'radio_m' => 8000],
+        ['slug' => 'talara', 'departamento' => 'Piura', 'provincia' => 'Talara', 'distrito' => 'Pariñas', 'lat' => -4.5772, 'lng' => -81.2719, 'radio_m' => 8000],
+        ['slug' => 'trujillo', 'departamento' => 'La Libertad', 'provincia' => 'Trujillo', 'distrito' => 'Trujillo', 'lat' => -8.1116, 'lng' => -79.0288, 'radio_m' => 16000],
+        ['slug' => 'victor-larco', 'departamento' => 'La Libertad', 'provincia' => 'Trujillo', 'distrito' => 'Víctor Larco Herrera', 'lat' => -8.1360, 'lng' => -79.0350, 'radio_m' => 7000],
+        ['slug' => 'tumbes', 'departamento' => 'Tumbes', 'provincia' => 'Tumbes', 'distrito' => 'Tumbes', 'lat' => -3.5669, 'lng' => -80.4515, 'radio_m' => 12000],
+        ['slug' => 'zarumilla', 'departamento' => 'Tumbes', 'provincia' => 'Zarumilla', 'distrito' => 'Zarumilla', 'lat' => -3.5030, 'lng' => -80.2730, 'radio_m' => 8000],
+        ['slug' => 'cajamarca', 'departamento' => 'Cajamarca', 'provincia' => 'Cajamarca', 'distrito' => 'Cajamarca', 'lat' => -7.1638, 'lng' => -78.5003, 'radio_m' => 12000],
+        ['slug' => 'chimbote', 'departamento' => 'Áncash', 'provincia' => 'Santa', 'distrito' => 'Chimbote', 'lat' => -9.0745, 'lng' => -78.5937, 'radio_m' => 12000],
+    ],
+
     'ubicaciones' => [
         // ── Lima Metropolitana (distritos) ──
         ['slug' => 'lima/barranco', 'departamento' => 'Lima', 'provincia' => 'Lima', 'distrito' => 'Barranco'],

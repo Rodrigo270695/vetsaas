@@ -54,6 +54,10 @@ class VeterinariaProspecto extends Model
 
     public const ORIGEN_SCRAPING = 'scraping_auto';
 
+    public const ORIGEN_OSM = 'osm_mapa';
+
+    public const ORIGEN_PLACES = 'google_places';
+
     public const ESTADOS = [
         'nuevo',
         'contactado',
@@ -73,6 +77,10 @@ class VeterinariaProspecto extends Model
         'departamento',
         'provincia',
         'distrito',
+        'lat',
+        'lng',
+        'osm_id',
+        'geo_source',
         'horario',
         'es_24_horas',
         'fuente_sitio',
@@ -85,6 +93,7 @@ class VeterinariaProspecto extends Model
         'mensaje_enviado_por_id',
         'mensaje_intentos',
         'mensaje_error',
+        'volante_visitado_at',
         'capturado_at',
         'creado_por_id',
     ];
@@ -96,6 +105,9 @@ class VeterinariaProspecto extends Model
             'capturado_at' => 'datetime',
             'mensaje_enviado_at' => 'datetime',
             'mensaje_intentos' => 'integer',
+            'volante_visitado_at' => 'datetime',
+            'lat' => 'float',
+            'lng' => 'float',
         ];
     }
 
