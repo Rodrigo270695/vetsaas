@@ -82,6 +82,7 @@ type Props = {
         with_session: number;
         without_session: number;
         ready: number;
+        ready_stale: number;
         not_ready: number;
         with_error: number;
         disconnected: number;
@@ -162,6 +163,7 @@ export default function PlataformaWhatsAppSaludIndex({
         with_session: 0,
         without_session: 0,
         ready: 0,
+        ready_stale: 0,
         not_ready: 0,
         with_error: 0,
         disconnected: 0,
@@ -480,6 +482,12 @@ export default function PlataformaWhatsAppSaludIndex({
                         value={stats.ready}
                         variant="success"
                         onClick={() => applyFilter({ scope: 'listos' })}
+                    />
+                    <StatBadge
+                        label={t('stats.ready_stale')}
+                        value={stats.ready_stale}
+                        variant={stats.ready_stale > 0 ? 'warning' : 'muted'}
+                        onClick={() => applyFilter({ scope: 'stale' })}
                     />
                     <StatBadge
                         icon={WifiOff}

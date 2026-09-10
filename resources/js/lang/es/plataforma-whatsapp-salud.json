@@ -1,9 +1,9 @@
 {
     "title": "Salud WhatsApp",
-    "description": "Estado de OpenWA por clínica, leído de la base local. Al abrir ves solo las sesiones listas. Reiniciar o detener sí habla con OpenWA.",
+    "description": "Estado de OpenWA por clínica, leído de la base local. «Listas» solo muestra sync reciente (no es el panel de OpenWA). Reiniciar o detener sí habla con OpenWA.",
     "refresh": "Actualizar",
     "search_placeholder": "Buscar clínica, slug o teléfono…",
-    "cache_note": "La lista no consulta OpenWA. El cron sincroniza cada 5 min; una sesión se marca desfasada si no sync-eó en {{minutes}} min.",
+    "cache_note": "Esta pantalla no es OpenWA en vivo. El cron sincroniza un lote cada 5 min. «Listas» exige sync de menos de {{minutes}} min; si OpenWA tiene 2 conectadas y acá ves 12, esas 12 están desfasadas.",
     "rate_limited": "OpenWA está en cooldown 429. No reinicies sesiones hasta que baje el aviso; el cron también se pausa.",
     "openwa_off": "OpenWA no está configurado en esta instancia.",
     "needs_qr_alert_title": "Hay clínicas que tienen que volver a escanear el QR",
@@ -17,6 +17,7 @@
     },
     "stats": {
         "ready": "Listas",
+        "ready_stale": "Listas desfasadas",
         "not_ready": "No listas",
         "with_error": "Con error",
         "without_session": "Sin sesión",

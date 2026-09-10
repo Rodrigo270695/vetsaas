@@ -122,7 +122,9 @@ final class WhatsAppHealthRadarService
             'listos' => $query->where('tws.status', TenantWhatsAppSession::STATUS_READY)
                 ->where(function (Builder $q): void {
                     $q->whereNull('tws.last_error')->orWhere('tws.last_error', '');
-                }),
+                })
+                ->whereNotNull('tws.last_synced_at')
+                ->where('tws.last_synced_at', '>=', $staleBefore),
             'error' => $query->whereNotNull('tws.last_error')->where('tws.last_error', '!=', ''),
             'desconectados' => $query->whereIn('tws.status', ['disconnected', 'failed']),
             'sin_sesion' => $query->whereNull('tws.id'),
@@ -186,7 +188,12 @@ SQL;
         $sessions = TenantWhatsAppSession::query()
             ->whereIn('tenant_id', (clone $living)->select('id'));
 
-        $ready = (clone $sessions)->where('status', TenantWhatsAppSession::STATUS_READY)->count();
+        $readyAll = (clone $sessions)->where('status', TenantWhatsAppSession::STATUS_READY);
+        $ready = (clone $readyAll)
+            ->whereNotNull('last_synced_at')
+            ->where('last_synced_at', '>=', $staleBefore)
+            ->count();
+        $readyStale = max(0, (clone $readyAll)->count() - $ready);
         $withError = (clone $sessions)
             ->whereNotNull('last_error')
             ->where('last_error', '!=', '')
@@ -219,7 +226,8 @@ SQL;
             'with_session' => $withSession,
             'without_session' => max(0, $livingCount - $withSession),
             'ready' => $ready,
-            'not_ready' => max(0, $withSession - $ready),
+            'ready_stale' => $readyStale,
+            'not_ready' => max(0, $withSession - (clone $readyAll)->count()),
             'with_error' => $withError,
             'disconnected' => $disconnected,
             'stale' => $stale,

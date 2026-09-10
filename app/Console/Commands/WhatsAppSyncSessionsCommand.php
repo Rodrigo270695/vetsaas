@@ -61,24 +61,38 @@ class WhatsAppSyncSessionsCommand extends Command
         $tenants = Tenant::query()
             ->whereIn('estado', ['trial', 'active'])
             ->with('whatsappSession')
-            ->get()
-            ->sortBy(function (Tenant $tenant): string {
-                $session = $tenant->whatsappSession;
-                $status = (string) ($session?->status ?? '');
-                $reconnect = (bool) ($session?->auto_reconnect ?? true);
-                $synced = (string) ($session?->last_synced_at?->toIso8601String() ?? '1970-01-01');
+            ->get();
 
-                $priority = '3';
-                if ($session !== null && $reconnect && in_array($status, ['disconnected', 'failed'], true)) {
-                    $priority = '0';
-                } elseif ($session !== null && $reconnect && $status !== 'ready') {
-                    $priority = '1';
-                } elseif ($session === null) {
-                    $priority = '2';
+        $byOldestSync = fn (Tenant $tenant): string => (string) (
+            $tenant->whatsappSession?->last_synced_at?->toIso8601String() ?? '1970-01-01'
+        );
+
+        $down = $tenants
+            ->filter(function (Tenant $tenant): bool {
+                $session = $tenant->whatsappSession;
+                if ($session === null || ! $session->auto_reconnect) {
+                    return false;
                 }
 
-                return $priority.'-'.$synced;
+                return in_array((string) $session->status, ['disconnected', 'failed'], true);
             })
+            ->sortBy($byOldestSync)
+            ->values();
+
+        $rest = $tenants
+            ->reject(fn (Tenant $tenant): bool => $down->contains('id', $tenant->id))
+            ->sortBy($byOldestSync)
+            ->values();
+
+        $reconnectSlots = min(
+            $down->count(),
+            max(0, (int) config('openwa.sync_max_reconnects_per_run', 2)),
+        );
+
+        $tenants = $down->take($reconnectSlots)
+            ->concat($rest)
+            ->concat($down->slice($reconnectSlots))
+            ->unique('id')
             ->values();
 
         foreach ($tenants as $tenant) {
