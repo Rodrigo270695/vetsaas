@@ -128,7 +128,7 @@ export function SalaEsperaHeaderPopover() {
                     ) : null}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 p-0" sideOffset={8}>
+            <PopoverContent align="end" className="w-[22rem] p-0" sideOffset={8}>
                 <div className="border-b border-border/60 px-3 py-2.5">
                     <p className="text-sm font-semibold text-foreground">
                         {t('sala_espera.title')}
@@ -151,14 +151,16 @@ export function SalaEsperaHeaderPopover() {
                         </p>
                     ) : (
                         <>
-                            {data.espera.map((item) => (
-                                <SalaEsperaRow
-                                    key={`${item.tipo}-${item.id}`}
-                                    item={item}
-                                    tipoLabel={t(`sala_espera.${item.tipo}`)}
-                                    onNavigate={() => setOpen(false)}
-                                />
-                            ))}
+                            <SalaEsperaGroup
+                                items={data.espera.filter((i) => i.tipo === 'cita')}
+                                title={t('sala_espera.cita')}
+                                onNavigate={() => setOpen(false)}
+                            />
+                            <SalaEsperaGroup
+                                items={data.espera.filter((i) => i.tipo === 'grooming')}
+                                title={t('sala_espera.grooming')}
+                                onNavigate={() => setOpen(false)}
+                            />
                             {data.en_curso.length > 0 ? (
                                 <>
                                     <p className="mt-2 px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -218,6 +220,36 @@ export function SalaEsperaHeaderPopover() {
     );
 }
 
+function SalaEsperaGroup({
+    items,
+    title,
+    onNavigate,
+}: {
+    items: SalaItem[];
+    title: string;
+    onNavigate: () => void;
+}) {
+    if (items.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="mb-1">
+            <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {title}
+            </p>
+            {items.map((item) => (
+                <SalaEsperaRow
+                    key={`${item.tipo}-${item.id}`}
+                    item={item}
+                    tipoLabel={title}
+                    onNavigate={onNavigate}
+                />
+            ))}
+        </div>
+    );
+}
+
 function SalaEsperaRow({
     item,
     tipoLabel,
@@ -229,6 +261,8 @@ function SalaEsperaRow({
     muted?: boolean;
     onNavigate: () => void;
 }) {
+    const isGrooming = item.tipo === 'grooming';
+
     return (
         <Link
             href={item.href}
@@ -238,10 +272,10 @@ function SalaEsperaRow({
                 muted && 'opacity-80',
             )}
         >
-            {item.tipo === 'grooming' ? (
-                <Scissors className="size-3.5 shrink-0 text-muted-foreground" />
+            {isGrooming ? (
+                <Scissors className="size-3.5 shrink-0 text-violet-600 dark:text-violet-300" />
             ) : (
-                <CalendarClock className="size-3.5 shrink-0 text-muted-foreground" />
+                <CalendarClock className="size-3.5 shrink-0 text-sky-600 dark:text-sky-300" />
             )}
             <span className="min-w-0 flex-1 truncate font-medium text-foreground">
                 {item.paciente}
@@ -249,7 +283,14 @@ function SalaEsperaRow({
             <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                 {item.hora}
             </span>
-            <span className="hidden shrink-0 text-[10px] text-muted-foreground sm:inline">
+            <span
+                className={cn(
+                    'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                    isGrooming
+                        ? 'bg-violet-500/15 text-violet-800 dark:text-violet-200'
+                        : 'bg-sky-500/15 text-sky-800 dark:text-sky-200',
+                )}
+            >
                 {tipoLabel}
             </span>
         </Link>
