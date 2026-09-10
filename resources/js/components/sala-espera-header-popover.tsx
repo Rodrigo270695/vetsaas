@@ -100,6 +100,9 @@ export function SalaEsperaHeaderPopover() {
         return null;
     }
 
+    const esperaCitas = data.espera.filter((i) => i.tipo === 'cita');
+    const esperaGrooming = data.espera.filter((i) => i.tipo === 'grooming');
+    const listLong = data.espera.length + data.en_curso.length > 6;
     const badge = data.count > 99 ? '99+' : String(data.count);
 
     return (
@@ -117,10 +120,10 @@ export function SalaEsperaHeaderPopover() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="relative size-9 cursor-pointer text-muted-foreground hover:text-foreground"
+                    className="relative size-9 cursor-pointer text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:text-amber-300"
                     aria-label={t('sala_espera.title')}
                 >
-                    <CalendarClock className="size-4" strokeWidth={2.1} />
+                    <CalendarClock className="size-4" strokeWidth={2.25} />
                     {data.count > 0 ? (
                         <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-white">
                             {badge}
@@ -128,17 +131,25 @@ export function SalaEsperaHeaderPopover() {
                     ) : null}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-[22rem] p-0" sideOffset={8}>
-                <div className="border-b border-border/60 px-3 py-2.5">
+            <PopoverContent
+                align="end"
+                className="flex w-[22rem] max-h-[min(28rem,70vh)] flex-col overflow-hidden p-0"
+                sideOffset={8}
+            >
+                <div className="shrink-0 border-b border-border/60 px-3 py-2.5">
                     <p className="text-sm font-semibold text-foreground">
                         {t('sala_espera.title')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                        {t('sala_espera.subtitle')}
+                        {data.count > 0
+                            ? t('sala_espera.count_waiting', {
+                                  count: data.count,
+                              })
+                            : t('sala_espera.subtitle')}
                     </p>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto p-2">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
                     {error ? (
                         <p className="px-2 py-6 text-center text-sm text-destructive">
                             {t('sala_espera.error')}
@@ -152,18 +163,18 @@ export function SalaEsperaHeaderPopover() {
                     ) : (
                         <>
                             <SalaEsperaGroup
-                                items={data.espera.filter((i) => i.tipo === 'cita')}
+                                items={esperaCitas}
                                 title={t('sala_espera.cita')}
                                 onNavigate={() => setOpen(false)}
                             />
                             <SalaEsperaGroup
-                                items={data.espera.filter((i) => i.tipo === 'grooming')}
+                                items={esperaGrooming}
                                 title={t('sala_espera.grooming')}
                                 onNavigate={() => setOpen(false)}
                             />
                             {data.en_curso.length > 0 ? (
                                 <>
-                                    <p className="mt-2 px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                    <p className="sticky top-0 z-10 mt-1 bg-popover px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                                         {t('sala_espera.en_curso')}
                                     </p>
                                     {data.en_curso.map((item) => (
@@ -183,7 +194,13 @@ export function SalaEsperaHeaderPopover() {
                     )}
                 </div>
 
-                <div className="flex gap-1 border-t border-border/60 p-2">
+                <div className="shrink-0 border-t border-border/60">
+                    {listLong ? (
+                        <p className="px-3 pt-2 text-[11px] text-muted-foreground">
+                            {t('sala_espera.scroll_hint')}
+                        </p>
+                    ) : null}
+                    <div className="flex gap-1 p-2">
                     {canCitas ? (
                         <Button
                             variant="ghost"
@@ -214,6 +231,7 @@ export function SalaEsperaHeaderPopover() {
                             </Link>
                         </Button>
                     ) : null}
+                    </div>
                 </div>
             </PopoverContent>
         </Popover>
@@ -235,8 +253,9 @@ function SalaEsperaGroup({
 
     return (
         <div className="mb-1">
-            <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="sticky top-0 z-10 bg-popover px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 {title}
+                <span className="ml-1 tabular-nums">({items.length})</span>
             </p>
             {items.map((item) => (
                 <SalaEsperaRow

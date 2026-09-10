@@ -157,6 +157,8 @@
         "title": "Waiting room",
         "subtitle": "Today’s appointments",
         "empty": "Nobody waiting right now.",
+        "count_waiting": "{{count}} waiting",
+        "scroll_hint": "Scroll the list. For the full day use Appointments or Grooming.",
         "en_curso": "In progress",
         "cita": "Consult",
         "grooming": "Grooming",

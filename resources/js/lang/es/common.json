@@ -157,6 +157,8 @@
         "title": "Sala de espera",
         "subtitle": "Turnos de hoy",
         "empty": "Nadie en espera ahora.",
+        "count_waiting": "{{count}} en espera",
+        "scroll_hint": "Desplazá la lista. Para el día completo usá Citas o Peluquería.",
         "en_curso": "En atención",
         "cita": "Consulta",
         "grooming": "Peluquería",
