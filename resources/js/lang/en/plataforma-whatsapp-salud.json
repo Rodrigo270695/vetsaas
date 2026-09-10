@@ -1,11 +1,13 @@
 {
     "title": "WhatsApp health",
-    "description": "OpenWA status per clinic from local DB. Restart/stop do talk to OpenWA.",
+    "description": "OpenWA status per clinic from local DB. The default view is ready sessions. Restart/stop do talk to OpenWA.",
     "refresh": "Refresh",
     "search_placeholder": "Search clinic, slug or phone…",
     "cache_note": "This list does not call OpenWA. Cron syncs every 5 min; a session is stale if it was not synced in {{minutes}} min.",
     "rate_limited": "OpenWA is in a 429 cooldown. Do not restart sessions until this clears; cron is paused too.",
     "openwa_off": "OpenWA is not configured on this instance.",
+    "needs_qr_alert_title": "Some clinics must scan the QR again",
+    "needs_qr_alert": "{{count}} session(s) are on QR or disconnected with no phone. Auto-reconnect will not restore them; the clinic must link again.",
     "platform": {
         "title": "Platform session",
         "ready": "Ready",
@@ -19,7 +21,8 @@
         "with_error": "With error",
         "without_session": "No session",
         "stale": "Stale",
-        "reconnect_off": "Auto-reconnect off"
+        "reconnect_off": "Auto-reconnect off",
+        "needs_qr": "Need QR"
     },
     "scope": {
         "problemas": "Problems",
@@ -29,7 +32,8 @@
         "desconectados": "Disconnected",
         "sin_sesion": "No session",
         "stale": "Stale",
-        "sin_reconnect": "Auto-reconnect off"
+        "sin_reconnect": "Auto-reconnect off",
+        "needs_qr": "Need QR"
     },
     "columns": {
         "tenant": "Clinic",
@@ -60,6 +64,8 @@
     "empty": {
         "title": "No problems in view",
         "description": "No living clinic matches this filter. Try “All” to see the full list.",
+        "listos_title": "No ready sessions right now",
+        "listos_description": "Only clinics with WhatsApp ready appear here. Check Problems, Disconnected, or Need QR.",
         "filtered_title": "No matches",
         "filtered_description": "Change the search or filter."
     }

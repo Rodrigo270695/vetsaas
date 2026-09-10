@@ -7,6 +7,7 @@ import {
     Smartphone,
     Square,
     WifiOff,
+    QrCode,
 } from 'lucide-react';
 import { useCallback, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -58,7 +59,8 @@ type Scope =
     | 'desconectados'
     | 'sin_sesion'
     | 'stale'
-    | 'sin_reconnect';
+    | 'sin_reconnect'
+    | 'needs_qr';
 
 type PageFilters = {
     search: string;
@@ -85,6 +87,7 @@ type Props = {
         disconnected: number;
         stale: number;
         reconnect_off: number;
+        needs_qr: number;
         openwa_configured: boolean;
         rate_limited: boolean;
         stale_minutes: number;
@@ -124,6 +127,7 @@ const SCOPES: Scope[] = [
     'sin_sesion',
     'stale',
     'sin_reconnect',
+    'needs_qr',
 ];
 
 const formatWhen = (value: string | null): string => {
@@ -152,7 +156,7 @@ const statusKey = (row: HealthRow): string => {
 
 export default function PlataformaWhatsAppSaludIndex({
     items: paginated = EMPTY_PAGINATED,
-    filters = { search: '', scope: 'problemas', per_page: DEFAULT_PER_PAGE },
+    filters = { search: '', scope: 'listos', per_page: DEFAULT_PER_PAGE },
     stats = {
         living: 0,
         with_session: 0,
@@ -163,6 +167,7 @@ export default function PlataformaWhatsAppSaludIndex({
         disconnected: 0,
         stale: 0,
         reconnect_off: 0,
+        needs_qr: 0,
         openwa_configured: false,
         rate_limited: false,
         stale_minutes: 15,
@@ -380,7 +385,7 @@ export default function PlataformaWhatsAppSaludIndex({
     );
 
     const isEmpty =
-        paginated.total === 0 && !filters.search && filters.scope === 'problemas';
+        paginated.total === 0 && !filters.search;
     const isFilteredEmpty = paginated.total === 0 && !isEmpty;
 
     return (
@@ -428,6 +433,16 @@ export default function PlataformaWhatsAppSaludIndex({
                     </Alert>
                 ) : null}
 
+                {stats.needs_qr > 0 ? (
+                    <Alert>
+                        <QrCode />
+                        <AlertTitle>{t('needs_qr_alert_title')}</AlertTitle>
+                        <AlertDescription>
+                            {t('needs_qr_alert', { count: stats.needs_qr })}
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
+
                 <div className="rounded-xl border border-border/60 bg-card px-4 py-3">
                     <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         {t('platform.title')}
@@ -464,34 +479,47 @@ export default function PlataformaWhatsAppSaludIndex({
                         label={t('stats.ready')}
                         value={stats.ready}
                         variant="success"
+                        onClick={() => applyFilter({ scope: 'listos' })}
                     />
                     <StatBadge
                         icon={WifiOff}
                         label={t('stats.not_ready')}
                         value={stats.not_ready}
                         variant={stats.not_ready > 0 ? 'warning' : 'muted'}
+                        onClick={() => applyFilter({ scope: 'desconectados' })}
                     />
                     <StatBadge
                         icon={AlertTriangle}
                         label={t('stats.with_error')}
                         value={stats.with_error}
                         variant={stats.with_error > 0 ? 'danger' : 'muted'}
+                        onClick={() => applyFilter({ scope: 'error' })}
                     />
                     <StatBadge
                         icon={PlugZap}
                         label={t('stats.without_session')}
                         value={stats.without_session}
                         variant={stats.without_session > 0 ? 'warning' : 'muted'}
+                        onClick={() => applyFilter({ scope: 'sin_sesion' })}
+                    />
+                    <StatBadge
+                        icon={QrCode}
+                        label={t('stats.needs_qr')}
+                        value={stats.needs_qr}
+                        variant={stats.needs_qr > 0 ? 'warning' : 'muted'}
+                        onClick={() => applyFilter({ scope: 'needs_qr' })}
                     />
                     <StatBadge
                         label={t('stats.stale')}
                         value={stats.stale}
                         variant={stats.stale > 0 ? 'warning' : 'muted'}
+                        onClick={() => applyFilter({ scope: 'stale' })}
                     />
                     <StatBadge
                         label={t('stats.reconnect_off')}
                         value={stats.reconnect_off}
                         variant={stats.reconnect_off > 0 ? 'warning' : 'muted'}
+                        onClick={() => applyFilter({ scope: 'sin_reconnect' })}
                     />
                 </div>
 
@@ -529,8 +557,16 @@ export default function PlataformaWhatsAppSaludIndex({
                 {isEmpty ? (
                     <EmptyState
                         icon={Smartphone}
-                        title={t('empty.title')}
-                        description={t('empty.description')}
+                        title={
+                            filters.scope === 'listos'
+                                ? t('empty.listos_title')
+                                : t('empty.title')
+                        }
+                        description={
+                            filters.scope === 'listos'
+                                ? t('empty.listos_description')
+                                : t('empty.description')
+                        }
                     />
                 ) : isFilteredEmpty ? (
                     <EmptyState
@@ -551,7 +587,7 @@ export default function PlataformaWhatsAppSaludIndex({
                                 preservedQuery={{
                                     search: filters.search || undefined,
                                     scope:
-                                        filters.scope === 'problemas'
+                                        filters.scope === 'listos'
                                             ? undefined
                                             : filters.scope,
                                     per_page: filters.per_page,

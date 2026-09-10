@@ -117,6 +117,53 @@ final class TenantWhatsAppSessionSync
         return $session;
     }
 
+    /**
+     * Al enviar: si la sesión está caída pero hay auth (teléfono) y auto-reconnect,
+     * intenta start sin pedir QR. No usa el cupo del cron.
+     */
+    public function ensureReadyForSend(Tenant $tenant): ?TenantWhatsAppSession
+    {
+        $session = TenantWhatsAppSession::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        if ($session === null) {
+            $session = $this->ensureForTenant($tenant);
+        }
+
+        if (! $session instanceof TenantWhatsAppSession) {
+            return null;
+        }
+
+        if ($session->isReady()) {
+            return $session;
+        }
+
+        $wantsReconnect = (bool) ($session->auto_reconnect ?? true);
+        $sessionId = trim((string) $session->openwa_session_id);
+        $hadPhone = filled($session->phone);
+
+        if ($wantsReconnect && $hadPhone && $sessionId !== '') {
+            $this->client->tryStartIfDown($sessionId, (string) $session->status);
+        }
+
+        try {
+            $session = $this->refresh($session);
+        } catch (\Throwable) {
+            if ($wantsReconnect) {
+                $session = $this->ensureForTenant($tenant) ?? $session;
+            }
+        }
+
+        if (! $session->isReady() && $wantsReconnect) {
+            $session = $this->ensureForTenant($tenant) ?? $session;
+        }
+
+        return $session instanceof TenantWhatsAppSession && $session->isReady()
+            ? $session
+            : null;
+    }
+
     public function refresh(TenantWhatsAppSession $session): TenantWhatsAppSession
     {
         $remote = $this->client->getSession($session->openwa_session_id);

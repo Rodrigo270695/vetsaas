@@ -179,15 +179,7 @@ final class FelDocumentWhatsAppSender
 
     private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession
     {
-        $session = TenantWhatsAppSession::query()
-            ->where('tenant_id', $tenant->id)
-            ->first();
-
-        if ($session === null) {
-            $session = $this->sessionSync->ensureForTenant($tenant);
-        } elseif (! $session->isReady()) {
-            $session = $this->sessionSync->refresh($session);
-        }
+        $session = $this->sessionSync->ensureReadyForSend($tenant);
 
         return $session instanceof TenantWhatsAppSession && $session->isReady()
             ? $session

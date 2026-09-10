@@ -16,6 +16,7 @@ export type StatBadgeProps = {
     variant?: StatBadgeVariant;
     icon?: LucideIcon;
     className?: string;
+    onClick?: () => void;
 };
 
 const variantStyles: Record<StatBadgeVariant, string> = {
@@ -43,12 +44,18 @@ export function StatBadge({
     variant = 'default',
     icon: Icon,
     className,
+    onClick,
 }: StatBadgeProps) {
+    const Comp = onClick ? 'button' : 'span';
+
     return (
-        <span
+        <Comp
+            type={onClick ? 'button' : undefined}
+            onClick={onClick}
             className={cn(
                 'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors',
                 variantStyles[variant],
+                onClick && 'cursor-pointer',
                 className,
             )}
         >
@@ -57,6 +64,6 @@ export function StatBadge({
             {value !== '' && value !== null && value !== undefined ? (
                 <span className="shrink-0 font-semibold tabular-nums">{value}</span>
             ) : null}
-        </span>
+        </Comp>
     );
 }

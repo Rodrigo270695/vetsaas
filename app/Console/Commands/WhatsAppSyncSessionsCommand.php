@@ -62,7 +62,23 @@ class WhatsAppSyncSessionsCommand extends Command
             ->whereIn('estado', ['trial', 'active'])
             ->with('whatsappSession')
             ->get()
-            ->sortBy(fn (Tenant $tenant): string => (string) ($tenant->whatsappSession?->last_synced_at?->toIso8601String() ?? '1970-01-01'))
+            ->sortBy(function (Tenant $tenant): string {
+                $session = $tenant->whatsappSession;
+                $status = (string) ($session?->status ?? '');
+                $reconnect = (bool) ($session?->auto_reconnect ?? true);
+                $synced = (string) ($session?->last_synced_at?->toIso8601String() ?? '1970-01-01');
+
+                $priority = '3';
+                if ($session !== null && $reconnect && in_array($status, ['disconnected', 'failed'], true)) {
+                    $priority = '0';
+                } elseif ($session !== null && $reconnect && $status !== 'ready') {
+                    $priority = '1';
+                } elseif ($session === null) {
+                    $priority = '2';
+                }
+
+                return $priority.'-'.$synced;
+            })
             ->values();
 
         foreach ($tenants as $tenant) {

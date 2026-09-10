@@ -34,6 +34,7 @@ final class WhatsAppHealthRadarService
         'sin_sesion',
         'stale',
         'sin_reconnect',
+        'needs_qr',
     ];
 
     public function __construct(
@@ -51,7 +52,7 @@ final class WhatsAppHealthRadarService
     public function paginate(string $search, string $scope, int $perPage): array
     {
         $perPage = in_array($perPage, [10, 15, 25, 50], true) ? $perPage : 15;
-        $scope = in_array($scope, self::SCOPES, true) ? $scope : 'problemas';
+        $scope = in_array($scope, self::SCOPES, true) ? $scope : 'listos';
         $search = trim($search);
         $staleBefore = now()->subMinutes(self::STALE_MINUTES);
 
@@ -131,6 +132,7 @@ final class WhatsAppHealthRadarService
                         ->orWhere('tws.last_synced_at', '<', $staleBefore);
                 }),
             'sin_reconnect' => $query->where('tws.auto_reconnect', false),
+            'needs_qr' => $this->constrainNeedsQr($query),
             'problemas' => $query->where(function (Builder $q) use ($staleBefore): void {
                 $q->whereNull('tws.id')
                     ->orWhere('tws.status', '!=', TenantWhatsAppSession::STATUS_READY)
@@ -142,6 +144,22 @@ final class WhatsAppHealthRadarService
             }),
             default => null,
         };
+    }
+
+    /**
+     * @param  Builder<Tenant>  $query
+     */
+    private function constrainNeedsQr(Builder $query): void
+    {
+        $query->whereNotNull('tws.id')->where(function (Builder $q): void {
+            $q->where('tws.status', 'qr_ready')
+                ->orWhere(function (Builder $inner): void {
+                    $inner->whereIn('tws.status', ['disconnected', 'failed'])
+                        ->where(function (Builder $phone): void {
+                            $phone->whereNull('tws.phone')->orWhere('tws.phone', '');
+                        });
+                });
+        });
     }
 
     private function prioritySql(): string
@@ -184,6 +202,17 @@ SQL;
             })
             ->count();
         $reconnectOff = (clone $sessions)->where('auto_reconnect', false)->count();
+        $needsQr = (clone $sessions)
+            ->where(function (Builder $q): void {
+                $q->where('status', 'qr_ready')
+                    ->orWhere(function (Builder $inner): void {
+                        $inner->whereIn('status', ['disconnected', 'failed'])
+                            ->where(function (Builder $phone): void {
+                                $phone->whereNull('phone')->orWhere('phone', '');
+                            });
+                    });
+            })
+            ->count();
 
         return [
             'living' => $livingCount,
@@ -195,6 +224,7 @@ SQL;
             'disconnected' => $disconnected,
             'stale' => $stale,
             'reconnect_off' => $reconnectOff,
+            'needs_qr' => $needsQr,
             'openwa_configured' => $this->openWa->isConfigured(),
             'rate_limited' => $this->openWa->isRateLimited(),
             'stale_minutes' => self::STALE_MINUTES,

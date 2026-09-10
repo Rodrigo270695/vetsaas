@@ -1,11 +1,13 @@
 {
     "title": "Salud WhatsApp",
-    "description": "Estado de OpenWA por clínica, leído de la base local. Reiniciar o detener sí habla con OpenWA.",
+    "description": "Estado de OpenWA por clínica, leído de la base local. Al abrir ves solo las sesiones listas. Reiniciar o detener sí habla con OpenWA.",
     "refresh": "Actualizar",
     "search_placeholder": "Buscar clínica, slug o teléfono…",
     "cache_note": "La lista no consulta OpenWA. El cron sincroniza cada 5 min; una sesión se marca desfasada si no sync-eó en {{minutes}} min.",
     "rate_limited": "OpenWA está en cooldown 429. No reinicies sesiones hasta que baje el aviso; el cron también se pausa.",
     "openwa_off": "OpenWA no está configurado en esta instancia.",
+    "needs_qr_alert_title": "Hay clínicas que tienen que volver a escanear el QR",
+    "needs_qr_alert": "{{count}} sesión(es) en QR o desconectada sin teléfono: el reconectado automático no alcanza; la clínica debe vincular otra vez.",
     "platform": {
         "title": "Sesión de plataforma",
         "ready": "Lista",
@@ -19,7 +21,8 @@
         "with_error": "Con error",
         "without_session": "Sin sesión",
         "stale": "Desfasadas",
-        "reconnect_off": "Sin auto-reconnect"
+        "reconnect_off": "Sin auto-reconnect",
+        "needs_qr": "Piden QR"
     },
     "scope": {
         "problemas": "Problemas",
@@ -29,7 +32,8 @@
         "desconectados": "Desconectadas",
         "sin_sesion": "Sin sesión",
         "stale": "Desfasadas",
-        "sin_reconnect": "Sin auto-reconnect"
+        "sin_reconnect": "Sin auto-reconnect",
+        "needs_qr": "Piden QR"
     },
     "columns": {
         "tenant": "Clínica",
@@ -60,6 +64,8 @@
     "empty": {
         "title": "Sin problemas a la vista",
         "description": "Ninguna clínica viva encaja en este filtro. Probá «Todas» para ver el listado completo.",
+        "listos_title": "Ninguna sesión lista ahora",
+        "listos_description": "Acá solo aparecen clínicas con WhatsApp en ready. Revisá Problemas, Desconectadas o Piden QR.",
         "filtered_title": "Sin coincidencias",
         "filtered_description": "Cambiá la búsqueda o el filtro."
     }

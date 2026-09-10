@@ -15,7 +15,7 @@ class PlataformaWhatsAppHealthController extends Controller
     {
         $payload = $radar->paginate(
             trim((string) $request->string('search', '')),
-            (string) $request->string('scope', 'problemas'),
+            (string) $request->string('scope', 'listos'),
             (int) $request->integer('per_page', 15),
         );
 

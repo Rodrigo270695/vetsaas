@@ -36,9 +36,27 @@ it('muestra el radar de salud whatsapp al superadmin', function (): void {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('plataforma/whatsapp-salud/index')
-            ->has('items.data', 1)
+            ->has('items.data', 0)
             ->where('stats.with_error', 1)
+            ->where('stats.needs_qr', 1)
+            ->where('filters.scope', 'listos'));
+});
+
+it('lista problemas y sesiones que piden QR', function (): void {
+    $this->actingAs($this->superadmin)
+        ->get('http://127.0.0.1/plataforma/whatsapp-salud?scope=problemas')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('plataforma/whatsapp-salud/index')
+            ->has('items.data', 1)
             ->where('filters.scope', 'problemas'));
+
+    $this->actingAs($this->superadmin)
+        ->get('http://127.0.0.1/plataforma/whatsapp-salud?scope=needs_qr')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('items.data', 1)
+            ->where('filters.scope', 'needs_qr'));
 });
 
 it('rechaza el radar whatsapp a un admin de clínica', function (): void {

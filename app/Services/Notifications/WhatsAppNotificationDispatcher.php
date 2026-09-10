@@ -212,23 +212,7 @@ final class WhatsAppNotificationDispatcher
 
     private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession
     {
-        $session = TenantWhatsAppSession::query()
-            ->where('tenant_id', $tenant->id)
-            ->first();
-
-        if ($session === null) {
-            $session = $this->sessionSync->ensureForTenant($tenant);
-        } elseif (! $session->isReady()) {
-            // Despertar Chromium al enviar (cualquier tenant), sin pedir QR si hay auth en disco.
-            $sessionId = trim((string) $session->openwa_session_id);
-            if ($sessionId !== '') {
-                $this->client->tryStartIfDown($sessionId, (string) $session->status);
-            }
-            $session = $this->sessionSync->refresh($session);
-            if (! $session->isReady()) {
-                $session = $this->sessionSync->ensureForTenant($tenant) ?? $session;
-            }
-        }
+        $session = $this->sessionSync->ensureReadyForSend($tenant);
 
         return $session instanceof TenantWhatsAppSession && $session->isReady()
             ? $session
