@@ -167,6 +167,23 @@ export default function Index({
         [t],
     );
 
+    const provisionSchema = useCallback(
+        (tenant: Tenant) => {
+            if (
+                !window.confirm(
+                    t('tenants:row.provision_schema_confirm', {
+                        name: tenant.razon_social,
+                    }),
+                )
+            ) {
+                return;
+            }
+
+            router.post(`/plataforma/tenants/${tenant.id}/provision-schema`, {}, { preserveScroll: true });
+        },
+        [t],
+    );
+
     const stopWhatsApp = useCallback(
         (tenant: Tenant) => {
             if (
@@ -528,6 +545,7 @@ export default function Index({
                             onResume={openResume}
                             onChangeSlug={openChangeSlug}
                             onRecoverAdmin={openRecoverAdmin}
+                            onProvisionSchema={provisionSchema}
                             onWinBackFree={openWinBackFree}
                             onEnterSupport={enterSupport}
                             onRestartWhatsApp={restartWhatsApp}
@@ -562,6 +580,7 @@ export default function Index({
         openwa_configured,
         enterSupport,
         restartWhatsApp,
+        provisionSchema,
         stopWhatsApp,
         openEdit,
         openDelete,

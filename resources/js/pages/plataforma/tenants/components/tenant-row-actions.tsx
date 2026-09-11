@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import {
     Copy,
+    Database,
     ExternalLink,
     Gauge,
     Globe,
@@ -40,6 +41,7 @@ export type TenantRowActionsProps = {
     onResume: (tenant: Tenant) => void;
     onChangeSlug?: (tenant: Tenant) => void;
     onRecoverAdmin?: (tenant: Tenant) => void;
+    onProvisionSchema?: (tenant: Tenant) => void;
     onWinBackFree?: (tenant: Tenant) => void;
     onEnterSupport?: (tenant: Tenant) => void;
     onRestartWhatsApp?: (tenant: Tenant) => void;
@@ -65,6 +67,7 @@ export function TenantRowActions({
     onResume,
     onChangeSlug,
     onRecoverAdmin,
+    onProvisionSchema,
     onWinBackFree,
     onEnterSupport,
     onRestartWhatsApp,
@@ -103,6 +106,11 @@ export function TenantRowActions({
     const showRecoverAdmin =
         canUpdate &&
         typeof onRecoverAdmin === 'function' &&
+        !isCancelled;
+
+    const showProvisionSchema =
+        canUpdate &&
+        typeof onProvisionSchema === 'function' &&
         !isCancelled;
 
     const showWinBackFree =
@@ -237,6 +245,16 @@ export function TenantRowActions({
                     >
                         <KeyRound className="size-4" strokeWidth={2.25} />
                         {t('tenants:row.recover_admin')}
+                    </DropdownMenuItem>
+                )}
+
+                {showProvisionSchema && (
+                    <DropdownMenuItem
+                        onSelect={() => onProvisionSchema?.(tenant)}
+                        className="cursor-pointer gap-2"
+                    >
+                        <Database className="size-4" strokeWidth={2.25} />
+                        {t('tenants:row.provision_schema')}
                     </DropdownMenuItem>
                 )}
 

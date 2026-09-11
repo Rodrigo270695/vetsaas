@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 /**
  * Configuración general de la clínica (única fila por tenant).
@@ -282,7 +284,37 @@ class ClinicSetting extends Model
      */
     public static function current(): self
     {
+        if (! static::tableReady()) {
+            $slug = app(\App\Tenancy\TenantManager::class)->slug() ?? 'la-clinica';
+
+            throw new \RuntimeException(
+                'Falta el schema de esta clínica (no existe cfg_clinic_settings). En Plataforma → Tenants usá «Crear schema», o en el servidor: php artisan vetsaas:tenant-migrate-all --slug='.$slug,
+            );
+        }
+
         return static::query()->firstOrCreate([]);
+    }
+
+    public static function tableReady(): bool
+    {
+        try {
+            return Schema::hasTable('cfg_clinic_settings');
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    public static function modoAsesoraActivo(): bool
+    {
+        try {
+            if (! static::tableReady() || ! Schema::hasColumn('cfg_clinic_settings', 'modo_asesora_activo')) {
+                return false;
+            }
+
+            return (bool) static::query()->value('modo_asesora_activo');
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**

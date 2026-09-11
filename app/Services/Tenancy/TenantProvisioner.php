@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenancy;
 
+use App\Models\ClinicSetting;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
@@ -11,14 +12,18 @@ use App\Services\Referrals\ReferralService;
 use App\Support\Subscriptions\BillingGrace;
 use App\Support\Subscriptions\SubscriptionCiclo;
 use App\Support\Tenancy\TenantSubdomainUrl;
+use App\Tenancy\TenantManager;
+use App\Tenancy\TenantSchemaMigrator;
 use Database\Seeders\TenantRolesSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
  * Crea un tenant completo: registro en public.tenants, schema PostgreSQL dedicado,
@@ -127,6 +132,57 @@ class TenantProvisioner
             ->where('tenant_id', $tenant->id)
             ->whereRaw('LOWER(email) = ?', [strtolower(trim((string) $tenant->email_admin))])
             ->first();
+    }
+
+    /**
+     * Crea el schema PostgreSQL (si falta), aplica migraciones tenant,
+     * deja la fila de cfg_clinic_settings y siembra roles de la clínica.
+     *
+     * Usado al alta manual desde Plataforma y para reparar un tenant
+     * que quedó solo como fila en public.tenants (sin tablas).
+     */
+    public function ensurePhysicalSchema(Tenant $tenant): void
+    {
+        $this->guardDriver();
+
+        $schema = (string) $tenant->schema_name;
+        if (! preg_match('/^[a-z_][a-z0-9_]{0,62}$/i', $schema)) {
+            throw new InvalidArgumentException("Schema inválido: {$schema}");
+        }
+
+        $output = new BufferedOutput;
+        $code = app(TenantSchemaMigrator::class)->migrate($schema, $output);
+
+        if ($code !== TenantSchemaMigrator::EXIT_SUCCESS) {
+            $detail = trim($output->fetch());
+            throw new RuntimeException(
+                $detail !== ''
+                    ? $detail
+                    : "No se pudo migrar el schema {$schema}."
+            );
+        }
+
+        app(TenantManager::class)->runForTenant($tenant, function () use ($tenant): void {
+            if (! Schema::hasTable('cfg_clinic_settings')) {
+                throw new RuntimeException(
+                    "Tras migrar, sigue faltando cfg_clinic_settings en {$tenant->schema_name}."
+                );
+            }
+
+            if (ClinicSetting::query()->doesntExist()) {
+                ClinicSetting::query()->create([
+                    'razon_social' => $tenant->razon_social,
+                    'nombre_comercial' => $tenant->nombre_comercial,
+                    'ruc' => $tenant->ruc,
+                    'email_institucional' => $tenant->email_admin,
+                    'telefono_principal' => $tenant->telefono,
+                    'grooming_catalogo_personalizado' => true,
+                    'hotel_catalogo_personalizado' => true,
+                ]);
+            }
+        }, enforceAccess: false);
+
+        (new TenantRolesSeeder)->seedForTenant((string) $tenant->id);
     }
 
     private function guardDriver(): void

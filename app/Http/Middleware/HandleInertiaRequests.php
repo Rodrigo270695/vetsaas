@@ -243,11 +243,7 @@ class HandleInertiaRequests extends Middleware
                 ? false
                 : static function (): bool {
                     try {
-                        if (! Schema::hasColumn('cfg_clinic_settings', 'modo_asesora_activo')) {
-                            return false;
-                        }
-
-                        return (bool) ClinicSetting::query()->value('modo_asesora_activo');
+                        return ClinicSetting::modoAsesoraActivo();
                     } catch (Throwable) {
                         return false;
                     }

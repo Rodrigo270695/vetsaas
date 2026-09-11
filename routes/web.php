@@ -1575,8 +1575,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('tenants/{tenant}/change-slug', [TenantController::class, 'changeSlug'])
             ->name('tenants.change-slug');
         Route::middleware('permission:plataforma-tenants.update')
-            ->post('tenants/{tenant}/recover-admin-access', [TenantController::class, 'recoverAdminAccess'])
-            ->name('tenants.recover-admin-access');
+            ->post('tenants/{tenant}/provision-schema', [TenantController::class, 'provisionSchema'])
+            ->name('tenants.provision-schema');
         Route::middleware('permission:plataforma-tenants.impersonate')
             ->post('tenants/{tenant}/impersonate', [TenantImpersonationController::class, 'start'])
             ->name('tenants.impersonate');

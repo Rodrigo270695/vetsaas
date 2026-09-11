@@ -48,6 +48,8 @@
         "limits": "Limits (±)",
         "open_subdomain": "Open subdomain",
         "enter_support": "Enter as support",
+        "provision_schema": "Create clinic schema",
+        "provision_schema_confirm": "This creates the PostgreSQL schema, tables (patients, cfg_clinic_settings, etc.) and roles. Use it if the tenant was added by hand and views return 500. Continue for «{{name}}»?",
         "recover_admin": "Recover admin access",
         "win_back_free": "Win back Free (WA/email)",
         "whatsapp_restart": "Restart WhatsApp",
@@ -69,7 +71,7 @@
     "form": {
         "title_create": "New tenant",
         "title_edit": "Edit tenant",
-        "description_create": "Manually register a clinic on the platform. The subdomain will be {slug}.{domain} and the physical schema will be vet_<slug>.",
+        "description_create": "Register a clinic on the platform. Creates subdomain {slug}.{domain}, schema vet_<slug>, and operational tables (patients, settings, etc.).",
         "description_edit": "Update the tenant's business and contact information. State transitions are performed from the row actions.",
         "section_identity": "Identity",
         "section_identity_hint": "Subdomain slug and the clinic's legal information.",

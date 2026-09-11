@@ -86,7 +86,7 @@ class PacienteController extends Controller
             $estado = 'todos';
         }
 
-        $modoAsesora = (bool) ClinicSetting::query()->value('modo_asesora_activo');
+        $modoAsesora = ClinicSetting::modoAsesoraActivo();
         $clinicaAsesoradaId = trim((string) $request->string('clinica_asesorada_id', ''));
         if (! $modoAsesora || $clinicaAsesoradaId === '') {
             $clinicaAsesoradaId = null;
@@ -679,7 +679,7 @@ class PacienteController extends Controller
             $query->where('pacientes.activo', false);
         }
 
-        $modoAsesora = (bool) ClinicSetting::query()->value('modo_asesora_activo');
+        $modoAsesora = ClinicSetting::modoAsesoraActivo();
         $clinicaAsesoradaId = trim((string) $request->string('clinica_asesorada_id', ''));
         if ($modoAsesora && $clinicaAsesoradaId !== '') {
             $query->where('pacientes.clinica_asesorada_id', $clinicaAsesoradaId);
@@ -754,7 +754,7 @@ class PacienteController extends Controller
      */
     private function resolveClinicaAsesoradaId(mixed $value): ?string
     {
-        if (! (bool) ClinicSetting::query()->value('modo_asesora_activo')) {
+        if (! ClinicSetting::modoAsesoraActivo()) {
             return null;
         }
 

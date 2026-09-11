@@ -137,7 +137,7 @@ class ClinicaAsesoradaController extends Controller
     private function abortUnlessModoAsesora(): void
     {
         abort_unless(
-            (bool) ClinicSetting::query()->value('modo_asesora_activo'),
+            ClinicSetting::modoAsesoraActivo(),
             404,
         );
     }

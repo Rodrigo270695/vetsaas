@@ -25,6 +25,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 /**
  * Administración de tenants desde el panel del **superadmin**.
@@ -34,8 +35,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *     Orvae PE (que también crea el schema físico). Este controller
  *     existe para soporte, migración manual y pruebas internas.
  *   - El `schema_name` lo derivamos del slug (`vet_<slug_normalizado>`).
- *     **No** disparamos `CREATE SCHEMA` aquí: eso queda fuera del CRUD
- *     básico y se delegará al provisioner / job dedicado más adelante.
+ *     Al crear (y con la acción «Crear schema») se ejecuta CREATE SCHEMA
+ *     + migraciones tenant + fila de cfg_clinic_settings + roles.
  *   - Las transiciones de estado se hacen vía endpoints específicos
  *     (`suspend` / `resume`) para forzar auditoría clara y separar
  *     validaciones (motivo de suspensión es obligatorio).
@@ -213,7 +214,7 @@ class TenantController extends Controller
         ]);
     }
 
-    public function store(TenantRequest $request): RedirectResponse
+    public function store(TenantRequest $request, TenantProvisioner $provisioner): RedirectResponse
     {
         $data = $request->validated();
 
@@ -231,7 +232,7 @@ class TenantController extends Controller
 
         $trialDays = (int) ($data['trial_days'] ?? 14);
 
-        Tenant::create([
+        $tenant = Tenant::create([
             'slug' => $slug,
             'schema_name' => $schemaName,
             'razon_social' => $data['razon_social'],
@@ -243,14 +244,56 @@ class TenantController extends Controller
             'direccion' => $data['direccion'] ?? null,
             'timezone' => $data['timezone'],
             'locale' => $data['locale'],
-            'canal_adquisicion' => $data['canal_adquisicion'] ?? null,
+            'canal_adquisicion' => $data['canal_adquisicion'] ?? 'manual',
             'estado' => 'trial',
             'trial_ends_at' => now()->addDays($trialDays),
             'onboarding_completado' => false,
             'onboarding_paso' => 0,
         ]);
 
-        return back()->with('success', 'Tenant creado correctamente. El provisioner deberá crear el schema físico.');
+        try {
+            set_time_limit(120);
+            $provisioner->ensurePhysicalSchema($tenant);
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()->with(
+                'warning',
+                'Tenant creado en el listado, pero falló el schema de la clínica: '.$e->getMessage()
+                .' Usá «Crear schema» en las acciones de la fila.',
+            );
+        }
+
+        return back()->with(
+            'success',
+            'Tenant creado con schema, tablas y roles. Ya podés entrar como soporte.',
+        );
+    }
+
+    /**
+     * Repara un alta manual: CREATE SCHEMA + migraciones tenant + settings + roles.
+     */
+    public function provisionSchema(Tenant $tenant, TenantProvisioner $provisioner): RedirectResponse
+    {
+        if ($tenant->estado === 'cancelled') {
+            throw ValidationException::withMessages([
+                'tenant' => 'No se puede crear el schema de un tenant cancelado.',
+            ]);
+        }
+
+        try {
+            set_time_limit(120);
+            $provisioner->ensurePhysicalSchema($tenant);
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()->with('error', 'No se pudo crear el schema: '.$e->getMessage());
+        }
+
+        return back()->with(
+            'success',
+            "Schema listo para {$tenant->razon_social}. Recargá la clínica e intentá de nuevo Pacientes u otra vista.",
+        );
     }
 
     public function update(TenantRequest $request, Tenant $tenant, TenantManager $manager): RedirectResponse
