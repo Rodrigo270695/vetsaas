@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { Check, Globe, LogOut, Settings } from 'lucide-react';
+import { Check, Globe, LogOut, Settings, Smartphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
     DropdownMenuGroup,
@@ -19,6 +19,7 @@ import {
 } from '@/lib/i18n';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
+import { isStandaloneDisplay, openPwaInstallHelp } from '@/lib/pwa-install';
 import type { User } from '@/types';
 
 type Props = {
@@ -70,6 +71,19 @@ export function UserMenuContent({ user }: Props) {
                         {t('user_menu.settings')}
                     </Link>
                 </DropdownMenuItem>
+
+                {!isStandaloneDisplay() ? (
+                    <DropdownMenuItem
+                        className="cursor-pointer"
+                        onSelect={() => {
+                            cleanup();
+                            openPwaInstallHelp();
+                        }}
+                    >
+                        <Smartphone className="mr-2" />
+                        Instalar app en el celular
+                    </DropdownMenuItem>
+                ) : null}
 
                 <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="cursor-pointer">

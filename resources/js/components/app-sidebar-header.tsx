@@ -9,6 +9,7 @@ import { PushNotificationPrompt } from '@/components/push/push-notification-prom
 import { SalaEsperaHeaderIcons } from '@/components/sala-espera-header-popover';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { PwaInstallHeaderButton } from '@/components/pwa-install-banner';
 import {
     Tooltip,
     TooltipContent,
@@ -52,6 +53,7 @@ export function AppSidebarHeader({
                 </div>
 
                 <div className="ml-auto flex shrink-0 items-center gap-1">
+                    <PwaInstallHeaderButton />
                     <SalaEsperaHeaderIcons />
                     {showPushBell && <PushNotificationPrompt />}
 

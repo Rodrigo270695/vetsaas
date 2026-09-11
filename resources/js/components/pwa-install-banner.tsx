@@ -1,8 +1,10 @@
-import { Download, Share2, X } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { Check, Copy, Download, Share2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 import {
+    OPEN_PWA_INSTALL_HELP_EVENT,
     isAndroidDevice,
     isIosChromeLike,
     isIosDevice,
@@ -12,7 +14,7 @@ import {
 } from '@/lib/pwa-install';
 
 const DISMISS_KEY = 'vetsaas-pwa-install-dismiss-until';
-const DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
+const DISMISS_MS = 24 * 60 * 60 * 1000;
 
 const HIDE_PATH_PREFIXES = [
     '/login',
@@ -25,39 +27,9 @@ const HIDE_PATH_PREFIXES = [
 
 function shouldHideBanner(pathname: string): boolean {
     const p = pathname.split('?')[0] ?? '';
-    if (p === '/') {
-        return true;
-    }
     return HIDE_PATH_PREFIXES.some(
         (prefix) => p === prefix || p.startsWith(`${prefix}/`),
     );
-}
-
-function isStandalone(): boolean {
-    return isStandaloneDisplay();
-}
-
-function isIos(): boolean {
-    return isIosDevice();
-}
-
-function isIosChrome(): boolean {
-    return isIosChromeLike();
-}
-
-function isAndroid(): boolean {
-    return isAndroidDevice();
-}
-
-function isDesktopChromiumLike(): boolean {
-    if (typeof navigator === 'undefined') {
-        return false;
-    }
-    const ua = navigator.userAgent;
-    if (/Mobi|Android|iPhone|iPad|iPod/i.test(ua)) {
-        return false;
-    }
-    return /Chrome|Edg|Chromium|Brave|OPR|Opera/i.test(ua);
 }
 
 function readDismissedUntil(): number {
@@ -80,6 +52,14 @@ function writeDismissed(): void {
     }
 }
 
+function clearDismissed(): void {
+    try {
+        localStorage.removeItem(DISMISS_KEY);
+    } catch {
+        /* ignore */
+    }
+}
+
 type BeforeInstallPromptEvent = Event & {
     prompt: () => Promise<void>;
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -97,9 +77,10 @@ export default function PwaInstallBanner() {
     const [dismissed, setDismissed] = useState(false);
     const [ios, setIos] = useState(false);
     const [iosChrome, setIosChrome] = useState(false);
+    const [android, setAndroid] = useState(false);
     const [installing, setInstalling] = useState(false);
-    const [androidMenuHint, setAndroidMenuHint] = useState(false);
-    const [desktopHint, setDesktopHint] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const [forced, setForced] = useState(false);
 
     useEffect(() => {
         const until = readDismissedUntil();
@@ -115,29 +96,16 @@ export default function PwaInstallBanner() {
 
         const updatePath = () => setPathname(window.location.pathname);
 
-        setIos(isIos());
-        setIosChrome(isIosChrome());
+        setIos(isIosDevice());
+        setIosChrome(isIosChromeLike());
+        setAndroid(isAndroidDevice());
 
+        const unsubNavigate = router.on('navigate', updatePath);
         window.addEventListener('popstate', updatePath);
-
-        const originalPushState = history.pushState;
-        const originalReplaceState = history.replaceState;
-
-        history.pushState = function (...args) {
-            const ret = originalPushState.apply(this, args);
-            updatePath();
-            return ret;
-        };
-
-        history.replaceState = function (...args) {
-            const ret = originalReplaceState.apply(this, args);
-            updatePath();
-            return ret;
-        };
 
         const unsub = subscribePwaInstallPrompt((event) => {
             setDeferred(event);
-            if (event === null && isStandalone()) {
+            if (event === null && isStandaloneDisplay()) {
                 setDismissed(true);
             }
         });
@@ -145,39 +113,27 @@ export default function PwaInstallBanner() {
             setDeferred(null);
             setDismissed(true);
         };
+        const onHelp = () => {
+            clearDismissed();
+            setDismissed(false);
+            setForced(true);
+        };
         window.addEventListener('appinstalled', onInstalled);
+        window.addEventListener(OPEN_PWA_INSTALL_HELP_EVENT, onHelp);
 
         return () => {
+            unsubNavigate();
             window.removeEventListener('popstate', updatePath);
-            history.pushState = originalPushState;
-            history.replaceState = originalReplaceState;
             window.removeEventListener('appinstalled', onInstalled);
+            window.removeEventListener(OPEN_PWA_INSTALL_HELP_EVENT, onHelp);
             unsub();
         };
-    }, []);
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || isIos() || !isAndroid()) {
-            return;
-        }
-        const t = window.setTimeout(() => setAndroidMenuHint(true), 5000);
-        return () => window.clearTimeout(t);
-    }, []);
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || isIos() || isAndroid()) {
-            return;
-        }
-        if (!isDesktopChromiumLike()) {
-            return;
-        }
-        const t = window.setTimeout(() => setDesktopHint(true), 4000);
-        return () => window.clearTimeout(t);
     }, []);
 
     const onDismiss = useCallback(() => {
         writeDismissed();
         setDismissed(true);
+        setForced(false);
     }, []);
 
     const onInstallClick = useCallback(async () => {
@@ -189,26 +145,30 @@ export default function PwaInstallBanner() {
         }
     }, []);
 
-    if (dismissed || isStandalone() || shouldHideBanner(pathname)) {
+    const copyClinicUrl = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.origin);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2500);
+        } catch {
+            setCopied(false);
+        }
+    }, []);
+
+    if (isStandaloneDisplay()) {
+        return null;
+    }
+
+    if (!forced && (dismissed || shouldHideBanner(pathname))) {
         return null;
     }
 
     const showChromiumInstall = Boolean(deferred);
-    const showIosHint = ios && !showChromiumInstall;
-    const showAndroidHint = !ios && !showChromiumInstall && androidMenuHint;
-    const showDesktopHint =
-        !ios &&
-        !isAndroid() &&
-        !showChromiumInstall &&
-        desktopHint &&
-        isDesktopChromiumLike();
+    const showIosHint = ios;
+    const showAndroidHint = android && !showChromiumInstall;
+    const showHelp = showChromiumInstall || showIosHint || showAndroidHint || forced;
 
-    if (
-        !showChromiumInstall &&
-        !showIosHint &&
-        !showAndroidHint &&
-        !showDesktopHint
-    ) {
+    if (!showHelp) {
         return null;
     }
 
@@ -226,7 +186,7 @@ export default function PwaInstallBanner() {
                     className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#008064]/15 text-[#008064]"
                     aria-hidden
                 >
-                    {showIosHint && !iosChrome ? (
+                    {showIosHint && !showChromiumInstall ? (
                         <Share2 className="size-4" />
                     ) : (
                         <Download className="size-4" />
@@ -236,73 +196,70 @@ export default function PwaInstallBanner() {
                     {showChromiumInstall ? (
                         <>
                             <p className="text-sm leading-snug font-semibold text-foreground">
-                                Instalar {appLabel}
+                                Instalar {appLabel} en este celular
                             </p>
                             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                                Acceso rápido desde tu pantalla de inicio, como
-                                una app.
+                                Un toque y queda el ícono en el inicio, como una app.
                             </p>
                             <button
                                 type="button"
-                                className="mt-2 inline-flex h-9 items-center justify-center rounded-lg bg-[#008064] px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#006B52] focus-visible:ring-2 focus-visible:ring-[#008064]/40 focus-visible:outline-none disabled:opacity-60"
+                                className="mt-2 inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#008064] px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#006B52] focus-visible:ring-2 focus-visible:ring-[#008064]/40 focus-visible:outline-none disabled:opacity-60 sm:w-auto"
                                 onClick={onInstallClick}
                                 disabled={installing}
                             >
-                                {installing ? 'Instalando…' : 'Instalar'}
+                                {installing ? 'Instalando…' : 'Instalar ahora'}
                             </button>
                         </>
-                    ) : showDesktopHint ? (
-                        <>
-                            <p className="text-sm leading-snug font-semibold text-foreground">
-                                Instalar {appLabel} en tu equipo
-                            </p>
-                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                                Busca el icono de instalar en la barra de
-                                direcciones o abre el menú{' '}
-                                <span className="font-medium text-foreground">
-                                    ⋮
-                                </span>{' '}
-                                y elige «Instalar aplicación».
-                            </p>
-                        </>
-                    ) : showAndroidHint ? (
-                        <>
-                            <p className="text-sm leading-snug font-semibold text-foreground">
-                                Añade {appLabel} a tu inicio
-                            </p>
-                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                                Abre el menú{' '}
-                                <span className="font-medium text-foreground">
-                                    ⋮
-                                </span>{' '}
-                                y busca «Instalar aplicación» o «Añadir a la
-                                pantalla de inicio».
-                            </p>
-                        </>
+                    ) : showIosHint ? (
+                        iosChrome ? (
+                            <>
+                                <p className="text-sm leading-snug font-semibold text-foreground">
+                                    En iPhone hay que usar Safari
+                                </p>
+                                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                                    Chrome / Instagram / WhatsApp no instalan la app. Copiá el enlace,
+                                    abrilo en Safari → Compartir → Añadir a pantalla de inicio.
+                                </p>
+                                <button
+                                    type="button"
+                                    className="mt-2 inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#008064] px-3 text-sm font-medium text-white"
+                                    onClick={() => void copyClinicUrl()}
+                                >
+                                    {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                                    {copied ? 'Enlace copiado' : 'Copiar enlace de la clínica'}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm leading-snug font-semibold text-foreground">
+                                    Instalá {appLabel} en el iPhone
+                                </p>
+                                <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-muted-foreground">
+                                    <li>
+                                        Tocá <span className="font-semibold text-foreground">Compartir</span> (cuadrado con flecha ↑) abajo en Safari.
+                                    </li>
+                                    <li>
+                                        Bajá y tocá <span className="font-semibold text-foreground">Añadir a pantalla de inicio</span>.
+                                    </li>
+                                    <li>Confirmá con Añadir. El ícono queda en el escritorio.</li>
+                                </ol>
+                            </>
+                        )
                     ) : (
                         <>
                             <p className="text-sm leading-snug font-semibold text-foreground">
-                                Añade {appLabel} a tu inicio
+                                Instalá {appLabel} en el celular
                             </p>
-                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                                {iosChrome ? (
-                                    <>
-                                        Abre el menú{' '}
-                                        <span className="font-medium text-foreground">
-                                            ⋮
-                                        </span>{' '}
-                                        y elige «Añadir a la pantalla de inicio».
-                                    </>
-                                ) : (
-                                    <>
-                                        En Safari, pulsa{' '}
-                                        <span className="font-medium text-foreground">
-                                            Compartir
-                                        </span>{' '}
-                                        y «Añadir a la pantalla de inicio».
-                                    </>
-                                )}
-                            </p>
+                            <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-muted-foreground">
+                                <li>
+                                    En Chrome, tocá el menú{' '}
+                                    <span className="font-semibold text-foreground">⋮</span> arriba a la derecha.
+                                </li>
+                                <li>
+                                    Elegí <span className="font-semibold text-foreground">Instalar aplicación</span> o
+                                    «Añadir a la pantalla de inicio».
+                                </li>
+                            </ol>
                         </>
                     )}
                 </div>
@@ -316,5 +273,31 @@ export default function PwaInstallBanner() {
                 </button>
             </div>
         </div>
+    );
+}
+
+export function PwaInstallHeaderButton() {
+    const [show, setShow] = useState(false);
+
+    useEffect(() => {
+        setShow(!isStandaloneDisplay());
+    }, []);
+
+    if (!show) {
+        return null;
+    }
+
+    return (
+        <button
+            type="button"
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-[#008064] hover:bg-[#008064]/10 lg:hidden"
+            onClick={() => {
+                window.dispatchEvent(new Event(OPEN_PWA_INSTALL_HELP_EVENT));
+            }}
+            aria-label="Instalar app"
+        >
+            <Download className="size-4" strokeWidth={2.25} />
+            <span className="text-xs font-medium">App</span>
+        </button>
     );
 }

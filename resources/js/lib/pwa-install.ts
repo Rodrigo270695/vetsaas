@@ -82,3 +82,12 @@ export function isIosChromeLike(): boolean {
 export function isAndroidDevice(): boolean {
     return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 }
+
+export const OPEN_PWA_INSTALL_HELP_EVENT = 'vetsaas:pwa-install-help';
+
+export function openPwaInstallHelp(): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    window.dispatchEvent(new Event(OPEN_PWA_INSTALL_HELP_EVENT));
+}
