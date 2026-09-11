@@ -7,12 +7,17 @@ use App\Http\Requests\SubscriptionRequest;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Models\TenantWhatsAppSession;
+use App\Models\ClinicSetting;
+use App\Services\OpenWa\TenantWhatsAppWebhookRegistrar;
 use App\Services\Referrals\ReferralService;
 use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
 use App\Services\Subscriptions\SubscriptionRenewalWhatsAppSender;
 use App\Services\Subscriptions\SubscriptionWinBackService;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
 use App\Support\Subscriptions\SubscriptionCiclo;
+use App\Tenancy\TenantManager;
+use Throwable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -414,12 +419,68 @@ class SubscriptionController extends Controller
             ?: $suscripcion->tenant?->razon_social
             ?: 'el tenant';
 
-        return back()->with(
-            'success',
-            $activo
-                ? "Asistente IA activado para {$tenantName}."
-                : "Asistente IA desactivado para {$tenantName}.",
-        );
+        $hints = [];
+
+        if ($activo) {
+            $hints = $this->provisionBotIaRuntime($suscripcion);
+        }
+
+        $message = $activo
+            ? "Asistente IA activado para {$tenantName}."
+            : "Asistente IA desactivado para {$tenantName}.";
+
+        if ($hints !== []) {
+            $message .= ' '.implode(' ', $hints);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Al contratar el add-on: enciende respuestas en la clínica y registra
+     * el webhook OpenWA. Sin eso el chat aparece pero la IA no contesta.
+     *
+     * @return list<string>
+     */
+    private function provisionBotIaRuntime(Subscription $suscripcion): array
+    {
+        $tenant = $suscripcion->tenant;
+        if ($tenant === null) {
+            return ['No se encontró el tenant: revisá el alta.'];
+        }
+
+        $hints = [];
+
+        try {
+            app(TenantManager::class)->runForTenant($tenant, function (): void {
+                $settings = ClinicSetting::current();
+                $settings->bot_ia_respuestas_activo = true;
+                $settings->save();
+            }, enforceAccess: false);
+        } catch (Throwable $e) {
+            report($e);
+            $hints[] = 'No se pudo encender las respuestas automáticas en la clínica (¿falta el schema?).';
+        }
+
+        $session = TenantWhatsAppSession::query()
+            ->where('tenant_id', $tenant->id)
+            ->latest()
+            ->first();
+
+        if ($session === null || ! $session->isReady()) {
+            $hints[] = 'WhatsApp de la clínica no está conectado: el bot no responderá hasta que escaneen el QR.';
+
+            return $hints;
+        }
+
+        try {
+            app(TenantWhatsAppWebhookRegistrar::class)->ensureForSession($session);
+        } catch (Throwable $e) {
+            report($e);
+            $hints[] = 'No se pudo registrar el webhook de OpenWA. Corré: php artisan vetsaas:clinic-bot-register-webhooks --slug='.$tenant->slug;
+        }
+
+        return $hints;
     }
 
     /**

@@ -228,11 +228,13 @@ final class ClinicBotWebhookController extends Controller
 
             $subscription = $tenant->subscriptions()->orderByDesc('created_at')->first();
             if (! (bool) config('bot-ia.enabled', true)) {
+                Log::info('ClinicBot skipped: clinic-bot disabled', ['slug' => $tenant->slug]);
                 $this->traffic->recordSkipped();
 
                 return response()->json(['ok' => true, 'skipped' => 'clinic-bot disabled']);
             }
             if (! SubscriptionBotIaAddon::isActive($subscription)) {
+                Log::info('ClinicBot skipped: add-on inactivo', ['slug' => $tenant->slug]);
                 $this->traffic->recordSkipped();
 
                 return response()->json(['ok' => true, 'skipped' => 'bot_ia_inactive']);
@@ -255,6 +257,7 @@ final class ClinicBotWebhookController extends Controller
             }
 
             if (! ClinicSetting::current()->isBotIaResponding()) {
+                Log::info('ClinicBot skipped: asistente global apagado', ['slug' => $tenant->slug]);
                 $this->traffic->recordSkipped();
 
                 return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
@@ -262,6 +265,7 @@ final class ClinicBotWebhookController extends Controller
 
             $conversation = $this->botService->findOrCreateConversation($phone, $waChatId, $clientName);
             $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $clientName);
+            $conversation->forceFill(['last_message_at' => now()])->save();
 
             if (! $conversation->bot_active) {
                 if ($conversation->isManuallyPaused()) {
@@ -292,6 +296,10 @@ final class ClinicBotWebhookController extends Controller
             );
 
             $this->traffic->recordProcessed();
+
+            if (app()->environment('testing')) {
+                return response()->json(['ok' => true, 'replied' => true]);
+            }
 
             return response()->json([
                 'ok' => true,

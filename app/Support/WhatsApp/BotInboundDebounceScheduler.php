@@ -6,16 +6,15 @@ namespace App\Support\WhatsApp;
 
 use App\Jobs\ProcessClinicBotInboundBatchJob;
 use App\Jobs\ProcessSalesBotInboundBatchJob;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Agenda el procesamiento debounced del lote (SalesBot / ClinicBot).
  *
- * Siempre usa afterResponse + sleep (no la cola database/redis): el chatbot
- * de WhatsApp no debe depender de `queue:work`. Si el worker está caído,
- * OpenWA seguiría “conectado” pero el bot nunca respondería.
- *
- * afterResponse permite devolver 200 a OpenWA de inmediato (evita retries)
- * y el sleep agrupa líneas rápidas del cliente en un solo reply.
+ * En HTTP devolvemos 200 a OpenWA de inmediato. El reply se ejecuta al
+ * terminar el request (terminating + sleep) y, de respaldo, en la cola
+ * con delay. El claim() del debounce evita doble respuesta.
  */
 final class BotInboundDebounceScheduler
 {
@@ -37,7 +36,7 @@ final class BotInboundDebounceScheduler
             preferVoiceReply: $preferVoiceReply,
         );
 
-        self::dispatchAfterResponse($job, $delaySeconds);
+        self::dispatchDebounced($job, $delaySeconds);
     }
 
     public static function scheduleClinic(
@@ -60,16 +59,36 @@ final class BotInboundDebounceScheduler
             clientName: $clientName,
         );
 
-        self::dispatchAfterResponse($job, $delaySeconds);
+        self::dispatchDebounced($job, $delaySeconds);
     }
 
-    private static function dispatchAfterResponse(object $job, int $delaySeconds): void
+    private static function dispatchDebounced(object $job, int $delaySeconds): void
     {
+        if (app()->environment('testing')) {
+            dispatch_sync($job);
+
+            return;
+        }
+
         $delay = max(1, $delaySeconds);
 
-        dispatch(function () use ($job, $delay): void {
+        try {
+            dispatch($job)->delay(now()->addSeconds($delay));
+        } catch (Throwable $e) {
+            Log::warning('BotInboundDebounceScheduler: no se pudo encolar el lote', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        app()->terminating(function () use ($job, $delay): void {
             sleep($delay);
-            dispatch_sync($job);
-        })->afterResponse();
+            try {
+                dispatch_sync($job);
+            } catch (Throwable $e) {
+                Log::error('BotInboundDebounceScheduler: fallo al procesar lote al terminar el request', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
     }
 }
