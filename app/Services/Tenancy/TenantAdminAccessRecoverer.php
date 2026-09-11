@@ -21,7 +21,7 @@ final class TenantAdminAccessRecoverer
     ) {}
 
     /**
-     * @return array{user: User, previous_email: string}
+     * @return array{user: User, previous_email: string, created: bool}
      */
     public function recover(
         Tenant $tenant,
@@ -48,13 +48,14 @@ final class TenantAdminAccessRecoverer
             $user = $conflict;
         }
 
+        $created = false;
+
         if ($user === null) {
-            throw ValidationException::withMessages([
-                'email' => 'No se encontró un usuario admin_clinica en esta clínica. Usa el comando vetsaas:tenant-create-admin.',
-            ]);
+            $user = new User;
+            $created = true;
         }
 
-        $previousEmail = (string) $user->email;
+        $previousEmail = $created ? '' : (string) $user->email;
 
         $emailTakenElsewhere = Tenant::query()
             ->whereKeyNot($tenant->id)
@@ -73,6 +74,7 @@ final class TenantAdminAccessRecoverer
             $newEmail,
             $password,
             $mustChangePassword,
+            $created,
             $previousEmail,
         ): void {
             (new TenantRolesSeeder)->seedForTenant((string) $tenant->id);
@@ -81,14 +83,25 @@ final class TenantAdminAccessRecoverer
             setPermissionsTeamId((string) $tenant->id);
 
             try {
-                $user->forceFill([
+                $payload = [
                     'email' => $newEmail,
                     'password' => $password,
                     'is_active' => true,
                     'must_change_password' => $mustChangePassword,
                     'email_verified_at' => now(),
-                ])->save();
+                ];
 
+                if ($created || blank($user->tenant_id)) {
+                    $payload['tenant_id'] = $tenant->id;
+                }
+
+                if ($created || blank($user->name)) {
+                    $payload['name'] = $tenant->nombre_comercial
+                        ?: $tenant->razon_social
+                        ?: 'Administrador Clínica';
+                }
+
+                $user->forceFill($payload)->save();
                 $user->syncRoles(['admin_clinica']);
             } finally {
                 setPermissionsTeamId($previousTeam);
@@ -102,7 +115,8 @@ final class TenantAdminAccessRecoverer
 
         return [
             'user' => $user->fresh() ?? $user,
-            'previous_email' => $previousEmail,
+            'previous_email' => $previousEmail !== '' ? $previousEmail : $newEmail,
+            'created' => $created,
         ];
     }
 

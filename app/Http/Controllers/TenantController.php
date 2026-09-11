@@ -504,11 +504,16 @@ class TenantController extends Controller
             $bootstrapUrl = $provisioner->issueBootstrapLoginUrl($tenant, $result['user']);
         }
 
-        $message = sprintf(
-            'Acceso del admin actualizado: %s → %s. Ya puede iniciar sesión con la nueva contraseña.',
-            $result['previous_email'],
-            $result['user']->email,
-        );
+        $message = ($result['created'] ?? false)
+            ? sprintf(
+                'Usuario admin_clinica creado: %s. Ya puede iniciar sesión en el subdominio de la clínica.',
+                $result['user']->email,
+            )
+            : sprintf(
+                'Acceso del admin actualizado: %s → %s. Ya puede iniciar sesión con la nueva contraseña.',
+                $result['previous_email'],
+                $result['user']->email,
+            );
 
         if (is_string($bootstrapUrl) && $bootstrapUrl !== '') {
             $message .= ' Enlace de bienvenida (válido ~48h): '.$bootstrapUrl;

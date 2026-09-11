@@ -143,7 +143,7 @@
     },
     "recover_admin": {
         "title": "Recuperar acceso del admin",
-        "description": "Corrige el correo de login y asigna una contraseña nueva para el admin de {{clinic}}. Úsalo si el correo es inválido o no puede usar «olvidé mi contraseña».",
+        "description": "Crea o corrige el usuario admin_clinica de {{clinic}} (correo + contraseña). Si el tenant se dio de alta a mano y nadie puede entrar, usá esto: aún no existe el usuario hasta que lo guardes aquí.",
         "current_email": "Correo actual en el tenant",
         "fields": {
             "email": "Correo válido (login)",

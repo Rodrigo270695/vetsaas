@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import tenants from '@/routes/plataforma/tenants';
 import type { Tenant } from '../types';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -63,7 +62,7 @@ export function TenantRecoverAdminDialog({
         setErrors({});
 
         router.post(
-            tenants.recoverAdminAccess(tenant.id).url,
+            `/plataforma/tenants/${tenant.id}/recover-admin-access`,
             {
                 email: email.trim().toLowerCase(),
                 password,
