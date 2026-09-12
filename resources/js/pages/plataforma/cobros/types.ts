@@ -26,6 +26,7 @@ export type PaymentTenantRef = {
     razon_social: string;
     nombre_comercial: string | null;
     email_admin: string;
+    estado?: string;
     subscriptions?: PaymentSubscriptionRef[];
 };
 

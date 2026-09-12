@@ -58,7 +58,7 @@ final class CobrosListPresenter
     public static function fromSubscription(Subscription $subscription): array
     {
         $subscription->loadMissing([
-            'tenant:id,slug,razon_social,nombre_comercial,email_admin',
+            'tenant:id,slug,razon_social,nombre_comercial,email_admin,estado',
             'plan:id,codigo,nombre,badge,color_hex',
         ]);
 
@@ -290,6 +290,7 @@ final class CobrosListPresenter
                 'razon_social',
                 'nombre_comercial',
                 'email_admin',
+                'estado',
             ]),
             'subscriptions' => [self::subscriptionRef($subscription)],
         ];

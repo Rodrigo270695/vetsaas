@@ -57,6 +57,7 @@
         "send_payment_whatsapp": "Enviar método de pago por WhatsApp",
         "win_back_whatsapp": "Traer de vuelta (WhatsApp)",
         "manual_renewal": "Registrar pago y renovar",
+        "enter_support": "Entrar como soporte",
         "mark_refunded": "Marcar reembolso manual",
         "refunded_locked": "Cobro ya reembolsado",
         "no_invoice": "Sin factura",

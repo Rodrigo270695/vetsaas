@@ -93,7 +93,7 @@ class SubscriptionPaymentController extends Controller
 
         $subscriptions = $query
             ->with([
-                'tenant:id,slug,razon_social,nombre_comercial,email_admin',
+                'tenant:id,slug,razon_social,nombre_comercial,email_admin,estado',
                 'plan:id,codigo,nombre,badge,color_hex',
             ])
             ->paginate($perPage)

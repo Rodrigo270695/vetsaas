@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     CalendarSync,
     Copy,
@@ -6,6 +7,7 @@ import {
     Lock,
     MessageCircle,
     MoreHorizontal,
+    ScreenShare,
     Sparkles,
     StickyNote,
     Undo2,
@@ -37,6 +39,7 @@ export type PaymentRowActionsProps = {
     canSendRenewalWhatsApp?: boolean;
     canWinBackWhatsApp?: boolean;
     canManualRenew?: boolean;
+    canImpersonate?: boolean;
     /** true si la suscripción viva está vencida (days < 0) o suspended. */
     isExpiredSubscription?: boolean;
 };
@@ -59,6 +62,7 @@ export function PaymentRowActions({
     canSendRenewalWhatsApp = false,
     canWinBackWhatsApp = false,
     canManualRenew = false,
+    canImpersonate = false,
     isExpiredSubscription = false,
 }: PaymentRowActionsProps) {
     const { t } = useTranslation(['cobros', 'common']);
@@ -91,6 +95,22 @@ export function PaymentRowActions({
         onManualRenew !== undefined &&
         payment.subscription !== null &&
         payment.subscription.estado !== 'cancelled';
+
+    const tenantId = payment.tenant?.id ?? payment.tenant_id;
+    const tenantEstado = payment.tenant?.estado;
+    const showEnterSupport =
+        canImpersonate &&
+        Boolean(tenantId) &&
+        (tenantEstado === undefined ||
+            tenantEstado === 'trial' ||
+            tenantEstado === 'active');
+
+    const enterSupport = () => {
+        if (!tenantId) {
+            return;
+        }
+        router.post(`/plataforma/tenants/${tenantId}/impersonate`);
+    };
 
     const handleCopyTxId = async () => {
         if (!payment.pasarela_transaction_id) {
@@ -145,6 +165,16 @@ export function PaymentRowActions({
                     >
                         <Copy className="size-4" strokeWidth={2.25} />
                         {t('cobros:row.copy_tx_id')}
+                    </DropdownMenuItem>
+                ) : null}
+
+                {showEnterSupport ? (
+                    <DropdownMenuItem
+                        onSelect={enterSupport}
+                        className="cursor-pointer gap-2 text-violet-700 focus:text-violet-700 dark:text-violet-400"
+                    >
+                        <ScreenShare className="size-4 shrink-0" strokeWidth={2.25} />
+                        {t('cobros:row.enter_support')}
                     </DropdownMenuItem>
                 ) : null}
 

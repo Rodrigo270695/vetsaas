@@ -203,6 +203,7 @@ export default function Index({
     const canResend = can('plataforma-cobros.resend-invoice');
     const canSendRenewalWhatsApp = can('plataforma-suscripciones.update');
     const canManualRenew = can('plataforma-cobros.renew');
+    const canImpersonate = can('plataforma-tenants.impersonate');
     const showRowActions = true;
 
     const {
@@ -629,6 +630,7 @@ params.set('plan_id', filters.plan_id);
                             canSendRenewalWhatsApp={canSendRenewalWhatsApp}
                             canWinBackWhatsApp={canSendRenewalWhatsApp}
                             canManualRenew={canManualRenew}
+                            canImpersonate={canImpersonate}
                             isExpiredSubscription={isPaymentSubscriptionExpired(p)}
                         />
                     </div>
@@ -647,6 +649,7 @@ params.set('plan_id', filters.plan_id);
         canResend,
         canSendRenewalWhatsApp,
         canManualRenew,
+        canImpersonate,
         openDetail,
         openNote,
         openRefund,
