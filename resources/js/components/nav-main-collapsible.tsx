@@ -23,7 +23,7 @@ import { usePermission } from '@/hooks/use-permission';
 import { moduleKeyForHref } from '@/config/nav-module-keys';
 import { cn } from '@/lib/utils';
 import { OfflineAwareLink } from '@/components/offline-aware-link';
-import { Badge } from '@/components/ui/badge';
+import { BounceNavDot } from '@/components/ui/bounce-nav-dot';
 import { isOfflinePath } from '@/lib/offline/offline-routes';
 import type { NavContext, NavGroup, NavItem } from '@/types';
 
@@ -214,9 +214,17 @@ export function NavMainCollapsible({
                 </SidebarGroupLabel>
             )}
 
-            <SidebarMenu>
+            <SidebarMenu className="relative">
+                <BounceNavDot
+                    activeKey={
+                        visibleSingles.find((item) => isCurrentUrl(item.href))?.href ?? null
+                    }
+                />
                 {visibleSingles.map((item) => (
-                    <SidebarMenuItem key={item.title}>
+                    <SidebarMenuItem
+                        key={item.title}
+                        data-bounce-active={isCurrentUrl(item.href) ? 'true' : undefined}
+                    >
                         <SidebarMenuButton
                             asChild
                             isActive={isCurrentUrl(item.href)}
@@ -281,7 +289,17 @@ export function NavMainCollapsible({
                             </CollapsibleTrigger>
 
                             <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                                <SidebarMenuSub className="mt-1 gap-0.5 border-sidebar-border/50">
+                                <SidebarMenuSub className="relative mt-1 gap-0.5 border-sidebar-border/50">
+                                    <BounceNavDot
+                                        activeKey={
+                                            group.items.find((item) =>
+                                                isNavItemActive(
+                                                    item.href,
+                                                    group.items.map((i) => i.href),
+                                                ),
+                                            )?.href ?? null
+                                        }
+                                    />
                                     {group.items.map((item, index) => (
                                         <NavSubItem
                                             key={item.title}
@@ -334,6 +352,7 @@ function NavSubItem({
 
     return (
         <SidebarMenuSubItem
+            data-bounce-active={active ? 'true' : undefined}
             style={{ animationDelay: `${index * 30}ms` }}
             className="animate-in fade-in slide-in-from-left-2 fill-mode-both duration-300"
         >
@@ -350,17 +369,6 @@ function NavSubItem({
                           : 'text-sidebar-foreground/85 hover:translate-x-0.5 hover:bg-primary/8 hover:text-foreground',
                 )}
             >
-                {/* Barra vertical brand cuando está activo */}
-                <span
-                    aria-hidden="true"
-                    className={cn(
-                        'absolute top-1.5 bottom-1.5 left-0 w-[2.5px] rounded-r-full bg-primary transition-all duration-200',
-                        active
-                            ? 'translate-x-0 opacity-100'
-                            : '-translate-x-1 opacity-0',
-                    )}
-                />
-
                 {item.icon && (
                     <item.icon
                         strokeWidth={2.25}
