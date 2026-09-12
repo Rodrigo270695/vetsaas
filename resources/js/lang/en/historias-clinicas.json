@@ -132,6 +132,7 @@
         "stop": "Stop and fill",
         "processing": "Processing…",
         "hint": "Speak the visit. Weight, temperature, HR and RR are filled if mentioned; everything else goes only into Anamnesis. On mobile, record until you press stop.",
+        "listening": "Listening… tap the orb to stop and fill the form.",
         "recording": "Recording… speak, then press Stop and fill.",
         "empty": "Not enough audio captured. Try again.",
         "error": "Could not process the dictation. Please try again.",

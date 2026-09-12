@@ -2,6 +2,7 @@ import { Loader2, Mic, Square } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import FluidOrb from '@/components/ui/fluid-orb';
 import { cn } from '@/lib/utils';
 
 export type ConsultaDictationFields = {
@@ -403,42 +404,85 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
         <div
             className={cn(
                 'rounded-xl border px-3 py-2.5',
-                listening
-                    ? 'border-rose-300/80 bg-rose-50/70 dark:border-rose-800/50 dark:bg-rose-950/30'
+                listening || processing
+                    ? 'border-sky-300/80 bg-sky-50/70 dark:border-sky-800/50 dark:bg-sky-950/30'
                     : 'border-sky-200/80 bg-sky-50/50 dark:border-sky-800/40 dark:bg-sky-950/20',
             )}
         >
-            <div className="flex flex-wrap items-center gap-2">
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={listening ? 'destructive' : 'secondary'}
-                    className="h-8 gap-1.5"
-                    disabled={disabled || processing}
-                    onClick={() => void (listening ? stop() : start())}
-                >
-                    {processing ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                    ) : listening ? (
-                        <Square className="size-3.5 fill-current" />
-                    ) : (
-                        <Mic className="size-3.5" />
+            {listening || processing ? (
+                <div className="flex flex-col items-center gap-3 py-3">
+                    <button
+                        type="button"
+                        className="relative cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 focus-visible:ring-offset-2 disabled:cursor-wait"
+                        disabled={processing}
+                        aria-label={processing ? t('dictation.processing') : t('dictation.stop')}
+                        onClick={() => {
+                            if (!processing) {
+                                stop();
+                            }
+                        }}
+                    >
+                        <FluidOrb
+                            size={128}
+                            color="#1A73F2"
+                            className="shadow-[0_8px_32px_rgba(26,115,242,0.35)]"
+                        />
+                        {processing ? (
+                            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-background/20">
+                                <Loader2 className="size-7 animate-spin text-white drop-shadow" />
+                            </span>
+                        ) : null}
+                    </button>
+                    <p className="text-center text-xs text-muted-foreground">
+                        {processing ? t('dictation.processing') : t('dictation.listening')}
+                    </p>
+                    {(liveText || error) && (
+                        <div className="w-full space-y-1">
+                            {liveText ? (
+                                <p className="line-clamp-4 text-center text-xs leading-relaxed text-foreground/90">
+                                    {liveText}
+                                </p>
+                            ) : null}
+                            {error ? (
+                                <p className="text-center text-xs text-destructive">{error}</p>
+                            ) : null}
+                        </div>
                     )}
-                    {processing
-                        ? t('dictation.processing')
-                        : listening
-                          ? t('dictation.stop')
-                          : t('dictation.start')}
-                </Button>
-                <p className="min-w-0 flex-1 text-xs text-muted-foreground">{t('dictation.hint')}</p>
-            </div>
-            {(liveText || error) && (
-                <div className="mt-2 space-y-1">
-                    {liveText ? (
-                        <p className="line-clamp-3 text-xs leading-relaxed text-foreground/90">{liveText}</p>
+                    {!processing ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            className="h-8 gap-1.5"
+                            onClick={stop}
+                        >
+                            <Square className="size-3.5 fill-current" />
+                            {t('dictation.stop')}
+                        </Button>
                     ) : null}
-                    {error ? <p className="text-xs text-destructive">{error}</p> : null}
                 </div>
+            ) : (
+                <>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="h-8 gap-1.5"
+                            disabled={disabled}
+                            onClick={() => void start()}
+                        >
+                            <Mic className="size-3.5" />
+                            {t('dictation.start')}
+                        </Button>
+                        <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                            {t('dictation.hint')}
+                        </p>
+                    </div>
+                    {error ? (
+                        <p className="mt-2 text-xs text-destructive">{error}</p>
+                    ) : null}
+                </>
             )}
         </div>
     );

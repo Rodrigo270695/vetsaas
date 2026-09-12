@@ -132,6 +132,7 @@
         "stop": "Detener y rellenar",
         "processing": "Procesando…",
         "hint": "Habla la consulta. Se rellenan peso, temperatura, FC y FR si los dices; el resto del audio va solo a Anamnesis. En el móvil graba hasta pulsar detener.",
+        "listening": "Escuchando… pulsa el orbe para detener y rellenar.",
         "recording": "Grabando… habla y luego pulsa Detener y rellenar.",
         "empty": "No capturé suficiente audio. Intenta de nuevo.",
         "error": "No pude procesar el dictado. Inténtalo otra vez.",
