@@ -269,6 +269,12 @@
         "title": "Seguimiento Free",
         "description": "Cómo va cada clínica Free: si abrió el enlace, si se logueó y qué usó por última vez. Desde acá les escribes por WhatsApp para traerlos a un plan de pago.",
         "filter_label": "Filtrar por flujo",
+        "plan_filter_label": "Filtrar por plan",
+        "plan_filter": {
+            "todos": "Todos los planes",
+            "free": "Solo Free",
+            "pago": "Solo de pago"
+        },
         "back_to_tenants": "Volver a tenants",
         "send": "WhatsApp",
         "send_selected": "Escribir a seleccionados",

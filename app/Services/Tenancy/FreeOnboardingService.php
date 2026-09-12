@@ -16,7 +16,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 
 /**
- * Reporte de clínicas Free: si entraron, qué usaron y seguimiento por WhatsApp.
+ * Reporte de clínicas: si entraron, qué usaron y seguimiento por WhatsApp.
  */
 final class FreeOnboardingService
 {
@@ -27,26 +27,32 @@ final class FreeOnboardingService
     /**
      * @return array{
      *     items: LengthAwarePaginator,
-     *     filters: array{search: string, stage: string, per_page: int},
+     *     filters: array{search: string, stage: string, plan: string, per_page: int},
      *     stats: array<string, int>
      * }
      */
-    public function paginate(string $search, string $stage, int $perPage): array
+    public function paginate(string $search, string $stage, string $plan, int $perPage): array
     {
         $perPage = in_array($perPage, [10, 15, 25, 50], true) ? $perPage : 15;
         $stage = in_array($stage, ['todos', 'nunca_entro', 'activo', 'inactivo', 'sin_whatsapp'], true)
             ? $stage
             : 'todos';
+        $plan = in_array($plan, ['todos', 'free', 'pago'], true) ? $plan : 'free';
         $search = trim($search);
 
         $query = Subscription::query()
             ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
-            ->whereHas('plan', fn ($plan) => $plan->where('codigo', Plan::CODIGO_FREE))
             ->whereHas('tenant', fn ($tenant) => $tenant->where('estado', '!=', 'cancelled'))
             ->with([
                 'tenant:id,slug,nombre_comercial,razon_social,estado,telefono,email_admin,created_at',
                 'plan:id,codigo,nombre',
             ]);
+
+        if ($plan === 'free') {
+            $query->whereHas('plan', fn ($q) => $q->where('codigo', Plan::CODIGO_FREE));
+        } elseif ($plan === 'pago') {
+            $query->whereHas('plan', fn ($q) => $q->where('codigo', '!=', Plan::CODIGO_FREE));
+        }
 
         if ($search !== '') {
             $like = '%'.$search.'%';
@@ -113,6 +119,7 @@ final class FreeOnboardingService
             'filters' => [
                 'search' => $search,
                 'stage' => $stage,
+                'plan' => $plan,
                 'per_page' => $perPage,
             ],
             'stats' => $stats,
@@ -135,17 +142,24 @@ final class FreeOnboardingService
 
         $brand = $tenant->nombre_comercial ?: $tenant->razon_social ?: $tenant->slug;
         $loginUrl = TenantSubdomainUrl::login($tenant);
+        $isFree = $tenant->activeSubscription()?->plan?->codigo === Plan::CODIGO_FREE;
+        $planLine = $isFree
+            ? 'Te escribimos de VetSaaS para ver cómo te está yendo con el plan Free.'
+            : 'Te escribimos de VetSaaS para ver cómo te está yendo con tu clínica.';
+        $upgradeLine = $isFree
+            ? 'Cuando quieras pasar a un plan de pago, también lo vemos por aquí.'
+            : 'Si necesitas algo del plan o de la clínica, responde este WhatsApp.';
         $message = implode("\n", [
             "Hola, {$brand} 👋",
             '',
-            'Te escribimos de VetSaaS para ver cómo te está yendo con el plan Free.',
+            $planLine,
             '¿Pudiste entrar a tu clínica y cargar pacientes o una cita?',
             '',
             "Tu acceso: {$loginUrl}",
             "Correo: {$tenant->email_admin}",
             '',
             'Si te trabaste en algún paso, responde este WhatsApp y te ayudamos.',
-            'Cuando quieras pasar a un plan de pago, también lo vemos por aquí.',
+            $upgradeLine,
             '',
             '— Equipo VetSaaS / Orvae',
         ]);
@@ -248,6 +262,7 @@ final class FreeOnboardingService
                 if ($current['last_login_at'] === null || $iso > $current['last_login_at']) {
                     $current['last_login_at'] = $iso;
                 }
+                $current['login_count']++;
             }
 
             if ($user->last_seen_at !== null) {
@@ -282,7 +297,7 @@ final class FreeOnboardingService
                 'login_count' => 0,
                 'never_opened_welcome' => true,
             ];
-            $current['login_count'] = (int) $session->login_count;
+            $current['login_count'] = max($current['login_count'], (int) $session->login_count);
             if ($session->last_session_at !== null) {
                 $iso = Carbon::parse($session->last_session_at)->toIso8601String();
                 if ($current['last_login_at'] === null || $iso > $current['last_login_at']) {
@@ -317,7 +332,8 @@ final class FreeOnboardingService
                 'email' => $tenant?->email_admin,
                 'created_at' => $tenant?->created_at?->toIso8601String(),
             ],
-            'plan' => $sub->plan?->nombre ?? 'Free',
+            'plan' => $sub->plan?->nombre ?? '—',
+            'plan_codigo' => $sub->plan?->codigo,
             'last_login_at' => $activity['last_login_at'],
             'last_seen_at' => $activity['last_seen_at'],
             'last_module' => $activity['last_module'],

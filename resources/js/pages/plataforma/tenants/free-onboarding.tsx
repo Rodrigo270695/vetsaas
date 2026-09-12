@@ -24,6 +24,13 @@ import {
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';
@@ -34,6 +41,7 @@ import type { Paginated } from '@/types';
 const ROUTE_URL = '/plataforma/tenants/free-onboarding';
 const DEFAULT_PER_PAGE = 15;
 
+type PlanScope = 'todos' | 'free' | 'pago';
 type Stage = 'todos' | 'nunca_entro' | 'activo' | 'inactivo' | 'sin_whatsapp';
 
 type FreeRow = {
@@ -48,6 +56,7 @@ type FreeRow = {
         created_at: string | null;
     };
     plan: string;
+    plan_codigo: string | null;
     last_login_at: string | null;
     last_seen_at: string | null;
     last_module: string | null;
@@ -61,6 +70,7 @@ type FreeRow = {
 type PageFilters = {
     search: string;
     stage: Stage;
+    plan: PlanScope;
     per_page: number;
     sort: string | null;
     direction: 'asc' | 'desc' | null;
@@ -71,6 +81,7 @@ type Props = {
     filters?: {
         search: string;
         stage: Stage;
+        plan: PlanScope;
         per_page: number;
     };
     stats?: {
@@ -126,7 +137,7 @@ function stageBadgeClass(stage: FreeRow['stage']): string {
 
 export default function FreeOnboardingIndex({
     items: paginated = EMPTY_PAGINATED,
-    filters = { search: '', stage: 'todos', per_page: DEFAULT_PER_PAGE },
+    filters = { search: '', stage: 'todos', plan: 'free', per_page: DEFAULT_PER_PAGE },
     stats = {
         total: 0,
         nunca_entro: 0,
@@ -142,13 +153,14 @@ export default function FreeOnboardingIndex({
     const initialFilters: PageFilters = {
         search: filters.search,
         stage: filters.stage,
+        plan: filters.plan,
         per_page: filters.per_page,
         sort: null,
         direction: null,
     };
 
     const { search, setSearch, isLoading, setPerPage, applyFilter } =
-        useDataTablePage<{ stage: Stage }>({
+        useDataTablePage<{ stage: Stage; plan: PlanScope }>({
             routeUrl: ROUTE_URL,
             initialFilters,
             only: ['items', 'filters', 'stats'],
@@ -233,6 +245,19 @@ export default function FreeOnboardingIndex({
                 ),
             },
             {
+                key: 'plan',
+                header: t('columns.plan'),
+                cell: (row) => (
+                    <div className="flex items-center gap-1.5">
+                        <Sparkles
+                            className="size-3.5 shrink-0 text-amber-500"
+                            strokeWidth={2.5}
+                        />
+                        <span className="text-xs font-medium">{row.plan}</span>
+                    </div>
+                ),
+            },
+            {
                 key: 'stage',
                 header: t('free_onboarding.columns.flujo'),
                 cell: (row) => (
@@ -286,14 +311,14 @@ export default function FreeOnboardingIndex({
                     canUpdate ? (
                         <Button
                             type="button"
-                            size="sm"
-                            variant="outline"
-                            className="cursor-pointer gap-1.5"
+                            size="icon"
+                            className="size-8 cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-muted disabled:text-muted-foreground"
                             disabled={!row.has_phone}
+                            aria-label={t('free_onboarding.send')}
+                            title={t('free_onboarding.send')}
                             onClick={() => sendCheckIn(row)}
                         >
-                            <MessageCircle className="size-3.5" strokeWidth={2.5} />
-                            {t('free_onboarding.send')}
+                            <MessageCircle className="size-4" strokeWidth={2.5} />
                         </Button>
                     ) : null,
             },
@@ -301,7 +326,11 @@ export default function FreeOnboardingIndex({
         [canUpdate, sendCheckIn, t],
     );
 
-    const isEmpty = paginated.total === 0 && !filters.search && filters.stage === 'todos';
+    const isEmpty =
+        paginated.total === 0 &&
+        !filters.search &&
+        filters.stage === 'todos' &&
+        filters.plan === 'free';
 
     return (
         <>
@@ -359,6 +388,30 @@ export default function FreeOnboardingIndex({
                             isSearching={isLoading}
                             placeholder={t('search_placeholder')}
                         >
+                            <Select
+                                value={filters.plan}
+                                onValueChange={(plan) =>
+                                    applyFilter({ plan: plan as PlanScope })
+                                }
+                            >
+                                <SelectTrigger
+                                    aria-label={t('free_onboarding.plan_filter_label')}
+                                    className="h-9 w-44 cursor-pointer"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">
+                                        {t('free_onboarding.plan_filter.todos')}
+                                    </SelectItem>
+                                    <SelectItem value="free">
+                                        {t('free_onboarding.plan_filter.free')}
+                                    </SelectItem>
+                                    <SelectItem value="pago">
+                                        {t('free_onboarding.plan_filter.pago')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FilterChips
                                 ariaLabel={t('free_onboarding.filter_label')}
                                 value={filters.stage}
@@ -374,6 +427,7 @@ export default function FreeOnboardingIndex({
                             preservedQuery={{
                                 search: filters.search || undefined,
                                 stage: filters.stage !== 'todos' ? filters.stage : undefined,
+                                plan: filters.plan !== 'free' ? filters.plan : undefined,
                                 per_page: filters.per_page,
                             }}
                         />

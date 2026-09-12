@@ -269,6 +269,12 @@
         "title": "Free follow-up",
         "description": "How each Free clinic is doing: whether they opened the link, logged in, and what they last used. Send a WhatsApp from here to move them to a paid plan.",
         "filter_label": "Filter by flow",
+        "plan_filter_label": "Filter by plan",
+        "plan_filter": {
+            "todos": "All plans",
+            "free": "Free only",
+            "pago": "Paid only"
+        },
         "back_to_tenants": "Back to tenants",
         "send": "WhatsApp",
         "send_selected": "Message selected",

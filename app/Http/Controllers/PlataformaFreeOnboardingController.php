@@ -18,6 +18,7 @@ class PlataformaFreeOnboardingController extends Controller
         $payload = $service->paginate(
             trim((string) $request->string('search', '')),
             (string) $request->string('stage', 'todos'),
+            (string) $request->string('plan', 'free'),
             (int) $request->integer('per_page', 15),
         );
 
