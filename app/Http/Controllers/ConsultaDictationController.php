@@ -26,7 +26,7 @@ final class ConsultaDictationController extends Controller
         $maxKb = max(1024, (int) config('consulta-dictation.max_audio_kb', 12288));
 
         $data = $request->validate([
-            'transcript' => ['nullable', 'string', 'min:3', 'max:20000'],
+            'transcript' => ['nullable', 'string', 'min:3', 'max:100000'],
             'audio' => ['nullable', 'file', 'max:'.$maxKb],
         ]);
 
@@ -65,6 +65,8 @@ final class ConsultaDictationController extends Controller
             'ok' => true,
             'transcript' => $result['transcript'],
             'fields' => $result['fields'],
+            'conversation' => $result['conversation'],
+            'highlights' => $result['highlights'],
         ]);
     }
 }

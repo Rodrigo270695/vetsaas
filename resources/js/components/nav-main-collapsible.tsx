@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
 import {
     Collapsible,
     CollapsibleContent,

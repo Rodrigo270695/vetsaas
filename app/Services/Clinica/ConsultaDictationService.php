@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Dictado clínico: audio/texto → vitales + anamnesis de una consulta.
+ * Dictado clínico: audio/texto → vitales + anamnesis destilada + diálogo etiquetado.
  */
 final class ConsultaDictationService
 {
@@ -32,7 +32,9 @@ final class ConsultaDictationService
      *         temperatura_c: ?string,
      *         fc_lpm: ?string,
      *         fr_rpm: ?string
-     *     }
+     *     },
+     *     conversation: list<array{role: string, text: string}>,
+     *     highlights: list<string>
      * }
      */
     public function fromTranscript(string $transcript): array
@@ -42,9 +44,13 @@ final class ConsultaDictationService
             throw new RuntimeException('La transcripción está vacía.');
         }
 
+        $structured = $this->structureFields($transcript);
+
         return [
             'transcript' => $transcript,
-            'fields' => $this->structureFields($transcript),
+            'fields' => $structured['fields'],
+            'conversation' => $structured['conversation'],
+            'highlights' => $structured['highlights'],
         ];
     }
 
@@ -61,7 +67,9 @@ final class ConsultaDictationService
      *         temperatura_c: ?string,
      *         fc_lpm: ?string,
      *         fr_rpm: ?string
-     *     }
+     *     },
+     *     conversation: list<array{role: string, text: string}>,
+     *     highlights: list<string>
      * }
      */
     public function fromAudio(UploadedFile $audio): array
@@ -87,7 +95,7 @@ final class ConsultaDictationService
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$apiKey,
-        ])->timeout(90)->attach(
+        ])->timeout(180)->attach(
             'file',
             fopen($path, 'r'),
             $filename,
@@ -115,15 +123,19 @@ final class ConsultaDictationService
 
     /**
      * @return array{
-     *     motivo: ?string,
-     *     subjetivo: ?string,
-     *     objetivo: ?string,
-     *     analisis: ?string,
-     *     plan: ?string,
-     *     peso_kg: ?string,
-     *     temperatura_c: ?string,
-     *     fc_lpm: ?string,
-     *     fr_rpm: ?string
+     *     fields: array{
+     *         motivo: ?string,
+     *         subjetivo: ?string,
+     *         objetivo: ?string,
+     *         analisis: ?string,
+     *         plan: ?string,
+     *         peso_kg: ?string,
+     *         temperatura_c: ?string,
+     *         fc_lpm: ?string,
+     *         fr_rpm: ?string
+     *     },
+     *     conversation: list<array{role: string, text: string}>,
+     *     highlights: list<string>
      * }
      */
     public function structureFields(string $transcript): array
@@ -136,44 +148,49 @@ final class ConsultaDictationService
         $model = (string) config('consulta-dictation.openai_model', config('in-app-assistant.openai_model', 'gpt-4o-mini'));
 
         $system = <<<'PROMPT'
-Eres un asistente veterinario clínico. Recibes el dictado oral de un veterinario sobre una consulta.
+Eres un asistente clínico veterinario. El audio/texto es una CONVERSACIÓN entre el veterinario y el propietario (dueño) de la mascota. No es un dictado clínico limpio.
 
-Tu ÚNICO trabajo es:
-1) Extraer signos vitales SI se mencionan explícitamente.
-2) Poner TODO el resto del contenido hablado en "subjetivo" (anamnesis).
+Tareas:
+1) Identificar quién habla en cada turno (veterinario vs propietario). Si no está claro, usa "desconocido".
+2) Extraer signos vitales SOLO si se mencionan explícitamente (peso, temperatura, FC/pulso, FR).
+3) Redactar "subjetivo" como ANAMNESIS CLÍNICA: lo importante para la historia, no el diálogo literal. Sintetiza quejas, evolución, ambiente, dietas, medicamentos, alergias, vacunas, hábitos, lo que el dueño relata y lo que el veterinario confirma. 8–20 líneas, español clínico, tercera persona o estilo SOAP subjetivo. NO copies 15 minutos de charla.
+4) "highlights": 5–10 viñetas de lo más relevante.
+5) "conversation": turnos fusionados (mismo hablante seguido = un turno). Máximo 50 turnos. Cada "text" es el contenido de ese bloque, recortado si es muy largo (hasta ~400 caracteres por turno; prioriza sentido clínico).
 
-Reglas estrictas:
-- No inventes datos que no estén en el texto.
-- motivo, objetivo, analisis y plan deben ser SIEMPRE null.
-- No repartas el texto en varios campos clínicos: hallazgos, diagnóstico, plan, motivo, etc. van TODO dentro de subjetivo.
-- Si menciona peso, temperatura, frecuencia cardíaca/FC/pulso o frecuencia respiratoria/FR, extrae el número a su campo.
-- En subjetivo incluye el relato clínico completo (puedes omitir solo las frases que ya quedaron como número de vital, si quieres; o dejarlas también). Lo importante: nada de ese relato debe ir a otro campo de texto.
-- Si un vital no aparece, usa null.
+Reglas:
+- No inventes hechos que no estén en el texto.
+- motivo, objetivo, analisis y plan deben ser SIEMPRE null. El relato clínico destilado va SOLO en subjetivo.
+- No pongas la transcripción completa en subjetivo.
 
-Responde ÚNICAMENTE con JSON válido (sin markdown) con estas claves:
-motivo, subjetivo, objetivo, analisis, plan, peso_kg, temperatura_c, fc_lpm, fr_rpm.
-- motivo: siempre null
-- subjetivo: texto completo del dictado salvo vitales (string|null)
-- objetivo: siempre null
-- analisis: siempre null
-- plan: siempre null
-- peso_kg: número como string, ej. "12.5" (string|null)
-- temperatura_c: número como string, ej. "38.9" (string|null)
-- fc_lpm: entero como string (string|null)
-- fr_rpm: entero como string (string|null)
+Responde ÚNICAMENTE JSON válido con:
+{
+  "motivo": null,
+  "subjetivo": string|null,
+  "objetivo": null,
+  "analisis": null,
+  "plan": null,
+  "peso_kg": string|null,
+  "temperatura_c": string|null,
+  "fc_lpm": string|null,
+  "fr_rpm": string|null,
+  "highlights": string[],
+  "conversation": [{"role":"veterinario"|"propietario"|"desconocido","text":"..."}]
+}
 PROMPT;
+
+        $userContent = $this->truncateForModel($transcript);
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$apiKey,
             'Content-Type' => 'application/json',
-        ])->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
+        ])->timeout(90)->post('https://api.openai.com/v1/chat/completions', [
             'model' => $model,
-            'temperature' => 0.1,
-            'max_tokens' => 1200,
+            'temperature' => 0.15,
+            'max_tokens' => 4000,
             'response_format' => ['type' => 'json_object'],
             'messages' => [
                 ['role' => 'system', 'content' => $system],
-                ['role' => 'user', 'content' => $transcript],
+                ['role' => 'user', 'content' => $userContent],
             ],
         ]);
 
@@ -192,7 +209,15 @@ PROMPT;
             throw new RuntimeException('La IA no devolvió un JSON válido.');
         }
 
-        return $this->normalizeFields($decoded, $transcript);
+        $fields = $this->normalizeFields($decoded, $transcript);
+        $conversation = $this->normalizeConversation($decoded, $transcript);
+        $highlights = $this->normalizeHighlights($decoded);
+
+        return [
+            'fields' => $fields,
+            'conversation' => $conversation,
+            'highlights' => $highlights,
+        ];
     }
 
     /**
@@ -211,23 +236,20 @@ PROMPT;
      */
     private function normalizeFields(array $raw, string $transcriptFallback = ''): array
     {
-        $chunks = [];
-        foreach (['subjetivo', 'motivo', 'objetivo', 'analisis', 'plan'] as $key) {
-            $value = $raw[$key] ?? null;
-            if (! is_string($value)) {
-                continue;
+        $subjetivo = $this->nullableString($raw['subjetivo'] ?? null);
+        if ($subjetivo === null) {
+            $highlights = $this->normalizeHighlights($raw);
+            if ($highlights !== []) {
+                $subjetivo = implode("\n", array_map(static fn (string $line): string => '• '.$line, $highlights));
             }
-            $value = trim($value);
-            if ($value === '' || strcasecmp($value, 'null') === 0) {
-                continue;
-            }
-            $chunks[] = $value;
         }
-
-        $subjetivo = $chunks === [] ? null : implode("\n", array_values(array_unique($chunks)));
         if ($subjetivo === null) {
             $fallback = trim($transcriptFallback);
-            $subjetivo = $fallback !== '' ? $fallback : null;
+            if ($fallback !== '') {
+                $subjetivo = mb_strlen($fallback) > 700
+                    ? rtrim(mb_substr($fallback, 0, 700)).'…'
+                    : $fallback;
+            }
         }
 
         return [
@@ -241,6 +263,124 @@ PROMPT;
             'fc_lpm' => $this->normalizeInt($raw['fc_lpm'] ?? null),
             'fr_rpm' => $this->normalizeInt($raw['fr_rpm'] ?? null),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $raw
+     * @return list<array{role: string, text: string}>
+     */
+    private function normalizeConversation(array $raw, string $transcript): array
+    {
+        $source = $raw['conversation'] ?? $raw['turns'] ?? $raw['dialogo'] ?? null;
+        $turns = [];
+        if (is_array($source)) {
+            foreach ($source as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                $text = $this->nullableString($item['text'] ?? $item['content'] ?? $item['mensaje'] ?? null);
+                if ($text === null) {
+                    continue;
+                }
+                $role = $this->normalizeRole($item['role'] ?? $item['speaker'] ?? $item['hablante'] ?? null);
+                $turns[] = ['role' => $role, 'text' => $text];
+            }
+        }
+
+        $merged = [];
+        foreach ($turns as $turn) {
+            $last = $merged === [] ? null : $merged[array_key_last($merged)];
+            if ($last !== null && $last['role'] === $turn['role']) {
+                $merged[array_key_last($merged)]['text'] = trim($last['text'].' '.$turn['text']);
+                continue;
+            }
+            $merged[] = $turn;
+        }
+
+        if (count($merged) > 50) {
+            $merged = array_slice($merged, 0, 50);
+        }
+
+        if ($merged === []) {
+            $fallback = trim($transcript);
+            if ($fallback !== '') {
+                $merged[] = [
+                    'role' => 'desconocido',
+                    'text' => mb_strlen($fallback) > 1200
+                        ? rtrim(mb_substr($fallback, 0, 1200)).'…'
+                        : $fallback,
+                ];
+            }
+        }
+
+        return array_values($merged);
+    }
+
+    /**
+     * @param  array<string, mixed>  $raw
+     * @return list<string>
+     */
+    private function normalizeHighlights(array $raw): array
+    {
+        $source = $raw['highlights'] ?? $raw['puntos'] ?? null;
+        if (! is_array($source)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($source as $item) {
+            if (! is_string($item) && ! is_numeric($item)) {
+                continue;
+            }
+            $line = trim((string) $item);
+            if ($line === '' || strcasecmp($line, 'null') === 0) {
+                continue;
+            }
+            $out[] = $line;
+            if (count($out) >= 12) {
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    private function normalizeRole(mixed $value): string
+    {
+        $raw = mb_strtolower(trim((string) $value));
+        if (in_array($raw, ['veterinario', 'vet', 'doctor', 'dra', 'dr', 'médico', 'medico', 'clinico', 'clínico'], true)) {
+            return 'veterinario';
+        }
+        if (in_array($raw, ['propietario', 'dueño', 'dueno', 'dueña', 'duena', 'owner', 'tutor', 'cliente'], true)) {
+            return 'propietario';
+        }
+
+        return 'desconocido';
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return null;
+        }
+        $value = trim((string) $value);
+        if ($value === '' || strcasecmp($value, 'null') === 0) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    private function truncateForModel(string $transcript): string
+    {
+        if (mb_strlen($transcript) <= 24000) {
+            return $transcript;
+        }
+
+        $head = mb_substr($transcript, 0, 16000);
+        $tail = mb_substr($transcript, -7000);
+
+        return $head."\n\n[…transcripción recortada por longitud…]\n\n".$tail;
     }
 
     private function normalizeDecimal(mixed $value): ?string
