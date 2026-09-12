@@ -1,17 +1,48 @@
 import { useLayoutEffect, useRef } from 'react';
 
 type BounceNavDotProps = {
-    /** Cambia cuando el item activo de esta lista cambia (href o null). */
+    /** Cambia cuando cambia la ruta activa del menú. */
     activeKey: string | null;
 };
 
+type Point = { x: number; y: number };
+
+/** Última posición en el sidebar (sobrevive remounts de Inertia). */
+let lastPoint: Point | null = null;
+
+function readTransform(el: HTMLElement): Point | null {
+    const t = getComputedStyle(el).transform;
+    if (!t || t === 'none') {
+        return null;
+    }
+    const m = new DOMMatrixReadOnly(t);
+    return { x: m.m41, y: m.m42 };
+}
+
+function measureActive(root: HTMLElement, size: number): Point | null {
+    const active = root.querySelector<HTMLElement>('[data-bounce-active="true"]');
+    if (!active || active.offsetParent === null) {
+        return null;
+    }
+
+    const rootRect = root.getBoundingClientRect();
+    const elRect = active.getBoundingClientRect();
+    if (elRect.height < 2) {
+        return null;
+    }
+
+    return {
+        x: elRect.left - rootRect.left + 6,
+        y: elRect.top - rootRect.top + elRect.height / 2 - size / 2,
+    };
+}
+
 /**
- * Punto que salta en arco entre ítems del menú (efecto Rare UI Bounce Sidebar).
- * El padre debe ser `position: relative` (p. ej. SidebarMenuSub).
+ * Punto que se desplaza visiblemente de un ítem activo a otro (no teletransporta).
+ * El padre debe ser `position: relative` (SidebarMenu).
  */
 export function BounceNavDot({ activeKey }: BounceNavDotProps) {
     const dotRef = useRef<HTMLSpanElement>(null);
-    const prevY = useRef<number | null>(null);
 
     useLayoutEffect(() => {
         const dot = dotRef.current;
@@ -21,55 +52,54 @@ export function BounceNavDot({ activeKey }: BounceNavDotProps) {
         }
 
         const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const dpr = window.devicePixelRatio || 1;
-        const size = Math.round(6 * dpr) / dpr;
+        const size = 6;
+        let cancelled = false;
 
-        const snap = () => {
-            const active = root.querySelector<HTMLElement>(':scope > [data-bounce-active="true"]');
-            if (!active) {
+        const place = (animate: boolean) => {
+            if (cancelled) {
+                return;
+            }
+
+            const to = measureActive(root, size);
+            if (!to) {
                 dot.style.opacity = '0';
                 return;
             }
 
+            const live = readTransform(dot);
+            const from = live ?? lastPoint;
+            lastPoint = to;
             dot.style.opacity = '1';
-            const rootRect = root.getBoundingClientRect();
-            const elRect = active.getBoundingClientRect();
-            const toY =
-                Math.round(
-                    (elRect.top - rootRect.top + root.scrollTop + elRect.height / 2 - size / 2) * dpr,
-                ) / dpr;
 
-            const fromY = prevY.current;
-            prevY.current = toY;
+            const alreadyThere =
+                from !== null && Math.abs(from.x - to.x) < 0.5 && Math.abs(from.y - to.y) < 0.5;
 
-            if (fromY === null || reduce || fromY === toY) {
-                dot.getAnimations().forEach((a) => a.cancel());
-                dot.style.transform = `translate(0px, ${toY}px)`;
+            if (!animate || reduce || from === null || alreadyThere) {
+                dot.style.transition = 'none';
+                dot.style.transform = `translate(${to.x}px, ${to.y}px)`;
                 return;
             }
 
-            const midY = (fromY + toY) / 2;
-            const bulge = toY > fromY ? 7 : -7;
-
-            dot.animate(
-                [
-                    { transform: `translate(0px, ${fromY}px)` },
-                    { transform: `translate(${bulge}px, ${midY}px)` },
-                    { transform: `translate(0px, ${toY}px)` },
-                ],
-                {
-                    duration: 280,
-                    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-                    fill: 'forwards',
-                },
-            );
+            dot.style.transition = 'none';
+            dot.style.transform = `translate(${from.x}px, ${from.y}px)`;
+            void dot.offsetHeight;
+            dot.style.transition = 'transform 480ms cubic-bezier(0.22, 1, 0.36, 1)';
+            dot.style.transform = `translate(${to.x}px, ${to.y}px)`;
         };
 
-        snap();
-        const raf = requestAnimationFrame(snap);
-        void document.fonts?.ready.then(snap);
+        place(true);
 
-        return () => cancelAnimationFrame(raf);
+        const onEnd = (e: TransitionEvent) => {
+            if (e.propertyName === 'transform') {
+                lastPoint = readTransform(dot) ?? lastPoint;
+            }
+        };
+        dot.addEventListener('transitionend', onEnd);
+
+        return () => {
+            cancelled = true;
+            dot.removeEventListener('transitionend', onEnd);
+        };
     }, [activeKey]);
 
     return (
@@ -77,7 +107,7 @@ export function BounceNavDot({ activeKey }: BounceNavDotProps) {
             ref={dotRef}
             aria-hidden
             data-slot="bounce-nav-dot"
-            className="pointer-events-none absolute top-0 left-0 z-10 size-1.5 rounded-full bg-primary opacity-0 shadow-[0_0_0_3px] shadow-primary/15 group-data-[collapsible=icon]:hidden"
+            className="pointer-events-none absolute top-0 left-0 z-10 size-1.5 rounded-full bg-primary opacity-0 shadow-[0_0_0_3px] shadow-primary/15 will-change-transform group-data-[collapsible=icon]:hidden"
         />
     );
 }

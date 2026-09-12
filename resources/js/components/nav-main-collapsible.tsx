@@ -216,11 +216,7 @@ export function NavMainCollapsible({
             )}
 
             <SidebarMenu className="relative">
-                <BounceNavDot
-                    activeKey={
-                        visibleSingles.find((item) => isCurrentUrl(item.href))?.href ?? null
-                    }
-                />
+                <BounceNavDot activeKey={currentUrl} />
                 {visibleSingles.map((item) => (
                     <SidebarMenuItem
                         key={item.title}
@@ -291,16 +287,6 @@ export function NavMainCollapsible({
 
                             <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
                                 <SidebarMenuSub className="relative mt-1 gap-0.5 border-sidebar-border/50">
-                                    <BounceNavDot
-                                        activeKey={
-                                            group.items.find((item) =>
-                                                isNavItemActive(
-                                                    item.href,
-                                                    group.items.map((i) => i.href),
-                                                ),
-                                            )?.href ?? null
-                                        }
-                                    />
                                     {group.items.map((item, index) => (
                                         <NavSubItem
                                             key={item.title}
