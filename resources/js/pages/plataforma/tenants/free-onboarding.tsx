@@ -3,6 +3,7 @@ import {
     Activity,
     HeartHandshake,
     LogIn,
+    Mail,
     MessageCircle,
     MousePointerClick,
     PhoneOff,
@@ -64,6 +65,7 @@ type FreeRow = {
     login_count: number;
     never_opened_welcome: boolean;
     has_phone: boolean;
+    has_email: boolean;
     stage: Exclude<Stage, 'todos'>;
 };
 
@@ -185,11 +187,11 @@ export default function FreeOnboardingIndex({
     });
 
     const sendCheckIn = useCallback((row: FreeRow) => {
-        if (
-            !window.confirm(
-                t('free_onboarding.confirm_send', { name: row.tenant.nombre }),
-            )
-        ) {
+        const viaEmail = !row.has_phone && row.has_email;
+        const confirmKey = viaEmail
+            ? 'free_onboarding.confirm_send_email'
+            : 'free_onboarding.confirm_send';
+        if (!window.confirm(t(confirmKey, { name: row.tenant.nombre }))) {
             return;
         }
 
@@ -307,20 +309,35 @@ export default function FreeOnboardingIndex({
             {
                 key: 'actions',
                 header: t('columns.acciones'),
-                cell: (row) =>
-                    canUpdate ? (
+                cell: (row) => {
+                    const canMail = !row.has_phone && row.has_email;
+                    const canSend = row.has_phone || row.has_email;
+                    const label = canMail
+                        ? t('free_onboarding.send_email')
+                        : t('free_onboarding.send');
+
+                    return canUpdate ? (
                         <Button
                             type="button"
                             size="icon"
-                            className="size-8 cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-muted disabled:text-muted-foreground"
-                            disabled={!row.has_phone}
-                            aria-label={t('free_onboarding.send')}
-                            title={t('free_onboarding.send')}
+                            className={
+                                canMail
+                                    ? 'size-8 cursor-pointer bg-sky-600 text-white hover:bg-sky-700 disabled:bg-muted disabled:text-muted-foreground'
+                                    : 'size-8 cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-muted disabled:text-muted-foreground'
+                            }
+                            disabled={!canSend}
+                            aria-label={label}
+                            title={label}
                             onClick={() => sendCheckIn(row)}
                         >
-                            <MessageCircle className="size-4" strokeWidth={2.5} />
+                            {canMail ? (
+                                <Mail className="size-4" strokeWidth={2.5} />
+                            ) : (
+                                <MessageCircle className="size-4" strokeWidth={2.5} />
+                            )}
                         </Button>
-                    ) : null,
+                    ) : null;
+                },
             },
         ],
         [canUpdate, sendCheckIn, t],

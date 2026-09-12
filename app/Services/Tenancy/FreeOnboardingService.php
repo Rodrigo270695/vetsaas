@@ -9,11 +9,13 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\UserAuthSessionLog;
+use App\Notifications\Tenancy\TenantOnboardingCheckInNotification;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Support\Tenancy\TenantSubdomainUrl;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Reporte de clínicas: si entraron, qué usaron y seguimiento por WhatsApp.
@@ -127,53 +129,44 @@ final class FreeOnboardingService
     }
 
     /**
-     * @return array{whatsapp_sent: bool, warning: string|null}
+     * @return array{whatsapp_sent: bool, email_sent: bool, warning: string|null}
      */
     public function sendCheckIn(Tenant $tenant): array
     {
-        if (! $this->whatsAppMessenger->isReady()) {
-            return ['whatsapp_sent' => false, 'warning' => 'WhatsApp de plataforma no está conectado.'];
-        }
-
         $chatId = WhatsAppChatId::fromPhone($tenant->telefono);
-        if ($chatId === null) {
-            return ['whatsapp_sent' => false, 'warning' => 'El tenant no tiene un celular válido en la ficha.'];
-        }
-
-        $brand = $tenant->nombre_comercial ?: $tenant->razon_social ?: $tenant->slug;
+        $email = $this->adminEmail($tenant);
         $loginUrl = TenantSubdomainUrl::login($tenant);
         $isFree = $tenant->activeSubscription()?->plan?->codigo === Plan::CODIGO_FREE;
-        $planLine = $isFree
-            ? 'Te escribimos de VetSaaS para ver cómo te está yendo con el plan Free.'
-            : 'Te escribimos de VetSaaS para ver cómo te está yendo con tu clínica.';
-        $upgradeLine = $isFree
-            ? 'Cuando quieras pasar a un plan de pago, también lo vemos por aquí.'
-            : 'Si necesitas algo del plan o de la clínica, responde este WhatsApp.';
-        $message = implode("\n", [
-            "Hola, {$brand} 👋",
-            '',
-            $planLine,
-            '¿Pudiste entrar a tu clínica y cargar pacientes o una cita?',
-            '',
-            "Tu acceso: {$loginUrl}",
-            "Correo: {$tenant->email_admin}",
-            '',
-            'Si te trabaste en algún paso, responde este WhatsApp y te ayudamos.',
-            $upgradeLine,
-            '',
-            '— Equipo VetSaaS / Orvae',
-        ]);
 
-        try {
-            $this->whatsAppMessenger->sendText($chatId, $message);
-        } catch (\Throwable $e) {
+        if ($chatId !== null && $this->whatsAppMessenger->isReady()) {
+            $wa = $this->sendWhatsApp($tenant, $chatId, $loginUrl, $isFree);
+            if ($wa['whatsapp_sent']) {
+                return $wa;
+            }
+            if ($email !== null) {
+                return $this->sendEmail($tenant, $email, $loginUrl, $isFree);
+            }
+
+            return $wa;
+        }
+
+        if ($email !== null) {
+            return $this->sendEmail($tenant, $email, $loginUrl, $isFree);
+        }
+
+        if ($chatId !== null && ! $this->whatsAppMessenger->isReady()) {
             return [
                 'whatsapp_sent' => false,
-                'warning' => app()->hasDebugModeEnabled() ? $e->getMessage() : 'No se pudo enviar el WhatsApp.',
+                'email_sent' => false,
+                'warning' => 'WhatsApp de plataforma no está conectado y no hay correo para enviar.',
             ];
         }
 
-        return ['whatsapp_sent' => true, 'warning' => null];
+        return [
+            'whatsapp_sent' => false,
+            'email_sent' => false,
+            'warning' => 'El tenant no tiene celular ni correo válido.',
+        ];
     }
 
     /**
@@ -197,7 +190,7 @@ final class FreeOnboardingService
                 continue;
             }
 
-            if (($result['warning'] ?? '') === 'El tenant no tiene un celular válido en la ficha.') {
+            if (($result['warning'] ?? '') === 'El tenant no tiene celular ni correo válido.') {
                 $skipped++;
                 continue;
             }
@@ -340,7 +333,8 @@ final class FreeOnboardingService
             'last_path' => $activity['last_path'],
             'login_count' => (int) ($activity['login_count'] ?? 0),
             'never_opened_welcome' => (bool) $activity['never_opened_welcome'],
-            'has_phone' => filled($tenant?->telefono),
+            'has_phone' => WhatsAppChatId::fromPhone($tenant?->telefono) !== null,
+            'has_email' => $this->adminEmail($tenant) !== null,
         ];
     }
 
@@ -363,5 +357,76 @@ final class FreeOnboardingService
         }
 
         return 'inactivo';
+    }
+
+    /**
+     * @return array{whatsapp_sent: bool, email_sent: bool, warning: string|null}
+     */
+    private function sendWhatsApp(Tenant $tenant, string $chatId, string $loginUrl, bool $isFree): array
+    {
+        $brand = $tenant->nombre_comercial ?: $tenant->razon_social ?: $tenant->slug;
+        $planLine = $isFree
+            ? 'Te escribimos de VetSaaS para ver cómo te está yendo con el plan Free.'
+            : 'Te escribimos de VetSaaS para ver cómo te está yendo con tu clínica.';
+        $upgradeLine = $isFree
+            ? 'Cuando quieras pasar a un plan de pago, también lo vemos por aquí.'
+            : 'Si necesitas algo del plan o de la clínica, responde este WhatsApp.';
+        $message = implode("\n", [
+            "Hola, {$brand} 👋",
+            '',
+            $planLine,
+            '¿Pudiste entrar a tu clínica y cargar pacientes o una cita?',
+            '',
+            "Tu acceso: {$loginUrl}",
+            "Correo: {$tenant->email_admin}",
+            '',
+            'Si te trabaste en algún paso, responde este WhatsApp y te ayudamos.',
+            $upgradeLine,
+            '',
+            '— Equipo VetSaaS / Orvae',
+        ]);
+
+        try {
+            $this->whatsAppMessenger->sendText($chatId, $message);
+        } catch (\Throwable $e) {
+            return [
+                'whatsapp_sent' => false,
+                'email_sent' => false,
+                'warning' => app()->hasDebugModeEnabled() ? $e->getMessage() : 'No se pudo enviar el WhatsApp.',
+            ];
+        }
+
+        return ['whatsapp_sent' => true, 'email_sent' => false, 'warning' => null];
+    }
+
+    /**
+     * @return array{whatsapp_sent: bool, email_sent: bool, warning: string|null}
+     */
+    private function sendEmail(Tenant $tenant, string $email, string $loginUrl, bool $isFree): array
+    {
+        try {
+            Notification::sendNow(
+                Notification::route('mail', $email),
+                new TenantOnboardingCheckInNotification($tenant, $loginUrl, $isFree),
+            );
+        } catch (\Throwable $e) {
+            return [
+                'whatsapp_sent' => false,
+                'email_sent' => false,
+                'warning' => app()->hasDebugModeEnabled() ? $e->getMessage() : 'No se pudo enviar el correo.',
+            ];
+        }
+
+        return ['whatsapp_sent' => false, 'email_sent' => true, 'warning' => null];
+    }
+
+    private function adminEmail(?Tenant $tenant): ?string
+    {
+        $email = strtolower(trim((string) ($tenant?->email_admin ?? '')));
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+
+        return $email;
     }
 }

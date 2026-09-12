@@ -33,7 +33,11 @@ class PlataformaFreeOnboardingController extends Controller
             return back()->with('success', 'WhatsApp de seguimiento enviado a '.$tenant->telefono.'.');
         }
 
-        return back()->with('error', $result['warning'] ?? 'No se pudo enviar el WhatsApp.');
+        if ($result['email_sent'] ?? false) {
+            return back()->with('success', 'Correo de seguimiento enviado a '.$tenant->email_admin.'.');
+        }
+
+        return back()->with('error', $result['warning'] ?? 'No se pudo enviar el seguimiento.');
     }
 
     public function sendCheckInBulk(Request $request, FreeOnboardingService $service): RedirectResponse
@@ -46,7 +50,7 @@ class PlataformaFreeOnboardingController extends Controller
         $result = $service->sendCheckInBulk($data['ids']);
 
         if ($result['sent'] === 0 && $result['failed'] === 0) {
-            return back()->with('info', 'Ningún tenant tenía celular válido para WhatsApp.');
+            return back()->with('info', 'Ningún tenant tenía celular o correo válido.');
         }
 
         $parts = [];
@@ -54,7 +58,7 @@ class PlataformaFreeOnboardingController extends Controller
             $parts[] = $result['sent'].' enviados';
         }
         if ($result['skipped'] > 0) {
-            $parts[] = $result['skipped'].' sin celular';
+            $parts[] = $result['skipped'].' sin contacto';
         }
         if ($result['failed'] > 0) {
             $parts[] = $result['failed'].' fallidos';

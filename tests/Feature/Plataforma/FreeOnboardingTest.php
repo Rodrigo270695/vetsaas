@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Notifications\Tenancy\TenantOnboardingCheckInNotification;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Tests\Support\CreatesTestTenant;
 use Tests\Support\RefreshDatabaseWithPgsqlSafety;
 
@@ -68,6 +70,19 @@ it('lista el tenant free en el reporte de seguimiento', function (): void {
             ->where('items.data.0.stage', 'nunca_entro')
             ->where('stats.nunca_entro', 1)
         );
+});
+
+it('envía correo de seguimiento si no hay celular', function (): void {
+    Notification::fake();
+    $this->testTenant->update(['telefono' => null]);
+
+    $this->actingAs($this->superadmin)
+        ->from('http://127.0.0.1/plataforma/tenants/free-onboarding')
+        ->post('http://127.0.0.1/plataforma/tenants/'.$this->testTenant->id.'/free-onboarding/send')
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    Notification::assertSentOnDemand(TenantOnboardingCheckInNotification::class);
 });
 
 it('envía el whatsapp de seguimiento al celular del tenant', function (): void {
