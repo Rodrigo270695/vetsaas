@@ -31,6 +31,7 @@ import {
     Gauge,
     Hash,
     CircleHelp,
+    HeartHandshake,
     Headset,
     History,
     Home,
@@ -586,6 +587,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.tenants'),
                             href: '/plataforma/tenants',
                             icon: Store,
+                            permission: 'plataforma-tenants.view',
+                        },
+                        {
+                            title: t('items.free_onboarding'),
+                            href: '/plataforma/tenants/free-onboarding',
+                            icon: HeartHandshake,
                             permission: 'plataforma-tenants.view',
                         },
                         {

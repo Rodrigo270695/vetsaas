@@ -5,6 +5,7 @@ import {
     CheckCircle2,
     Download,
     Filter,
+    HeartHandshake,
     History,
     Mail,
     Plus,
@@ -646,6 +647,19 @@ export default function Index({
                         <div className="flex flex-row items-center gap-2">
                             {canUpdate && (
                                 <>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() =>
+                                            router.visit('/plataforma/tenants/free-onboarding')
+                                        }
+                                        className="cursor-pointer gap-2"
+                                    >
+                                        <HeartHandshake className="size-4" strokeWidth={2.5} />
+                                        <span className="hidden lg:inline">
+                                            {t('tenants:actions.free_onboarding')}
+                                        </span>
+                                    </Button>
                                     <Button
                                         type="button"
                                         variant="outline"

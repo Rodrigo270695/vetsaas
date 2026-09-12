@@ -29,7 +29,8 @@
         "delete_selected": "Delete selected",
         "win_back_free_selected": "Win-back Free ({{count}})",
         "win_back_free_all": "Win-back expired Free",
-        "win_back_history": "Win-back history"
+        "win_back_history": "Win-back history",
+        "free_onboarding": "Free follow-up"
     },
     "columns": {
         "tenant": "Tenant",
@@ -262,6 +263,41 @@
         },
         "features_hint": {
             "max_comprobantes_mes": "Included monthly base quota. In the billing period it is multiplied by cycle months (×1 / ×3 / ×6 / ×12)."
+        }
+    },
+    "free_onboarding": {
+        "title": "Free follow-up",
+        "description": "How each Free clinic is doing: whether they opened the link, logged in, and what they last used. Send a WhatsApp from here to move them to a paid plan.",
+        "filter_label": "Filter by flow",
+        "back_to_tenants": "Back to tenants",
+        "send": "WhatsApp",
+        "send_selected": "Message selected",
+        "selected_one": "clinic selected",
+        "selected_many": "clinics selected",
+        "confirm_send": "Send a follow-up WhatsApp to {{name}}?",
+        "confirm_send_bulk": "Send a follow-up WhatsApp to {{count}} clinics?",
+        "never_opened": "Has not opened the welcome link",
+        "login_count": "{{count}} logins",
+        "empty_title": "No active Free clinics",
+        "empty_description": "When a Free tenant registers, you will see here whether they entered the system.",
+        "toast_load_error": "Could not load Free follow-up.",
+        "columns": {
+            "flujo": "Flow",
+            "login": "Last login",
+            "uso": "Last activity"
+        },
+        "filters": {
+            "all": "All",
+            "nunca_entro": "Never logged in",
+            "activo": "Used (7 days)",
+            "inactivo": "Inactive",
+            "sin_whatsapp": "No phone"
+        },
+        "stage": {
+            "nunca_entro": "Never logged in",
+            "activo": "Using Free",
+            "inactivo": "Inactive",
+            "sin_whatsapp": "No phone"
         }
     }
 }

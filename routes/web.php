@@ -94,6 +94,7 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Http\Controllers\TarifaServiciosController;
 use App\Http\Controllers\TenantChatController;
+use App\Http\Controllers\PlataformaFreeOnboardingController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantGeoController;
 use App\Http\Controllers\TenantImpersonationController;
@@ -1549,6 +1550,17 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-tenants.view')
             ->get('tenants', [TenantController::class, 'index'])
             ->name('tenants.index');
+        Route::middleware('permission:plataforma-tenants.view')
+            ->get('tenants/free-onboarding', [PlataformaFreeOnboardingController::class, 'index'])
+            ->name('tenants.free-onboarding');
+        Route::middleware('permission:plataforma-tenants.update')
+            ->post('tenants/free-onboarding/send', [PlataformaFreeOnboardingController::class, 'sendCheckInBulk'])
+            ->middleware('throttle:20,1')
+            ->name('tenants.free-onboarding.send-bulk');
+        Route::middleware('permission:plataforma-tenants.update')
+            ->post('tenants/{tenant}/free-onboarding/send', [PlataformaFreeOnboardingController::class, 'sendCheckIn'])
+            ->middleware('throttle:30,1')
+            ->name('tenants.free-onboarding.send');
         Route::middleware('permission:plataforma-tenants.view')
             ->get('modulos-clinicas', [PlataformaTenantModulesController::class, 'index'])
             ->name('modulos-clinicas.index');
