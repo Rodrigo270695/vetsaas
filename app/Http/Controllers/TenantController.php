@@ -13,6 +13,7 @@ use App\Models\Tenant;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\Subscriptions\FreePlanWinBackService;
+use App\Services\Tenancy\TenantAdminAccessNotifier;
 use App\Services\Tenancy\TenantAdminAccessRecoverer;
 use App\Services\Tenancy\TenantProvisioner;
 use App\Services\Tenancy\TenantSlugChangeService;
@@ -484,6 +485,7 @@ class TenantController extends Controller
         Tenant $tenant,
         TenantAdminAccessRecoverer $recoverer,
         TenantProvisioner $provisioner,
+        TenantAdminAccessNotifier $notifier,
     ): RedirectResponse {
         if ($tenant->estado === 'cancelled') {
             throw ValidationException::withMessages([
@@ -492,34 +494,50 @@ class TenantController extends Controller
         }
 
         $data = $request->validated();
+        $mustChange = (bool) ($data['must_change_password'] ?? true);
+        $notifyClient = (bool) ($data['notify_client'] ?? true);
+
         $result = $recoverer->recover(
             $tenant,
             (string) $data['email'],
             (string) $data['password'],
-            (bool) ($data['must_change_password'] ?? true),
+            $mustChange,
         );
 
-        $bootstrapUrl = null;
-        if ((bool) ($data['must_change_password'] ?? true)) {
-            $bootstrapUrl = $provisioner->issueBootstrapLoginUrl($tenant, $result['user']);
-        }
+        $bootstrapUrl = $provisioner->issueBootstrapLoginUrl($tenant, $result['user']);
 
         $message = ($result['created'] ?? false)
             ? sprintf(
-                'Usuario admin_clinica creado: %s. Ya puede iniciar sesión en el subdominio de la clínica.',
+                'Usuario admin_clinica creado: %s. Copia el enlace o revisa el envío al cliente.',
                 $result['user']->email,
             )
             : sprintf(
-                'Acceso del admin actualizado: %s → %s. Ya puede iniciar sesión con la nueva contraseña.',
-                $result['previous_email'],
+                'Acceso del admin actualizado: %s. Copia el enlace o revisa el envío al cliente.',
                 $result['user']->email,
             );
 
-        if (is_string($bootstrapUrl) && $bootstrapUrl !== '') {
-            $message .= ' Enlace de bienvenida (válido ~48h): '.$bootstrapUrl;
+        $redirect = back()
+            ->with('success', $message)
+            ->with('copy_url', $bootstrapUrl)
+            ->with('copy_label', 'Enlace de bienvenida (~48h)');
+
+        if ($notifyClient) {
+            $delivery = $notifier->notify($tenant, (string) $result['user']->email, $bootstrapUrl);
+            if ($delivery['warnings'] !== []) {
+                $redirect->with('warning', implode(' ', $delivery['warnings']));
+            } elseif ($delivery['email_sent'] || $delivery['whatsapp_sent']) {
+                $sent = [];
+                if ($delivery['email_sent']) {
+                    $sent[] = 'correo';
+                }
+                if ($delivery['whatsapp_sent']) {
+                    $sent[] = 'WhatsApp';
+                }
+                $redirect->with('info', 'Enviado al cliente por '.implode(' y ', $sent).'.');
+            }
         }
 
-        return back()->with('success', $message);
+        return $redirect;
     }
 
     public function destroy(Tenant $tenant, TenantManager $manager): RedirectResponse

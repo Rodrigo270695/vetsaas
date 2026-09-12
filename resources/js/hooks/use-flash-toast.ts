@@ -8,6 +8,8 @@ type FlashShape = {
     error?: string | null;
     info?: string | null;
     warning?: string | null;
+    copy_url?: string | null;
+    copy_label?: string | null;
 };
 
 const FLASH_KEYS: { key: keyof FlashShape; type: ToastType }[] = [
@@ -17,13 +19,49 @@ const FLASH_KEYS: { key: keyof FlashShape; type: ToastType }[] = [
     { key: 'warning', type: 'warning' },
 ];
 
+async function copyToClipboard(value: string): Promise<void> {
+    try {
+        await navigator.clipboard.writeText(value);
+        toastManager.success({ title: 'Enlace copiado' });
+    } catch {
+        toastManager.error({ title: 'No se pudo copiar el enlace' });
+    }
+}
+
 function showFlashes(flash: FlashShape): void {
+    const copyUrl =
+        typeof flash.copy_url === 'string' && flash.copy_url.length > 0
+            ? flash.copy_url
+            : null;
+    const copyLabel =
+        typeof flash.copy_label === 'string' && flash.copy_label.length > 0
+            ? flash.copy_label
+            : 'Enlace de acceso';
+
     for (const { key, type } of FLASH_KEYS) {
         const message = flash[key];
 
-        if (typeof message === 'string' && message.length > 0) {
-            toastManager.add({ type, title: message });
+        if (typeof message !== 'string' || message.length === 0) {
+            continue;
         }
+
+        if (key === 'success' && copyUrl) {
+            toastManager.add({
+                type,
+                title: message,
+                description: copyLabel,
+                duration: 25_000,
+                action: {
+                    label: 'Copiar enlace',
+                    onClick: () => {
+                        void copyToClipboard(copyUrl);
+                    },
+                },
+            });
+            continue;
+        }
+
+        toastManager.add({ type, title: message });
     }
 }
 

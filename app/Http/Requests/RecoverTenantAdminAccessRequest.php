@@ -22,6 +22,7 @@ class RecoverTenantAdminAccessRequest extends FormRequest
             'email' => ['required', 'email', 'max:150'],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
             'must_change_password' => ['sometimes', 'boolean'],
+            'notify_client' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -47,6 +48,10 @@ class RecoverTenantAdminAccessRequest extends FormRequest
 
         if (! $this->has('must_change_password')) {
             $this->merge(['must_change_password' => true]);
+        }
+
+        if (! $this->has('notify_client')) {
+            $this->merge(['notify_client' => true]);
         }
     }
 }

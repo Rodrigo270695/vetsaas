@@ -150,9 +150,21 @@
             "password": "Nueva contraseña",
             "password_hint": "Mínimo 8 caracteres. Compártela por un canal seguro.",
             "password_confirmation": "Confirmar contraseña",
-            "must_change_password": "Obligar a cambiar la contraseña en el próximo inicio de sesión"
+            "must_change_password": "Obligar a cambiar la contraseña en el próximo inicio de sesión",
+            "notify_client": "Enviar correo y WhatsApp al cliente",
+            "notify_hint": "Correo al email de login. WhatsApp al teléfono de la ficha del tenant ({{phone}})."
         },
-        "submit": "Guardar acceso"
+        "submit": "Guardar acceso",
+        "result": {
+            "title": "Acceso listo para enviar",
+            "description": "Copia el enlace o reenvíalo al cliente. El toast también tiene «Copiar enlace».",
+            "email": "Correo de ingreso",
+            "login": "URL de login",
+            "welcome": "Enlace de bienvenida (~48h)",
+            "copy": "Copiar",
+            "copied": "Copiado",
+            "close": "Cerrar"
+        }
     },
     "bulk": {
         "selected_singular": "tenant seleccionado",

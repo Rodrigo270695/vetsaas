@@ -150,9 +150,21 @@
             "password": "New password",
             "password_hint": "At least 8 characters. Share it through a secure channel.",
             "password_confirmation": "Confirm password",
-            "must_change_password": "Require password change on next login"
+            "must_change_password": "Require password change on next login",
+            "notify_client": "Email and WhatsApp the client",
+            "notify_hint": "Email goes to the login address. WhatsApp uses the tenant phone ({{phone}})."
         },
-        "submit": "Save access"
+        "submit": "Save access",
+        "result": {
+            "title": "Access ready to share",
+            "description": "Copy the link or send it to the client. The toast also has “Copy link”.",
+            "email": "Login email",
+            "login": "Login URL",
+            "welcome": "Welcome link (~48h)",
+            "copy": "Copy",
+            "copied": "Copied",
+            "close": "Close"
+        }
     },
     "bulk": {
         "selected_singular": "tenant selected",
