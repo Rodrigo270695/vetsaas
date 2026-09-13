@@ -4,7 +4,23 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { VETSAAS_DEFAULT_LOGO } from '@/lib/brand';
 
-const MIN_VISIBLE_MS = 320;
+const MIN_VISIBLE_MS = 480;
+const STEP_KEYS = [
+    'login.entering_step_1',
+    'login.entering_step_2',
+    'login.entering_step_3',
+] as const;
+
+const NODES = [
+    { x: 18, y: 28 },
+    { x: 82, y: 22 },
+    { x: 88, y: 58 },
+    { x: 70, y: 86 },
+    { x: 28, y: 84 },
+    { x: 12, y: 54 },
+    { x: 48, y: 12 },
+    { x: 56, y: 90 },
+] as const;
 
 function isLoginPost(method: string, url: string | URL): boolean {
     if (method.toLowerCase() !== 'post') {
@@ -18,12 +34,13 @@ function isLoginPost(method: string, url: string | URL): boolean {
 }
 
 /**
- * Overlay de sesión: logo VetSaaS con un arco que recorre el borde.
- * Vive en `app.tsx` para no desmontarse al pasar del login al dashboard.
+ * Overlay de ingreso: marca VetSaaS sin el fondo negro del PNG
+ * (mix-blend-screen sobre escena oscura) + atmósfera de sistema.
  */
 export default function AuthLoginLoader() {
     const { t } = useTranslation('auth');
     const [visible, setVisible] = useState(false);
+    const [step, setStep] = useState(0);
     const shownAt = useRef(0);
     const hideTimer = useRef<number>(0);
     const pending = useRef(false);
@@ -33,6 +50,7 @@ export default function AuthLoginLoader() {
             window.clearTimeout(hideTimer.current);
             pending.current = true;
             shownAt.current = Date.now();
+            setStep(0);
             setVisible(true);
         };
 
@@ -61,6 +79,18 @@ export default function AuthLoginLoader() {
         };
     }, []);
 
+    useEffect(() => {
+        if (!visible) {
+            return;
+        }
+
+        const id = window.setInterval(() => {
+            setStep((current) => (current + 1) % STEP_KEYS.length);
+        }, 900);
+
+        return () => window.clearInterval(id);
+    }, [visible]);
+
     if (!visible || typeof document === 'undefined') {
         return null;
     }
@@ -70,45 +100,95 @@ export default function AuthLoginLoader() {
             role="status"
             aria-live="polite"
             aria-busy="true"
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-5 bg-background/72 backdrop-blur-md dark:bg-background/80"
+            className="auth-login-world fixed inset-0 z-[9999] overflow-hidden"
         >
-            <div className="relative size-[7.25rem]">
-                <svg
-                    className="absolute inset-0 size-full -rotate-90 text-primary"
-                    viewBox="0 0 100 100"
-                    aria-hidden
-                >
-                    <circle
-                        cx="50"
-                        cy="50"
-                        r="46"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.25"
-                        className="opacity-20"
-                    />
-                    <circle
-                        cx="50"
-                        cy="50"
-                        r="46"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        className="auth-logo-loader-orbit drop-shadow-[0_0_8px_var(--brand-400)]"
-                    />
-                </svg>
-                <div className="absolute inset-[11%] overflow-hidden rounded-full bg-zinc-950 shadow-[0_0_0_1px_rgb(255_255_255/0.08)]">
+            <div aria-hidden className="auth-login-world-veil" />
+            <div aria-hidden className="auth-login-world-grid" />
+            <div aria-hidden className="auth-login-world-glow" />
+            <div aria-hidden className="auth-login-world-scan" />
+
+            <div className="relative z-10 flex flex-col items-center px-6">
+                <div className="relative size-44 sm:size-52">
+                    <svg
+                        className="absolute inset-[-18%] size-[136%] text-brand-400/70"
+                        viewBox="0 0 100 100"
+                        aria-hidden
+                    >
+                        {NODES.map((node, index) => {
+                            const next = NODES[(index + 3) % NODES.length];
+                            if (!next) {
+                                return null;
+                            }
+
+                            return (
+                                <line
+                                    key={`l-${index}`}
+                                    x1={node.x}
+                                    y1={node.y}
+                                    x2={next.x}
+                                    y2={next.y}
+                                    stroke="currentColor"
+                                    strokeWidth="0.35"
+                                    className="auth-login-world-link"
+                                />
+                            );
+                        })}
+                        {NODES.map((node, index) => (
+                            <circle
+                                key={`n-${index}`}
+                                cx={node.x}
+                                cy={node.y}
+                                r="1.15"
+                                fill="currentColor"
+                                className="auth-login-world-node"
+                                style={{ animationDelay: `${index * 0.12}s` }}
+                            />
+                        ))}
+                    </svg>
+
+                    <span className="auth-login-world-ring auth-login-world-ring-a" />
+                    <span className="auth-login-world-ring auth-login-world-ring-b" />
+
+                    <svg
+                        className="absolute inset-0 size-full -rotate-90 text-brand-300"
+                        viewBox="0 0 100 100"
+                        aria-hidden
+                    >
+                        <circle
+                            cx="50"
+                            cy="50"
+                            r="46"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="0.7"
+                            className="opacity-25"
+                        />
+                        <circle
+                            cx="50"
+                            cy="50"
+                            r="46"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            className="auth-logo-loader-orbit"
+                        />
+                    </svg>
+
                     <img
                         src={VETSAAS_DEFAULT_LOGO}
                         alt=""
-                        className="size-full object-cover"
+                        className="auth-login-world-mark pointer-events-none absolute inset-[14%] size-[72%] object-contain"
                     />
                 </div>
+
+                <p className="mt-8 text-center text-base font-medium tracking-wide text-white">
+                    {t('login.entering')}
+                </p>
+                <p className="mt-1.5 min-h-5 text-center text-xs tracking-wide text-brand-200/80">
+                    {t(STEP_KEYS[step] ?? STEP_KEYS[0])}
+                </p>
             </div>
-            <p className="text-sm font-medium tracking-wide text-foreground">
-                {t('login.entering')}
-            </p>
         </div>,
         document.body,
     );
