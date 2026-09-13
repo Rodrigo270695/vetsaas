@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { VETSAAS_DEFAULT_LOGO } from '@/lib/brand';
+import { endSessionEnter, markSessionEnter } from '@/lib/session-enter';
 
 const MIN_VISIBLE_MS = 480;
 const STEP_KEYS = [
@@ -11,15 +12,13 @@ const STEP_KEYS = [
     'login.entering_step_3',
 ] as const;
 
-const NODES = [
-    { x: 18, y: 28 },
-    { x: 82, y: 22 },
-    { x: 88, y: 58 },
-    { x: 70, y: 86 },
-    { x: 28, y: 84 },
-    { x: 12, y: 54 },
-    { x: 48, y: 12 },
-    { x: 56, y: 90 },
+const RING = [
+    { x: 50, y: 11 },
+    { x: 83, y: 31 },
+    { x: 83, y: 69 },
+    { x: 50, y: 89 },
+    { x: 17, y: 69 },
+    { x: 17, y: 31 },
 ] as const;
 
 function isLoginPost(method: string, url: string | URL): boolean {
@@ -52,6 +51,7 @@ export default function AuthLoginLoader() {
             pending.current = true;
             shownAt.current = Date.now();
             setStep(0);
+            markSessionEnter();
             setVisible(true);
         };
 
@@ -64,18 +64,34 @@ export default function AuthLoginLoader() {
             hideTimer.current = window.setTimeout(() => setVisible(false), wait);
         };
 
+        const fail = () => {
+            if (!pending.current) {
+                return;
+            }
+            endSessionEnter();
+            hide();
+        };
+
         const offStart = router.on('start', (event) => {
             if (isLoginPost(event.detail.visit.method, event.detail.visit.url)) {
                 show();
             }
         });
         const offFinish = router.on('finish', hide);
-        const offCancel = router.on('cancel', hide);
+        const offCancel = router.on('cancel', fail);
+        const offError = router.on('error', fail);
+        const offSuccess = router.on('success', (event) => {
+            if (String(event.detail.page.component).startsWith('auth/')) {
+                endSessionEnter();
+            }
+        });
 
         return () => {
             offStart();
             offFinish();
             offCancel();
+            offError();
+            offSuccess();
             window.clearTimeout(hideTimer.current);
         };
     }, []);
@@ -111,12 +127,12 @@ export default function AuthLoginLoader() {
             <div className="relative z-10 flex flex-col items-center px-6">
                 <div className="relative size-44 sm:size-52">
                     <svg
-                        className="absolute inset-[-18%] size-[136%] text-primary"
+                        className="auth-login-world-accent absolute inset-[-8%] size-[116%]"
                         viewBox="0 0 100 100"
                         aria-hidden
                     >
-                        {NODES.map((node, index) => {
-                            const next = NODES[(index + 3) % NODES.length];
+                        {RING.map((node, index) => {
+                            const next = RING[(index + 1) % RING.length];
                             if (!next) {
                                 return null;
                             }
@@ -129,29 +145,29 @@ export default function AuthLoginLoader() {
                                     x2={next.x}
                                     y2={next.y}
                                     stroke="currentColor"
-                                    strokeWidth="0.35"
+                                    strokeWidth="0.45"
+                                    strokeLinecap="round"
                                     className="auth-login-world-link"
                                 />
                             );
                         })}
-                        {NODES.map((node, index) => (
+                        {RING.map((node, index) => (
                             <circle
                                 key={`n-${index}`}
                                 cx={node.x}
                                 cy={node.y}
-                                r="1.15"
+                                r="0.85"
                                 fill="currentColor"
                                 className="auth-login-world-node"
-                                style={{ animationDelay: `${index * 0.12}s` }}
+                                style={{ animationDelay: `${index * 0.16}s` }}
                             />
                         ))}
                     </svg>
 
-                    <span className="auth-login-world-ring auth-login-world-ring-a" />
-                    <span className="auth-login-world-ring auth-login-world-ring-b" />
+                    <span className="auth-login-world-ring" />
 
                     <svg
-                        className="absolute inset-0 size-full -rotate-90 text-primary"
+                        className="auth-login-world-accent absolute inset-0 size-full -rotate-90"
                         viewBox="0 0 100 100"
                         aria-hidden
                     >
@@ -161,8 +177,8 @@ export default function AuthLoginLoader() {
                             r="46"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="0.7"
-                            className="opacity-25"
+                            strokeWidth="0.45"
+                            className="opacity-20"
                         />
                         <circle
                             cx="50"
@@ -170,7 +186,7 @@ export default function AuthLoginLoader() {
                             r="46"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="1.8"
+                            strokeWidth="1.25"
                             strokeLinecap="round"
                             className="auth-logo-loader-orbit"
                         />
@@ -205,7 +221,7 @@ export default function AuthLoginLoader() {
                 <p className="mt-8 text-center text-base font-medium tracking-wide text-foreground">
                     {t('login.entering')}
                 </p>
-                <p className="mt-1.5 min-h-5 text-center text-xs tracking-wide text-primary/70">
+                <p className="auth-login-world-accent mt-1.5 min-h-5 text-center text-xs tracking-wide opacity-80">
                     {t(STEP_KEYS[step] ?? STEP_KEYS[0])}
                 </p>
             </div>

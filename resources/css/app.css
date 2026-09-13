@@ -330,15 +330,20 @@
 }
 
 .auth-logo-loader-orbit {
-    stroke-dasharray: 58 231;
-    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--primary) 70%, transparent));
+    stroke-dasharray: 48 241;
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--auth-loader-green) 55%, transparent));
     animation: auth-logo-loader-orbit 1.2s linear infinite;
 }
 
 .auth-login-world {
+    --auth-loader-green: #0d7a5c;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.auth-login-world-accent {
+    color: var(--auth-loader-green);
 }
 
 .auth-login-world-veil {
@@ -347,7 +352,7 @@
     inset: 0;
     background: radial-gradient(
         ellipse 70% 55% at 50% 42%,
-        color-mix(in srgb, var(--primary) 22%, transparent),
+        color-mix(in srgb, var(--auth-loader-green) 16%, transparent),
         transparent 62%
     );
 }
@@ -355,7 +360,7 @@
 .dark .auth-login-world-veil {
     background: radial-gradient(
         ellipse 70% 55% at 50% 42%,
-        color-mix(in srgb, var(--primary) 32%, transparent),
+        color-mix(in srgb, var(--auth-loader-green) 28%, transparent),
         transparent 62%
     );
 }
@@ -365,8 +370,8 @@
     position: absolute;
     inset: 18% -10% -8%;
     background-image:
-        linear-gradient(color-mix(in srgb, var(--primary) 18%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, var(--primary) 18%, transparent) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--auth-loader-green) 12%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--auth-loader-green) 12%, transparent) 1px, transparent 1px);
     background-size: 48px 48px;
     mask-image: linear-gradient(to top, rgb(0 0 0 / 0.5), transparent 78%);
     transform: perspective(700px) rotateX(58deg);
@@ -375,8 +380,8 @@
 
 .dark .auth-login-world-grid {
     background-image:
-        linear-gradient(color-mix(in srgb, var(--primary) 14%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, var(--primary) 14%, transparent) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--auth-loader-green) 11%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--auth-loader-green) 11%, transparent) 1px, transparent 1px);
 }
 
 .auth-login-world-glow {
@@ -390,7 +395,7 @@
     border-radius: 999px;
     background: radial-gradient(
         circle,
-        color-mix(in srgb, var(--primary) 28%, transparent),
+        color-mix(in srgb, var(--auth-loader-green) 22%, transparent),
         transparent 70%
     );
     animation: auth-login-world-pulse 2.4s ease-in-out infinite;
@@ -399,7 +404,7 @@
 .dark .auth-login-world-glow {
     background: radial-gradient(
         circle,
-        color-mix(in srgb, var(--primary) 40%, transparent),
+        color-mix(in srgb, var(--auth-loader-green) 34%, transparent),
         transparent 70%
     );
 }
@@ -425,17 +430,10 @@
 .auth-login-world-ring {
     pointer-events: none;
     position: absolute;
-    inset: 4%;
+    inset: 6%;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
-}
-
-.auth-login-world-ring-a {
-    animation: auth-login-world-radar 2.6s cubic-bezier(0.2, 0.7, 0.4, 1) infinite;
-}
-
-.auth-login-world-ring-b {
-    animation: auth-login-world-radar 2.6s cubic-bezier(0.2, 0.7, 0.4, 1) 1.1s infinite;
+    border: 1px solid color-mix(in srgb, var(--auth-loader-green) 22%, transparent);
+    animation: auth-login-world-radar 2.8s cubic-bezier(0.2, 0.7, 0.4, 1) infinite;
 }
 
 .auth-login-world-node {
@@ -443,7 +441,7 @@
 }
 
 .auth-login-world-link {
-    opacity: 0.35;
+    opacity: 0.42;
 }
 
 @keyframes auth-login-world-pulse {
@@ -511,8 +509,7 @@
     .auth-login-world-glow,
     .auth-login-world-scan,
     .auth-login-world-mark,
-    .auth-login-world-ring-a,
-    .auth-login-world-ring-b,
+    .auth-login-world-ring,
     .auth-login-world-node {
         animation: none !important;
     }
@@ -520,6 +517,88 @@
         stroke-dasharray: 289;
         stroke-dashoffset: 0;
         opacity: 0.45;
+    }
+}
+
+@keyframes session-enter-sidebar {
+    from {
+        opacity: 0;
+        transform: translateX(-1.35rem);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes session-enter-header {
+    from {
+        opacity: 0;
+        transform: translateY(-0.85rem);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes session-enter-main {
+    from {
+        opacity: 0;
+        transform: translateX(1.6rem);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+html.session-enter [data-slot="sidebar"]:not([data-mobile]) > div:last-child {
+    animation: session-enter-sidebar 0.62s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
+}
+
+html.session-enter [data-session-enter-header] {
+    animation: session-enter-header 0.52s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+html.session-enter [data-session-enter-main] {
+    animation: session-enter-main 0.58s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+[data-session-enter-skeleton] {
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.35s ease,
+        visibility 0.35s ease;
+}
+
+html.session-enter [data-session-enter-skeleton] {
+    pointer-events: auto;
+    opacity: 1;
+    visibility: visible;
+    transition: none;
+}
+
+[data-session-enter-body] {
+    opacity: 1;
+    transition: opacity 0.4s ease;
+}
+
+html.session-enter [data-session-enter-body] {
+    opacity: 0;
+    pointer-events: none;
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.session-enter [data-slot="sidebar"]:not([data-mobile]) > div:last-child,
+    html.session-enter [data-session-enter-header],
+    html.session-enter [data-session-enter-main] {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
     }
 }
 

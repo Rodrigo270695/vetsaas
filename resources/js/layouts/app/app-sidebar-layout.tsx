@@ -11,7 +11,9 @@ import { InAppAssistantAnnouncementModal } from '@/components/in-app-assistant/i
 import { OfflineStatusBanner } from '@/components/offline-status-banner';
 import { SubscriptionRenewalReminderModal } from '@/components/subscription-renewal-reminder-modal';
 import { TenantImpersonationBanner } from '@/components/tenant-impersonation-banner';
+import { SessionEnterSkeleton } from '@/components/session-enter-skeleton';
 import { useClinicSedeLocationToast } from '@/hooks/use-clinic-sede-location-toast';
+import { useSessionEnterReveal } from '@/hooks/use-session-enter-reveal';
 import { useWhatsAppDisconnectedToast } from '@/hooks/use-whatsapp-disconnected-toast';
 import { PlatformSupportChatNotifier } from '@/components/plataforma/platform-support-chat-notifier';
 import { TenantChatNotifier } from '@/components/comunicaciones/tenant-chat-notifier';
@@ -40,6 +42,7 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     useWhatsAppDisconnectedToast();
     useClinicSedeLocationToast();
+    useSessionEnterReveal();
     const page = usePage();
     const initialUnread = page.props.tenant_chat?.unread_total ?? 0;
     const initialPlatformUnread =
@@ -68,13 +71,22 @@ export default function AppSidebarLayout({
                     <TenantChatNotifier />
                     <PlatformSupportChatNotifier />
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                    {/*
-                      Por defecto el contenido scrollea. Páginas “pantalla fija”
-                      (chat) marcan data-fixed-viewport y ocupan el alto restante
-                      sin mover el shell ni el header.
-                    */}
-                    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden has-data-fixed-viewport:overflow-hidden">
-                        {children}
+                    <div
+                        data-session-enter-main=""
+                        className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+                    >
+                        <div
+                            data-session-enter-skeleton=""
+                            className="bg-background absolute inset-0 z-20 overflow-hidden"
+                        >
+                            <SessionEnterSkeleton />
+                        </div>
+                        <div
+                            data-session-enter-body=""
+                            className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden has-data-fixed-viewport:overflow-hidden"
+                        >
+                            {children}
+                        </div>
                     </div>
                 </AppContent>
             </AppShell>
