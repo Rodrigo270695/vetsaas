@@ -5,7 +5,7 @@ import {
     restoreSessionEnterClass,
 } from '@/lib/session-enter';
 
-const CHROME_MS = 920;
+const CHROME_MS = 2100;
 
 /**
  * Quita la clase de ingreso tras la animación del chrome.

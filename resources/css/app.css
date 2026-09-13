@@ -523,7 +523,7 @@
 @keyframes session-enter-sidebar {
     from {
         opacity: 0;
-        transform: translateX(-1.35rem);
+        transform: translateX(-1.1rem);
     }
     to {
         opacity: 1;
@@ -534,7 +534,7 @@
 @keyframes session-enter-header {
     from {
         opacity: 0;
-        transform: translateY(-0.85rem);
+        transform: translateY(-0.7rem);
     }
     to {
         opacity: 1;
@@ -545,7 +545,7 @@
 @keyframes session-enter-main {
     from {
         opacity: 0;
-        transform: translateX(1.6rem);
+        transform: translateX(1.25rem);
     }
     to {
         opacity: 1;
@@ -554,15 +554,15 @@
 }
 
 html.session-enter [data-slot="sidebar"]:not([data-mobile]) > div:last-child {
-    animation: session-enter-sidebar 0.62s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
+    animation: session-enter-sidebar 1.15s cubic-bezier(0.33, 0.1, 0.2, 1) 0.12s both;
 }
 
 html.session-enter [data-session-enter-header] {
-    animation: session-enter-header 0.52s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+    animation: session-enter-header 1.05s cubic-bezier(0.33, 0.1, 0.2, 1) 0.38s both;
 }
 
 html.session-enter [data-session-enter-main] {
-    animation: session-enter-main 0.58s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+    animation: session-enter-main 1.2s cubic-bezier(0.33, 0.1, 0.2, 1) 0.62s both;
 }
 
 [data-session-enter-skeleton] {
@@ -570,8 +570,8 @@ html.session-enter [data-session-enter-main] {
     opacity: 0;
     visibility: hidden;
     transition:
-        opacity 0.35s ease,
-        visibility 0.35s ease;
+        opacity 0.5s ease,
+        visibility 0.5s ease;
 }
 
 html.session-enter [data-session-enter-skeleton] {
@@ -583,7 +583,7 @@ html.session-enter [data-session-enter-skeleton] {
 
 [data-session-enter-body] {
     opacity: 1;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.55s ease;
 }
 
 html.session-enter [data-session-enter-body] {
