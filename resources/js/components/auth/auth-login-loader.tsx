@@ -34,8 +34,9 @@ function isLoginPost(method: string, url: string | URL): boolean {
 }
 
 /**
- * Overlay de ingreso: marca VetSaaS sin el fondo negro del PNG
- * (mix-blend-screen sobre escena oscura) + atmósfera de sistema.
+ * Overlay de ingreso: mismos rayos/radar en claro y oscuro.
+ * El PNG del logo tiene fondo negro: en oscuro se funde (screen);
+ * en claro se recorta por luminancia y se pinta con el color de marca.
  */
 export default function AuthLoginLoader() {
     const { t } = useTranslation('auth');
@@ -100,7 +101,7 @@ export default function AuthLoginLoader() {
             role="status"
             aria-live="polite"
             aria-busy="true"
-            className="auth-login-world fixed inset-0 z-[9999] overflow-hidden"
+            className="auth-login-world fixed inset-0 z-[9999] overflow-hidden bg-background/82 backdrop-blur-2xl"
         >
             <div aria-hidden className="auth-login-world-veil" />
             <div aria-hidden className="auth-login-world-grid" />
@@ -110,7 +111,7 @@ export default function AuthLoginLoader() {
             <div className="relative z-10 flex flex-col items-center px-6">
                 <div className="relative size-44 sm:size-52">
                     <svg
-                        className="absolute inset-[-18%] size-[136%] text-brand-400/70"
+                        className="absolute inset-[-18%] size-[136%] text-primary"
                         viewBox="0 0 100 100"
                         aria-hidden
                     >
@@ -150,7 +151,7 @@ export default function AuthLoginLoader() {
                     <span className="auth-login-world-ring auth-login-world-ring-b" />
 
                     <svg
-                        className="absolute inset-0 size-full -rotate-90 text-brand-300"
+                        className="absolute inset-0 size-full -rotate-90 text-primary"
                         viewBox="0 0 100 100"
                         aria-hidden
                     >
@@ -175,17 +176,21 @@ export default function AuthLoginLoader() {
                         />
                     </svg>
 
+                    <span
+                        aria-hidden
+                        className="auth-login-world-mark auth-login-world-mark-mask pointer-events-none absolute inset-[14%] size-[72%] dark:hidden"
+                    />
                     <img
                         src={VETSAAS_DEFAULT_LOGO}
                         alt=""
-                        className="auth-login-world-mark pointer-events-none absolute inset-[14%] size-[72%] object-contain"
+                        className="auth-login-world-mark auth-login-world-mark-photo pointer-events-none absolute inset-[14%] hidden size-[72%] object-contain dark:block"
                     />
                 </div>
 
-                <p className="mt-8 text-center text-base font-medium tracking-wide text-white">
+                <p className="mt-8 text-center text-base font-medium tracking-wide text-foreground">
                     {t('login.entering')}
                 </p>
-                <p className="mt-1.5 min-h-5 text-center text-xs tracking-wide text-brand-200/80">
+                <p className="mt-1.5 min-h-5 text-center text-xs tracking-wide text-primary/70">
                     {t(STEP_KEYS[step] ?? STEP_KEYS[0])}
                 </p>
             </div>

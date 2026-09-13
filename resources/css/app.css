@@ -331,7 +331,7 @@
 
 .auth-logo-loader-orbit {
     stroke-dasharray: 58 231;
-    filter: drop-shadow(0 0 6px var(--brand-400));
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--primary) 70%, transparent));
     animation: auth-logo-loader-orbit 1.2s linear infinite;
 }
 
@@ -339,16 +339,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #020807;
 }
 
 .auth-login-world-veil {
     pointer-events: none;
     position: absolute;
     inset: 0;
-    background:
-        radial-gradient(ellipse 70% 55% at 50% 42%, rgb(0 109 85 / 0.38), transparent 62%),
-        radial-gradient(ellipse 90% 80% at 50% 100%, rgb(2 8 7 / 0.9), rgb(2 8 7));
+    background: radial-gradient(
+        ellipse 70% 55% at 50% 42%,
+        color-mix(in srgb, var(--primary) 22%, transparent),
+        transparent 62%
+    );
+}
+
+.dark .auth-login-world-veil {
+    background: radial-gradient(
+        ellipse 70% 55% at 50% 42%,
+        color-mix(in srgb, var(--primary) 32%, transparent),
+        transparent 62%
+    );
 }
 
 .auth-login-world-grid {
@@ -356,12 +365,18 @@
     position: absolute;
     inset: 18% -10% -8%;
     background-image:
-        linear-gradient(rgb(45 212 165 / 0.09) 1px, transparent 1px),
-        linear-gradient(90deg, rgb(45 212 165 / 0.09) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--primary) 18%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--primary) 18%, transparent) 1px, transparent 1px);
     background-size: 48px 48px;
-    mask-image: linear-gradient(to top, rgb(0 0 0 / 0.55), transparent 78%);
+    mask-image: linear-gradient(to top, rgb(0 0 0 / 0.5), transparent 78%);
     transform: perspective(700px) rotateX(58deg);
     transform-origin: center top;
+}
+
+.dark .auth-login-world-grid {
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--primary) 14%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--primary) 14%, transparent) 1px, transparent 1px);
 }
 
 .auth-login-world-glow {
@@ -373,8 +388,20 @@
     height: 22rem;
     translate: -50% -50%;
     border-radius: 999px;
-    background: radial-gradient(circle, rgb(45 212 165 / 0.28), rgb(0 109 85 / 0.08) 42%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--primary) 28%, transparent),
+        transparent 70%
+    );
     animation: auth-login-world-pulse 2.4s ease-in-out infinite;
+}
+
+.dark .auth-login-world-glow {
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--primary) 40%, transparent),
+        transparent 70%
+    );
 }
 
 .auth-login-world-scan {
@@ -384,7 +411,7 @@
     background: linear-gradient(
         to bottom,
         transparent 0%,
-        rgb(255 255 255 / 0.04) 48%,
+        color-mix(in srgb, var(--foreground) 6%, transparent) 48%,
         transparent 52%
     );
     background-size: 100% 220%;
@@ -392,9 +419,26 @@
 }
 
 .auth-login-world-mark {
-    mix-blend-mode: screen;
-    filter: saturate(1.15) brightness(1.12);
     animation: auth-login-world-mark 2.2s ease-in-out infinite;
+}
+
+.auth-login-world-mark-mask {
+    background-color: var(--primary);
+    -webkit-mask-image: url(/logo.png);
+    mask-image: url(/logo.png);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    mask-mode: luminance;
+    -webkit-mask-source-type: luminance;
+}
+
+.auth-login-world-mark-photo {
+    mix-blend-mode: screen;
+    filter: saturate(1.12) brightness(1.1);
 }
 
 .auth-login-world-ring {
@@ -402,7 +446,7 @@
     position: absolute;
     inset: 4%;
     border-radius: 999px;
-    border: 1px solid rgb(94 234 212 / 0.22);
+    border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
 }
 
 .auth-login-world-ring-a {
@@ -446,11 +490,9 @@
     0%,
     100% {
         transform: scale(1);
-        filter: saturate(1.15) brightness(1.08);
     }
     50% {
         transform: scale(1.04);
-        filter: saturate(1.25) brightness(1.28);
     }
 }
 
