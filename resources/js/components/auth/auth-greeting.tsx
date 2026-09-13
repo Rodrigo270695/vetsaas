@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { FlippingText } from '@/components/ui/flipping-text';
+import { TypingAnimation } from '@/components/ui/typing-animation';
 
 type AuthGreetingProps = {
     title?: string;
@@ -17,8 +17,7 @@ function pickGreeting(hour: number): string {
 
 /**
  * Status pill + saludo dinámico + headline editorial con gradiente.
- * El `title` se renderiza como segunda línea en color de marca.
- * Las letras se forman con un flip hasta completar el texto.
+ * El `title` se escribe como si fuera teclado (Magic UI Typing Animation).
  */
 export default function AuthGreeting({
     title,
@@ -30,6 +29,9 @@ export default function AuthGreeting({
         [overrideGreeting],
     );
     const headline = title ?? 'bienvenido de vuelta.';
+    const greetingLine = `${greeting},`;
+    const typeSpeed = 58;
+    const headlineDelay = 280 + greetingLine.length * typeSpeed;
 
     return (
         <header className="mb-8 space-y-3 text-center sm:mb-10">
@@ -44,13 +46,17 @@ export default function AuthGreeting({
                 key={`${greeting}-${headline}`}
                 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
             >
-                <FlippingText text={`${greeting},`} />
+                <TypingAnimation typeSpeed={typeSpeed} delay={180}>
+                    {greetingLine}
+                </TypingAnimation>
                 <span className="block bg-linear-to-br from-brand-700 to-brand-500 bg-clip-text text-transparent dark:from-brand-300 dark:to-brand-200">
-                    <FlippingText
-                        text={headline}
-                        delayMs={280}
-                        glyphClassName="bg-linear-to-br from-brand-700 to-brand-500 bg-clip-text text-transparent dark:from-brand-300 dark:to-brand-200"
-                    />
+                    <TypingAnimation
+                        typeSpeed={typeSpeed}
+                        delay={headlineDelay}
+                        className="bg-linear-to-br from-brand-700 to-brand-500 bg-clip-text text-transparent dark:from-brand-300 dark:to-brand-200"
+                    >
+                        {headline}
+                    </TypingAnimation>
                 </span>
             </h1>
             {description && (
