@@ -1,4 +1,5 @@
 import { Slot } from "@radix-ui/react-slot"
+import { router } from "@inertiajs/react"
 import type { VariantProps} from "class-variance-authority";
 import { cva } from "class-variance-authority"
 import { Menu } from "lucide-react"
@@ -91,7 +92,19 @@ function SidebarProvider({
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
-  // Adds a keyboard shortcut to toggle the sidebar.
+  // Cierra el drawer móvil al cambiar de vista (cualquier Link / visita Inertia).
+  React.useEffect(() => {
+    return router.on("start", (event) => {
+      const visit = event.detail.visit
+      if (visit.prefetch) {
+        return
+      }
+      if (Array.isArray(visit.only) && visit.only.length > 0) {
+        return
+      }
+      setOpenMobile(false)
+    })
+  }, [])
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (

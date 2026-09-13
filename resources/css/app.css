@@ -565,6 +565,14 @@ html.session-enter [data-session-enter-main] {
     animation: session-enter-main 1.2s cubic-bezier(0.33, 0.1, 0.2, 1) 0.62s both;
 }
 
+html.view-enter [data-session-enter-header] {
+    animation: session-enter-header 0.85s cubic-bezier(0.33, 0.1, 0.2, 1) 0.06s both;
+}
+
+html.view-enter [data-session-enter-main] {
+    animation: session-enter-main 0.95s cubic-bezier(0.33, 0.1, 0.2, 1) 0.14s both;
+}
+
 [data-session-enter-skeleton] {
     pointer-events: none;
     opacity: 0;
@@ -574,7 +582,8 @@ html.session-enter [data-session-enter-main] {
         visibility 0.5s ease;
 }
 
-html.session-enter [data-session-enter-skeleton] {
+html.session-enter [data-session-enter-skeleton],
+html.view-enter [data-session-enter-skeleton] {
     pointer-events: auto;
     opacity: 1;
     visibility: visible;
@@ -586,7 +595,8 @@ html.session-enter [data-session-enter-skeleton] {
     transition: opacity 0.55s ease;
 }
 
-html.session-enter [data-session-enter-body] {
+html.session-enter [data-session-enter-body],
+html.view-enter [data-session-enter-body] {
     opacity: 0;
     pointer-events: none;
     transition: none;
@@ -595,7 +605,9 @@ html.session-enter [data-session-enter-body] {
 @media (prefers-reduced-motion: reduce) {
     html.session-enter [data-slot="sidebar"]:not([data-mobile]) > div:last-child,
     html.session-enter [data-session-enter-header],
-    html.session-enter [data-session-enter-main] {
+    html.session-enter [data-session-enter-main],
+    html.view-enter [data-session-enter-header],
+    html.view-enter [data-session-enter-main] {
         animation: none !important;
         opacity: 1;
         transform: none;
