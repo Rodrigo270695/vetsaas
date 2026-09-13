@@ -1,6 +1,7 @@
 import { Cake, CalendarDays, Clock, MessageCircle, Syringe } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { AnimatedList } from '@/components/ui/animated-list';
+import { PointerGlare, pointerGlareLeave, pointerGlareMove } from '@/components/ui/pointer-glare';
 import { cn } from '@/lib/utils';
 
 type ReminderNotice = {
@@ -77,10 +78,13 @@ export function AuthRemindersAnimatedList({ className }: { className?: string })
         <div
             aria-hidden
             className={cn(
-                'pointer-events-none absolute w-[17.5rem] rounded-2xl border border-border/60 bg-card/85 p-3 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl dark:bg-card/60',
+                'pointer-events-auto absolute w-[17.5rem] overflow-hidden rounded-2xl border border-border/60 bg-card/85 p-3 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl dark:bg-card/60',
                 className,
             )}
+            onPointerMove={pointerGlareMove}
+            onPointerLeave={pointerGlareLeave}
         >
+            <PointerGlare />
             <div className="relative h-[17.5rem] overflow-hidden">
                 <AnimatedList delay={1700} className="px-0.5">
                     {NOTICES.map((notice) => (

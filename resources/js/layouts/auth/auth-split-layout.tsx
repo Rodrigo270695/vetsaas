@@ -5,6 +5,9 @@ import AuthFooter from '@/components/auth/auth-footer';
 import AuthFormCard from '@/components/auth/auth-form-card';
 import AuthGreeting from '@/components/auth/auth-greeting';
 import AuthHeader from '@/components/auth/auth-header';
+import AuthPointerSpotlight, {
+    authPointerSpotlightMove,
+} from '@/components/auth/auth-pointer-spotlight';
 import { useClinicBranding } from '@/hooks/use-clinic-branding';
 import type { AuthLayoutProps } from '@/types';
 import type { TenantShared } from '@/types/tenant';
@@ -60,8 +63,12 @@ export default function AuthSplitLayout({
         : brandName;
 
     return (
-        <div className="relative isolate flex min-h-svh flex-col overflow-hidden bg-background text-foreground">
+        <div
+            className="relative isolate flex min-h-svh flex-col overflow-hidden bg-background text-foreground"
+            onPointerMove={authPointerSpotlightMove}
+        >
             <AuthAuroraBackground />
+            <AuthPointerSpotlight />
             <AuthHeader
                 brandName={headerBrand}
                 logoUrl={branding?.logo_url}

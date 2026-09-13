@@ -1,4 +1,5 @@
 import { usePage } from '@inertiajs/react';
+import { PointerGlare, pointerGlareLeave, pointerGlareMove } from '@/components/ui/pointer-glare';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_PET_PHOTOS = [
@@ -33,10 +34,13 @@ export function AuthPetFolderCard({ className }: { className?: string }) {
     return (
         <div
             className={cn(
-                'group/folder pointer-events-auto absolute w-64 rounded-2xl border border-border/60 bg-card/90 p-4 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl dark:bg-card/60',
+                'group/folder pointer-events-auto absolute w-64 overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-4 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl dark:bg-card/60',
                 className,
             )}
+            onPointerMove={pointerGlareMove}
+            onPointerLeave={pointerGlareLeave}
         >
+            <PointerGlare />
             <div className="relative mx-auto h-28 w-[4.5rem]">
                 {/* Dorso + pestaña */}
                 <div className="absolute inset-x-0 bottom-0 z-0 h-[3.15rem] rounded-md bg-amber-400 shadow-[inset_0_1px_0_rgb(255_255_255/0.35)]">

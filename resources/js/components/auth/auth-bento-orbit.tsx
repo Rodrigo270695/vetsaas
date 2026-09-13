@@ -6,6 +6,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { AuthPetFolderCard } from '@/components/auth/auth-pet-folder-card';
 import { AuthRemindersAnimatedList } from '@/components/auth/auth-reminders-animated-list';
 import { BorderBeam } from '@/components/ui/border-beam';
+import { PointerGlare, pointerGlareLeave, pointerGlareMove } from '@/components/ui/pointer-glare';
 import { Ripple } from '@/components/ui/ripple';
 import { cn } from '@/lib/utils';
 
@@ -30,10 +31,13 @@ function BentoCard({
         <div
             aria-hidden="true"
             className={cn(
-                'animate-in fade-in slide-in-from-bottom-3 absolute w-60 overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-4 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl duration-700 ease-out dark:bg-card/60 dark:shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]',
+                'animate-in fade-in slide-in-from-bottom-3 pointer-events-auto absolute w-60 overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-4 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl duration-700 ease-out dark:bg-card/60 dark:shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]',
                 className,
             )}
+            onPointerMove={pointerGlareMove}
+            onPointerLeave={pointerGlareLeave}
         >
+            <PointerGlare />
             {effect === 'sunat' ? (
                 <BorderBeam duration={7} className="auth-border-beam-sunat" />
             ) : null}

@@ -2,6 +2,7 @@ import { setLayoutProps } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import ForgotPasswordForm from '@/components/auth/forgot-password-form';
 import LoginForm from '@/components/auth/login-form';
+import { PointerGlare, pointerGlareLeave, pointerGlareMove } from '@/components/ui/pointer-glare';
 import { cn } from '@/lib/utils';
 
 type View = 'login' | 'forgot';
@@ -147,7 +148,10 @@ function FlipFace({ ref, hidden, rotation, children }: FlipFaceProps) {
                     'shadow-[0_24px_70px_-18px_rgba(0,40,30,0.28),0_10px_28px_-14px_rgba(0,40,30,0.18),inset_0_1px_0_0_rgba(255,255,255,0.6)]',
                     'dark:border-white/10 dark:bg-card/30 dark:shadow-[0_24px_70px_-18px_rgba(0,0,0,0.7),0_10px_28px_-14px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.08)]',
                 )}
+                onPointerMove={pointerGlareMove}
+                onPointerLeave={pointerGlareLeave}
             >
+                <PointerGlare />
                 {/* Top highlight */}
                 <div
                     aria-hidden="true"
