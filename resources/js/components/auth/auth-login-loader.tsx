@@ -35,8 +35,8 @@ function isLoginPost(method: string, url: string | URL): boolean {
 
 /**
  * Overlay de ingreso: mismos rayos/radar en claro y oscuro.
- * El PNG del logo tiene fondo negro: en oscuro se funde (screen);
- * en claro se recorta por luminancia y se pinta con el color de marca.
+ * El PNG del logo tiene fondo negro: un filtro SVG lo vuelve transparente
+ * y deja el verde original (no el color primario de la clínica).
  */
 export default function AuthLoginLoader() {
     const { t } = useTranslation('auth');
@@ -176,15 +176,30 @@ export default function AuthLoginLoader() {
                         />
                     </svg>
 
-                    <span
+                    <svg
+                        className="auth-login-world-mark pointer-events-none absolute inset-[14%] size-[72%] overflow-visible"
+                        viewBox="0 0 100 100"
                         aria-hidden
-                        className="auth-login-world-mark auth-login-world-mark-mask pointer-events-none absolute inset-[14%] size-[72%] dark:hidden"
-                    />
-                    <img
-                        src={VETSAAS_DEFAULT_LOGO}
-                        alt=""
-                        className="auth-login-world-mark auth-login-world-mark-photo pointer-events-none absolute inset-[14%] hidden size-[72%] object-contain dark:block"
-                    />
+                    >
+                        <defs>
+                            <filter
+                                id="auth-logo-knockout"
+                                colorInterpolationFilters="sRGB"
+                            >
+                                <feColorMatrix
+                                    type="matrix"
+                                    values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.4 1.4 1.4 0 0"
+                                />
+                            </filter>
+                        </defs>
+                        <image
+                            href={VETSAAS_DEFAULT_LOGO}
+                            width="100"
+                            height="100"
+                            preserveAspectRatio="xMidYMid meet"
+                            filter="url(#auth-logo-knockout)"
+                        />
+                    </svg>
                 </div>
 
                 <p className="mt-8 text-center text-base font-medium tracking-wide text-foreground">

@@ -422,25 +422,6 @@
     animation: auth-login-world-mark 2.2s ease-in-out infinite;
 }
 
-.auth-login-world-mark-mask {
-    background-color: var(--primary);
-    -webkit-mask-image: url(/logo.png);
-    mask-image: url(/logo.png);
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-    mask-mode: luminance;
-    -webkit-mask-source-type: luminance;
-}
-
-.auth-login-world-mark-photo {
-    mix-blend-mode: screen;
-    filter: saturate(1.12) brightness(1.1);
-}
-
 .auth-login-world-ring {
     pointer-events: none;
     position: absolute;
