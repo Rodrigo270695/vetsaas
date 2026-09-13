@@ -39,6 +39,7 @@ export default function LoginForm({
         <Form
             {...store.form()}
             resetOnSuccess={['password']}
+            options={{ showProgress: false }}
             transform={(data) => ({
                 ...data,
                 remember: remember ? 'on' : '',

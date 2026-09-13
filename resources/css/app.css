@@ -323,6 +323,17 @@
     animation: auth-ripple 3.2s ease-out infinite;
 }
 
+@keyframes auth-logo-loader-orbit {
+    to {
+        stroke-dashoffset: -289;
+    }
+}
+
+.auth-logo-loader-orbit {
+    stroke-dasharray: 72 217;
+    animation: auth-logo-loader-orbit 1.15s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .aurora-blob-1,
     .aurora-blob-2,
@@ -331,8 +342,14 @@
     }
     .auth-border-beam-spin,
     .auth-border-beam-spin-reverse,
-    .auth-ripple-ring {
+    .auth-ripple-ring,
+    .auth-logo-loader-orbit {
         animation: none !important;
+    }
+    .auth-logo-loader-orbit {
+        stroke-dasharray: 289;
+        stroke-dashoffset: 0;
+        opacity: 0.45;
     }
 }
 

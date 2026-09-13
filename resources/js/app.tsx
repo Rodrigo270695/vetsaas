@@ -1,4 +1,5 @@
 import { createInertiaApp, router } from '@inertiajs/react';
+import AuthLoginLoader from '@/components/auth/auth-login-loader';
 import { ClinicThemeSync } from '@/components/clinic-theme-sync';
 import PwaInstallBanner from '@/components/pwa-install-banner';
 import { OfflineSyncProvider } from '@/contexts/offline-sync-context';
@@ -50,6 +51,7 @@ createInertiaApp({
                 <TooltipProvider delayDuration={0}>
                     <ClinicThemeSync />
                     {app}
+                    <AuthLoginLoader />
                     <PwaInstallBanner />
                     <Toaster />
                 </TooltipProvider>
