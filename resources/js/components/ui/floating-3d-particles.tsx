@@ -24,7 +24,7 @@ type Particle = {
 };
 
 const MOBILE_BREAKPOINT = 768;
-const SPREAD_FACTOR = 1.2;
+const SPREAD_FACTOR = 1.85;
 const MAX_DPR = 2;
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -186,9 +186,10 @@ export function Floating3DParticles({
         };
 
         const resize = () => {
-            const rect = canvas.getBoundingClientRect();
-            width = Math.max(1, Math.round(rect.width));
-            height = Math.max(1, Math.round(rect.height));
+            const host = canvas.parentElement ?? canvas;
+            const rect = host.getBoundingClientRect();
+            width = Math.max(1, Math.round(rect.width || window.innerWidth));
+            height = Math.max(1, Math.round(rect.height || window.innerHeight));
             const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, MAX_DPR));
             canvas.width = Math.round(width * dpr);
             canvas.height = Math.round(height * dpr);
@@ -207,7 +208,9 @@ export function Floating3DParticles({
         };
 
         const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+        const host = canvas.parentElement ?? canvas;
         if (ro) {
+            ro.observe(host);
             ro.observe(canvas);
         } else {
             window.addEventListener('resize', resize);
@@ -226,10 +229,14 @@ export function Floating3DParticles({
         document.addEventListener('visibilitychange', onVisibilityChange);
         mq.addEventListener('change', syncReducedMotion);
         resize();
-        rafId = requestAnimationFrame(tick);
+        const boot = requestAnimationFrame(() => {
+            resize();
+            rafId = requestAnimationFrame(tick);
+        });
 
         return () => {
             mounted = false;
+            cancelAnimationFrame(boot);
             if (rafId !== null) {
                 cancelAnimationFrame(rafId);
             }
@@ -247,7 +254,7 @@ export function Floating3DParticles({
         <canvas
             ref={canvasRef}
             aria-hidden
-            className={cn('pointer-events-none absolute inset-0', className)}
+            className={cn('pointer-events-none absolute inset-0 block h-full w-full', className)}
         />
     );
 }

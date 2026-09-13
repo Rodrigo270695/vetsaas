@@ -22,7 +22,7 @@ function resolvePetPhotos(fromTenant: unknown): string[] {
 }
 
 const PHOTO_REST =
-    'absolute bottom-7 left-1/2 z-10 h-10 w-10 rounded-lg object-cover shadow-md ring-2 ring-white/90 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:ring-zinc-900';
+    'absolute bottom-7 left-1/2 z-10 h-9 w-9 rounded-lg object-cover shadow-md ring-2 ring-white/90 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:ring-zinc-900';
 
 /**
  * Carpeta: las fotos viven detrás de la tapa y, al hover, salen como fichas.
@@ -37,10 +37,10 @@ export function AuthPetFolderCard({ className }: { className?: string }) {
                 className,
             )}
         >
-            <div className="relative mx-auto h-28 w-[6.75rem]">
+            <div className="relative mx-auto h-28 w-[4.5rem]">
                 {/* Dorso + pestaña */}
                 <div className="absolute inset-x-0 bottom-0 z-0 h-[3.15rem] rounded-md bg-amber-400 shadow-[inset_0_1px_0_rgb(255_255_255/0.35)]">
-                    <div className="absolute -top-2.5 left-2 h-2.5 w-8 rounded-t-[5px] bg-amber-400" />
+                    <div className="absolute -top-2 left-1.5 h-2 w-6 rounded-t-[4px] bg-amber-400" />
                 </div>
 
                 {photos[0] ? (
