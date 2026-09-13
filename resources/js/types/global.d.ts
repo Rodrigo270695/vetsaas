@@ -18,6 +18,7 @@ declare module '@inertiajs/core' {
             locale: string;
             timezone: string;
             tenant: TenantShared | null;
+            auth_pet_photos: string[];
             clinic_branding: ClinicBranding | null;
             tenancy: TenancyShared;
             plan_limits: PlanLimitsSnapshot | null;

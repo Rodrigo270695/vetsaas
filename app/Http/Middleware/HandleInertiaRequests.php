@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\ClinicSetting;
 use App\Models\InAppAssistantAnnouncement;
+use App\Models\Paciente;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Chat\PlatformSupportChatService;
@@ -70,6 +71,7 @@ class HandleInertiaRequests extends Middleware
                 'locale' => $request->getLocale(),
                 'timezone' => config('app.timezone'),
                 'tenant' => null,
+                'auth_pet_photos' => [],
                 'clinic_branding' => null,
                 'tenancy' => [
                     'root_domain' => TenantSubdomainUrl::rootDomain(),
@@ -127,6 +129,9 @@ class HandleInertiaRequests extends Middleware
             'locale' => $request->getLocale(),
             'timezone' => config('app.timezone'),
             'tenant' => $tenantPayload,
+            'auth_pet_photos' => $skipHeavySharedProps || $user instanceof User
+                ? []
+                : fn () => $this->resolveAuthPetPhotos($tenantContext !== null),
             'clinic_branding' => $tenantContext === null
                 ? null
                 : $this->resolveClinicBranding(),
@@ -622,6 +627,40 @@ class HandleInertiaRequests extends Middleware
         );
 
         @file_put_contents(storage_path('logs/laravel.log'), $line, FILE_APPEND | LOCK_EX);
+    }
+
+    /**
+     * Fotos públicas de pacientes para el folder del login (sin nombres).
+     *
+     * @return list<string>
+     */
+    private function resolveAuthPetPhotos(bool $hasTenant): array
+    {
+        if (! $hasTenant) {
+            return [];
+        }
+
+        try {
+            if (! Schema::hasTable('pacientes') || ! Schema::hasColumn('pacientes', 'foto_path')) {
+                return [];
+            }
+
+            return Paciente::query()
+                ->whereNotNull('foto_path')
+                ->where('foto_path', '!=', '')
+                ->where('activo', true)
+                ->latest()
+                ->limit(3)
+                ->get(['id', 'foto_path'])
+                ->map(static fn (Paciente $paciente): ?string => $paciente->foto_url)
+                ->filter(static fn (?string $url): bool => is_string($url) && $url !== '')
+                ->values()
+                ->all();
+        } catch (Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     private function resolveClinicBranding(): ?array

@@ -1,10 +1,9 @@
 import {
-    MessageCircle,
     Receipt,
     ShieldCheck,
-    Stethoscope,
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
+import { AuthCollabCard, AuthPetFolderCard } from '@/components/auth/auth-pet-folder-card';
 import { cn } from '@/lib/utils';
 
 type BentoCardProps = {
@@ -57,36 +56,9 @@ export default function AuthBentoOrbit() {
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-0 hidden xl:block"
         >
-            <BentoCard
-                icon={Stethoscope}
-                eyebrow="Historia clínica"
-                title="SOAP completo"
-                accent={
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                        {['Vacunas', 'Recetas', 'Lab', 'Cirugía'].map((chip) => (
-                            <span
-                                key={chip}
-                                className="rounded-md bg-primary/8 px-1.5 py-0.5 text-[0.7rem] font-medium text-primary ring-1 ring-primary/15"
-                            >
-                                {chip}
-                            </span>
-                        ))}
-                    </div>
-                }
-                className="top-[18%] left-[6%] -rotate-3 delay-100"
-            />
+            <AuthPetFolderCard className="top-[12%] left-[5%] -rotate-2 delay-100" />
 
-            <BentoCard
-                icon={MessageCircle}
-                eyebrow="Recordatorios"
-                title="WhatsApp automático"
-                accent={
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-success/12 px-1.5 py-0.5 text-[0.7rem] font-medium text-success">
-                        Hasta −30% no-shows
-                    </span>
-                }
-                className="top-[14%] right-[6%] rotate-3 delay-200"
-            />
+            <AuthCollabCard className="top-[10%] right-[5%] rotate-2 delay-200" />
 
             <BentoCard
                 icon={Receipt}
