@@ -48,62 +48,95 @@ class TenantChatController extends Controller
             }
         }
 
-        $this->maybeAttachImpersonatorToSupport($request, $user);
+        try {
+            $this->maybeAttachImpersonatorToSupport($request, $user);
 
-        $conversations = $this->chat->listConversationsPayload($user);
-        $users = $this->chat->directoryUsers((string) $user->id)
-            ->map(static fn ($u): array => [
-                'id' => (string) $u->id,
-                'name' => (string) $u->name,
-                'email' => (string) ($u->email ?? ''),
-            ])
-            ->values()
-            ->all();
+            $conversations = $this->chat->listConversationsPayload($user);
+            $users = $this->chat->directoryUsers((string) $user->id)
+                ->map(static fn ($u): array => [
+                    'id' => (string) $u->id,
+                    'name' => (string) $u->name,
+                    'email' => (string) ($u->email ?? ''),
+                ])
+                ->values()
+                ->all();
 
-        $active = null;
-        if ($conversationId !== '') {
-            $conversation = ChatConversation::query()->find($conversationId);
-            if ($conversation !== null) {
-                $this->chat->assertCanAccessConversation($conversation, $user);
-                $this->chat->setViewing($user, (string) $conversation->id);
-                $this->chat->markRead($conversation, $user);
-                $active = $this->chat->activePayload($conversation, $user);
-                // Refrescar solo unread/muted del listado tras markRead (sin second full scan costoso).
-                foreach ($conversations as $i => $row) {
-                    if ((string) ($row['id'] ?? '') === (string) $conversation->id) {
-                        $conversations[$i]['unread'] = 0;
-                        break;
+            $active = null;
+            if ($conversationId !== '') {
+                $conversation = ChatConversation::query()->find($conversationId);
+                if ($conversation !== null) {
+                    $this->chat->assertCanAccessConversation($conversation, $user);
+                    $this->chat->setViewing($user, (string) $conversation->id);
+                    $this->chat->markRead($conversation, $user);
+                    $active = $this->chat->activePayload($conversation, $user);
+                    foreach ($conversations as $i => $row) {
+                        if ((string) ($row['id'] ?? '') === (string) $conversation->id) {
+                            $conversations[$i]['unread'] = 0;
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        $retentionDays = null;
-        if (Schema::hasColumn('cfg_clinic_settings', 'chat_retention_days')) {
-            $retentionDays = ClinicSetting::query()->value('chat_retention_days');
-            $retentionDays = $retentionDays !== null ? (int) $retentionDays : null;
-        }
+            $retentionDays = null;
+            try {
+                if (Schema::hasTable('cfg_clinic_settings')
+                    && Schema::hasColumn('cfg_clinic_settings', 'chat_retention_days')
+                ) {
+                    $retentionDays = ClinicSetting::query()->value('chat_retention_days');
+                    $retentionDays = $retentionDays !== null ? (int) $retentionDays : null;
+                }
+            } catch (\Throwable) {
+                $retentionDays = null;
+            }
 
-        return Inertia::render('comunicaciones/chat/index', [
-            'conversations' => $conversations,
-            'users' => $users,
-            'active' => $active,
-            'focus_message_id' => $focusMessageId !== '' ? $focusMessageId : null,
-            'unread_total' => $this->chat->unreadTotalFor($user),
-            'can_manage' => $user->can('comunicaciones-chat.manage'),
-            'can_create_groups' => $user->can('comunicaciones-chat.manage'),
-            'draft' => $draft !== '' ? $draft : null,
-            'retention_days' => $retentionDays,
-            'poll_ms' => 4_000,
-            'broadcast' => [
-                'enabled' => filled(config('broadcasting.connections.reverb.key'))
-                    && config('broadcasting.default') === 'reverb',
-                'key' => config('broadcasting.connections.reverb.key'),
-                'host' => config('broadcasting.connections.reverb.options.host') ?: 'localhost',
-                'port' => (int) (config('broadcasting.connections.reverb.options.port') ?: 8080),
-                'scheme' => (string) (config('broadcasting.connections.reverb.options.scheme') ?: 'http'),
-            ],
-        ]);
+            return Inertia::render('comunicaciones/chat/index', [
+                'conversations' => $conversations,
+                'users' => $users,
+                'active' => $active,
+                'focus_message_id' => $focusMessageId !== '' ? $focusMessageId : null,
+                'unread_total' => $this->chat->unreadTotalFor($user),
+                'can_manage' => $user->can('comunicaciones-chat.manage'),
+                'can_create_groups' => $user->can('comunicaciones-chat.manage'),
+                'draft' => $draft !== '' ? $draft : null,
+                'retention_days' => $retentionDays,
+                'poll_ms' => 4_000,
+                'broadcast' => [
+                    'enabled' => filled(config('broadcasting.connections.reverb.key'))
+                        && config('broadcasting.default') === 'reverb',
+                    'key' => config('broadcasting.connections.reverb.key'),
+                    'host' => config('broadcasting.connections.reverb.options.host') ?: 'localhost',
+                    'port' => (int) (config('broadcasting.connections.reverb.options.port') ?: 8080),
+                    'scheme' => (string) (config('broadcasting.connections.reverb.options.scheme') ?: 'http'),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                throw $e;
+            }
+
+            report($e);
+
+            return Inertia::render('comunicaciones/chat/index', [
+                'conversations' => [],
+                'users' => [],
+                'active' => null,
+                'focus_message_id' => null,
+                'unread_total' => 0,
+                'can_manage' => $user->can('comunicaciones-chat.manage'),
+                'can_create_groups' => $user->can('comunicaciones-chat.manage'),
+                'draft' => $draft !== '' ? $draft : null,
+                'retention_days' => null,
+                'poll_ms' => 4_000,
+                'broadcast' => [
+                    'enabled' => false,
+                    'key' => null,
+                    'host' => 'localhost',
+                    'port' => 8080,
+                    'scheme' => 'http',
+                ],
+            ]);
+        }
     }
 
     public function inbox(Request $request): JsonResponse
@@ -179,11 +212,19 @@ class TenantChatController extends Controller
             'group' => ['nullable', 'string', 'max:80'],
         ]);
 
-        $conversation = $this->chat->notifyTeam(
-            $user,
-            (string) $data['body'],
-            (string) ($data['group'] ?? 'Caja'),
-        );
+        try {
+            $conversation = $this->chat->notifyTeam(
+                $user,
+                (string) $data['body'],
+                (string) ($data['group'] ?? 'Caja'),
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('comunicaciones.chat', ['draft' => $data['body']])
+                ->with('error', 'No se pudo avisar a caja. El mensaje quedó como borrador.');
+        }
 
         return redirect()->route('comunicaciones.chat', ['c' => $conversation->id]);
     }

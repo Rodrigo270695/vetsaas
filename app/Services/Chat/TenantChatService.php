@@ -66,7 +66,13 @@ final class TenantChatService
     {
         $key = 'c:'.$table.'.'.$column;
 
-        return self::$schemaFlagCache[$key] ??= Schema::hasColumn($table, $column);
+        return self::$schemaFlagCache[$key] ??= (static function () use ($table, $column): bool {
+            try {
+                return Schema::hasTable($table) && Schema::hasColumn($table, $column);
+            } catch (Throwable) {
+                return false;
+            }
+        })();
     }
 
     /**
@@ -230,13 +236,17 @@ final class TenantChatService
         $all = $ids->push((string) $actor->id)->unique()->values();
 
         return DB::transaction(function () use ($actor, $name, $all): ChatConversation {
-            $conversation = ChatConversation::query()->create([
+            $row = [
                 'type' => ChatConversation::TYPE_GROUP,
-                'kind' => ChatConversation::KIND_TEAM,
                 'name' => $name,
                 'direct_key' => null,
                 'created_by_id' => $actor->id,
-            ]);
+            ];
+            if ($this->schemaHasColumn('chat_conversations', 'kind')) {
+                $row['kind'] = ChatConversation::KIND_TEAM;
+            }
+
+            $conversation = ChatConversation::query()->create($row);
 
             $now = now();
             foreach ($all as $uid) {
@@ -600,10 +610,14 @@ final class TenantChatService
 
     public static function userQualifiesForCashTeam(User $user): bool
     {
-        return $user->can('ventas.create')
-            || $user->can('caja-sesiones.view')
-            || $user->hasRole('recepcionista')
-            || $user->hasRole('admin_clinica');
+        try {
+            return $user->can('ventas.create')
+                || $user->can('caja-sesiones.view')
+                || $user->hasRole('recepcionista')
+                || $user->hasRole('admin_clinica');
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -986,7 +1000,7 @@ final class TenantChatService
         if (! $message->relationLoaded('user')) {
             $message->load('user:id,name');
         }
-        if (! $message->relationLoaded('replyTo')) {
+        if ($this->schemaHasColumn('chat_messages', 'reply_to_id') && ! $message->relationLoaded('replyTo')) {
             $message->load('replyTo.user:id,name');
         }
         if (! $message->relationLoaded('attachments') && $this->schemaHasTable('chat_message_attachments')) {
@@ -1000,7 +1014,11 @@ final class TenantChatService
         $attachments = $isDeleted ? [] : $this->serializeAttachments($message);
         $legacy = $attachments[0] ?? null;
 
-        $mentionIds = collect($message->mentioned_user_ids ?? [])
+        $mentionIds = collect(
+            $this->schemaHasColumn('chat_messages', 'mentioned_user_ids')
+                ? ($message->mentioned_user_ids ?? [])
+                : [],
+        )
             ->map(static fn ($id): string => (string) $id)
             ->filter()
             ->values();
@@ -1020,7 +1038,7 @@ final class TenantChatService
             ])
             ->all();
 
-        $reply = $message->replyTo;
+        $reply = $this->schemaHasColumn('chat_messages', 'reply_to_id') ? $message->replyTo : null;
         $replyPreview = $reply === null ? null : [
             'id' => (string) $reply->id,
             'body' => $this->previewFromRow(
@@ -1324,12 +1342,24 @@ final class TenantChatService
         $conversation = ChatConversation::query()
             ->where('type', ChatConversation::TYPE_GROUP)
             ->whereRaw('lower(name) = lower(?)', [$groupName])
-            ->whereHas('participants', static fn ($q) => $q->where('user_id', $actor->id))
             ->first();
 
         if ($conversation === null) {
             $memberIds = $this->cashTeamUserIds((string) $actor->id);
             $conversation = $this->createGroup($actor, $groupName, $memberIds);
+        } else {
+            $alreadyIn = ChatParticipant::query()
+                ->where('conversation_id', $conversation->id)
+                ->where('user_id', $actor->id)
+                ->exists();
+            if (! $alreadyIn) {
+                ChatParticipant::query()->create([
+                    'conversation_id' => $conversation->id,
+                    'user_id' => $actor->id,
+                    'joined_at' => now(),
+                    'last_read_at' => now(),
+                ]);
+            }
         }
 
         $this->sendMessage($conversation, $actor, $body);
@@ -1867,7 +1897,10 @@ final class TenantChatService
             $conversation->load(['participants.user:id,name']);
         }
 
-        $with = ['user:id,name', 'replyTo.user:id,name'];
+        $with = ['user:id,name'];
+        if ($this->schemaHasColumn('chat_messages', 'reply_to_id')) {
+            $with[] = 'replyTo.user:id,name';
+        }
         if ($this->schemaHasTable('chat_message_attachments')) {
             $with[] = 'attachments';
         }
@@ -1891,13 +1924,15 @@ final class TenantChatService
             $messages->pluck('id')->map(static fn ($id): string => (string) $id)->all(),
         );
 
-        $mentionIds = $messages
-            ->flatMap(static fn (ChatMessage $m) => collect($m->mentioned_user_ids ?? []))
-            ->map(static fn ($id): string => (string) $id)
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        $mentionIds = $this->schemaHasColumn('chat_messages', 'mentioned_user_ids')
+            ? $messages
+                ->flatMap(static fn (ChatMessage $m) => collect($m->mentioned_user_ids ?? []))
+                ->map(static fn ($id): string => (string) $id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all()
+            : [];
 
         $mentionUsersById = $mentionIds === []
             ? collect()
