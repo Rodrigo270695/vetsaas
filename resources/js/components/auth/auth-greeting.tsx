@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { TextFlippingBoard } from '@/components/ui/text-flipping-board';
 
 type AuthGreetingProps = {
     title?: string;
@@ -14,9 +15,13 @@ function pickGreeting(hour: number): string {
     return 'Buenas noches';
 }
 
+function boardColumns(titleLength: number): number {
+    return Math.min(18, Math.max(12, titleLength));
+}
+
 /**
- * Status pill + saludo dinámico + headline editorial con gradiente.
- * El `title` se renderiza como segunda línea en color de marca.
+ * Status pill + saludo dinámico en tablero split-flap + descripción.
+ * El `title` (nombre del tenant) es la segunda línea del tablero.
  */
 export default function AuthGreeting({
     title,
@@ -27,6 +32,9 @@ export default function AuthGreeting({
         () => overrideGreeting ?? pickGreeting(new Date().getHours()),
         [overrideGreeting],
     );
+    const headline = (title ?? 'bienvenido de vuelta.').trim();
+    const boardText = `${greeting},\n${headline}`;
+    const columns = boardColumns(headline.length);
 
     return (
         <header className="mb-8 space-y-3 text-center sm:mb-10">
@@ -37,14 +45,13 @@ export default function AuthGreeting({
                 </span>
                 Sistema operativo
             </span>
-            <h1
-                key={title}
-                className="animate-in fade-in slide-in-from-bottom-1 text-balance text-3xl font-semibold tracking-tight text-foreground duration-500 sm:text-4xl"
-            >
-                {greeting},
-                <span className="block bg-linear-to-br from-brand-700 to-brand-500 bg-clip-text text-transparent dark:from-brand-300 dark:to-brand-200">
-                    {title ?? 'bienvenido de vuelta.'}
-                </span>
+            <h1 className="flex justify-center">
+                <TextFlippingBoard
+                    key={boardText}
+                    text={boardText}
+                    columns={columns}
+                    duration={1.35}
+                />
             </h1>
             {description && (
                 <p
