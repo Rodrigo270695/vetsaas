@@ -3,6 +3,8 @@ import { useLayoutEffect, useRef } from 'react';
 type BounceNavDotProps = {
     /** Cambia cuando cambia la ruta activa del menú. */
     activeKey: string | null;
+    /** Sidebar en modo icono: el punto se ancla al botón visible. */
+    compact?: boolean;
 };
 
 type Point = { x: number; y: number };
@@ -24,16 +26,28 @@ function readTransform(el: HTMLElement): Point | null {
     return { x: m.m41, y: m.m42 };
 }
 
-function measureActive(root: HTMLElement, size: number): Point | null {
+function measureActive(root: HTMLElement, size: number, compact: boolean): Point | null {
     const active = root.querySelector<HTMLElement>('[data-bounce-active="true"]');
-    if (!active || active.offsetParent === null) {
+    if (!active) {
+        return null;
+    }
+
+    const style = getComputedStyle(active);
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) {
         return null;
     }
 
     const rootRect = root.getBoundingClientRect();
     const elRect = active.getBoundingClientRect();
-    if (elRect.height < 2) {
+    if (elRect.height < 2 || elRect.width < 2) {
         return null;
+    }
+
+    if (compact) {
+        return {
+            x: elRect.left - rootRect.left + 3,
+            y: elRect.top - rootRect.top + elRect.height / 2 - size / 2,
+        };
     }
 
     return {
@@ -65,7 +79,7 @@ function arcKeyframes(from: Point, to: Point): Keyframe[] {
  * Punto fuera del ítem activo que viaja en media luna entre rutas.
  * El padre debe ser `position: relative` (SidebarMenu).
  */
-export function BounceNavDot({ activeKey }: BounceNavDotProps) {
+export function BounceNavDot({ activeKey, compact = false }: BounceNavDotProps) {
     const dotRef = useRef<HTMLSpanElement>(null);
 
     useLayoutEffect(() => {
@@ -83,7 +97,7 @@ export function BounceNavDot({ activeKey }: BounceNavDotProps) {
                 return;
             }
 
-            const to = measureActive(root, DOT_SIZE);
+            const to = measureActive(root, DOT_SIZE, compact);
             if (!to) {
                 dot.style.opacity = '0';
                 return;
@@ -107,25 +121,30 @@ export function BounceNavDot({ activeKey }: BounceNavDotProps) {
 
             dot.style.transform = `translate(${from.x}px, ${from.y}px)`;
             dot.animate(arcKeyframes(from, to), {
-                duration: 520,
+                duration: compact ? 280 : 520,
                 easing: 'cubic-bezier(0.37, 0, 0.63, 1)',
                 fill: 'forwards',
             });
         };
 
         place();
+        const afterWidth = window.setTimeout(place, 220);
+        const ro = new ResizeObserver(place);
+        ro.observe(root);
 
         return () => {
             cancelled = true;
+            window.clearTimeout(afterWidth);
+            ro.disconnect();
         };
-    }, [activeKey]);
+    }, [activeKey, compact]);
 
     return (
         <span
             ref={dotRef}
             aria-hidden
             data-slot="bounce-nav-dot"
-            className="pointer-events-none absolute top-0 left-0 z-20 size-1.5 rounded-full bg-primary opacity-0 shadow-[0_0_0_3px] shadow-primary/15 will-change-transform group-data-[collapsible=icon]:hidden"
+            className="pointer-events-none absolute top-0 left-0 z-20 size-1.5 rounded-full bg-primary opacity-0 shadow-[0_0_0_3px] shadow-primary/15 will-change-transform"
         />
     );
 }

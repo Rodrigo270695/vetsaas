@@ -101,7 +101,8 @@ export function NavMainCollapsible({
 }: NavMainCollapsibleProps) {
     const { isCurrentUrl, isCurrentOrParentUrl, isNavItemActive, currentUrl } =
         useCurrentUrl();
-    const { isMobile, setOpenMobile } = useSidebar();
+    const { isMobile, setOpenMobile, state } = useSidebar();
+    const iconCollapsed = !isMobile && state === 'collapsed';
     const { can, permissions } = usePermission();
     const { t } = useTranslation('nav');
     const page = usePage();
@@ -218,7 +219,7 @@ export function NavMainCollapsible({
             )}
 
             <SidebarMenu className="relative">
-                <BounceNavDot activeKey={currentUrl} />
+                <BounceNavDot activeKey={`${currentUrl}:${state}`} compact={iconCollapsed} />
                 {visibleSingles.map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
@@ -240,6 +241,10 @@ export function NavMainCollapsible({
                 ))}
 
                 {visibleGroups.map((group) => {
+                    const siblingHrefs = group.items.map((i) => i.href);
+                    const hasActiveChild = group.items.some((item) =>
+                        isNavItemActive(item.href, siblingHrefs),
+                    );
                     const groupBadge = group.items.reduce(
                         (sum, item) =>
                             sum
@@ -268,6 +273,9 @@ export function NavMainCollapsible({
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton
                                     tooltip={{ children: group.title }}
+                                    data-bounce-active={
+                                        iconCollapsed && hasActiveChild ? 'true' : undefined
+                                    }
                                     className="group/trigger cursor-pointer font-medium transition-all hover:bg-primary/8"
                                 >
                                     {group.icon && (
@@ -291,10 +299,11 @@ export function NavMainCollapsible({
                                         <NavSubItem
                                             key={item.title}
                                             item={item}
-                                            active={isNavItemActive(
-                                                item.href,
-                                                group.items.map((i) => i.href),
-                                            )}
+                                            active={isNavItemActive(item.href, siblingHrefs)}
+                                            bounceActive={
+                                                !iconCollapsed
+                                                && isNavItemActive(item.href, siblingHrefs)
+                                            }
                                             index={index}
                                             isNovedadPromo={isBotIaNovedadPromo(item)}
                                             novedadBadgeLabel={t('items.bot_ia_novedad_badge')}
@@ -315,6 +324,7 @@ export function NavMainCollapsible({
 type NavSubItemProps = {
     item: NavItem;
     active: boolean;
+    bounceActive?: boolean;
     /** Posición dentro del grupo, usada para stagger animation. */
     index: number;
     isNovedadPromo?: boolean;
@@ -330,6 +340,7 @@ type NavSubItemProps = {
 function NavSubItem({
     item,
     active,
+    bounceActive = false,
     index,
     isNovedadPromo = false,
     novedadBadgeLabel = 'Nuevo',
@@ -346,7 +357,7 @@ function NavSubItem({
                 href={item.href}
                 onClick={onNavigate}
                 data-active={active}
-                data-bounce-active={active ? 'true' : undefined}
+                data-bounce-active={bounceActive ? 'true' : undefined}
                 className={cn(
                     'group/sub relative flex h-9 items-center gap-2.5 overflow-hidden rounded-md pr-2 pl-3 text-sm transition-all duration-200 outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                     isNovedadPromo && !active
