@@ -24,6 +24,32 @@ final class OpenWaClient
     }
 
     /**
+     * ¿El proceso OpenWA atiende HTTP? Timeout muy corto; si está congelado, false.
+     */
+    public function ping(): bool
+    {
+        try {
+            $this->request('get', '/', null, max(2, (int) config('openwa.ping_timeout_seconds', 4)));
+
+            return true;
+        } catch (\Throwable $e) {
+            $message = $e->getMessage();
+
+            if (
+                str_contains($message, 'Error de red')
+                || str_contains($message, 'HTTP 502')
+                || str_contains($message, 'HTTP 503')
+                || str_contains($message, 'HTTP 504')
+            ) {
+                return false;
+            }
+
+            // 401/404 u otro HTTP: el proceso sí contestó.
+            return true;
+        }
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function listSessions(): array

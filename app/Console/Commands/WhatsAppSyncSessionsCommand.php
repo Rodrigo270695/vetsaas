@@ -34,6 +34,12 @@ class WhatsAppSyncSessionsCommand extends Command
             return self::SUCCESS;
         }
 
+        if (! $client->ping()) {
+            $this->error('OpenWA no responde (proceso congelado). Se omite el sync para no empeorarlo.');
+
+            return self::SUCCESS;
+        }
+
         if ($client->isRateLimited()) {
             $this->warn('OpenWA está en cooldown por 429. Se omite esta corrida.');
 

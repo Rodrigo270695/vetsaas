@@ -44,6 +44,8 @@ return [
 
     'lookup_timeout_seconds' => (int) env('OPENWA_LOOKUP_TIMEOUT_SECONDS', 8),
 
+    'ping_timeout_seconds' => (int) env('OPENWA_PING_TIMEOUT_SECONDS', 4),
+
     /*
     | Cron que lista/reconecta sesiones. Ponerlo en false si OpenWA se congela
     | (504 / event loop) al llamar GET /api/sessions.
@@ -57,9 +59,9 @@ return [
     */
     'list_sessions_cache_seconds' => (int) env('OPENWA_LIST_SESSIONS_CACHE_SECONDS', 25),
 
-    'sync_max_tenants_per_run' => (int) env('OPENWA_SYNC_MAX_TENANTS', 8),
+    'sync_max_tenants_per_run' => (int) env('OPENWA_SYNC_MAX_TENANTS', 2),
 
-    'sync_max_reconnects_per_run' => (int) env('OPENWA_SYNC_MAX_RECONNECTS', 2),
+    'sync_max_reconnects_per_run' => (int) env('OPENWA_SYNC_MAX_RECONNECTS', 1),
 
     'sync_pause_ms' => (int) env('OPENWA_SYNC_PAUSE_MS', 700),
 
