@@ -37,9 +37,15 @@ class TenantChatController extends Controller
         $notify = trim((string) $request->query('notify', ''));
 
         if ($notify === 'caja' && $draft !== '') {
-            $conversation = $this->chat->notifyTeam($user, $draft, 'Caja');
+            try {
+                $conversation = $this->chat->notifyTeam($user, $draft, 'Caja');
 
-            return redirect()->route('comunicaciones.chat', ['c' => $conversation->id]);
+                return redirect()->route('comunicaciones.chat', ['c' => $conversation->id]);
+            } catch (\Throwable $e) {
+                report($e);
+
+                return redirect()->route('comunicaciones.chat', ['draft' => $draft]);
+            }
         }
 
         $this->maybeAttachImpersonatorToSupport($request, $user);

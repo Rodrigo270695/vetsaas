@@ -5,7 +5,6 @@ import {
     ExternalLink,
     FileText,
     Loader2,
-    MessagesSquare,
     Printer,
     Receipt,
     RefreshCw,
@@ -30,7 +29,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { TicketPrintDialog } from '@/components/tickets/ticket-print-dialog';
-import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { cn } from '@/lib/utils';
@@ -82,8 +80,6 @@ export default function Show({
 }: VentaShowProps) {
     const { t, i18n } = useTranslation(['caja', 'common']);
     const { t: tCommon } = useTranslation('common');
-    const { can } = usePermission();
-    const canAvisarCaja = can('comunicaciones-chat.view');
     const [emitiendoFel, setEmitiendoFel] = useState(false);
     const [pasandoProduccion, setPasandoProduccion] = useState(false);
     const [sincronizandoEstado, setSincronizandoEstado] = useState(false);
@@ -404,24 +400,6 @@ export default function Show({
                     stats={headerStats}
                     action={
                         <div className="flex flex-wrap items-center gap-2">
-                            {canAvisarCaja ? (
-                                <Button variant="secondary" size="sm" asChild className="gap-1.5">
-                                    <Link
-                                        href={`/comunicaciones/chat?notify=caja&draft=${encodeURIComponent(
-                                            t('caja:ventas.show.avisar_caja_draft', {
-                                                numero: venta.numero,
-                                                paciente:
-                                                    venta.paciente
-                                                    ?? venta.cliente
-                                                    ?? '—',
-                                            }),
-                                        )}`}
-                                    >
-                                        <MessagesSquare className="size-4" aria-hidden />
-                                        {t('caja:ventas.show.avisar_caja')}
-                                    </Link>
-                                </Button>
-                            ) : null}
                             <Button variant="outline" size="sm" asChild className="gap-1.5">
                                 <Link href={caja.ventas.index.url()}>
                                     <ArrowLeft className="size-4" aria-hidden />

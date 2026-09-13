@@ -566,11 +566,11 @@ html.session-enter [data-session-enter-main] {
 }
 
 html.view-enter [data-session-enter-header] {
-    animation: session-enter-header 0.68s cubic-bezier(0.33, 0.1, 0.2, 1) 0.04s both;
+    animation: session-enter-header 0.54s cubic-bezier(0.33, 0.1, 0.2, 1) 0.03s both;
 }
 
 html.view-enter [data-session-enter-main] {
-    animation: session-enter-main 0.76s cubic-bezier(0.33, 0.1, 0.2, 1) 0.08s both;
+    animation: session-enter-main 0.6s cubic-bezier(0.33, 0.1, 0.2, 1) 0.06s both;
 }
 
 [data-session-enter-skeleton] {

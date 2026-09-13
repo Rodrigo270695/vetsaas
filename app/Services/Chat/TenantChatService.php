@@ -232,6 +232,7 @@ final class TenantChatService
         return DB::transaction(function () use ($actor, $name, $all): ChatConversation {
             $conversation = ChatConversation::query()->create([
                 'type' => ChatConversation::TYPE_GROUP,
+                'kind' => ChatConversation::KIND_TEAM,
                 'name' => $name,
                 'direct_key' => null,
                 'created_by_id' => $actor->id,
