@@ -22,6 +22,12 @@ class WhatsAppSyncSessionsCommand extends Command
         PlatformWhatsAppSessionSync $platformSync,
         TenantSubscriptionAccess $access,
     ): int {
+        if (! config('openwa.sync_enabled', true)) {
+            $this->warn('Sync OpenWA desactivado (OPENWA_SYNC_ENABLED=false).');
+
+            return self::SUCCESS;
+        }
+
         if (! $client->isConfigured()) {
             $this->warn('OpenWA deshabilitado o sin OPENWA_API_KEY.');
 

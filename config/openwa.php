@@ -43,6 +43,12 @@ return [
     'reconnect_poll_seconds' => (int) env('OPENWA_RECONNECT_POLL_SECONDS', 3),
 
     /*
+    | Cron que lista/reconecta sesiones. Ponerlo en false si OpenWA se congela
+    | (504 / event loop) al llamar GET /api/sessions.
+    */
+    'sync_enabled' => filter_var(env('OPENWA_SYNC_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+
+    /*
     | El cron de sync no debe listar/arrancar las ~50 clínicas de un golpe:
     | OpenWA responde 429 (ThrottlerException). Rotamos un lote por corrida,
     | cacheamos GET /api/sessions y pausamos si hay rate-limit.
