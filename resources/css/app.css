@@ -233,22 +233,6 @@
     }
 }
 
-/* Split-flap (tablero tipo Vestaboard) en el saludo de auth. */
-@keyframes split-flap-tick {
-    0% {
-        transform: rotateX(0deg);
-    }
-    48% {
-        transform: rotateX(-90deg);
-    }
-    52% {
-        transform: rotateX(90deg);
-    }
-    100% {
-        transform: rotateX(0deg);
-    }
-}
-
 /* ============================================================
    Aurora drift — usado en fondos de auth/marketing.
    Sutil, lentísimo (18-26s), respetuoso con reduced-motion.
