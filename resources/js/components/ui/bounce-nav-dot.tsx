@@ -26,22 +26,47 @@ function readTransform(el: HTMLElement): Point | null {
     return { x: m.m41, y: m.m42 };
 }
 
-function measureActive(root: HTMLElement, size: number, compact: boolean): Point | null {
-    const active = root.querySelector<HTMLElement>('[data-bounce-active="true"]');
-    if (!active) {
-        return null;
+function isVisuallyUsable(el: HTMLElement, root: HTMLElement): boolean {
+    if (el.closest('[data-slot="collapsible-content"][data-state="closed"]')) {
+        return false;
     }
 
-    const style = getComputedStyle(active);
-    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) {
-        return null;
+    if (typeof el.checkVisibility === 'function' && !el.checkVisibility()) {
+        return false;
     }
 
+    let node: HTMLElement | null = el;
+    while (node && node !== root) {
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden') {
+            return false;
+        }
+        const rect = node.getBoundingClientRect();
+        const clipped =
+            style.overflow === 'hidden'
+            || style.overflowY === 'hidden'
+            || style.overflowX === 'hidden';
+        if (clipped && (rect.height < 4 || rect.width < 4)) {
+            return false;
+        }
+        node = node.parentElement;
+    }
+
+    const elRect = el.getBoundingClientRect();
     const rootRect = root.getBoundingClientRect();
-    const elRect = active.getBoundingClientRect();
     if (elRect.height < 2 || elRect.width < 2) {
-        return null;
+        return false;
     }
+    if (elRect.bottom < rootRect.top + 1 || elRect.top > rootRect.bottom - 1) {
+        return false;
+    }
+
+    return true;
+}
+
+function pointFor(el: HTMLElement, root: HTMLElement, size: number, compact: boolean): Point {
+    const rootRect = root.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
 
     if (compact) {
         return {
@@ -54,6 +79,30 @@ function measureActive(root: HTMLElement, size: number, compact: boolean): Point
         x: elRect.left - rootRect.left - size - OUTSIDE_GAP,
         y: elRect.top - rootRect.top + elRect.height / 2 - size / 2,
     };
+}
+
+function measureActive(root: HTMLElement, size: number, compact: boolean): Point | null {
+    const marked = Array.from(root.querySelectorAll<HTMLElement>('[data-bounce-active="true"]'));
+    const visible = marked.find((el) => isVisuallyUsable(el, root));
+    if (visible) {
+        return pointFor(visible, root, size, compact);
+    }
+
+    const hiddenActive = marked[0];
+    if (!hiddenActive) {
+        return null;
+    }
+
+    const group = hiddenActive.closest<HTMLElement>('[data-nav-group], [data-slot="collapsible"]');
+    const trigger = group?.querySelector<HTMLElement>(
+        '[data-slot="collapsible-trigger"], [data-sidebar="menu-button"]',
+    );
+
+    if (trigger && isVisuallyUsable(trigger, root)) {
+        return pointFor(trigger, root, size, compact);
+    }
+
+    return null;
 }
 
 /** Media luna a la izquierda: el punto recorre un arco, no una recta vertical. */
@@ -99,6 +148,7 @@ export function BounceNavDot({ activeKey, compact = false }: BounceNavDotProps) 
 
             const to = measureActive(root, DOT_SIZE, compact);
             if (!to) {
+                lastPoint = null;
                 dot.style.opacity = '0';
                 return;
             }
@@ -129,13 +179,23 @@ export function BounceNavDot({ activeKey, compact = false }: BounceNavDotProps) 
 
         place();
         const afterWidth = window.setTimeout(place, 220);
+        const afterCollapse = window.setTimeout(place, 360);
         const ro = new ResizeObserver(place);
         ro.observe(root);
+        const sidebar = root.closest('[data-slot="sidebar"]') ?? root;
+        const mo = new MutationObserver(place);
+        mo.observe(sidebar, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['data-state', 'data-bounce-active', 'data-collapsible', 'class'],
+        });
 
         return () => {
             cancelled = true;
             window.clearTimeout(afterWidth);
+            window.clearTimeout(afterCollapse);
             ro.disconnect();
+            mo.disconnect();
         };
     }, [activeKey, compact]);
 

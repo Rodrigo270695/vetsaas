@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -206,6 +206,11 @@ export function NavMainCollapsible({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUrl, visibleGroups]);
 
+    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+    const isGroupOpen = (title: string, fallback: boolean): boolean =>
+        openGroups[title] ?? fallback;
+
     if (visibleSingles.length === 0 && visibleGroups.length === 0) {
         return null;
     }
@@ -219,7 +224,10 @@ export function NavMainCollapsible({
             )}
 
             <SidebarMenu className="relative">
-                <BounceNavDot activeKey={`${currentUrl}:${state}`} compact={iconCollapsed} />
+                <BounceNavDot
+                    activeKey={`${currentUrl}:${state}:${JSON.stringify(openGroups)}`}
+                    compact={iconCollapsed}
+                />
                 {visibleSingles.map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
@@ -245,6 +253,12 @@ export function NavMainCollapsible({
                     const hasActiveChild = group.items.some((item) =>
                         isNavItemActive(item.href, siblingHrefs),
                     );
+                    const groupOpen = isGroupOpen(
+                        group.title,
+                        initialOpenMap[group.title] === true,
+                    );
+                    const bounceOnGroup =
+                        hasActiveChild && (iconCollapsed || !groupOpen);
                     const groupBadge = group.items.reduce(
                         (sum, item) =>
                             sum
@@ -258,10 +272,16 @@ export function NavMainCollapsible({
                     <Collapsible
                         key={group.title}
                         asChild
-                        defaultOpen={initialOpenMap[group.title]}
+                        open={groupOpen}
+                        onOpenChange={(open) => {
+                            setOpenGroups((current) => ({
+                                ...current,
+                                [group.title]: open,
+                            }));
+                        }}
                         className="group/collapsible"
                     >
-                        <SidebarMenuItem className="relative">
+                        <SidebarMenuItem className="relative" data-nav-group="">
                             {groupBadge > 0 ? (
                                 <span
                                     aria-label={`${groupBadge} sin leer`}
@@ -273,9 +293,7 @@ export function NavMainCollapsible({
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton
                                     tooltip={{ children: group.title }}
-                                    data-bounce-active={
-                                        iconCollapsed && hasActiveChild ? 'true' : undefined
-                                    }
+                                    data-bounce-active={bounceOnGroup ? 'true' : undefined}
                                     className="group/trigger cursor-pointer font-medium transition-all hover:bg-primary/8"
                                 >
                                     {group.icon && (
@@ -302,6 +320,7 @@ export function NavMainCollapsible({
                                             active={isNavItemActive(item.href, siblingHrefs)}
                                             bounceActive={
                                                 !iconCollapsed
+                                                && groupOpen
                                                 && isNavItemActive(item.href, siblingHrefs)
                                             }
                                             index={index}
