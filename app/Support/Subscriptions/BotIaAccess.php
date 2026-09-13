@@ -44,6 +44,10 @@ final class BotIaAccess
             return false;
         }
 
+        if ($user->isPlatformSuperadmin()) {
+            return true;
+        }
+
         if ($user->hasPermissionTo('comunicaciones-bot-ia.view')) {
             return true;
         }
@@ -65,6 +69,10 @@ final class BotIaAccess
     {
         if ($user === null) {
             return false;
+        }
+
+        if ($user->isPlatformSuperadmin()) {
+            return true;
         }
 
         if ($user->hasPermissionTo('comunicaciones-bot-ia.manage')) {

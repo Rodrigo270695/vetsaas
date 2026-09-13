@@ -119,6 +119,28 @@ it('permite al superadmin ver stock y caja en modo soporte', function (): void {
         ->assertOk();
 });
 
+it('permite al superadmin ver chatbot ia en modo soporte', function (): void {
+    $this->actingAs($this->superadmin);
+
+    $start = $this->post(
+        'http://127.0.0.1/plataforma/tenants/'.$this->testTenant->id.'/impersonate',
+        [],
+        ['X-Inertia' => 'true', 'X-Requested-With' => 'XMLHttpRequest'],
+    );
+
+    $location = (string) $start->headers->get('X-Inertia-Location');
+    parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+
+    $this->get('http://'.$this->testTenantHost.'/impersonate/accept?token='.($query['token'] ?? ''))
+        ->assertRedirect(route('dashboard'));
+
+    $this->get('http://'.$this->testTenantHost.'/comunicaciones/bot-ia')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('comunicaciones/bot-ia/index')
+            ->where('can_manage', true));
+});
+
 it('rechaza token expirado o reutilizado', function (): void {
     Cache::put('tenant_impersonate:fake-token-'.str_repeat('a', 48), [
         'superadmin_id' => (string) $this->superadmin->id,
