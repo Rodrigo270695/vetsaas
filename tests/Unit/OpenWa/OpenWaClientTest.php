@@ -48,6 +48,19 @@ it('detiene sesión OpenWA', function (): void {
     });
 });
 
+it('borra sesión OpenWA', function (): void {
+    Http::fake([
+        'wa.test/api/sessions/sess-1' => Http::response(null, 204),
+    ]);
+
+    (new OpenWaClient)->deleteSession('sess-1');
+
+    Http::assertSent(function ($request): bool {
+        return $request->method() === 'DELETE'
+            && $request->url() === 'https://wa.test/api/sessions/sess-1';
+    });
+});
+
 it('asume entrega ante OpenWA HTTP 500 en send-text', function (): void {
     Http::fake([
         'wa.test/api/sessions/sess-1/messages/send-text' => Http::response([

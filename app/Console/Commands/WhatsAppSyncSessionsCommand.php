@@ -66,8 +66,10 @@ class WhatsAppSyncSessionsCommand extends Command
 
         $tenants = Tenant::query()
             ->whereIn('estado', ['trial', 'active'])
-            ->with('whatsappSession')
-            ->get();
+            ->with(['whatsappSession', 'subscriptions.plan'])
+            ->get()
+            ->filter(static fn (Tenant $tenant): bool => $tenant->qualifiesForPaidWhatsApp())
+            ->values();
 
         $byOldestSync = fn (Tenant $tenant): string => (string) (
             $tenant->whatsappSession?->last_synced_at?->toIso8601String() ?? '1970-01-01'

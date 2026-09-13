@@ -451,6 +451,15 @@ final class OpenWaClient
     }
 
     /**
+     * Borra la sesión en OpenWA (deja de ocupar motor/QR).
+     */
+    public function deleteSession(string $sessionId): void
+    {
+        $this->request('delete', '/api/sessions/'.$sessionId);
+        $this->forgetSessionListCache();
+    }
+
+    /**
      * Registra el webhook de mensajes entrantes para una sesión.
      *
      * @see https://github.com/rmyndharis/OpenWA/blob/main/docs/06-api-specification.md

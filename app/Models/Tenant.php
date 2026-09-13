@@ -99,6 +99,40 @@ class Tenant extends Model
             ->first();
     }
 
+    /**
+     * WhatsApp automático (cron / auto-reconnect) solo para planes de pago.
+     * Free, demo y clínicas sin suscripción no deben ocupar procesos OpenWA.
+     */
+    public function qualifiesForPaidWhatsApp(): bool
+    {
+        $subscription = $this->relationLoaded('subscriptions')
+            ? $this->subscriptions
+                ->filter(static fn (Subscription $row): bool => in_array($row->estado, ['trial', 'active', 'grace'], true))
+                ->sortByDesc(static fn (Subscription $row): int => $row->created_at?->getTimestamp() ?? 0)
+                ->first()
+            : $this->activeSubscription();
+
+        if (! $subscription instanceof Subscription) {
+            $subscription = $this->relationLoaded('subscriptions')
+                ? $this->subscriptions->sortByDesc(static fn (Subscription $row): int => $row->created_at?->getTimestamp() ?? 0)->first()
+                : $this->subscriptions()->latest()->first();
+        }
+
+        if (! $subscription instanceof Subscription) {
+            return false;
+        }
+
+        $plan = $subscription->relationLoaded('plan')
+            ? $subscription->plan
+            : $subscription->plan()->first();
+
+        if ($plan instanceof Plan) {
+            return ! $plan->isFree();
+        }
+
+        return (float) $subscription->precio_pactado > 0;
+    }
+
     public function whatsappSession(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(TenantWhatsAppSession::class);

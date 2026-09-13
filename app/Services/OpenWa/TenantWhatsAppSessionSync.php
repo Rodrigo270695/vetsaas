@@ -27,6 +27,20 @@ final class TenantWhatsAppSessionSync
             return null;
         }
 
+        if (! $tenant->qualifiesForPaidWhatsApp()) {
+            $local = TenantWhatsAppSession::query()
+                ->where('tenant_id', $tenant->id)
+                ->first();
+            if ($local instanceof TenantWhatsAppSession && $local->auto_reconnect) {
+                $local->forceFill([
+                    'auto_reconnect' => false,
+                    'last_synced_at' => now(),
+                ])->save();
+            }
+
+            return $local;
+        }
+
         $local = TenantWhatsAppSession::query()
             ->where('tenant_id', $tenant->id)
             ->first();
@@ -128,6 +142,9 @@ final class TenantWhatsAppSessionSync
             ->first();
 
         if ($session === null) {
+            if (! $tenant->qualifiesForPaidWhatsApp()) {
+                return null;
+            }
             $session = $this->ensureForTenant($tenant);
         }
 

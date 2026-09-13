@@ -41,6 +41,7 @@ class WhatsAppWakeAuthenticatedSessionsCommand extends Command
         $skipped = 0;
 
         $tenants = TenantWhatsAppSession::query()
+            ->with(['tenant.subscriptions.plan'])
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->whereNotNull('openwa_session_id')
@@ -49,6 +50,14 @@ class WhatsAppWakeAuthenticatedSessionsCommand extends Command
             ->get();
 
         foreach ($tenants as $session) {
+            $tenant = $session->tenant;
+            if (! $tenant instanceof \App\Models\Tenant || ! $tenant->qualifiesForPaidWhatsApp()) {
+                $this->comment(sprintf('  skip free/inactivo: %s', $session->openwa_session_name));
+                $skipped++;
+
+                continue;
+            }
+
             $this->line(sprintf(
                 '  [tenant] %s | %s | %s',
                 $session->openwa_session_name,
