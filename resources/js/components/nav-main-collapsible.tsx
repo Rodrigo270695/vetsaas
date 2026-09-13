@@ -218,13 +218,11 @@ export function NavMainCollapsible({
             <SidebarMenu className="relative">
                 <BounceNavDot activeKey={currentUrl} />
                 {visibleSingles.map((item) => (
-                    <SidebarMenuItem
-                        key={item.title}
-                        data-bounce-active={isCurrentUrl(item.href) ? 'true' : undefined}
-                    >
+                    <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                             asChild
                             isActive={isCurrentUrl(item.href)}
+                            data-bounce-active={isCurrentUrl(item.href) ? 'true' : undefined}
                             tooltip={{ children: item.title }}
                             className="font-medium transition-all data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
                         >
@@ -339,7 +337,6 @@ function NavSubItem({
 
     return (
         <SidebarMenuSubItem
-            data-bounce-active={active ? 'true' : undefined}
             style={{ animationDelay: `${index * 30}ms` }}
             className="animate-in fade-in slide-in-from-left-2 fill-mode-both duration-300"
         >
@@ -347,6 +344,7 @@ function NavSubItem({
                 href={item.href}
                 onClick={onNavigate}
                 data-active={active}
+                data-bounce-active={active ? 'true' : undefined}
                 className={cn(
                     'group/sub relative flex h-9 items-center gap-2.5 overflow-hidden rounded-md pr-2 pl-3 text-sm transition-all duration-200 outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                     isNovedadPromo && !active
