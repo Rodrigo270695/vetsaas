@@ -53,6 +53,15 @@ final class ClinicBotWebhookController extends Controller
         }
 
         if (! $this->verifyWebhookSecret($request, $secret)) {
+            Log::warning('ClinicBot webhook 401: firma/secreto no coinciden', [
+                'has_signature' => $request->header('X-Webhook-Signature') !== null
+                    && $request->header('X-Webhook-Signature') !== '',
+                'has_openwa_signature' => $request->header('X-OpenWA-Signature') !== null
+                    && $request->header('X-OpenWA-Signature') !== '',
+                'has_legacy_secret' => $request->header('X-Webhook-Secret') !== null
+                    && $request->header('X-Webhook-Secret') !== '',
+            ]);
+
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
@@ -68,7 +77,7 @@ final class ClinicBotWebhookController extends Controller
 
         $fromMe = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
         $type = (string) ($data['type'] ?? 'chat');
-        $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
+        $body = $this->extractInboundBody($data);
 
         // Filtrar ANTES de DB/tenancy: OpenWA dispara presence/typing/ack a granel.
         // En prod llegó a ~90% del access.log y saturó PHP-FPM (load ~34).
@@ -81,14 +90,14 @@ final class ClinicBotWebhookController extends Controller
             return response()->json(['ok' => true, 'skipped' => 'not_message_event']);
         }
 
-        $openWaSessionId = (string) ($payload['sessionId'] ?? $data['sessionId'] ?? '');
+        $openWaSessionId = $this->extractOpenWaSessionId($payload, $data);
 
-        $waSession = TenantWhatsAppSession::query()
-            ->with('tenant')
-            ->where('openwa_session_id', $openWaSessionId)
-            ->first();
+        $waSession = $this->findTenantWhatsAppSession($openWaSessionId, $data);
+        if ($waSession !== null && $openWaSessionId === '') {
+            $openWaSessionId = (string) $waSession->openwa_session_id;
+        }
 
-        $tenantReady = $waSession !== null && $waSession->isReady() && $waSession->tenant !== null;
+        $tenantReady = $waSession !== null && $waSession->tenant !== null;
 
         if (! $tenantReady) {
             if ($this->guard->isLikelyOutgoingMessage($data, $fromMe)) {
@@ -101,6 +110,7 @@ final class ClinicBotWebhookController extends Controller
                 $data,
                 $openWaSessionId !== '' ? $openWaSessionId : null,
                 forOutgoing: false,
+                allowPlatformSessionFallback: false,
             );
             $rsvp = $body !== ''
                 ? $this->agendaRsvpFromInbound->tryHandle(
@@ -132,6 +142,9 @@ final class ClinicBotWebhookController extends Controller
             }
 
             $this->traffic->recordSkipped();
+            Log::info('ClinicBot skipped: sesión de tenant no encontrada', [
+                'openwa_session_id' => $openWaSessionId,
+            ]);
 
             return response()->json(['ok' => true, 'skipped' => 'unknown_or_not_ready_session']);
         }
@@ -142,10 +155,19 @@ final class ClinicBotWebhookController extends Controller
             return $this->handleOutgoingMessage($data, $openWaSessionId, $fromMe);
         }
 
+        if (! $waSession->isReady()) {
+            $waSession->forceFill([
+                'status' => TenantWhatsAppSession::STATUS_READY,
+                'last_synced_at' => now(),
+                'last_error' => null,
+            ])->save();
+        }
+
         $contact = $this->contactResolver->resolve(
             $data,
             $openWaSessionId !== '' ? $openWaSessionId : null,
             forOutgoing: false,
+            allowPlatformSessionFallback: false,
         );
 
         $waChatId = $contact['wa_chat_id'];
@@ -319,6 +341,7 @@ final class ClinicBotWebhookController extends Controller
             $data,
             $openWaSessionId !== '' ? $openWaSessionId : null,
             forOutgoing: $fromMe,
+            allowPlatformSessionFallback: false,
         );
 
         $phone = $contact['phone'];
@@ -364,9 +387,19 @@ final class ClinicBotWebhookController extends Controller
 
         if ($signatureToVerify !== '') {
             $rawBody = (string) $request->getContent();
-            $expected = 'sha256='.hash_hmac('sha256', $rawBody, $secret);
+            $hmac = hash_hmac('sha256', $rawBody, $secret);
+            $expectedPrefixed = 'sha256='.$hmac;
 
-            return hash_equals($expected, $signatureToVerify);
+            if (hash_equals($expectedPrefixed, $signatureToVerify)
+                || hash_equals($hmac, $signatureToVerify)) {
+                return true;
+            }
+
+            if ($legacySecret !== '' && hash_equals($secret, $legacySecret)) {
+                return true;
+            }
+
+            return false;
         }
 
         if ($legacySecret !== '') {
@@ -374,5 +407,93 @@ final class ClinicBotWebhookController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $data
+     */
+    private function extractOpenWaSessionId(array $payload, array $data): string
+    {
+        foreach (['sessionId', 'session_id'] as $key) {
+            foreach ([$payload[$key] ?? null, $data[$key] ?? null] as $value) {
+                if (is_string($value) && trim($value) !== '') {
+                    return trim($value);
+                }
+            }
+        }
+
+        $session = $payload['session'] ?? $data['session'] ?? null;
+        if (is_array($session)) {
+            $id = $session['id'] ?? $session['sessionId'] ?? null;
+            if (is_string($id) && trim($id) !== '') {
+                return trim($id);
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function extractInboundBody(array $data): string
+    {
+        foreach (['body', 'content', 'text', 'caption'] as $key) {
+            $value = $data[$key] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        $message = $data['message'] ?? null;
+        if (! is_array($message)) {
+            return '';
+        }
+
+        $conversation = $message['conversation'] ?? null;
+        if (is_string($conversation) && trim($conversation) !== '') {
+            return trim($conversation);
+        }
+
+        $extended = $message['extendedTextMessage'] ?? null;
+        if (is_array($extended)) {
+            $text = $extended['text'] ?? null;
+            if (is_string($text) && trim($text) !== '') {
+                return trim($text);
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function findTenantWhatsAppSession(string $openWaSessionId, array $data): ?TenantWhatsAppSession
+    {
+        if ($openWaSessionId !== '') {
+            $byId = TenantWhatsAppSession::query()
+                ->with('tenant')
+                ->where('openwa_session_id', $openWaSessionId)
+                ->first();
+            if ($byId !== null) {
+                return $byId;
+            }
+        }
+
+        $to = (string) ($data['to'] ?? '');
+        $digits = preg_replace('/\D/', '', preg_replace('/@.*$/', '', $to) ?? $to) ?? '';
+        if (strlen($digits) < 8) {
+            return null;
+        }
+
+        $tail = substr($digits, -9);
+
+        return TenantWhatsAppSession::query()
+            ->with('tenant')
+            ->whereNotNull('phone')
+            ->where('phone', 'like', '%'.$tail.'%')
+            ->first();
     }
 }

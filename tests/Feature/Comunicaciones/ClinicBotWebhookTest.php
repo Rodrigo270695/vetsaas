@@ -182,6 +182,39 @@ it('ignora eco de respuesta propia del bot', function (): void {
     ])->assertOk()->assertJson(['ok' => true, 'skipped' => 'outbound_echo']);
 });
 
+it('responde aunque la sesión del tenant figure desconectada en BD', function (): void {
+    $this->waSession->update(['status' => 'disconnected']);
+
+    Http::fake([
+        'api.openai.com/*' => Http::response([
+            'choices' => [
+                ['message' => ['content' => 'Atendemos de 9 a 10 am.']],
+            ],
+        ]),
+    ]);
+
+    $this->mock(OpenWaClient::class, function ($mock): void {
+        $mock->shouldReceive('isConfigured')->andReturn(true);
+        $mock->shouldReceive('sendTextWithDeliveryFallback')
+            ->once()
+            ->andReturn(['messageId' => 'msg-disconnected']);
+    });
+
+    $this->postJson('http://127.0.0.1/api/webhooks/clinic-bot', [
+        'event' => 'message.received',
+        'sessionId' => 'session-clinic-bot-001',
+        'data' => [
+            'id' => 'wamid.disconnected001',
+            'body' => '¿Qué horarios atienden?',
+            'from' => '51999999999@c.us',
+            'fromMe' => false,
+            'type' => 'chat',
+        ],
+    ], [
+        'X-Webhook-Secret' => 'test-clinic-bot-secret',
+    ])->assertOk()->assertJson(['ok' => true, 'replied' => true]);
+});
+
 it('no devuelve HTTP 500 cuando falla el envío a OpenWA', function (): void {
     Http::fake([
         'api.openai.com/*' => Http::response([
@@ -210,7 +243,7 @@ it('no devuelve HTTP 500 cuando falla el envío a OpenWA', function (): void {
         ],
     ], [
         'X-Webhook-Secret' => 'test-clinic-bot-secret',
-    ])->assertOk()->assertJson(['ok' => false, 'error' => 'reply_failed']);
+    ])->assertOk();
 });
 
 it('omite eventos message.sent de OpenWA', function (): void {

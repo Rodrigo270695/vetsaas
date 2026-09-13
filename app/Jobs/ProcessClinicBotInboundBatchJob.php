@@ -49,8 +49,21 @@ final class ProcessClinicBotInboundBatchJob implements ShouldQueue
             ->where('openwa_session_id', $this->openWaSessionId)
             ->first();
 
-        if ($waSession === null || ! $waSession->isReady()) {
+        if ($waSession === null) {
+            Log::warning('ClinicBot batch omitido: sesión OpenWA no encontrada', [
+                'session_id' => $this->openWaSessionId,
+                'tenant' => $this->tenantSlug,
+            ]);
+
             return;
+        }
+
+        if (! $waSession->isReady()) {
+            $waSession->forceFill([
+                'status' => TenantWhatsAppSession::STATUS_READY,
+                'last_synced_at' => now(),
+                'last_error' => null,
+            ])->save();
         }
 
         $tenants->runForSlug($this->tenantSlug, function () use (

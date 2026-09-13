@@ -25,9 +25,15 @@ final class WhatsAppContactResolver
     /**
      * @param  array<string, mixed>  $data  Payload `data` del webhook.
      * @param  bool  $forOutgoing  true si fromMe — el cliente está en `to`, no en `from`.
+     * @param  bool  $allowPlatformSessionFallback  false en ClinicBot: no tocar la sesión de plataforma.
      * @return array{wa_chat_id: string, phone: string, prospect_name: ?string}
      */
-    public function resolve(array $data, ?string $openWaSessionId = null, bool $forOutgoing = false): array
+    public function resolve(
+        array $data,
+        ?string $openWaSessionId = null,
+        bool $forOutgoing = false,
+        bool $allowPlatformSessionFallback = true,
+    ): array
     {
         if ($forOutgoing) {
             $customerChat = (string) ($data['to'] ?? $data['chatId'] ?? $data['chat_id'] ?? '');
@@ -52,7 +58,7 @@ final class WhatsAppContactResolver
 
         // LID sin número real → consultar API de OpenWA.
         if ($this->isLinkedId($waChatId) && ($phone === '' || $this->looksLikeLidDigits($phone))) {
-            $apiContact = $this->fetchContactFromApi($openWaSessionId, $waChatId);
+            $apiContact = $this->fetchContactFromApi($openWaSessionId, $waChatId, $allowPlatformSessionFallback);
 
             if ($apiContact !== null) {
                 $resolvedId = (string) ($apiContact['id'] ?? $apiContact['jid'] ?? '');
@@ -131,9 +137,12 @@ final class WhatsAppContactResolver
     /**
      * @return array<string, mixed>|null
      */
-    private function fetchContactFromApi(?string $sessionId, string $waChatId): ?array
-    {
-        $resolvedSessionId = $this->resolveOpenWaSessionId($sessionId);
+    private function fetchContactFromApi(
+        ?string $sessionId,
+        string $waChatId,
+        bool $allowPlatformSessionFallback = true,
+    ): ?array {
+        $resolvedSessionId = $this->resolveOpenWaSessionId($sessionId, $allowPlatformSessionFallback);
 
         if ($resolvedSessionId === null || ! $this->client->isConfigured()) {
             return null;
@@ -163,10 +172,16 @@ final class WhatsAppContactResolver
         }
     }
 
-  private function resolveOpenWaSessionId(?string $fromPayload): ?string
-    {
-        if ($fromPayload !== null && $fromPayload !== '' && str_contains($fromPayload, '-')) {
+    private function resolveOpenWaSessionId(
+        ?string $fromPayload,
+        bool $allowPlatformSessionFallback = true,
+    ): ?string {
+        if ($fromPayload !== null && $fromPayload !== '') {
             return $fromPayload;
+        }
+
+        if (! $allowPlatformSessionFallback) {
+            return null;
         }
 
         $session = $this->sessionSync->ensure();
