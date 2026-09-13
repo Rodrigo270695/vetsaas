@@ -26,12 +26,27 @@ class TenantWhatsAppController extends Controller
         $tenant = $tenants->current()?->tenant;
         abort_if($tenant === null, 404);
 
-        $session = $sync->ensureForTenant($tenant, wakeForLink: true);
+        try {
+            $session = $sync->ensureForTenant($tenant, wakeForLink: true);
 
-        // Usuario pidió conectar: reactivar reconnect y despertar (sin QR si hay auth).
-        if ($session !== null) {
-            $session = $sync->enableAutoReconnect($session);
-            $session = $sync->ensureForTenant($tenant, wakeForLink: true) ?? $session;
+            if ($session !== null) {
+                $session = $sync->enableAutoReconnect($session);
+                $session = $sync->ensureForTenant($tenant, wakeForLink: true) ?? $session;
+            }
+        } catch (\Throwable $e) {
+            report($e);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'whatsapp' => $presenter->forTenant($tenant),
+                    'error' => 'WhatsApp no respondió a tiempo. Intenta de nuevo en un minuto.',
+                ], 503);
+            }
+
+            return back()->with(
+                'error',
+                'WhatsApp no respondió a tiempo. No recargues en bucle; espera un minuto e inténtalo otra vez.',
+            );
         }
 
         if ($request->expectsJson()) {

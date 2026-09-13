@@ -19,13 +19,27 @@ class PlatformWhatsAppController extends Controller
         PlatformWhatsAppSessionSync $sync,
         PlatformWhatsAppPresenter $presenter,
     ): RedirectResponse|JsonResponse {
-        $session = $sync->ensure(wakeForLink: true);
+        try {
+            $session = $sync->ensure(wakeForLink: true);
 
-        // El usuario pidió conectar: reactivar auto-reconnect y despertar Chromium
-        // (auth en disco → ready sin QR; si no hay auth → qr_ready).
-        if ($session !== null) {
-            $session = $sync->enableAutoReconnect($session);
-            $session = $sync->ensure(wakeForLink: true) ?? $session;
+            if ($session !== null) {
+                $session = $sync->enableAutoReconnect($session);
+                $session = $sync->ensure(wakeForLink: true) ?? $session;
+            }
+        } catch (\Throwable $e) {
+            report($e);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'whatsapp' => $presenter->present(),
+                    'error' => 'WhatsApp no respondió a tiempo. Intenta de nuevo en un minuto.',
+                ], 503);
+            }
+
+            return back()->with(
+                'error',
+                'WhatsApp no respondió a tiempo. Espera un minuto e inténtalo otra vez.',
+            );
         }
 
         if ($request->expectsJson()) {

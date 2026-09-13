@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\OpenWa;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -43,7 +44,8 @@ final class OpenWaClient
      */
     private function fetchSessionList(): array
     {
-        $response = $this->request('get', '/api/sessions');
+        $timeout = max(3, (int) config('openwa.lookup_timeout_seconds', 8));
+        $response = $this->request('get', '/api/sessions', null, $timeout);
 
         return is_array($response) ? $response : [];
     }
@@ -58,13 +60,33 @@ final class OpenWaClient
      */
     public function findSessionByName(string $name): ?array
     {
-        foreach ($this->listSessions() as $session) {
-            if (is_array($session) && ($session['name'] ?? null) === $name) {
-                return $session;
-            }
+        unset($name);
+
+        // No listar GET /api/sessions: congela OpenWA con decenas de motores.
+        return null;
+    }
+
+    /**
+     * Una sola sesión por id. Timeout corto para no colgar PHP-FPM si OpenWA está trabado.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function tryGetSession(string $sessionId): ?array
+    {
+        $sessionId = trim($sessionId);
+        if ($sessionId === '') {
+            return null;
         }
 
-        return null;
+        try {
+            $timeout = max(3, (int) config('openwa.lookup_timeout_seconds', 8));
+
+            return $this->getSession($sessionId, $timeout);
+        } catch (OpenWaRateLimitedException $e) {
+            throw $e;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -87,9 +109,10 @@ final class OpenWaClient
     /**
      * @return array<string, mixed>
      */
-    public function getSession(string $sessionId): array
+    public function getSession(string $sessionId, ?int $timeoutSeconds = null): array
     {
-        $response = $this->request('get', '/api/sessions/'.$sessionId);
+        $timeout = $timeoutSeconds ?? max(3, (int) config('openwa.lookup_timeout_seconds', 8));
+        $response = $this->request('get', '/api/sessions/'.$sessionId, null, $timeout);
 
         if (! is_array($response)) {
             throw new RuntimeException('Sesión OpenWA no encontrada: '.$sessionId);
@@ -400,13 +423,14 @@ final class OpenWaClient
         $remote = $this->getSession($sessionId);
         $status = (string) ($remote['status'] ?? $fromStatus);
 
-        // Hasta ~12s: created/initializing → qr_ready / ready / authenticating.
-        for ($i = 0; $i < 4; $i++) {
+        // Hasta 1 reintento corto: no dormir 12s en un request HTTP (provoca 500).
+        $maxLoops = 1;
+        for ($i = 0; $i < $maxLoops; $i++) {
             if (in_array($status, ['ready', 'qr_ready', 'authenticating'], true)) {
                 break;
             }
             if (in_array($status, ['created', 'initializing', 'disconnected', 'failed'], true)) {
-                $wait = max(0, (int) config('openwa.reconnect_poll_seconds', 3));
+                $wait = min(1, max(0, (int) config('openwa.reconnect_poll_seconds', 3)));
                 if ($wait > 0) {
                     sleep($wait);
                 }
@@ -863,7 +887,7 @@ final class OpenWaClient
      * @param  array<string, mixed>|null  $body
      * @return array<string, mixed>|list<array<string, mixed>>|null
      */
-    private function request(string $method, string $path, ?array $body = null): mixed
+    private function request(string $method, string $path, ?array $body = null, ?int $timeoutSeconds = null): mixed
     {
         $apiKey = trim((string) config('openwa.api_key', ''));
         if ($apiKey === '') {
@@ -873,7 +897,7 @@ final class OpenWaClient
         $url = rtrim((string) config('openwa.api_url'), '/').$path;
 
         try {
-            $pending = Http::timeout((int) config('openwa.timeout_seconds', 30))
+            $pending = Http::timeout((int) ($timeoutSeconds ?? config('openwa.timeout_seconds', 30)))
                 ->acceptJson()
                 ->withHeaders(['X-API-Key' => $apiKey]);
 
@@ -884,7 +908,7 @@ final class OpenWaClient
                 'delete' => $pending->delete($url),
                 default => throw new RuntimeException('Método HTTP no soportado: '.$method),
             };
-        } catch (RequestException $e) {
+        } catch (ConnectionException|RequestException $e) {
             throw new RuntimeException('Error de red con OpenWA: '.$e->getMessage(), 0, $e);
         }
 

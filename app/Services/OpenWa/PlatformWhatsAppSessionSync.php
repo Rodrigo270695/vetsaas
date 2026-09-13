@@ -34,8 +34,12 @@ final class PlatformWhatsAppSessionSync
             ->first();
 
         try {
-            $remote = $this->client->findSessionByName($name)
-                ?? $this->client->createSession($name);
+            $knownId = trim((string) ($local?->openwa_session_id ?? ''));
+            $remote = $knownId !== '' ? $this->client->tryGetSession($knownId) : null;
+
+            if ($remote === null && $wakeForLink) {
+                $remote = $this->client->createSession($name);
+            }
         } catch (\Throwable $e) {
             if ($local instanceof PlatformWhatsAppSession) {
                 $local->forceFill([
@@ -44,6 +48,10 @@ final class PlatformWhatsAppSessionSync
                 ])->save();
             }
 
+            return $local;
+        }
+
+        if ($remote === null) {
             return $local;
         }
 

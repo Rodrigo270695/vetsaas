@@ -42,6 +42,8 @@ return [
     */
     'reconnect_poll_seconds' => (int) env('OPENWA_RECONNECT_POLL_SECONDS', 3),
 
+    'lookup_timeout_seconds' => (int) env('OPENWA_LOOKUP_TIMEOUT_SECONDS', 8),
+
     /*
     | Cron que lista/reconecta sesiones. Ponerlo en false si OpenWA se congela
     | (504 / event loop) al llamar GET /api/sessions.

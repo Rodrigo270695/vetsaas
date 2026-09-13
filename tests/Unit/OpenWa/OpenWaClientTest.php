@@ -160,10 +160,19 @@ it('cachea el listado de sesiones OpenWA', function (): void {
 
     $client = new OpenWaClient;
     $client->listSessions();
-    $client->findSessionByName('clinica-a');
-    $client->findSessionByName('clinica-b');
+    $client->listSessions();
 
     Http::assertSentCount(1);
+});
+
+it('tryGetSession no lanza si OpenWA no responde', function (): void {
+    Http::fake(function () {
+        throw new \Illuminate\Http\Client\ConnectionException(
+            'cURL error 28: Operation timed out after 8000 milliseconds with 0 bytes received',
+        );
+    });
+
+    expect((new OpenWaClient)->tryGetSession('sess-1'))->toBeNull();
 });
 
 it('marca cooldown ante OpenWA HTTP 429', function (): void {
