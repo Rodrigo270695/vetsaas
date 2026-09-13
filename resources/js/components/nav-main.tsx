@@ -7,6 +7,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { markPendingViewEnter } from '@/lib/session-enter';
 import type { NavItem } from '@/types';
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
@@ -23,7 +24,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                             isActive={isCurrentUrl(item.href)}
                             tooltip={{ children: item.title }}
                         >
-                            <Link href={item.href}>
+                            <Link href={item.href} onClick={() => markPendingViewEnter()}>
                                 {item.icon && <item.icon />}
                                 <span>{item.title}</span>
                             </Link>

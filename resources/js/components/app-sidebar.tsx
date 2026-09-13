@@ -88,6 +88,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { markPendingViewEnter } from '@/lib/session-enter';
 import type { NavGroup, NavItem } from '@/types';
 
 /**
@@ -762,7 +763,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()}>
+                            <Link href={dashboard()} onClick={() => markPendingViewEnter()}>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

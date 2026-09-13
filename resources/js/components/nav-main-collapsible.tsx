@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { OfflineAwareLink } from '@/components/offline-aware-link';
 import { BounceNavDot } from '@/components/ui/bounce-nav-dot';
 import { isOfflinePath } from '@/lib/offline/offline-routes';
+import { markPendingViewEnter } from '@/lib/session-enter';
 import type { NavContext, NavGroup, NavItem } from '@/types';
 
 function isItemImplemented(item: NavItem): boolean {
@@ -159,6 +160,7 @@ export function NavMainCollapsible({
     };
 
     const closeMobileSidebar = () => {
+        markPendingViewEnter();
         if (isMobile) {
             setOpenMobile(false);
         }

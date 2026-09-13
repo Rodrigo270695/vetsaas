@@ -2,6 +2,23 @@ export const SESSION_ENTER_CLASS = 'session-enter';
 export const VIEW_ENTER_CLASS = 'view-enter';
 export const SESSION_ENTER_KEY = 'vetsaas.session-enter';
 
+let pendingSidebarViewEnter = false;
+
+export function markPendingViewEnter(): void {
+    pendingSidebarViewEnter = true;
+}
+
+export function consumePendingViewEnter(): boolean {
+    const pending = pendingSidebarViewEnter;
+    pendingSidebarViewEnter = false;
+
+    return pending;
+}
+
+export function clearPendingViewEnter(): void {
+    pendingSidebarViewEnter = false;
+}
+
 export function markSessionEnter(): void {
     try {
         sessionStorage.setItem(SESSION_ENTER_KEY, '1');

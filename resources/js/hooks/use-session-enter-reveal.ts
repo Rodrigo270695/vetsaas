@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import {
+    clearPendingViewEnter,
+    consumePendingViewEnter,
     endSessionEnter,
     endViewEnter,
     isPartialOrPrefetchVisit,
@@ -30,29 +32,23 @@ function isLoginVisit(visit: { method: string; url: URL | string }): boolean {
 }
 
 /**
- * Entrada de chrome: login completo (sidebar + header + layout) y,
- * en cada vista siguiente, header + contenido con skeleton.
+ * Login: entrada completa. Clic en el sidebar: entrada de vista.
+ * Acciones dentro de la pantalla (crear, editar, eliminar, filtros) no animan.
  */
 export function useSessionEnterReveal(): void {
     const viewTimer = useRef(0);
 
     useEffect(() => {
-        const reduce = prefersReducedMotion();
-
-        if (restoreSessionEnterClass()) {
-            const timer = window.setTimeout(() => {
-                endSessionEnter();
-            }, reduce ? 80 : SESSION_CHROME_MS);
-
-            return () => window.clearTimeout(timer);
+        if (!restoreSessionEnterClass()) {
+            return;
         }
 
-        markViewEnter();
-        viewTimer.current = window.setTimeout(() => {
-            endViewEnter();
-        }, reduce ? 80 : VIEW_CHROME_MS);
+        const wait = prefersReducedMotion() ? 80 : SESSION_CHROME_MS;
+        const timer = window.setTimeout(() => {
+            endSessionEnter();
+        }, wait);
 
-        return () => window.clearTimeout(viewTimer.current);
+        return () => window.clearTimeout(timer);
     }, []);
 
     useEffect(() => {
@@ -74,6 +70,9 @@ export function useSessionEnterReveal(): void {
             if (document.documentElement.classList.contains('session-enter')) {
                 return;
             }
+            if (!consumePendingViewEnter()) {
+                return;
+            }
 
             markViewEnter();
             window.clearTimeout(viewTimer.current);
@@ -82,9 +81,14 @@ export function useSessionEnterReveal(): void {
             }, reduce ? 80 : VIEW_CHROME_MS);
         });
 
+        const offCancel = router.on('cancel', () => {
+            clearPendingViewEnter();
+        });
+
         return () => {
             offStart();
             offFinish();
+            offCancel();
             window.clearTimeout(viewTimer.current);
         };
     }, []);
