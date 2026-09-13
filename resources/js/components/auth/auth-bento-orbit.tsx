@@ -3,7 +3,8 @@ import {
     ShieldCheck,
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
-import { AuthCollabCard, AuthPetFolderCard } from '@/components/auth/auth-pet-folder-card';
+import { AuthPetFolderCard } from '@/components/auth/auth-pet-folder-card';
+import { AuthRemindersAnimatedList } from '@/components/auth/auth-reminders-animated-list';
 import { cn } from '@/lib/utils';
 
 type BentoCardProps = {
@@ -58,7 +59,7 @@ export default function AuthBentoOrbit() {
         >
             <AuthPetFolderCard className="top-[12%] left-[5%] -rotate-2 delay-100" />
 
-            <AuthCollabCard className="top-[10%] right-[5%] rotate-2 delay-200" />
+            <AuthRemindersAnimatedList className="top-[8%] right-[4%] rotate-1 delay-200" />
 
             <BentoCard
                 icon={Receipt}
