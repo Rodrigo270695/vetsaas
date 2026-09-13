@@ -22,7 +22,7 @@ function resolvePetPhotos(fromTenant: unknown): string[] {
 }
 
 const PHOTO_REST =
-    'absolute bottom-9 left-1/2 z-10 h-14 w-14 rounded-xl object-cover shadow-md ring-2 ring-white/90 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:ring-zinc-900';
+    'absolute bottom-7 left-1/2 z-10 h-10 w-10 rounded-lg object-cover shadow-md ring-2 ring-white/90 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:ring-zinc-900';
 
 /**
  * Carpeta: las fotos viven detrás de la tapa y, al hover, salen como fichas.
@@ -37,10 +37,10 @@ export function AuthPetFolderCard({ className }: { className?: string }) {
                 className,
             )}
         >
-            <div className="relative mx-auto h-36 w-[9.25rem]">
+            <div className="relative mx-auto h-28 w-[6.75rem]">
                 {/* Dorso + pestaña */}
-                <div className="absolute inset-x-0 bottom-0 z-0 h-[4.35rem] rounded-md bg-amber-400 shadow-[inset_0_1px_0_rgb(255_255_255/0.35)]">
-                    <div className="absolute -top-3 left-2.5 h-3.5 w-[2.65rem] rounded-t-[6px] bg-amber-400" />
+                <div className="absolute inset-x-0 bottom-0 z-0 h-[3.15rem] rounded-md bg-amber-400 shadow-[inset_0_1px_0_rgb(255_255_255/0.35)]">
+                    <div className="absolute -top-2.5 left-2 h-2.5 w-8 rounded-t-[5px] bg-amber-400" />
                 </div>
 
                 {photos[0] ? (
@@ -49,8 +49,8 @@ export function AuthPetFolderCard({ className }: { className?: string }) {
                         alt=""
                         className={cn(
                             PHOTO_REST,
-                            '-translate-x-[70%] translate-y-5 -rotate-6',
-                            'group-hover/folder:-translate-x-[118%] group-hover/folder:-translate-y-16 group-hover/folder:-rotate-[16deg]',
+                            '-translate-x-[70%] translate-y-4 -rotate-6',
+                            'group-hover/folder:-translate-x-[115%] group-hover/folder:-translate-y-12 group-hover/folder:-rotate-[16deg]',
                         )}
                     />
                 ) : null}
@@ -60,8 +60,8 @@ export function AuthPetFolderCard({ className }: { className?: string }) {
                         alt=""
                         className={cn(
                             PHOTO_REST,
-                            'z-[11] -translate-x-1/2 translate-y-6 delay-75',
-                            'group-hover/folder:-translate-y-[4.75rem] group-hover/folder:rotate-0',
+                            'z-[11] -translate-x-1/2 translate-y-5 delay-75',
+                            'group-hover/folder:-translate-y-[3.55rem] group-hover/folder:rotate-0',
                         )}
                     />
                 ) : null}
@@ -71,14 +71,14 @@ export function AuthPetFolderCard({ className }: { className?: string }) {
                         alt=""
                         className={cn(
                             PHOTO_REST,
-                            '-translate-x-[30%] translate-y-5 rotate-6 delay-150',
-                            'group-hover/folder:translate-x-[18%] group-hover/folder:-translate-y-16 group-hover/folder:rotate-[16deg]',
+                            '-translate-x-[30%] translate-y-4 rotate-6 delay-150',
+                            'group-hover/folder:translate-x-[15%] group-hover/folder:-translate-y-12 group-hover/folder:rotate-[16deg]',
                         )}
                     />
                 ) : null}
 
                 {/* Tapa frontal: cubre las fotos “guardadas” */}
-                <div className="absolute inset-x-0 bottom-0 z-20 h-[3.55rem] rounded-md bg-linear-to-b from-amber-400 to-amber-500 shadow-[0_-4px_12px_-6px_rgb(0_0_0/0.25)] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/folder:translate-y-px" />
+                <div className="absolute inset-x-0 bottom-0 z-20 h-[2.55rem] rounded-md bg-linear-to-b from-amber-400 to-amber-500 shadow-[0_-4px_12px_-6px_rgb(0_0_0/0.25)] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/folder:translate-y-px" />
             </div>
             <p className="mt-1 text-sm font-semibold text-foreground">Historias clínicas</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
