@@ -9,7 +9,7 @@ import {
 } from '@/lib/session-enter';
 
 const SESSION_CHROME_MS = 2100;
-const VIEW_CHROME_MS = 1150;
+const VIEW_CHROME_MS = 880;
 
 function prefersReducedMotion(): boolean {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
