@@ -7,12 +7,6 @@ const DEFAULT_PET_PHOTOS = [
     '/images/auth/pets/bunny.svg',
 ] as const;
 
-const PHOTO_MOTION = [
-    'left-[18%] top-8 z-[1] -rotate-12 translate-y-5 group-hover/folder:translate-y-[-2.8rem] group-hover/folder:-translate-x-2 group-hover/folder:-rotate-[18deg]',
-    'left-1/2 top-6 z-[2] -translate-x-1/2 translate-y-6 group-hover/folder:translate-y-[-3.4rem]',
-    'right-[18%] top-8 z-[1] rotate-12 translate-y-5 group-hover/folder:translate-y-[-2.8rem] group-hover/folder:translate-x-2 group-hover/folder:rotate-[18deg]',
-] as const;
-
 function resolvePetPhotos(fromTenant: unknown): string[] {
     const urls = Array.isArray(fromTenant)
         ? fromTenant.filter((item): item is string => typeof item === 'string' && item !== '')
@@ -27,39 +21,11 @@ function resolvePetPhotos(fromTenant: unknown): string[] {
     return out;
 }
 
-function FolderGlyph({ className }: { className?: string }) {
-    return (
-        <svg
-            viewBox="0 0 88 68"
-            className={cn('drop-shadow-md', className)}
-            aria-hidden
-        >
-            <path
-                d="M8 18c0-3.3 2.7-6 6-6h18l6 7h36c3.3 0 6 2.7 6 6v31c0 3.3-2.7 6-6 6H14c-3.3 0-6-2.7-6-6V18z"
-                fill="#F5A524"
-            />
-            <path
-                d="M8 28h72v28c0 3.3-2.7 6-6 6H14c-3.3 0-6-2.7-6-6V28z"
-                fill="#E8940C"
-            />
-        </svg>
-    );
-}
-
-function CabinetGlyph({ className }: { className?: string }) {
-    return (
-        <svg viewBox="0 0 40 48" className={cn('drop-shadow-sm', className)} aria-hidden>
-            <rect x="4" y="2" width="32" height="44" rx="6" fill="#3F3F46" />
-            <rect x="8" y="8" width="24" height="10" rx="2" fill="#27272A" />
-            <rect x="8" y="22" width="24" height="10" rx="2" fill="#27272A" />
-            <rect x="18" y="11" width="6" height="3" rx="1" fill="#71717A" />
-            <rect x="18" y="25" width="6" height="3" rx="1" fill="#71717A" />
-        </svg>
-    );
-}
+const PHOTO_REST =
+    'absolute bottom-9 left-1/2 z-10 h-14 w-14 rounded-xl object-cover shadow-md ring-2 ring-white/90 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:ring-zinc-900';
 
 /**
- * Folder tipo Aceternity: al hover salen 3 fotos (pacientes del tenant o mascotas default).
+ * Carpeta: las fotos viven detrás de la tapa y, al hover, salen como fichas.
  */
 export function AuthPetFolderCard({ className }: { className?: string }) {
     const photos = resolvePetPhotos(usePage().props.auth_pet_photos);
@@ -67,32 +33,54 @@ export function AuthPetFolderCard({ className }: { className?: string }) {
     return (
         <div
             className={cn(
-                'group/folder pointer-events-auto absolute w-64 rounded-2xl border border-border/60 bg-card/85 p-4 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl dark:bg-card/60',
+                'group/folder pointer-events-auto absolute w-64 rounded-2xl border border-border/60 bg-card/90 p-4 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl dark:bg-card/60',
                 className,
             )}
         >
-            <div className="relative mx-auto h-28 w-full">
-                <div
-                    aria-hidden
-                    className="absolute inset-x-6 top-10 h-px bg-[repeating-linear-gradient(90deg,transparent,transparent_4px,var(--border)_4px,var(--border)_8px)] opacity-50"
-                />
-                {photos.map((src, index) => (
+            <div className="relative mx-auto h-36 w-[9.25rem]">
+                {/* Dorso + pestaña */}
+                <div className="absolute inset-x-0 bottom-0 z-0 h-[4.35rem] rounded-md bg-amber-400 shadow-[inset_0_1px_0_rgb(255_255_255/0.35)]">
+                    <div className="absolute -top-3 left-2.5 h-3.5 w-[2.65rem] rounded-t-[6px] bg-amber-400" />
+                </div>
+
+                {photos[0] ? (
                     <img
-                        key={`${src}-${index}`}
-                        src={src}
+                        src={photos[0]}
                         alt=""
                         className={cn(
-                            'absolute h-14 w-14 rounded-xl object-cover shadow-lg ring-2 ring-white transition-transform duration-500 ease-out dark:ring-zinc-800',
-                            PHOTO_MOTION[index],
+                            PHOTO_REST,
+                            '-translate-x-[70%] translate-y-5 -rotate-6',
+                            'group-hover/folder:-translate-x-[118%] group-hover/folder:-translate-y-16 group-hover/folder:-rotate-[16deg]',
                         )}
                     />
-                ))}
-                <div className="absolute bottom-0 left-1/2 z-[3] flex -translate-x-[58%] items-end gap-1">
-                    <FolderGlyph className="h-14 w-[4.4rem] transition-transform duration-500 group-hover/folder:-translate-y-0.5" />
-                    <CabinetGlyph className="mb-0.5 h-11 w-9 opacity-90" />
-                </div>
+                ) : null}
+                {photos[1] ? (
+                    <img
+                        src={photos[1]}
+                        alt=""
+                        className={cn(
+                            PHOTO_REST,
+                            'z-[11] -translate-x-1/2 translate-y-6 delay-75',
+                            'group-hover/folder:-translate-y-[4.75rem] group-hover/folder:rotate-0',
+                        )}
+                    />
+                ) : null}
+                {photos[2] ? (
+                    <img
+                        src={photos[2]}
+                        alt=""
+                        className={cn(
+                            PHOTO_REST,
+                            '-translate-x-[30%] translate-y-5 rotate-6 delay-150',
+                            'group-hover/folder:translate-x-[18%] group-hover/folder:-translate-y-16 group-hover/folder:rotate-[16deg]',
+                        )}
+                    />
+                ) : null}
+
+                {/* Tapa frontal: cubre las fotos “guardadas” */}
+                <div className="absolute inset-x-0 bottom-0 z-20 h-[3.55rem] rounded-md bg-linear-to-b from-amber-400 to-amber-500 shadow-[0_-4px_12px_-6px_rgb(0_0_0/0.25)] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/folder:translate-y-px" />
             </div>
-            <p className="mt-3 text-sm font-semibold text-foreground">Historias clínicas</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">Historias clínicas</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
                 Fichas y fotos de tus pacientes, listas al iniciar sesión.
             </p>
