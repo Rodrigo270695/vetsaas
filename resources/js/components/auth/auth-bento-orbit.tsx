@@ -5,6 +5,8 @@ import {
 import type { ComponentType, ReactNode } from 'react';
 import { AuthPetFolderCard } from '@/components/auth/auth-pet-folder-card';
 import { AuthRemindersAnimatedList } from '@/components/auth/auth-reminders-animated-list';
+import { BorderBeam } from '@/components/ui/border-beam';
+import { Ripple } from '@/components/ui/ripple';
 import { cn } from '@/lib/utils';
 
 type BentoCardProps = {
@@ -13,6 +15,7 @@ type BentoCardProps = {
     title: string;
     accent?: ReactNode;
     className?: string;
+    effect?: 'sunat' | 'security';
 };
 
 function BentoCard({
@@ -21,27 +24,39 @@ function BentoCard({
     title,
     accent,
     className,
+    effect,
 }: BentoCardProps) {
     return (
         <div
             aria-hidden="true"
             className={cn(
-                'animate-in fade-in slide-in-from-bottom-3 absolute w-60 rounded-2xl border border-border/60 bg-card/80 p-4 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl duration-700 ease-out dark:bg-card/60 dark:shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]',
+                'animate-in fade-in slide-in-from-bottom-3 absolute w-60 overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-4 text-left shadow-[0_20px_60px_-30px_rgba(0,40,30,0.35)] backdrop-blur-xl duration-700 ease-out dark:bg-card/60 dark:shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]',
                 className,
             )}
         >
-            <div className="flex items-center gap-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
-                    <Icon className="size-3.5" />
-                </span>
-                {eyebrow}
-            </div>
-            <p className="mt-3 text-sm font-semibold text-foreground">{title}</p>
-            {accent && (
-                <div className="mt-1 text-xs text-muted-foreground">
-                    {accent}
+            {effect === 'sunat' ? (
+                <BorderBeam duration={7} className="auth-border-beam-sunat" />
+            ) : null}
+            {effect === 'security' ? (
+                <>
+                    <Ripple />
+                    <BorderBeam duration={10} reverse />
+                </>
+            ) : null}
+            <div className="relative z-[1]">
+                <div className="flex items-center gap-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                    <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+                        <Icon className="size-3.5" />
+                    </span>
+                    {eyebrow}
                 </div>
-            )}
+                <p className="mt-3 text-sm font-semibold text-foreground">{title}</p>
+                {accent && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                        {accent}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -65,6 +80,7 @@ export default function AuthBentoOrbit() {
                 icon={Receipt}
                 eyebrow="Facturación"
                 title="SUNAT integrada"
+                effect="sunat"
                 accent={
                     <span className="inline-flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
                         <span className="size-1.5 rounded-full bg-success" />
@@ -78,6 +94,7 @@ export default function AuthBentoOrbit() {
                 icon={ShieldCheck}
                 eyebrow="Seguridad"
                 title="Datos cifrados"
+                effect="security"
                 accent={
                     <span className="text-[0.7rem] text-muted-foreground">
                         AES-256 · Backups diarios · Ley 29733

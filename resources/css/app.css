@@ -275,11 +275,64 @@
     animation: aurora-drift-3 30s ease-in-out infinite;
 }
 
+@keyframes auth-border-beam-spin {
+    to {
+        transform: rotate(1turn);
+    }
+}
+
+.auth-border-beam-spin {
+    background: conic-gradient(
+        from 0deg,
+        transparent 0%,
+        transparent 72%,
+        var(--brand-400) 82%,
+        var(--brand-600) 88%,
+        transparent 96%
+    );
+    animation: auth-border-beam-spin 8s linear infinite;
+}
+
+.auth-border-beam-spin-reverse {
+    animation-direction: reverse;
+}
+
+.auth-border-beam-sunat {
+    background: conic-gradient(
+        from 0deg,
+        transparent 0%,
+        transparent 70%,
+        #22c55e 80%,
+        #16a34a 88%,
+        transparent 96%
+    );
+}
+
+@keyframes auth-ripple {
+    0% {
+        transform: translate(-50%, -50%) scale(0.55);
+        opacity: 0.45;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 0;
+    }
+}
+
+.auth-ripple-ring {
+    animation: auth-ripple 3.2s ease-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .aurora-blob-1,
     .aurora-blob-2,
     .aurora-blob-3 {
         animation: none;
+    }
+    .auth-border-beam-spin,
+    .auth-border-beam-spin-reverse,
+    .auth-ripple-ring {
+        animation: none !important;
     }
 }
 
