@@ -55,11 +55,24 @@ final class TenantChatService
     /** @var array<string, bool> */
     private static array $schemaFlagCache = [];
 
+    public function isChatSchemaReady(): bool
+    {
+        return $this->schemaHasTable('chat_conversations')
+            && $this->schemaHasTable('chat_participants')
+            && $this->schemaHasTable('chat_messages');
+    }
+
     private function schemaHasTable(string $table): bool
     {
         $key = 't:'.$table;
 
-        return self::$schemaFlagCache[$key] ??= Schema::hasTable($table);
+        return self::$schemaFlagCache[$key] ??= (static function () use ($table): bool {
+            try {
+                return Schema::hasTable($table);
+            } catch (Throwable) {
+                return false;
+            }
+        })();
     }
 
     private function schemaHasColumn(string $table, string $column): bool
@@ -1337,6 +1350,12 @@ final class TenantChatService
             ]);
         }
 
+        if (! $this->isChatSchemaReady()) {
+            throw ValidationException::withMessages([
+                'body' => __('El chat de la clínica aún no está disponible. Ejecuta las migraciones del tenant.'),
+            ]);
+        }
+
         $groupName = trim($groupName) !== '' ? trim($groupName) : 'Caja';
 
         $conversation = ChatConversation::query()
@@ -1669,6 +1688,10 @@ final class TenantChatService
      */
     public function listConversationsPayload(User $actor): array
     {
+        if (! $this->isChatSchemaReady()) {
+            return [];
+        }
+
         $observeAll = $this->canObserveClinicChats();
 
         $conversationIds = $observeAll
