@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { PointerGlare, pointerGlareLeave, pointerGlareMove } from '@/components/ui/pointer-glare';
 import { cn } from '@/lib/utils';
 
 type AuthFormCardProps = {
@@ -37,10 +36,7 @@ export default function AuthFormCard({
                     'dark:border-white/10 dark:bg-card/30 dark:shadow-[0_24px_70px_-18px_rgba(0,0,0,0.7),0_10px_28px_-14px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.08)]',
                     className,
                 )}
-                onPointerMove={pointerGlareMove}
-                onPointerLeave={pointerGlareLeave}
             >
-                <PointerGlare />
                 {/* 3. Top highlight — luz refractada en el borde superior */}
                 <div
                     aria-hidden="true"

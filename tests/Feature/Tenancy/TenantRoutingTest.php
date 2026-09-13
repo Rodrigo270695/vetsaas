@@ -57,11 +57,11 @@ afterEach(function (): void {
     DB::statement('SET search_path TO public');
 });
 
-it('la ruta tenant.home responde 200 desde el subdominio correcto', function (): void {
+it('la ruta tenant.home redirige al login si no hay sesión', function (): void {
     $response = $this->get('http://'.$this->slug.'.vetsaas.test/');
 
-    $response->assertOk();
-    $response->assertInertia(fn ($page) => $page->component('tenant/welcome'));
+    $response->assertRedirect();
+    expect(parse_url($response->headers->get('Location'), PHP_URL_PATH))->toBe('/login');
 });
 
 it('la ruta /login responde 200 desde el subdominio del tenant', function (): void {
@@ -72,7 +72,7 @@ it('la ruta /login responde 200 desde el subdominio del tenant', function (): vo
 });
 
 it('comparte el tenant resuelto como prop de Inertia', function (): void {
-    $response = $this->get('http://'.$this->slug.'.vetsaas.test/');
+    $response = $this->get('http://'.$this->slug.'.vetsaas.test/login');
 
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
