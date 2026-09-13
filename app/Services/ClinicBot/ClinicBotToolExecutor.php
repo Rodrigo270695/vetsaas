@@ -37,12 +37,25 @@ final class ClinicBotToolExecutor
                     isset($arguments['busqueda']) ? (string) $arguments['busqueda'] : null,
                 ),
             ],
+            'listar_servicios_clinicos' => [
+                'servicios' => $this->catalog->listClinicalServices(
+                    isset($arguments['busqueda']) ? (string) $arguments['busqueda'] : null,
+                ),
+            ],
             'listar_servicios_grooming' => [
-                'servicios' => $this->catalog->listGroomingServices(),
+                'servicios' => $this->catalog->listGroomingServices(
+                    isset($arguments['busqueda']) ? (string) $arguments['busqueda'] : null,
+                ),
+            ],
+            'listar_servicios_hotel' => [
+                'servicios' => $this->catalog->listHotelServices(
+                    isset($arguments['busqueda']) ? (string) $arguments['busqueda'] : null,
+                ),
             ],
             'listar_mascotas_cliente' => [
                 'mascotas' => $this->clientResolver->listPacientesForPhone($clientPhone),
             ],
+            'consultar_citas_cliente' => $this->appointments->listUpcomingForPhone($clientPhone),
             'registrar_propietario' => $this->registration->registerPropietario(
                 $clientPhone,
                 (string) ($arguments['nombres'] ?? ''),

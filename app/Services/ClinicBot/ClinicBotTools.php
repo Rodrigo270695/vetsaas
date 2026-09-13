@@ -62,6 +62,23 @@ final class ClinicBotTools
             [
                 'type' => 'function',
                 'function' => [
+                    'name' => 'listar_servicios_clinicos',
+                    'description' => 'Lista servicios clínicos activos de Tarifas (consultas, vacunas, tratamientos) con precio de lista.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'busqueda' => [
+                                'type' => 'string',
+                                'description' => 'Texto opcional para filtrar por nombre o categoría.',
+                            ],
+                        ],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
                     'name' => 'listar_servicios_grooming',
                     'description' => 'Lista servicios de grooming/peluquería activos de esta clínica.',
                     'parameters' => [
@@ -74,8 +91,37 @@ final class ClinicBotTools
             [
                 'type' => 'function',
                 'function' => [
+                    'name' => 'listar_servicios_hotel',
+                    'description' => 'Lista tarifas de hotel/guardería activas de esta clínica (precio por noche o jornada).',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'busqueda' => [
+                                'type' => 'string',
+                                'description' => 'Texto opcional para filtrar por nombre.',
+                            ],
+                        ],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
                     'name' => 'listar_mascotas_cliente',
                     'description' => 'Lista las mascotas registradas del cliente según su número de WhatsApp.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => new \stdClass,
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'consultar_citas_cliente',
+                    'description' => 'Consulta citas veterinarias y turnos de grooming próximos del cliente según su WhatsApp.',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => new \stdClass,

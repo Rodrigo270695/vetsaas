@@ -159,6 +159,76 @@ final class ClinicBotAppointmentService
     }
 
     /**
+     * @return array{citas: list<array<string, mixed>>, grooming: list<array<string, mixed>>, registrado: bool}
+     */
+    public function listUpcomingForPhone(string $phone): array
+    {
+        $mascotas = $this->clientResolver->listPacientesForPhone($phone);
+        if ($mascotas === []) {
+            return [
+                'registrado' => false,
+                'citas' => [],
+                'grooming' => [],
+                'mensaje' => 'No hay mascotas asociadas a este WhatsApp.',
+            ];
+        }
+
+        $pacienteIds = array_column($mascotas, 'id');
+        $nombres = [];
+        foreach ($mascotas as $mascota) {
+            $nombres[$mascota['id']] = $mascota['nombre'];
+        }
+
+        $desde = ClinicBotPeruClock::now()->subHours(2);
+
+        $citas = Cita::query()
+            ->whereIn('paciente_id', $pacienteIds)
+            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_NO_ASISTIO])
+            ->where('inicio_at', '>=', $desde)
+            ->orderBy('inicio_at')
+            ->limit(12)
+            ->get()
+            ->map(function (Cita $cita) use ($nombres): array {
+                $inicio = $cita->inicio_at?->timezone(ClinicBotPeruClock::TIMEZONE);
+
+                return [
+                    'id' => $cita->id,
+                    'mascota' => $nombres[$cita->paciente_id] ?? 'Mascota',
+                    'inicio' => $inicio?->format('d/m/Y H:i'),
+                    'estado' => $cita->estado,
+                    'motivo' => $cita->motivo,
+                ];
+            })
+            ->all();
+
+        $grooming = GroomingTurno::query()
+            ->whereIn('paciente_id', $pacienteIds)
+            ->whereNotIn('estado', [GroomingTurno::ESTADO_CANCELADA, GroomingTurno::ESTADO_NO_ASISTIO])
+            ->where('inicio_at', '>=', $desde)
+            ->orderBy('inicio_at')
+            ->limit(12)
+            ->get()
+            ->map(function (GroomingTurno $turno) use ($nombres): array {
+                $inicio = $turno->inicio_at?->timezone(ClinicBotPeruClock::TIMEZONE);
+
+                return [
+                    'id' => $turno->id,
+                    'mascota' => $nombres[$turno->paciente_id] ?? 'Mascota',
+                    'inicio' => $inicio?->format('d/m/Y H:i'),
+                    'estado' => $turno->estado,
+                    'servicio' => $turno->servicio ?? $turno->grooming_servicio_id,
+                ];
+            })
+            ->all();
+
+        return [
+            'registrado' => true,
+            'citas' => $citas,
+            'grooming' => $grooming,
+        ];
+    }
+
+    /**
      * @return array{ok: true, payload: array<string, mixed>, nombre: string, duracion_minutos: int|null}|array{ok: false, error: string}
      */
     private function resolveGroomingService(string $servicioId): array

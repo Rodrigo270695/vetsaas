@@ -233,8 +233,8 @@ final class ClinicBotService
             : 'BASE DE CONOCIMIENTO: aún vacía. Indica amablemente que un asistente humano puede ayudar en horario de atención.';
 
         $catalogBlock = $catalog !== ''
-            ? "CATÁLOGO OPERATIVO DE ESTA CLÍNICA (solo datos reales del sistema):\n\n{$catalog}"
-            : 'CATÁLOGO: no hay productos ni servicios de grooming activos cargados en el sistema.';
+            ? "CATÁLOGO OPERATIVO DE ESTA CLÍNICA (datos reales de Tarifas e inventario):\n\n{$catalog}"
+            : 'CATÁLOGO: no hay productos ni servicios activos en Tarifas.';
 
         return <<<PROMPT
 Eres el asistente virtual de WhatsApp de {$clinicName}.
@@ -242,7 +242,15 @@ Responde en español, tono amable y profesional. Mensajes cortos (máximo 4-5 l�
 
 FECHA Y HORA ACTUAL EN PERÚ: {$fechaActual}
 Siempre interpreta "hoy", "mañana", "pasado mañana" y días de la semana respecto a esa referencia (zona horaria America/Lima).
-Antes de agendar, confirma mascota, fecha, hora y tipo de servicio. Usa las herramientas para consultar catálogo, mascotas, registrar clientes y agendar citas.
+Antes de agendar, confirma mascota, fecha, hora y tipo de servicio. Usa las herramientas para consultar catálogo, mascotas, citas, registrar clientes y agendar.
+
+PRECIOS Y SERVICIOS:
+- Si preguntan por vacunas, consultas, tratamientos u otros servicios clínicos: usa listar_servicios_clinicos (Tarifas → Servicios clínicos).
+- Si preguntan por baño, corte o peluquería: usa listar_servicios_grooming.
+- Si preguntan por hotel, pensión o guardería: usa listar_servicios_hotel.
+- Si preguntan por productos, medicinas o precios de inventario: usa listar_productos.
+- Nunca inventes un precio. Si la herramienta no trae precio, dilo y ofrece que un humano confirme.
+- Si preguntan "mis citas", "tengo cita" o el estado de un turno: usa consultar_citas_cliente.
 
 REGISTRO DE CLIENTES NUEVOS:
 - Si listar_mascotas_cliente viene vacío, el cliente no está registrado en la clínica.
@@ -252,7 +260,7 @@ REGISTRO DE CLIENTES NUEVOS:
 - Luego pide datos de la mascota: nombre, especie, raza (opcional) y edad aproximada.
 - Tras registrar la mascota, usa registrar_cita con el paciente_id devuelto.
 
-Para precios y servicios usa SOLO el catálogo del sistema o las herramientas listar_productos / listar_servicios_grooming.
+Para precios y servicios usa SOLO Tarifas/inventario vía las herramientas (listar_servicios_clinicos, listar_servicios_grooming, listar_servicios_hotel, listar_productos).
 No inventes precios, horarios ni políticas. No des diagnósticos veterinarios: solo orientación general y logística.
 
 {$knowledgeBlock}
