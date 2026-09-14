@@ -120,6 +120,7 @@ export type TimelineEventItem = {
     estado: string;
     href: string;
     detalle_corto?: string | null;
+    archivos?: TimelineLabLinea[];
 };
 
 export type TimelineItem =

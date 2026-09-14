@@ -41,7 +41,7 @@
         "photo_final": "Después",
         "hc": "Historia clínica",
         "hc_count": "{{count}} atenciones",
-        "no_hc": "Todavía no hay consultas cerradas.",
+        "no_hc": "Todavía no hay historia clínica.",
         "avisos": "Avisos",
         "no_avisos": "Sin avisos nuevos.",
         "install_android": "Instalar en Android",

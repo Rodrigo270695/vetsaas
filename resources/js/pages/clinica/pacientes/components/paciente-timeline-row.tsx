@@ -486,7 +486,9 @@ export function PacienteTimelineRow({
                       Boolean(d.resultado_archivo_url),
                   ),
               ]
-            : [];
+            : item.kind !== 'aplicacion'
+              ? (item.archivos ?? []).filter((archivo) => Boolean(archivo.resultado_archivo_url))
+              : [];
 
     return (
         <li className="relative pb-5 last:pb-0">

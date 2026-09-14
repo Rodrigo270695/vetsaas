@@ -41,7 +41,7 @@
         "photo_final": "After",
         "hc": "Clinical history",
         "hc_count": "{{count}} visits",
-        "no_hc": "No closed visits yet.",
+        "no_hc": "No clinical history yet.",
         "avisos": "Alerts",
         "no_avisos": "No new alerts.",
         "install_android": "Install on Android",

@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace App\Support\Clinica;
 
+use App\Models\Cirugia;
 use App\Models\ClinicSetting;
 use App\Models\HistoriaClinica;
+use App\Models\Internamiento;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
 use App\Models\PedidoLaboratorioLinea;
 use App\Models\Tenant;
 use App\Models\VacunaAplicada;
+use App\Support\Tenancy\TenantModuleAccess;
+use App\Tenancy\TenantManager;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Payload Inertia para la vista pública read-only del historial clínico.
@@ -134,6 +140,8 @@ final class PublicClinicalHistoryPayload
             ];
         }
 
+        self::appendStandaloneClinicalEvents($timeline, $paciente, $tenantSlug, $expiresAt, $tz);
+
         usort($timeline, static fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
 
         $clinic = ClinicSetting::current();
@@ -165,6 +173,142 @@ final class PublicClinicalHistoryPayload
                 'laboratorio_crear' => false,
             ],
         ];
+    }
+
+    /**
+     * Lab, cirugía e internamiento sin consulta. No incluye grooming ni hotel.
+     *
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private static function appendStandaloneClinicalEvents(
+        array &$timeline,
+        Paciente $paciente,
+        string $tenantSlug,
+        \DateTimeInterface $expiresAt,
+        string $tz,
+    ): void {
+        try {
+            self::appendStandaloneClinicalEventsUnsafe($timeline, $paciente, $tenantSlug, $expiresAt, $tz);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private static function appendStandaloneClinicalEventsUnsafe(
+        array &$timeline,
+        Paciente $paciente,
+        string $tenantSlug,
+        \DateTimeInterface $expiresAt,
+        string $tz,
+    ): void {
+        $tenant = app(TenantManager::class)->current()?->tenant;
+
+        if (
+            Schema::hasTable('pedidos_laboratorio')
+            && TenantModuleAccess::isEnabled($tenant, 'laboratorio')
+        ) {
+            $pedidos = PedidoLaboratorio::query()
+                ->where('paciente_id', $paciente->id)
+                ->whereNull('consulta_id')
+                ->whereNotIn('estado', [
+                    PedidoLaboratorio::ESTADO_CANCELADO,
+                    PedidoLaboratorio::ESTADO_BORRADOR,
+                ])
+                ->with(['lineas' => fn ($q) => $q->orderBy('orden')])
+                ->withCount('lineas')
+                ->orderByDesc('solicitado_at')
+                ->limit(100)
+                ->get();
+
+            foreach ($pedidos as $p) {
+                $at = $p->solicitado_at;
+                if ($at === null) {
+                    continue;
+                }
+
+                $mapped = self::laboratorio(collect([$p]), $tenantSlug, $expiresAt, $tz);
+                $lineas = $mapped[0]['lineas'] ?? [];
+                $archivos = array_values(array_filter(
+                    $lineas,
+                    static fn (array $linea): bool => filled($linea['resultado_archivo_url'] ?? null),
+                ));
+                $nombres = collect($p->lineas)
+                    ->pluck('nombre_examen')
+                    ->filter(static fn ($n) => filled($n))
+                    ->implode(', ');
+
+                $event = [
+                    'kind' => 'laboratorio',
+                    'id' => $p->id,
+                    'ocurrido_at' => $at->toIso8601String(),
+                    'titulo' => $p->laboratorio_destino
+                        ? Str::limit(trim((string) $p->laboratorio_destino), 120)
+                        : 'Laboratorio',
+                    'estado' => (string) $p->estado,
+                    'href' => '',
+                    'detalle_corto' => $nombres !== ''
+                        ? Str::limit($nombres, 160)
+                        : (($p->lineas_count ?? 0) > 0 ? ((int) $p->lineas_count).' examen(es)' : null),
+                ];
+                if ($archivos !== []) {
+                    $event['archivos'] = $archivos;
+                }
+                $timeline[] = $event;
+            }
+        }
+
+        if (Schema::hasTable('cirugias') && TenantModuleAccess::isEnabled($tenant, 'cirugias')) {
+            $cirugias = Cirugia::query()
+                ->where('paciente_id', $paciente->id)
+                ->whereNull('consulta_id')
+                ->whereNotIn('estado', [
+                    Cirugia::ESTADO_CANCELADA,
+                    Cirugia::ESTADO_BORRADOR,
+                ])
+                ->orderByDesc('programada_at')
+                ->limit(100)
+                ->get();
+
+            foreach ($cirugias as $c) {
+                $timeline[] = [
+                    'kind' => 'cirugia',
+                    'id' => $c->id,
+                    'ocurrido_at' => $c->programada_at->toIso8601String(),
+                    'titulo' => Str::limit(trim((string) $c->nombre_procedimiento), 120) ?: 'Cirugía',
+                    'estado' => (string) $c->estado,
+                    'href' => '',
+                    'detalle_corto' => self::preview($c->observaciones, 160),
+                ];
+            }
+        }
+
+        if (Schema::hasTable('internamientos') && TenantModuleAccess::isEnabled($tenant, 'hospitalizacion')) {
+            $internamientos = Internamiento::query()
+                ->where('paciente_id', $paciente->id)
+                ->whereNull('consulta_id')
+                ->where('estado', '!=', Internamiento::ESTADO_CANCELADO)
+                ->orderByDesc('ingreso_at')
+                ->limit(100)
+                ->get();
+
+            foreach ($internamientos as $i) {
+                if ($i->ingreso_at === null) {
+                    continue;
+                }
+                $timeline[] = [
+                    'kind' => 'internamiento',
+                    'id' => $i->id,
+                    'ocurrido_at' => $i->ingreso_at->toIso8601String(),
+                    'titulo' => Str::limit(trim((string) $i->motivo_ingreso), 120) ?: 'Hospitalización',
+                    'estado' => (string) $i->estado,
+                    'href' => '',
+                    'detalle_corto' => self::preview($i->ubicacion, 120),
+                ];
+            }
+        }
     }
 
     private static function tenantSlug(): string
