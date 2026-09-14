@@ -48,14 +48,16 @@ export function AppSidebarHeader({
         <>
             <header
                 data-session-enter-header=""
-                className="flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-white px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4 dark:bg-background"
+                className="flex h-16 shrink-0 items-center gap-2 overflow-hidden border-b border-border/60 bg-white px-3 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4 dark:bg-background"
             >
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <SidebarTrigger className="-ml-1" />
-                    <Breadcrumbs breadcrumbs={breadcrumbs} />
+                <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden md:gap-2">
+                    <SidebarTrigger className="-ml-1 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                        <Breadcrumbs breadcrumbs={breadcrumbs} />
+                    </div>
                 </div>
 
-                <div className="ml-auto flex shrink-0 items-center gap-1">
+                <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
                     <PwaInstallHeaderButton />
                     <SalaEsperaHeaderIcons />
                     {showPushBell && <PushNotificationPrompt />}
