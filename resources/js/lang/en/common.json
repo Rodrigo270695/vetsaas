@@ -191,8 +191,13 @@
         "search_empty": "No matches.",
         "search_min": "Type at least 2 characters.",
         "minutos": "{{count}} min",
+        "espera_live": "{{time}}",
         "turno": "Ticket",
         "hc": "Record",
-        "owner": "Owner"
+        "owner": "Owner",
+        "quitar": "Remove",
+        "quitar_title": "Remove from waiting room?",
+        "quitar_body": "{{name}} will leave the queue.",
+        "quitar_ok": "Remove"
     }
 }

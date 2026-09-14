@@ -128,4 +128,24 @@ class SalaEsperaController extends Controller
 
         return response()->json(['ok' => true]);
     }
+
+    public function retirar(
+        Request $request,
+        TenantManager $tenants,
+        SalaEsperaHoyService $salaEspera,
+        SalaEsperaNotifier $notifier,
+        string $tipo,
+        string $id,
+    ): JsonResponse {
+        $user = $request->user();
+        abort_if($user === null, 401);
+
+        $tenant = $tenants->current()?->tenant;
+        abort_if($tenant === null, 404);
+
+        $salaEspera->retirar($user, $tipo, $id);
+        $notifier->ping($tenant, $user, 'retirar', $tipo, ['id' => $id, 'tipo' => $tipo]);
+
+        return response()->json(['ok' => true]);
+    }
 }

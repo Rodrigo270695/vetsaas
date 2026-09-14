@@ -341,6 +341,32 @@ final class SalaEsperaHoyService
         $turno->forceFill(['sala_espera_atendido_at' => $now])->save();
     }
 
+    public function retirar(User $user, string $tipo, string $id): void
+    {
+        abort_unless($user->can('sala-espera.marcar-atendido'), 403);
+        $tipo = $this->normalizeTipo($tipo);
+        $now = now();
+
+        if ($tipo === self::TIPO_CONSULTA) {
+            abort_unless(Schema::hasColumn('citas', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
+            $cita = Cita::query()->whereKey($id)->firstOrFail();
+            $updates = ['sala_espera_atendido_at' => $now];
+            if (
+                in_array((string) $cita->estado, Cita::ESTADOS_EN_ESPERA, true)
+                && (string) $cita->motivo === 'Sala de espera'
+            ) {
+                $updates['estado'] = Cita::ESTADO_CANCELADA;
+            }
+            $cita->forceFill($updates)->save();
+
+            return;
+        }
+
+        abort_unless(Schema::hasColumn('grooming_turnos', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
+        $turno = GroomingTurno::query()->whereKey($id)->firstOrFail();
+        $turno->forceFill(['sala_espera_atendido_at' => $now])->save();
+    }
+
     private function citaEnColaHoy(Paciente $paciente, Carbon $now): ?Cita
     {
         $query = Cita::query()
@@ -400,6 +426,7 @@ final class SalaEsperaHoyService
             'estado' => (string) $record->estado,
             'motivo' => $motivo !== '' ? $motivo : null,
             'minutos_espera' => $minutos,
+            'enviado_at' => $enviado->timezone($tz)->toIso8601String(),
             'href' => $href,
             'hc_href' => $paciente?->id ? '/clinica/pacientes/'.$paciente->id : $href,
         ];

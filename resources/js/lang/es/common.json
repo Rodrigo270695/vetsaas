@@ -191,8 +191,13 @@
         "search_empty": "No hay coincidencias.",
         "search_min": "Escribe al menos 2 caracteres.",
         "minutos": "{{count}} min",
+        "espera_live": "{{time}}",
         "turno": "Turno",
         "hc": "Historia",
-        "owner": "Tutor"
+        "owner": "Tutor",
+        "quitar": "Quitar",
+        "quitar_title": "¿Quitar de la sala?",
+        "quitar_body": "{{name}} saldrá de la cola de espera.",
+        "quitar_ok": "Quitar de sala"
     }
 }

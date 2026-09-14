@@ -558,6 +558,11 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->where('tipo', 'consulta|grooming|cita')
                 ->whereUuid('id')
                 ->name('sala-espera.atendido');
+            Route::middleware('permission:sala-espera.marcar-atendido')
+                ->post('sala-espera/{tipo}/{id}/retirar', [SalaEsperaController::class, 'retirar'])
+                ->where('tipo', 'consulta|grooming|cita')
+                ->whereUuid('id')
+                ->name('sala-espera.retirar');
 
             Route::middleware('permission:citas.view')
                 ->get('citas/export', [CitaController::class, 'exportExcel'])

@@ -7,6 +7,7 @@ import {
     Megaphone,
     Search,
     Stethoscope,
+    Trash2,
     UserRound,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -15,6 +16,13 @@ import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
 import { SALA_ESPERA_CHANGED_EVENT } from '@/components/sala-espera-header-popover';
 import { SALA_ESPERA_LLAMAR_EVENT } from '@/hooks/use-sala-espera-realtime';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
@@ -32,6 +40,7 @@ type SalaItem = {
     estado: string;
     motivo: string | null;
     minutos_espera: number;
+    enviado_at?: string | null;
     href: string;
     hc_href: string;
 };
@@ -83,6 +92,41 @@ function padTurno(n: number | null): string {
     }
 
     return String(n).padStart(2, '0');
+}
+
+function pad2(n: number): string {
+    return String(n).padStart(2, '0');
+}
+
+function formatWait(enviadoAt: string | null | undefined, now: Date, fallbackMin: number): string {
+    if (!enviadoAt) {
+        return `${fallbackMin}:00`;
+    }
+    const start = Date.parse(enviadoAt);
+    if (Number.isNaN(start)) {
+        return `${fallbackMin}:00`;
+    }
+    const totalSec = Math.max(0, Math.floor((now.getTime() - start) / 1000));
+    const hours = Math.floor(totalSec / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    if (hours > 0) {
+        return `${hours}:${pad2(minutes)}:${pad2(seconds)}`;
+    }
+
+    return `${minutes}:${pad2(seconds)}`;
+}
+
+function waitSeconds(enviadoAt: string | null | undefined, now: Date, fallbackMin: number): number {
+    if (!enviadoAt) {
+        return fallbackMin * 60;
+    }
+    const start = Date.parse(enviadoAt);
+    if (Number.isNaN(start)) {
+        return fallbackMin * 60;
+    }
+
+    return Math.max(0, Math.floor((now.getTime() - start) / 1000));
 }
 
 function queueTotal(queue: SalaQueue): number {
@@ -140,7 +184,7 @@ function llamarTurno(item: SalaItem, colaLabel: string): void {
 }
 
 export default function SalaEsperaIndex({ board }: Props) {
-    const { t } = useTranslation('common');
+    const { t, i18n } = useTranslation('common');
     const { auth, broadcast } = usePage().props;
     const myId = auth.user?.id ? String(auth.user.id) : '';
     const realtimeOn = Boolean(broadcast?.enabled && broadcast.key);
@@ -150,9 +194,8 @@ export default function SalaEsperaIndex({ board }: Props) {
     const [hits, setHits] = useState<SearchHit[]>([]);
     const [searching, setSearching] = useState(false);
     const [llamados, setLlamados] = useState<Record<string, boolean>>({});
-    const [clock, setClock] = useState(() =>
-        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    );
+    const [now, setNow] = useState(() => new Date());
+    const [quitar, setQuitar] = useState<SalaItem | null>(null);
 
     useEffect(() => {
         setConsulta(board.consulta);
@@ -161,16 +204,30 @@ export default function SalaEsperaIndex({ board }: Props) {
 
     useEffect(() => {
         const id = window.setInterval(() => {
-            setClock(
-                new Date().toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                }),
-            );
+            setNow(new Date());
         }, 1_000);
 
         return () => window.clearInterval(id);
     }, []);
+
+    const clockParts = useMemo(() => {
+        const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
+        const parts = new Intl.DateTimeFormat(locale, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+        }).formatToParts(now);
+        const grab = (type: Intl.DateTimeFormatPartTypes) =>
+            parts.find((part) => part.type === type)?.value ?? '';
+
+        return {
+            hour: grab('hour'),
+            minute: grab('minute'),
+            second: grab('second'),
+            dayPeriod: grab('dayPeriod'),
+        };
+    }, [i18n.language, now]);
 
     const reloadBoard = useCallback(() => {
         router.reload({
@@ -226,7 +283,7 @@ export default function SalaEsperaIndex({ board }: Props) {
         return () => window.clearTimeout(handle);
     }, [q]);
 
-    const mark = useCallback(async (item: SalaItem) => {
+    const dropItem = useCallback((item: SalaItem) => {
         const drop = (queue: SalaQueue): SalaQueue => {
             const without = (rows: SalaItem[]) =>
                 rows.filter((row) => !(row.id === item.id && row.tipo === item.tipo));
@@ -243,6 +300,10 @@ export default function SalaEsperaIndex({ board }: Props) {
         } else {
             setConsulta(drop);
         }
+    }, []);
+
+    const mark = useCallback(async (item: SalaItem) => {
+        dropItem(item);
 
         const res = await fetch(
             `/clinica/sala-espera/${item.tipo}/${item.id}/atendido`,
@@ -262,7 +323,34 @@ export default function SalaEsperaIndex({ board }: Props) {
         } else {
             reloadBoard();
         }
-    }, [reloadBoard]);
+    }, [dropItem, reloadBoard]);
+
+    const confirmQuitar = useCallback(async () => {
+        if (!quitar) {
+            return;
+        }
+        const item = quitar;
+        setQuitar(null);
+        dropItem(item);
+        const res = await fetch(
+            `/clinica/sala-espera/${item.tipo}/${item.id}/retirar`,
+            {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            },
+        );
+        if (res.ok) {
+            window.dispatchEvent(new Event(SALA_ESPERA_CHANGED_EVENT));
+        } else {
+            reloadBoard();
+        }
+    }, [dropItem, quitar, reloadBoard]);
 
     const callTurno = useCallback(
         async (item: SalaItem, colaLabel: string) => {
@@ -346,7 +434,10 @@ export default function SalaEsperaIndex({ board }: Props) {
                                 {t('sala_espera.title')}
                             </h1>
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300">
-                                <span className="size-1.5 rounded-full bg-emerald-500" />
+                                <span className="relative flex size-2">
+                                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                    <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                                </span>
                                 {t('sala_espera.live')}
                             </span>
                         </div>
@@ -356,11 +447,20 @@ export default function SalaEsperaIndex({ board }: Props) {
                             {t('sala_espera.turnos_dia')}
                         </p>
                     </div>
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                        <Clock3 className="size-4" />
-                        <span className="font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground">
-                            {clock}
-                        </span>
+                    <div className="flex items-center gap-3 rounded-2xl bg-muted/40 px-4 py-2 ring-1 ring-border/60">
+                        <Clock3 className="size-5 text-sky-600" />
+                        <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground md:text-4xl">
+                            <span>{clockParts.hour}</span>
+                            <span className={cn('mx-0.5 text-sky-500', now.getSeconds() % 2 === 0 ? 'opacity-100' : 'opacity-25')}>:</span>
+                            <span>{clockParts.minute}</span>
+                            <span className={cn('mx-0.5 text-sky-500', now.getSeconds() % 2 === 0 ? 'opacity-100' : 'opacity-25')}>:</span>
+                            <span className="text-sky-600">{clockParts.second}</span>
+                            {clockParts.dayPeriod ? (
+                                <span className="ml-2 text-sm font-medium tracking-normal text-muted-foreground">
+                                    {clockParts.dayPeriod}
+                                </span>
+                            ) : null}
+                        </p>
                     </div>
                 </header>
 
@@ -444,10 +544,12 @@ export default function SalaEsperaIndex({ board }: Props) {
                             queue={consulta}
                             canMarcar={board.can_marcar}
                             llamados={llamados}
+                            now={now}
                             onLlamar={(item) => {
                                 void callTurno(item, t('sala_espera.cita'));
                             }}
                             onMarcar={mark}
+                            onQuitar={setQuitar}
                         />
                     ) : null}
                     {board.can_grooming ? (
@@ -459,13 +561,36 @@ export default function SalaEsperaIndex({ board }: Props) {
                             queue={grooming}
                             canMarcar={board.can_marcar}
                             llamados={llamados}
+                            now={now}
                             onLlamar={(item) => {
                                 void callTurno(item, t('sala_espera.grooming'));
                             }}
                             onMarcar={mark}
+                            onQuitar={setQuitar}
                         />
                     ) : null}
                 </div>
+
+                <Dialog open={quitar !== null} onOpenChange={(open) => !open && setQuitar(null)}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>{t('sala_espera.quitar_title')}</DialogTitle>
+                        </DialogHeader>
+                        <p className="text-sm text-muted-foreground">
+                            {t('sala_espera.quitar_body', {
+                                name: quitar?.paciente ?? '',
+                            })}
+                        </p>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setQuitar(null)}>
+                                {t('actions.cancel')}
+                            </Button>
+                            <Button type="button" variant="destructive" onClick={() => void confirmQuitar()}>
+                                {t('sala_espera.quitar_ok')}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </>
     );
@@ -479,8 +604,10 @@ function ColaPanel({
     queue,
     canMarcar,
     llamados,
+    now,
     onLlamar,
     onMarcar,
+    onQuitar,
 }: {
     title: string;
     emptyLabel: string;
@@ -489,8 +616,10 @@ function ColaPanel({
     queue: SalaQueue;
     canMarcar: boolean;
     llamados: Record<string, boolean>;
+    now: Date;
     onLlamar: (item: SalaItem) => void;
     onMarcar: (item: SalaItem) => void;
+    onQuitar: (item: SalaItem) => void;
 }) {
     const { t } = useTranslation('common');
     const groups: { key: string; title: string; items: SalaItem[] }[] = [
@@ -604,8 +733,10 @@ function ColaPanel({
                                                 ] === true
                                             }
                                             canMarcar={canMarcar}
+                                            now={now}
                                             onLlamar={() => onLlamar(item)}
                                             onMarcar={() => onMarcar(item)}
+                                            onQuitar={() => onQuitar(item)}
                                         />
                                     ))}
                                 </div>
@@ -623,34 +754,39 @@ function TurnoCard({
     accent,
     called,
     canMarcar,
+    now,
     onLlamar,
     onMarcar,
+    onQuitar,
 }: {
     item: SalaItem;
     accent: 'sky' | 'violet';
     called: boolean;
     canMarcar: boolean;
+    now: Date;
     onLlamar: () => void;
     onMarcar: () => void;
+    onQuitar: () => void;
 }) {
     const { t } = useTranslation('common');
-    const longWait = item.minutos_espera >= 20;
+    const waited = waitSeconds(item.enviado_at, now, item.minutos_espera);
+    const longWait = waited >= 20 * 60;
     const isViolet = accent === 'violet';
 
     return (
         <article
             className={cn(
-                'relative overflow-hidden rounded-2xl border bg-background p-3 shadow-sm transition-shadow md:p-3.5',
+                'relative overflow-hidden rounded-2xl border bg-background p-3 shadow-sm transition-all duration-300 md:p-3.5',
                 called
-                    ? 'border-amber-400/70 ring-2 ring-amber-300/50'
-                    : 'border-border/70 hover:border-border',
+                    ? 'border-amber-400/70 ring-2 ring-amber-300/60 shadow-amber-500/10'
+                    : 'border-border/70 hover:-translate-y-0.5 hover:border-border hover:shadow-md',
             )}
         >
             <span
                 className={cn(
-                    'absolute inset-y-0 left-0 w-1',
+                    'absolute inset-y-0 left-0 w-1.5',
                     called
-                        ? 'bg-amber-400'
+                        ? 'animate-pulse bg-amber-400'
                         : isViolet
                           ? 'bg-violet-500'
                           : 'bg-sky-500',
@@ -688,15 +824,13 @@ function TurnoCard({
                         </div>
                         <span
                             className={cn(
-                                'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums',
+                                'shrink-0 rounded-full px-2 py-0.5 font-mono text-xs font-semibold tabular-nums',
                                 longWait
                                     ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
                                     : 'bg-muted text-muted-foreground',
                             )}
                         >
-                            {t('sala_espera.minutos', {
-                                count: item.minutos_espera,
-                            })}
+                            {formatWait(item.enviado_at, now, item.minutos_espera)}
                         </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -744,6 +878,18 @@ function TurnoCard({
                                 {t('sala_espera.hc')}
                             </Link>
                         </Button>
+                        {canMarcar ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 cursor-pointer gap-1.5 px-2.5 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                onClick={onQuitar}
+                            >
+                                <Trash2 className="size-3.5" />
+                                {t('sala_espera.quitar')}
+                            </Button>
+                        ) : null}
                     </div>
                 </div>
             </div>
