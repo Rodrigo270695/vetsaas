@@ -26,6 +26,7 @@ import {
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
 import {
     Tooltip,
     TooltipContent,
@@ -46,7 +47,13 @@ import type {
     PacienteStats,
     PropietarioOpcion,
 } from '../propietarios/types';
-import type { EspecieRazaCatalogo } from '@/lib/paciente-especie-raza-options';
+import {
+    mergeSortedCatalog,
+    PACIENTE_ESPECIES,
+    PACIENTE_RAZAS,
+    toComboboxOptions,
+    type EspecieRazaCatalogo,
+} from '@/lib/paciente-especie-raza-options';
 import { PacienteBulkDeleteDialog } from './components/paciente-bulk-delete-dialog';
 import { PacienteDeleteDialog } from './components/paciente-delete-dialog';
 import { PacienteFormModal } from './components/paciente-form-modal';
@@ -140,6 +147,8 @@ export default function Index({
     } = useDataTablePage<{
         estado: PacienteEstadoFilter;
         clinica_asesorada_id?: string | null;
+        especie?: string | null;
+        raza?: string | null;
     }>({
         routeUrl: pacientes.index().url,
         initialFilters: filters,
@@ -191,6 +200,30 @@ export default function Index({
             ? filters.clinica_asesorada_id
             : CLINICA_FILTER_TODAS;
 
+    const especieOptions = useMemo(
+        () =>
+            toComboboxOptions(
+                mergeSortedCatalog(
+                    PACIENTE_ESPECIES,
+                    especie_raza_catalogo.especies,
+                    filters.especie,
+                ),
+            ),
+        [especie_raza_catalogo.especies, filters.especie],
+    );
+
+    const razaOptions = useMemo(
+        () =>
+            toComboboxOptions(
+                mergeSortedCatalog(
+                    PACIENTE_RAZAS,
+                    especie_raza_catalogo.razas,
+                    filters.raza,
+                ),
+            ),
+        [especie_raza_catalogo.razas, filters.raza],
+    );
+
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
@@ -226,6 +259,12 @@ export default function Index({
         if (filters.clinica_asesorada_id) {
             c += 1;
         }
+        if (filters.especie) {
+            c += 1;
+        }
+        if (filters.raza) {
+            c += 1;
+        }
         if (filters.per_page !== DEFAULT_PER_PAGE) {
             c += 1;
         }
@@ -235,6 +274,8 @@ export default function Index({
         filters.sort,
         filters.estado,
         filters.clinica_asesorada_id,
+        filters.especie,
+        filters.raza,
         filters.per_page,
     ]);
 
@@ -255,6 +296,12 @@ export default function Index({
         if (filters.clinica_asesorada_id) {
             params.set('clinica_asesorada_id', filters.clinica_asesorada_id);
         }
+        if (filters.especie) {
+            params.set('especie', filters.especie);
+        }
+        if (filters.raza) {
+            params.set('raza', filters.raza);
+        }
         const qs = params.toString();
         return qs.length > 0
             ? `${pacientes.export().url}?${qs}`
@@ -265,6 +312,8 @@ export default function Index({
         filters.direction,
         filters.estado,
         filters.clinica_asesorada_id,
+        filters.especie,
+        filters.raza,
     ]);
 
     const columns = useMemo<DataTableColumn<Paciente>[]>(() => {
@@ -610,6 +659,49 @@ export default function Index({
                                                     triggerClassName="sm:min-w-52"
                                                 />
                                             ) : null}
+                                            <Combobox
+                                                id="pacientes-filter-especie"
+                                                options={especieOptions}
+                                                value={filters.especie || null}
+                                                onChange={(value) =>
+                                                    applyFilter({
+                                                        especie: value,
+                                                        raza: null,
+                                                    })
+                                                }
+                                                placeholder={t(
+                                                    'filter_especie_placeholder',
+                                                )}
+                                                searchPlaceholder={t(
+                                                    'form.especie_search',
+                                                )}
+                                                emptyMessage={t(
+                                                    'form.especie_empty',
+                                                )}
+                                                clearable
+                                                className="h-9 w-full cursor-pointer sm:w-44"
+                                            />
+                                            <Combobox
+                                                id="pacientes-filter-raza"
+                                                options={razaOptions}
+                                                value={filters.raza || null}
+                                                onChange={(value) =>
+                                                    applyFilter({
+                                                        raza: value,
+                                                    })
+                                                }
+                                                placeholder={t(
+                                                    'filter_raza_placeholder',
+                                                )}
+                                                searchPlaceholder={t(
+                                                    'form.raza_search',
+                                                )}
+                                                emptyMessage={t(
+                                                    'form.raza_empty',
+                                                )}
+                                                clearable
+                                                className="h-9 w-full cursor-pointer sm:w-44"
+                                            />
                                         </div>
                                     </DataToolbar>
                                 </div>
@@ -631,6 +723,8 @@ export default function Index({
                                         clinica_asesorada_id:
                                             filters.clinica_asesorada_id ||
                                             undefined,
+                                        especie: filters.especie || undefined,
+                                        raza: filters.raza || undefined,
                                     }}
                                 />
                             }

@@ -5,6 +5,8 @@
     "filter_label": "Estado",
     "filter_clinica_label": "Clínica de origen",
     "filter_clinica_todas": "Todas las clínicas",
+    "filter_especie_placeholder": "Todas las especies",
+    "filter_raza_placeholder": "Todas las razas",
     "plan_limit": {
         "max_pacientes": "Alcanzaste el límite de mascotas de tu plan. Actualiza el plan para registrar más."
     },

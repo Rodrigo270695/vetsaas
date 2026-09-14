@@ -35,6 +35,7 @@ use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Tenancy\TenantManager;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -146,6 +147,8 @@ class PacienteController extends Controller
             $query->where('pacientes.clinica_asesorada_id', $clinicaAsesoradaId);
         }
 
+        [$especie, $raza] = $this->applyEspecieRazaFilters($query, $request);
+
         $pacientes = $query->paginate($perPage)->withQueryString();
 
         $propietariosOpciones = Propietario::query()
@@ -175,6 +178,8 @@ class PacienteController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'estado' => $estado,
                 'clinica_asesorada_id' => $clinicaAsesoradaId,
+                'especie' => $especie,
+                'raza' => $raza,
             ],
             'stats' => [
                 'total' => Paciente::count(),
@@ -684,6 +689,8 @@ class PacienteController extends Controller
         if ($modoAsesora && $clinicaAsesoradaId !== '') {
             $query->where('pacientes.clinica_asesorada_id', $clinicaAsesoradaId);
         }
+
+        $this->applyEspecieRazaFilters($query, $request);
 
         $filename = 'pacientes-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new PacientesXlsxExport;
@@ -1317,6 +1324,29 @@ class PacienteController extends Controller
         ];
 
         return route('clinica.hospitalizacion.show', $i);
+    }
+
+    /**
+     * @param  Builder<Paciente>  $query
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function applyEspecieRazaFilters(Builder $query, Request $request): array
+    {
+        $especie = mb_substr(trim((string) $request->string('especie', '')), 0, 80);
+        $raza = mb_substr(trim((string) $request->string('raza', '')), 0, 80);
+
+        if ($especie !== '') {
+            $query->whereRaw('LOWER(BTRIM(pacientes.especie)) = LOWER(?)', [$especie]);
+        }
+
+        if ($raza !== '') {
+            $query->whereRaw('LOWER(BTRIM(pacientes.raza)) = LOWER(?)', [$raza]);
+        }
+
+        return [
+            $especie !== '' ? $especie : null,
+            $raza !== '' ? $raza : null,
+        ];
     }
 
     private function timelineTextPreview(?string $value, int $max): ?string

@@ -82,6 +82,8 @@ export type PacienteFilters = {
     direction: 'asc' | 'desc' | null;
     estado: PacienteEstadoFilter;
     clinica_asesorada_id?: string | null;
+    especie?: string | null;
+    raza?: string | null;
 };
 
 export type PacienteStats = {
