@@ -1091,6 +1091,23 @@ class PacienteController extends Controller
             return;
         }
 
+        try {
+            $this->appendStandaloneTimelineEventsUnsafe($timeline, $paciente, $user, $tz);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function appendStandaloneTimelineEventsUnsafe(
+        array &$timeline,
+        Paciente $paciente,
+        Authenticatable $user,
+        string $tz,
+    ): void {
+
         $tenant = app(TenantManager::class)->current()?->tenant;
 
         if (($user->can('laboratorio.view') ?? false) && TenantModuleAccess::isEnabled($tenant, 'laboratorio')) {
@@ -1104,6 +1121,9 @@ class PacienteController extends Controller
                 ->get();
             foreach ($pedidos as $p) {
                 $at = $p->solicitado_at;
+                if ($at === null) {
+                    continue;
+                }
                 $timeline[] = $this->timelineEventPayload(
                     'laboratorio',
                     (string) $p->id,
@@ -1168,11 +1188,14 @@ class PacienteController extends Controller
             $turnos = GroomingTurno::query()
                 ->where('paciente_id', $paciente->id)
                 ->whereNotIn('estado', [GroomingTurno::ESTADO_CANCELADA, GroomingTurno::ESTADO_NO_ASISTIO])
-                ->with('groomingServicio:id,nombre')
+                ->with('groomingServicio')
                 ->orderByDesc('inicio_at')
                 ->limit(100)
                 ->get();
             foreach ($turnos as $t) {
+                if ($t->inicio_at === null) {
+                    continue;
+                }
                 $titulo = trim((string) $t->servicio_label);
                 $timeline[] = $this->timelineEventPayload(
                     'grooming',
@@ -1180,7 +1203,7 @@ class PacienteController extends Controller
                     $t->inicio_at->toIso8601String(),
                     $titulo !== '' ? Str::limit($titulo, 120) : 'Grooming',
                     (string) $t->estado,
-                    route('clinica.grooming', ['editar_grooming_turno' => $t->id]),
+                    route('servicios.grooming', ['editar_grooming_turno' => $t->id]),
                     $this->timelineTextPreview($t->notas, 160),
                 );
             }
@@ -1198,6 +1221,9 @@ class PacienteController extends Controller
                 ->limit(100)
                 ->get();
             foreach ($estancias as $e) {
+                if ($e->ingreso_at === null) {
+                    continue;
+                }
                 $titulo = trim((string) ($e->tipo_detalle ?: $e->tipo_estancia));
                 $timeline[] = $this->timelineEventPayload(
                     'hotel',
@@ -1205,7 +1231,7 @@ class PacienteController extends Controller
                     $e->ingreso_at->toIso8601String(),
                     $titulo !== '' ? Str::limit($titulo, 120) : 'Hotel',
                     (string) $e->estado,
-                    route('clinica.hotel', ['editar_hotel_estancia' => $e->id]),
+                    route('servicios.hotel', ['editar_hotel_estancia' => $e->id]),
                     $this->timelineTextPreview($e->notas, 160),
                 );
             }
