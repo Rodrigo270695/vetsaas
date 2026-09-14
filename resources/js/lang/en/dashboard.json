@@ -85,6 +85,11 @@
         "propietarios_serie": "Owners",
         "citas_asistencia": "Appointment attendance (month)",
         "citas_asistencia_hint": "Completed, cancelled, and no-shows in the current month.",
+        "mascotas_especie": "Pets by species",
+        "mascotas_especie_hint": "Census of patients registered at the clinic.",
+        "especie_sin": "No species",
+        "especie_otros": "Other",
+        "mascotas_count": "{{count}} pets",
         "empty": "No activity in this period yet. Data will appear here as you work."
     },
     "rentabilidad": {

@@ -13,7 +13,7 @@ export function DashboardCajaStatus({ abierta }: Props) {
     return (
         <div
             className={cn(
-                'flex items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm',
+                'flex h-full items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm',
                 abierta
                     ? 'border-emerald-300/50 bg-gradient-to-r from-emerald-50 to-emerald-50/40 text-emerald-900 dark:border-emerald-700/40 dark:from-emerald-950/40 dark:to-emerald-950/20 dark:text-emerald-100'
                     : 'border-border/70 bg-muted/30 text-muted-foreground',

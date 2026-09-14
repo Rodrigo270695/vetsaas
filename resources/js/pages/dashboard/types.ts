@@ -110,6 +110,11 @@ export type NuevosClientesMensualRow = {
     is_current: boolean;
 };
 
+export type MascotasPorEspecieRow = {
+    especie: string;
+    count: number;
+};
+
 export type RentabilidadPeriodo = 'semana' | 'mes_actual' | 'mes_pasado';
 
 export type RentabilidadItemRow = {

@@ -21,8 +21,8 @@ export function DashboardConsultasAbiertasBanner({ abiertas, antiguas }: Props) 
     });
 
     return (
-        <section className="overflow-hidden rounded-xl border border-amber-200/70 bg-linear-to-r from-amber-50/90 via-card to-card shadow-sm dark:border-amber-800/35 dark:from-amber-950/25">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
+        <section className="h-full overflow-hidden rounded-xl border border-amber-200/70 bg-linear-to-r from-amber-50/90 via-card to-card shadow-sm dark:border-amber-800/35 dark:from-amber-950/25">
+            <div className="flex h-full flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
                         <AlertTriangle className="size-4" aria-hidden />

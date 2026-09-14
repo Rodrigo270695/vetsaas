@@ -85,6 +85,11 @@
         "propietarios_serie": "Propietarios",
         "citas_asistencia": "Asistencia a citas (mes)",
         "citas_asistencia_hint": "Completadas, canceladas y no asistió en el mes en curso.",
+        "mascotas_especie": "Mascotas por especie",
+        "mascotas_especie_hint": "Censo de pacientes registrados en la clínica.",
+        "especie_sin": "Sin especie",
+        "especie_otros": "Otras",
+        "mascotas_count": "{{count}} mascotas",
         "empty": "Aún no hay movimiento en este periodo. Cuando registres actividad, verás la tendencia aquí."
     },
     "rentabilidad": {

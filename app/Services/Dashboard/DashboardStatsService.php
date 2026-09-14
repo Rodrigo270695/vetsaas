@@ -215,6 +215,9 @@ final class DashboardStatsService
             'citas_asistencia_mes' => ($capabilities['citas'] ?? false)
                 ? $this->citasAsistenciaMes($monthStart, $monthEnd)
                 : [],
+            'mascotas_por_especie' => ($capabilities['pacientes'] ?? false)
+                ? $this->mascotasPorEspecie()
+                : [],
         ];
     }
 
@@ -310,6 +313,7 @@ final class DashboardStatsService
             'vacunaciones_por_dia' => [],
             'nuevos_clientes_mensuales' => [],
             'citas_asistencia_mes' => [],
+            'mascotas_por_especie' => [],
         ];
     }
 
@@ -476,6 +480,51 @@ final class DashboardStatsService
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Censo de pacientes (no eliminados) agrupados por especie.
+     *
+     * @return list<array{especie: string, count: int}>
+     */
+    private function mascotasPorEspecie(): array
+    {
+        if (! Schema::hasColumn('pacientes', 'especie')) {
+            return [];
+        }
+
+        /** @var Collection<int, object{especie: mixed, aggregate: int}> $grouped */
+        $grouped = Paciente::query()
+            ->selectRaw("COALESCE(NULLIF(BTRIM(especie), ''), '') as especie, COUNT(*) as aggregate")
+            ->groupByRaw("COALESCE(NULLIF(BTRIM(especie), ''), '')")
+            ->orderByDesc('aggregate')
+            ->orderBy('especie')
+            ->get();
+
+        $rows = $grouped
+            ->map(fn (object $row): array => [
+                'especie' => (string) $row->especie,
+                'count' => (int) $row->aggregate,
+            ])
+            ->values()
+            ->all();
+
+        $limit = 7;
+        if (count($rows) <= $limit) {
+            return $rows;
+        }
+
+        $top = array_slice($rows, 0, $limit - 1);
+        $otros = array_slice($rows, $limit - 1);
+        $otrosCount = array_sum(array_column($otros, 'count'));
+        if ($otrosCount > 0) {
+            $top[] = [
+                'especie' => '__otros__',
+                'count' => $otrosCount,
+            ];
+        }
+
+        return $top;
     }
 
     /**

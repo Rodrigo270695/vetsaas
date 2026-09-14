@@ -36,6 +36,7 @@ import {
     type QuickActionItem,
 } from '@/components/dashboard/dashboard-quick-actions';
 import { DashboardClientesMensualesChart } from '@/components/dashboard/dashboard-clientes-mensuales-chart';
+import { DashboardMascotasEspecieChart } from '@/components/dashboard/dashboard-mascotas-especie-chart';
 import { DashboardOnboardingCard } from '@/components/dashboard/dashboard-onboarding-card';
 import { DashboardSalesChart } from '@/components/dashboard/dashboard-sales-chart';
 import { DashboardSectionTitle } from '@/components/dashboard/dashboard-section-title';
@@ -52,6 +53,7 @@ import type {
     NuevosClientesMensualRow,
     OnboardingSnapshot,
     ProximaCitaRow,
+    MascotasPorEspecieRow,
     VacunacionesPorDiaRow,
     VentasPorDiaRow,
     VentasPorMetodoRow,
@@ -72,6 +74,7 @@ type Props = {
     vacunaciones_por_dia: VacunacionesPorDiaRow[];
     nuevos_clientes_mensuales: NuevosClientesMensualRow[];
     citas_asistencia_mes: CitasPorEstadoRow[];
+    mascotas_por_especie: MascotasPorEspecieRow[];
 };
 
 function formatMoney(value: string | number, moneda: string, locale: string): string {
@@ -106,6 +109,7 @@ export default function DashboardIndex({
     vacunaciones_por_dia,
     nuevos_clientes_mensuales,
     citas_asistencia_mes,
+    mascotas_por_especie,
 }: Props) {
     const { t, i18n } = useTranslation(['dashboard', 'common']);
     const { can } = usePermission();
@@ -119,6 +123,20 @@ export default function DashboardIndex({
 
     const metodoLabel = useCallback(
         (metodo: string) => t(`metodos_pago.${metodo}`, { defaultValue: metodo }),
+        [t],
+    );
+
+    const especieLabel = useCallback(
+        (especie: string) => {
+            if (especie === '' || especie === '__sin__') {
+                return t('charts.especie_sin');
+            }
+            if (especie === '__otros__') {
+                return t('charts.especie_otros');
+            }
+
+            return especie;
+        },
         [t],
     );
 
@@ -353,16 +371,28 @@ export default function DashboardIndex({
 
                 {onboarding?.show && <DashboardOnboardingCard data={onboarding} />}
 
-                {capabilities.consultas && kpis.consultas_abiertas > 0 && (
-                    <DashboardConsultasAbiertasBanner
-                        abiertas={kpis.consultas_abiertas}
-                        antiguas={kpis.consultas_abiertas_antiguas}
-                    />
-                )}
-
-                {capabilities.caja_sesiones && (
-                    <DashboardCajaStatus abierta={kpis.caja_abierta} />
-                )}
+                {(capabilities.consultas && kpis.consultas_abiertas > 0) ||
+                capabilities.caja_sesiones ? (
+                    <div
+                        className={
+                            capabilities.consultas &&
+                            kpis.consultas_abiertas > 0 &&
+                            capabilities.caja_sesiones
+                                ? 'grid gap-4 md:grid-cols-2'
+                                : 'grid gap-4'
+                        }
+                    >
+                        {capabilities.consultas && kpis.consultas_abiertas > 0 ? (
+                            <DashboardConsultasAbiertasBanner
+                                abiertas={kpis.consultas_abiertas}
+                                antiguas={kpis.consultas_abiertas_antiguas}
+                            />
+                        ) : null}
+                        {capabilities.caja_sesiones ? (
+                            <DashboardCajaStatus abierta={kpis.caja_abierta} />
+                        ) : null}
+                    </div>
+                ) : null}
 
                 {clinicalKpis.length > 0 && (
                     <section className="space-y-4">
@@ -485,6 +515,23 @@ export default function DashboardIndex({
                                     accent="violet"
                                 >
                                     <DashboardVacunacionesChart data={vacunaciones_por_dia} />
+                                </DashboardChartCard>
+                            )}
+
+                            {capabilities.pacientes && (
+                                <DashboardChartCard
+                                    title={t('charts.mascotas_especie')}
+                                    description={t('charts.mascotas_especie_hint')}
+                                    icon={Dog}
+                                    accent="sky"
+                                >
+                                    <DashboardMascotasEspecieChart
+                                        data={mascotas_por_especie}
+                                        especieLabel={especieLabel}
+                                        countLabel={(count) =>
+                                            t('charts.mascotas_count', { count })
+                                        }
+                                    />
                                 </DashboardChartCard>
                             )}
 
