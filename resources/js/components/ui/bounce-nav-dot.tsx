@@ -105,12 +105,12 @@ function measureActive(root: HTMLElement, size: number, compact: boolean): Point
     return null;
 }
 
-/** Media luna a la izquierda: el punto recorre un arco, no una recta vertical. */
+/** Arco suave a la izquierda: en saltos largos casi vertical, sin salir del menú. */
 function arcKeyframes(from: Point, to: Point): Keyframe[] {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const chord = Math.hypot(dx, dy);
-    const rx = Math.min(26, Math.max(16, chord * 0.5));
+    const rx = Math.min(7, Math.max(2.5, chord * 0.05));
     const frames: Keyframe[] = [];
 
     for (let i = 0; i <= ARC_STEPS; i++) {
@@ -124,8 +124,18 @@ function arcKeyframes(from: Point, to: Point): Keyframe[] {
     return frames;
 }
 
+function travelDuration(from: Point, to: Point, compact: boolean): number {
+    if (compact) {
+        return 240;
+    }
+
+    const chord = Math.hypot(to.x - from.x, to.y - from.y);
+
+    return Math.min(360, 200 + chord * 0.35);
+}
+
 /**
- * Punto fuera del ítem activo que viaja en media luna entre rutas.
+ * Punto fuera del ítem activo que viaja con un arco corto entre rutas.
  * El padre debe ser `position: relative` (SidebarMenu).
  */
 export function BounceNavDot({ activeKey, compact = false }: BounceNavDotProps) {
@@ -171,7 +181,7 @@ export function BounceNavDot({ activeKey, compact = false }: BounceNavDotProps) 
 
             dot.style.transform = `translate(${from.x}px, ${from.y}px)`;
             dot.animate(arcKeyframes(from, to), {
-                duration: compact ? 280 : 520,
+                duration: travelDuration(from, to, compact),
                 easing: 'cubic-bezier(0.37, 0, 0.63, 1)',
                 fill: 'forwards',
             });
