@@ -7,6 +7,7 @@ import {
     Megaphone,
     Search,
     Stethoscope,
+    Timer,
     Trash2,
     UserRound,
 } from 'lucide-react';
@@ -15,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
 import { SALA_ESPERA_CHANGED_EVENT } from '@/components/sala-espera-header-popover';
 import { SALA_ESPERA_LLAMAR_EVENT } from '@/hooks/use-sala-espera-realtime';
+import { ConsultaHistorialFloatingPanel } from '@/pages/clinica/historias-clinicas/components/consulta-historial-floating-panel';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -117,6 +119,20 @@ function formatWait(enviadoAt: string | null | undefined, now: Date, fallbackMin
     return `${minutes}:${pad2(seconds)}`;
 }
 
+function formatIngreso(enviadoAt: string | null | undefined, fallbackHora: string, locale: string): string {
+    if (enviadoAt) {
+        const ms = Date.parse(enviadoAt);
+        if (!Number.isNaN(ms)) {
+            return new Date(ms).toLocaleTimeString(locale, {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        }
+    }
+
+    return fallbackHora;
+}
+
 function waitSeconds(enviadoAt: string | null | undefined, now: Date, fallbackMin: number): number {
     if (!enviadoAt) {
         return fallbackMin * 60;
@@ -196,6 +212,10 @@ export default function SalaEsperaIndex({ board }: Props) {
     const [llamados, setLlamados] = useState<Record<string, boolean>>({});
     const [now, setNow] = useState(() => new Date());
     const [quitar, setQuitar] = useState<SalaItem | null>(null);
+    const [hcPaciente, setHcPaciente] = useState<{
+        id: string;
+        nombre: string;
+    } | null>(null);
 
     useEffect(() => {
         setConsulta(board.consulta);
@@ -427,21 +447,34 @@ export default function SalaEsperaIndex({ board }: Props) {
             <Head title={t('sala_espera.title')} />
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
-                <header className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm md:flex-row md:items-center md:justify-between md:px-5">
+                <header className="relative overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-r from-sky-50 via-card to-violet-50 px-4 py-5 shadow-sm md:flex-row md:items-center md:justify-between md:px-6 dark:from-sky-950/40 dark:via-card dark:to-violet-950/30">
+                    <div className="pointer-events-none absolute -top-16 -left-10 size-40 rounded-full bg-sky-400/15 blur-3xl" />
+                    <div className="pointer-events-none absolute -right-10 -bottom-20 size-44 rounded-full bg-violet-400/15 blur-3xl" />
+                    <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
-                                {t('sala_espera.title')}
-                            </h1>
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300">
-                                <span className="relative flex size-2">
-                                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                                    <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-                                </span>
-                                {t('sala_espera.live')}
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-violet-600 text-white shadow-lg shadow-sky-500/25">
+                                <Timer className="size-6" strokeWidth={2.25} />
                             </span>
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-semibold tracking-[0.22em] text-sky-700 uppercase dark:text-sky-300">
+                                    {t('sala_espera.kicker')}
+                                </p>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                                    <h1 className="bg-gradient-to-r from-sky-800 via-slate-900 to-violet-700 bg-clip-text text-2xl font-bold tracking-tight text-transparent md:text-3xl dark:from-sky-200 dark:via-white dark:to-violet-200">
+                                        {t('sala_espera.title')}
+                                    </h1>
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300">
+                                        <span className="relative flex size-2">
+                                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                            <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                                        </span>
+                                        {t('sala_espera.live')}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             {t('sala_espera.count_waiting', { count: waiting })}
                             {' · '}
                             {t('sala_espera.turnos_dia')}
@@ -461,6 +494,7 @@ export default function SalaEsperaIndex({ board }: Props) {
                                 </span>
                             ) : null}
                         </p>
+                    </div>
                     </div>
                 </header>
 
@@ -545,11 +579,20 @@ export default function SalaEsperaIndex({ board }: Props) {
                             canMarcar={board.can_marcar}
                             llamados={llamados}
                             now={now}
+                            locale={i18n.language?.startsWith('en') ? 'en-US' : 'es-PE'}
                             onLlamar={(item) => {
                                 void callTurno(item, t('sala_espera.cita'));
                             }}
                             onMarcar={mark}
                             onQuitar={setQuitar}
+                            onHc={(item) => {
+                                if (item.paciente_id) {
+                                    setHcPaciente({
+                                        id: item.paciente_id,
+                                        nombre: item.paciente,
+                                    });
+                                }
+                            }}
                         />
                     ) : null}
                     {board.can_grooming ? (
@@ -562,11 +605,20 @@ export default function SalaEsperaIndex({ board }: Props) {
                             canMarcar={board.can_marcar}
                             llamados={llamados}
                             now={now}
+                            locale={i18n.language?.startsWith('en') ? 'en-US' : 'es-PE'}
                             onLlamar={(item) => {
                                 void callTurno(item, t('sala_espera.grooming'));
                             }}
                             onMarcar={mark}
                             onQuitar={setQuitar}
+                            onHc={(item) => {
+                                if (item.paciente_id) {
+                                    setHcPaciente({
+                                        id: item.paciente_id,
+                                        nombre: item.paciente,
+                                    });
+                                }
+                            }}
                         />
                     ) : null}
                 </div>
@@ -591,6 +643,16 @@ export default function SalaEsperaIndex({ board }: Props) {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                <ConsultaHistorialFloatingPanel
+                    open={hcPaciente !== null}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setHcPaciente(null);
+                        }
+                    }}
+                    pacienteId={hcPaciente?.id ?? null}
+                    pacienteNombre={hcPaciente?.nombre ?? null}
+                />
             </div>
         </>
     );
@@ -605,9 +667,11 @@ function ColaPanel({
     canMarcar,
     llamados,
     now,
+    locale,
     onLlamar,
     onMarcar,
     onQuitar,
+    onHc,
 }: {
     title: string;
     emptyLabel: string;
@@ -617,9 +681,11 @@ function ColaPanel({
     canMarcar: boolean;
     llamados: Record<string, boolean>;
     now: Date;
+    locale: string;
     onLlamar: (item: SalaItem) => void;
     onMarcar: (item: SalaItem) => void;
     onQuitar: (item: SalaItem) => void;
+    onHc: (item: SalaItem) => void;
 }) {
     const { t } = useTranslation('common');
     const groups: { key: string; title: string; items: SalaItem[] }[] = [
@@ -734,9 +800,11 @@ function ColaPanel({
                                             }
                                             canMarcar={canMarcar}
                                             now={now}
+                                            locale={locale}
                                             onLlamar={() => onLlamar(item)}
                                             onMarcar={() => onMarcar(item)}
                                             onQuitar={() => onQuitar(item)}
+                                            onHc={() => onHc(item)}
                                         />
                                     ))}
                                 </div>
@@ -755,18 +823,22 @@ function TurnoCard({
     called,
     canMarcar,
     now,
+    locale,
     onLlamar,
     onMarcar,
     onQuitar,
+    onHc,
 }: {
     item: SalaItem;
     accent: 'sky' | 'violet';
     called: boolean;
     canMarcar: boolean;
     now: Date;
+    locale: string;
     onLlamar: () => void;
     onMarcar: () => void;
     onQuitar: () => void;
+    onHc: () => void;
 }) {
     const { t } = useTranslation('common');
     const waited = waitSeconds(item.enviado_at, now, item.minutos_espera);
@@ -833,8 +905,15 @@ function TurnoCard({
                             {formatWait(item.enviado_at, now, item.minutos_espera)}
                         </span>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        {[item.especie, item.hora].filter(Boolean).join(' · ')}
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                        {item.especie ? <span>{item.especie}</span> : null}
+                        {item.especie ? <span className="text-border">·</span> : null}
+                        <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
+                            <Clock3 className="size-3 shrink-0 text-sky-600" />
+                            {t('sala_espera.ingreso', {
+                                time: formatIngreso(item.enviado_at, item.hora, locale),
+                            })}
+                        </span>
                     </p>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                         <Button
@@ -871,12 +950,11 @@ function TurnoCard({
                             size="sm"
                             variant="ghost"
                             className="h-8 cursor-pointer gap-1.5 px-2.5 text-muted-foreground"
-                            asChild
+                            disabled={!item.paciente_id}
+                            onClick={onHc}
                         >
-                            <Link href={item.hc_href}>
-                                <FolderOpen className="size-3.5" />
-                                {t('sala_espera.hc')}
-                            </Link>
+                            <FolderOpen className="size-3.5" />
+                            {t('sala_espera.hc')}
                         </Button>
                         {canMarcar ? (
                             <Button

@@ -164,6 +164,8 @@
         "live": "En vivo",
         "enviar_a": "Pasar a sala",
         "turnos_dia": "Turnos del día (mañana empiezan en 1)",
+        "kicker": "Recepción",
+        "ingreso": "Ingreso {{time}}",
         "count_waiting": "{{count}} en espera",
         "count_now": "{{count}} en hora",
         "push_body": "{{count}} paciente(s) en sala.",
