@@ -501,12 +501,16 @@ export default function SalaEsperaIndex({ board }: Props) {
                 {board.can_enviar ? (
                     <section className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm md:p-4">
                         <div className="relative">
-                            <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search
+                                className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-5 -translate-y-1/2 text-sky-600/80 dark:text-sky-400"
+                                strokeWidth={2.25}
+                                aria-hidden
+                            />
                             <Input
                                 value={q}
                                 onChange={(e) => setQ(e.target.value)}
                                 placeholder={t('sala_espera.search_placeholder')}
-                                className="h-12 rounded-xl border-border/80 bg-muted/30 pl-10 text-base shadow-none"
+                                className="h-12 rounded-xl border-border/80 bg-muted/30 pr-3 pl-11 text-base shadow-none"
                                 autoComplete="off"
                             />
                         </div>
