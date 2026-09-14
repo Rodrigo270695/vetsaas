@@ -16,7 +16,9 @@ use App\Models\DocumentoAutorizacionEnvio;
 use App\Models\DocumentoAutorizacionPlantilla;
 use App\Models\Farmaco;
 use App\Models\FelSerie;
+use App\Models\GroomingTurno;
 use App\Models\HistoriaClinica;
+use App\Models\HotelEstancia;
 use App\Models\Internamiento;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
@@ -30,6 +32,7 @@ use App\Models\Venta;
 use App\Services\Clinica\PacienteImportService;
 use App\Services\PetPass\AlmaPetHandoffClient;
 use App\Support\Clinica\PublicClinicalHistoryPayload;
+use App\Support\Tenancy\TenantModuleAccess;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Tenancy\TenantManager;
@@ -1066,9 +1069,178 @@ class PacienteController extends Controller
             }
         }
 
+        $this->appendStandaloneTimelineEvents($timeline, $paciente, $user, $tz);
+
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
 
         return $timeline;
+    }
+
+    /**
+     * Eventos sueltos (sin consulta) + servicios. Lo que ya está dentro de una consulta no se duplica.
+     *
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function appendStandaloneTimelineEvents(
+        array &$timeline,
+        Paciente $paciente,
+        ?Authenticatable $user,
+        string $tz,
+    ): void {
+        if ($user === null) {
+            return;
+        }
+
+        $tenant = app(TenantManager::class)->current()?->tenant;
+
+        if (($user->can('laboratorio.view') ?? false) && TenantModuleAccess::isEnabled($tenant, 'laboratorio')) {
+            $pedidos = PedidoLaboratorio::query()
+                ->where('paciente_id', $paciente->id)
+                ->whereNull('consulta_id')
+                ->where('estado', '!=', PedidoLaboratorio::ESTADO_CANCELADO)
+                ->withCount('lineas')
+                ->orderByDesc('solicitado_at')
+                ->limit(100)
+                ->get();
+            foreach ($pedidos as $p) {
+                $at = $p->solicitado_at;
+                $timeline[] = $this->timelineEventPayload(
+                    'laboratorio',
+                    (string) $p->id,
+                    $at->toIso8601String(),
+                    $p->laboratorio_destino
+                        ? Str::limit(trim((string) $p->laboratorio_destino), 120)
+                        : 'Laboratorio',
+                    (string) $p->estado,
+                    $this->pedidoLaboratorioHistorialUrl($user, $p, $tz),
+                    $p->lineas_count > 0 ? ((int) $p->lineas_count).' examen(es)' : null,
+                );
+            }
+        }
+
+        if (($user->can('cirugias.view') ?? false) && TenantModuleAccess::isEnabled($tenant, 'cirugias')) {
+            $cirugias = Cirugia::query()
+                ->where('paciente_id', $paciente->id)
+                ->whereNull('consulta_id')
+                ->where('estado', '!=', Cirugia::ESTADO_CANCELADA)
+                ->orderByDesc('programada_at')
+                ->limit(100)
+                ->get();
+            foreach ($cirugias as $c) {
+                $timeline[] = $this->timelineEventPayload(
+                    'cirugia',
+                    (string) $c->id,
+                    $c->programada_at->toIso8601String(),
+                    Str::limit(trim((string) $c->nombre_procedimiento), 120) ?: 'Cirugía',
+                    (string) $c->estado,
+                    $this->cirugiaHistorialUrl($user, $c, $tz),
+                    $this->timelineTextPreview($c->observaciones, 160),
+                );
+            }
+        }
+
+        if (($user->can('hospitalizacion.view') ?? false) && TenantModuleAccess::isEnabled($tenant, 'hospitalizacion')) {
+            $internamientos = Internamiento::query()
+                ->where('paciente_id', $paciente->id)
+                ->whereNull('consulta_id')
+                ->where('estado', '!=', Internamiento::ESTADO_CANCELADO)
+                ->orderByDesc('ingreso_at')
+                ->limit(100)
+                ->get();
+            foreach ($internamientos as $i) {
+                $timeline[] = $this->timelineEventPayload(
+                    'internamiento',
+                    (string) $i->id,
+                    $i->ingreso_at->toIso8601String(),
+                    Str::limit(trim((string) $i->motivo_ingreso), 120) ?: 'Hospitalización',
+                    (string) $i->estado,
+                    $this->internamientoHistorialUrl($user, $i, $tz),
+                    $this->timelineTextPreview($i->ubicacion, 120),
+                );
+            }
+        }
+
+        if (
+            Schema::hasTable('grooming_turnos')
+            && ($user->can('grooming.view') ?? false)
+            && TenantModuleAccess::isEnabled($tenant, 'grooming')
+        ) {
+            $turnos = GroomingTurno::query()
+                ->where('paciente_id', $paciente->id)
+                ->whereNotIn('estado', [GroomingTurno::ESTADO_CANCELADA, GroomingTurno::ESTADO_NO_ASISTIO])
+                ->with('groomingServicio:id,nombre')
+                ->orderByDesc('inicio_at')
+                ->limit(100)
+                ->get();
+            foreach ($turnos as $t) {
+                $titulo = trim((string) $t->servicio_label);
+                $timeline[] = $this->timelineEventPayload(
+                    'grooming',
+                    (string) $t->id,
+                    $t->inicio_at->toIso8601String(),
+                    $titulo !== '' ? Str::limit($titulo, 120) : 'Grooming',
+                    (string) $t->estado,
+                    route('clinica.grooming', ['editar_grooming_turno' => $t->id]),
+                    $this->timelineTextPreview($t->notas, 160),
+                );
+            }
+        }
+
+        if (
+            Schema::hasTable('hotel_estancias')
+            && ($user->can('hotel.view') ?? false)
+            && TenantModuleAccess::isEnabled($tenant, 'hotel')
+        ) {
+            $estancias = HotelEstancia::query()
+                ->where('paciente_id', $paciente->id)
+                ->whereNotIn('estado', [HotelEstancia::ESTADO_CANCELADA, HotelEstancia::ESTADO_NO_PRESENTO])
+                ->orderByDesc('ingreso_at')
+                ->limit(100)
+                ->get();
+            foreach ($estancias as $e) {
+                $titulo = trim((string) ($e->tipo_detalle ?: $e->tipo_estancia));
+                $timeline[] = $this->timelineEventPayload(
+                    'hotel',
+                    (string) $e->id,
+                    $e->ingreso_at->toIso8601String(),
+                    $titulo !== '' ? Str::limit($titulo, 120) : 'Hotel',
+                    (string) $e->estado,
+                    route('clinica.hotel', ['editar_hotel_estancia' => $e->id]),
+                    $this->timelineTextPreview($e->notas, 160),
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array{
+     *     kind: string,
+     *     id: string,
+     *     ocurrido_at: string,
+     *     titulo: string,
+     *     estado: string,
+     *     href: string,
+     *     detalle_corto: ?string
+     * }
+     */
+    private function timelineEventPayload(
+        string $kind,
+        string $id,
+        string $ocurridoAt,
+        string $titulo,
+        string $estado,
+        string $href,
+        ?string $detalleCorto,
+    ): array {
+        return [
+            'kind' => $kind,
+            'id' => $id,
+            'ocurrido_at' => $ocurridoAt,
+            'titulo' => $titulo,
+            'estado' => $estado,
+            'href' => $href,
+            'detalle_corto' => $detalleCorto,
+        ];
     }
 
     /**

@@ -51,6 +51,7 @@ type Props = {
     timelineStats: {
         consultas: number;
         aplicaciones: number;
+        servicios?: number;
         total: number;
     };
     hasTimeline: boolean;
@@ -501,6 +502,11 @@ export function PacienteHistorialHero({
                         {timelineStats.aplicaciones > 0 ? (
                             <span className="inline-flex items-center rounded-lg border border-emerald-500/25 bg-emerald-500/8 px-2.5 py-1 font-medium text-emerald-800 dark:text-emerald-200">
                                 {t('historial.stat_aplicaciones', { count: timelineStats.aplicaciones })}
+                            </span>
+                        ) : null}
+                        {(timelineStats.servicios ?? 0) > 0 ? (
+                            <span className="inline-flex items-center rounded-lg border border-violet-500/25 bg-violet-500/8 px-2.5 py-1 font-medium text-violet-800 dark:text-violet-200">
+                                {t('historial.stat_servicios', { count: timelineStats.servicios })}
                             </span>
                         ) : null}
                     </div>

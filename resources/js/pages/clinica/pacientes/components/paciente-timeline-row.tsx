@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     Activity,
+    BedDouble,
     CalendarDays,
     ChevronDown,
     Clock,
@@ -10,10 +11,12 @@ import {
     FilePenLine,
     FlaskConical,
     Heart,
+    Home,
     Loader2,
     MessageCircle,
     MoreHorizontal,
     Receipt,
+    Scissors,
     Stethoscope,
     Syringe,
     Thermometer,
@@ -286,6 +289,71 @@ function itemTheme(item: TimelineItem) {
         };
     }
 
+    if (item.kind === 'laboratorio') {
+        return {
+            stripe: 'bg-gradient-to-b from-cyan-400 to-cyan-600',
+            dot: 'border-cyan-400/70 bg-gradient-to-br from-cyan-400 to-cyan-600 text-white shadow-cyan-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(6,182,212,0.16)]',
+            ringPulse: 'bg-cyan-500/50',
+            iconBg: 'bg-gradient-to-br from-cyan-500/20 to-cyan-500/5',
+            iconText: 'text-cyan-700 dark:text-cyan-300',
+            cardHover: 'hover:border-cyan-500/35 hover:shadow-cyan-500/10',
+            Icon: FlaskConical,
+        };
+    }
+
+    if (item.kind === 'cirugia') {
+        return {
+            stripe: 'bg-gradient-to-b from-rose-400 to-rose-600',
+            dot: 'border-rose-400/70 bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-rose-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(244,63,94,0.16)]',
+            ringPulse: 'bg-rose-500/50',
+            iconBg: 'bg-gradient-to-br from-rose-500/20 to-rose-500/5',
+            iconText: 'text-rose-700 dark:text-rose-300',
+            cardHover: 'hover:border-rose-500/35 hover:shadow-rose-500/10',
+            Icon: Activity,
+        };
+    }
+
+    if (item.kind === 'internamiento') {
+        return {
+            stripe: 'bg-gradient-to-b from-orange-400 to-orange-600',
+            dot: 'border-orange-400/70 bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-orange-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(249,115,22,0.16)]',
+            ringPulse: 'bg-orange-500/50',
+            iconBg: 'bg-gradient-to-br from-orange-500/20 to-orange-500/5',
+            iconText: 'text-orange-700 dark:text-orange-300',
+            cardHover: 'hover:border-orange-500/35 hover:shadow-orange-500/10',
+            Icon: BedDouble,
+        };
+    }
+
+    if (item.kind === 'grooming') {
+        return {
+            stripe: 'bg-gradient-to-b from-violet-400 to-violet-600',
+            dot: 'border-violet-400/70 bg-gradient-to-br from-violet-400 to-violet-600 text-white shadow-violet-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(139,92,246,0.16)]',
+            ringPulse: 'bg-violet-500/50',
+            iconBg: 'bg-gradient-to-br from-violet-500/20 to-violet-500/5',
+            iconText: 'text-violet-700 dark:text-violet-300',
+            cardHover: 'hover:border-violet-500/35 hover:shadow-violet-500/10',
+            Icon: Scissors,
+        };
+    }
+
+    if (item.kind === 'hotel') {
+        return {
+            stripe: 'bg-gradient-to-b from-indigo-400 to-indigo-600',
+            dot: 'border-indigo-400/70 bg-gradient-to-br from-indigo-400 to-indigo-600 text-white shadow-indigo-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(99,102,241,0.16)]',
+            ringPulse: 'bg-indigo-500/50',
+            iconBg: 'bg-gradient-to-br from-indigo-500/20 to-indigo-500/5',
+            iconText: 'text-indigo-700 dark:text-indigo-300',
+            cardHover: 'hover:border-indigo-500/35 hover:shadow-indigo-500/10',
+            Icon: Home,
+        };
+    }
+
     const cat = (item.categoria ?? 'vacuna').toLowerCase();
 
     if (cat === 'desparasitacion') {
@@ -395,7 +463,9 @@ export function PacienteTimelineRow({
     const hayResumen =
         item.kind === 'consulta'
             ? consultaDetalleTieneContenido(item.detalle)
-            : aplicacionDetalleTieneContenido(item.detalle);
+            : item.kind === 'aplicacion'
+              ? aplicacionDetalleTieneContenido(item.detalle)
+              : Boolean(item.detalle_corto);
 
     const vinculosCount =
         item.kind === 'consulta'
@@ -482,14 +552,27 @@ export function PacienteTimelineRow({
                                     variant="outline"
                                     className={cn(
                                         'border-0 text-[0.65rem] font-semibold',
-                                        item.kind === 'consulta'
-                                            ? 'bg-sky-500/12 text-sky-800 dark:text-sky-200'
-                                            : 'bg-emerald-500/12 text-emerald-800 dark:text-emerald-200',
+                                        item.kind === 'consulta' &&
+                                            'bg-sky-500/12 text-sky-800 dark:text-sky-200',
+                                        item.kind === 'aplicacion' &&
+                                            'bg-emerald-500/12 text-emerald-800 dark:text-emerald-200',
+                                        item.kind === 'laboratorio' &&
+                                            'bg-cyan-500/12 text-cyan-800 dark:text-cyan-200',
+                                        item.kind === 'cirugia' &&
+                                            'bg-rose-500/12 text-rose-800 dark:text-rose-200',
+                                        item.kind === 'internamiento' &&
+                                            'bg-orange-500/12 text-orange-800 dark:text-orange-200',
+                                        item.kind === 'grooming' &&
+                                            'bg-violet-500/12 text-violet-800 dark:text-violet-200',
+                                        item.kind === 'hotel' &&
+                                            'bg-indigo-500/12 text-indigo-800 dark:text-indigo-200',
                                     )}
                                 >
                                     {item.kind === 'consulta'
                                         ? t('historial.badge_consulta')
-                                        : t('historial.badge_aplicacion')}
+                                        : item.kind === 'aplicacion'
+                                          ? t('historial.badge_aplicacion')
+                                          : t(`historial.badge_${item.kind}`)}
                                 </Badge>
                                 {item.kind === 'consulta' ? (
                                     item.cerrada ? (
@@ -501,9 +584,13 @@ export function PacienteTimelineRow({
                                             {t('historial.badge_abierta')}
                                         </Badge>
                                     )
-                                ) : (
+                                ) : item.kind === 'aplicacion' ? (
                                     <Badge variant="secondary" className="text-[0.65rem] font-medium">
                                         {categoriaEtiqueta(item.categoria)}
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="secondary" className="text-[0.65rem] font-medium capitalize">
+                                        {item.estado.replaceAll('_', ' ')}
                                     </Badge>
                                 )}
                                 {vinculosCount > 0 ? (
@@ -533,13 +620,18 @@ export function PacienteTimelineRow({
                                     <Clock className="size-3 opacity-70" strokeWidth={2.5} />
                                     {horaFmt}
                                 </time>
-                                {item.veterinario ? (
+                                {'veterinario' in item && item.veterinario ? (
                                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                         <Stethoscope className="size-3 text-primary/70" />
                                         {item.veterinario}
                                     </span>
                                 ) : null}
                             </div>
+                            {item.kind !== 'consulta' &&
+                            item.kind !== 'aplicacion' &&
+                            item.detalle_corto ? (
+                                <p className="text-xs text-muted-foreground">{item.detalle_corto}</p>
+                            ) : null}
 
                             {item.kind === 'consulta' &&
                             (item.detalle.peso_kg ||
@@ -599,9 +691,32 @@ export function PacienteTimelineRow({
                         </div>
 
                         <div className="flex shrink-0 flex-col items-end gap-1.5">
-                            <CobroPill cobro={item.cobro} isPublic={isPublic} />
+                            <CobroPill
+                                cobro={'cobro' in item ? item.cobro : null}
+                                isPublic={isPublic}
+                            />
 
                             <div className="flex flex-wrap items-center justify-end gap-1.5">
+                                {item.kind !== 'consulta' &&
+                                item.kind !== 'aplicacion' &&
+                                item.href &&
+                                !isPublic ? (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="group/btn h-8 gap-1.5 px-2.5 text-xs"
+                                        asChild
+                                    >
+                                        <Link href={item.href}>
+                                            <ExternalLink
+                                                className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
+                                                strokeWidth={2.25}
+                                            />
+                                            {t('historial.ver_evento')}
+                                        </Link>
+                                    </Button>
+                                ) : null}
                                 {item.kind === 'consulta' && permisos.consultas_ver ? (
                                     <>
                                         {!isPublic && (onOpenConsulta || item.historia_url) ? (

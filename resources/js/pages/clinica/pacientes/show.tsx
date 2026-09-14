@@ -3,6 +3,8 @@ import { CalendarDays, FolderOpen, History } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import { CitaFormModal } from '../citas/components/cita-form-modal';
@@ -103,6 +105,23 @@ export type TimelineAplicacionDetalle = {
     notas: string | null;
 };
 
+export type TimelineEventKind =
+    | 'laboratorio'
+    | 'cirugia'
+    | 'internamiento'
+    | 'grooming'
+    | 'hotel';
+
+export type TimelineEventItem = {
+    kind: TimelineEventKind;
+    id: string;
+    ocurrido_at: string;
+    titulo: string;
+    estado: string;
+    href: string;
+    detalle_corto?: string | null;
+};
+
 export type TimelineItem =
     | {
           kind: 'consulta';
@@ -132,7 +151,12 @@ export type TimelineItem =
           cobro?: TimelineCobro | null;
           registro?: VacunaAplicadaRow;
           detalle: TimelineAplicacionDetalle;
-      };
+      }
+    | TimelineEventItem;
+
+export function timelineLane(kind: TimelineItem['kind']): 'clinico' | 'servicio' {
+    return kind === 'grooming' || kind === 'hotel' ? 'servicio' : 'clinico';
+}
 
 type Props = {
     paciente: Paciente;
@@ -188,6 +212,9 @@ export default function PacienteShow({
 }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
     const { timezone: appTz } = usePage().props;
+    const [timelineLaneFilter, setTimelineLaneFilter] = useState<
+        'todo' | 'clinico' | 'servicio'
+    >('todo');
     const [shareTarget, setShareTarget] = useState<ClinicalHistoryShareTarget>(null);
     const [labOpen, setLabOpen] = useState(false);
     const [labPrefillConsultaId, setLabPrefillConsultaId] = useState<string | null>(
@@ -249,28 +276,47 @@ export default function PacienteShow({
         return [p.nombres, p.apellidos].filter(Boolean).join(' ') || '—';
     }, [paciente.propietario]);
 
+    const visibleTimeline = useMemo(() => {
+        if (timelineLaneFilter === 'todo') {
+            return timeline;
+        }
+
+        return timeline.filter(
+            (item) => timelineLane(item.kind) === timelineLaneFilter,
+        );
+    }, [timeline, timelineLaneFilter]);
+
+    const hasClinico = useMemo(
+        () => timeline.some((item) => timelineLane(item.kind) === 'clinico'),
+        [timeline],
+    );
+    const hasServicio = useMemo(
+        () => timeline.some((item) => timelineLane(item.kind) === 'servicio'),
+        [timeline],
+    );
+
     const timelineStats = useMemo(
         () => ({
             consultas: timeline.filter((i) => i.kind === 'consulta').length,
             aplicaciones: timeline.filter((i) => i.kind === 'aplicacion').length,
+            servicios: timeline.filter((i) => timelineLane(i.kind) === 'servicio')
+                .length,
             total: timeline.length,
         }),
         [timeline],
     );
 
-    // Marca el primer ítem de cada día para que la tarjeta dibuje el encabezado
-    // de fecha (grupo por día) en vez de repetirla en cada fila.
     const timelineDateHeaders = useMemo(() => {
         const tz = appTz ?? 'UTC';
         let prevDayKey = '';
 
-        return timeline.map((item) => {
+        return visibleTimeline.map((item) => {
             const dayKey = dateKeyInAppTimezone(item.ocurrido_at, tz);
             const isNewDay = dayKey !== prevDayKey;
             prevDayKey = dayKey;
             return isNewDay;
         });
-    }, [timeline, appTz]);
+    }, [visibleTimeline, appTz]);
 
     const openVacunaRegistro = useCallback((item: Extract<TimelineItem, { kind: 'aplicacion' }>) => {
         if (item.registro) {
@@ -373,7 +419,7 @@ export default function PacienteShow({
                     ) : null}
 
                 <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
-                    <header className="flex flex-col gap-2 border-b border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <header className="flex flex-col gap-3 border-b border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                         <div className="flex items-center gap-2.5">
                             <span className="flex size-9 items-center justify-center rounded-xl bg-primary/12 text-primary">
                                 <CalendarDays className="size-4" strokeWidth={2.25} />
@@ -382,22 +428,49 @@ export default function PacienteShow({
                                 <h2 className="text-base font-semibold text-foreground">{t('historial.timeline_title')}</h2>
                                 <p className="text-xs text-muted-foreground">{t('historial.timeline_hint')}</p>
                             </div>
-                </div>
+                        </div>
+                        {hasClinico || hasServicio ? (
+                            <div className="flex flex-wrap gap-1.5">
+                                {(
+                                    [
+                                        { id: 'todo' as const, show: true },
+                                        { id: 'clinico' as const, show: hasClinico },
+                                        { id: 'servicio' as const, show: hasServicio },
+                                    ] as const
+                                )
+                                    .filter((opt) => opt.show)
+                                    .map((opt) => (
+                                        <Button
+                                            key={opt.id}
+                                            type="button"
+                                            size="sm"
+                                            variant={timelineLaneFilter === opt.id ? 'default' : 'outline'}
+                                            className={cn(
+                                                'h-8 cursor-pointer px-3 text-xs',
+                                                timelineLaneFilter !== opt.id && 'bg-background',
+                                            )}
+                                            onClick={() => setTimelineLaneFilter(opt.id)}
+                                        >
+                                            {t(`historial.lane_${opt.id}`)}
+                                        </Button>
+                                    ))}
+                            </div>
+                        ) : null}
                     </header>
 
                     <div className="p-4 sm:p-5">
-                        {!permisos.consultas_ver && !permisos.vacunas_ver ? (
-                            <p className="text-sm text-muted-foreground">{t('historial.sin_permisos')}</p>
-                        ) : timeline.length === 0 ? (
+                        {timeline.length === 0 ? (
                             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/15 px-6 py-12 text-center">
                                 <span className="flex size-14 items-center justify-center rounded-2xl bg-muted/50 text-muted-foreground">
                                     <History className="size-7 opacity-60" strokeWidth={1.75} />
                                 </span>
                                 <p className="max-w-md text-sm text-muted-foreground">{t('historial.timeline_empty')}</p>
                             </div>
+                        ) : visibleTimeline.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">{t('historial.timeline_empty_filter')}</p>
                         ) : (
                             <ul className="relative m-0 list-none p-0">
-                                {timeline.map((item, index) => (
+                                {visibleTimeline.map((item, index) => (
                                     <PacienteTimelineRow
                                         key={`${item.kind}-${item.id}`}
                                         item={item}
@@ -405,7 +478,7 @@ export default function PacienteShow({
                                         showDateHeader={timelineDateHeaders[index]}
                                         appTz={appTz}
                                         permisos={permisos}
-                                        isLast={index === timeline.length - 1}
+                                        isLast={index === visibleTimeline.length - 1}
                                         consultaOpeningId={consultaLoadingId}
                                         onOpenConsulta={openConsultaRegistro}
                                         onOpenAplicacion={openVacunaRegistro}
