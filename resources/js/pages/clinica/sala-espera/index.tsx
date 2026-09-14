@@ -496,81 +496,81 @@ export default function SalaEsperaIndex({ board }: Props) {
                         </p>
                     </div>
                     </div>
-                </header>
 
-                {board.can_enviar ? (
-                    <section className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm md:p-4">
-                        <div className="relative">
-                            <Search
-                                className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-5 -translate-y-1/2 text-sky-600/80 dark:text-sky-400"
-                                strokeWidth={2.25}
-                                aria-hidden
-                            />
-                            <Input
-                                value={q}
-                                onChange={(e) => setQ(e.target.value)}
-                                placeholder={t('sala_espera.search_placeholder')}
-                                className="h-12 rounded-xl border-border/80 bg-muted/30 pr-3 pl-11 text-base shadow-none"
-                                autoComplete="off"
-                            />
-                        </div>
-                        {q.trim().length === 0 ? (
-                            <p className="mt-2 px-0.5 text-xs text-muted-foreground">
-                                {t('sala_espera.search_hint')}
-                            </p>
-                        ) : null}
-                        {q.trim().length > 0 && q.trim().length < 2 ? (
-                            <p className="mt-3 text-sm text-muted-foreground">
-                                {t('sala_espera.search_min')}
-                            </p>
-                        ) : null}
-                        {q.trim().length >= 2 ? (
-                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                {searching && hits.length === 0 ? (
-                                    <p className="px-1 py-3 text-sm text-muted-foreground sm:col-span-2">
-                                        {t('actions.loading')}
-                                    </p>
-                                ) : hits.length === 0 ? (
-                                    <p className="px-1 py-3 text-sm text-muted-foreground sm:col-span-2">
-                                        {t('sala_espera.search_empty')}
-                                    </p>
-                                ) : (
-                                    hits.map((hit) => (
-                                        <div
-                                            key={hit.id}
-                                            className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5"
-                                        >
-                                            <PacienteAvatar
-                                                fotoUrl={hit.foto_url}
-                                                nombre={hit.nombre}
-                                                size="sm"
-                                            />
-                                            <div className="min-w-0 flex-1">
-                                                <Link
-                                                    href={hit.href}
-                                                    className="font-medium text-foreground hover:underline"
-                                                >
-                                                    {hit.nombre}
-                                                </Link>
-                                                <p className="truncate text-xs text-muted-foreground">
-                                                    {hit.especie
-                                                        ? `${hit.especie} · `
-                                                        : ''}
-                                                    {hit.propietario}
-                                                </p>
-                                            </div>
-                                            <SalaEsperaEnviarButton
-                                                pacienteId={hit.id}
-                                                canConsulta={board.can_consulta}
-                                                canGrooming={board.can_grooming}
-                                            />
-                                        </div>
-                                    ))
-                                )}
+                    {board.can_enviar ? (
+                        <div className="relative mt-5 border-t border-sky-500/15 pt-4 dark:border-white/10">
+                            <div className="relative">
+                                <Search
+                                    className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-5 -translate-y-1/2 text-sky-600/80 dark:text-sky-400"
+                                    strokeWidth={2.25}
+                                    aria-hidden
+                                />
+                                <Input
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder={t('sala_espera.search_placeholder')}
+                                    className="h-11 rounded-xl border-border/50 bg-white/70 pr-3 pl-11 text-base shadow-none backdrop-blur-sm dark:bg-background/50"
+                                    autoComplete="off"
+                                />
                             </div>
-                        ) : null}
-                    </section>
-                ) : null}
+                            {q.trim().length === 0 ? (
+                                <p className="mt-2 px-0.5 text-xs text-muted-foreground">
+                                    {t('sala_espera.search_hint')}
+                                </p>
+                            ) : null}
+                            {q.trim().length > 0 && q.trim().length < 2 ? (
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    {t('sala_espera.search_min')}
+                                </p>
+                            ) : null}
+                            {q.trim().length >= 2 ? (
+                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                    {searching && hits.length === 0 ? (
+                                        <p className="px-1 py-3 text-sm text-muted-foreground sm:col-span-2">
+                                            {t('actions.loading')}
+                                        </p>
+                                    ) : hits.length === 0 ? (
+                                        <p className="px-1 py-3 text-sm text-muted-foreground sm:col-span-2">
+                                            {t('sala_espera.search_empty')}
+                                        </p>
+                                    ) : (
+                                        hits.map((hit) => (
+                                            <div
+                                                key={hit.id}
+                                                className="flex items-center gap-3 rounded-xl border border-border/50 bg-white/60 px-3 py-2.5 dark:bg-background/40"
+                                            >
+                                                <PacienteAvatar
+                                                    fotoUrl={hit.foto_url}
+                                                    nombre={hit.nombre}
+                                                    size="sm"
+                                                />
+                                                <div className="min-w-0 flex-1">
+                                                    <Link
+                                                        href={hit.href}
+                                                        className="font-medium text-foreground hover:underline"
+                                                    >
+                                                        {hit.nombre}
+                                                    </Link>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {hit.especie
+                                                            ? `${hit.especie} · `
+                                                            : ''}
+                                                        {hit.propietario}
+                                                    </p>
+                                                </div>
+                                                <SalaEsperaEnviarButton
+                                                    pacienteId={hit.id}
+                                                    canConsulta={board.can_consulta}
+                                                    canGrooming={board.can_grooming}
+                                                />
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
+                </header>
 
                 <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-2">
                     {board.can_consulta ? (
