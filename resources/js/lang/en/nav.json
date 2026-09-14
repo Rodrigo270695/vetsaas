@@ -20,6 +20,7 @@
     },
     "items": {
         "dashboard": "Dashboard",
+        "sala_espera": "Waiting room",
         "pacientes": "Patients",
         "clinicas_asesoradas": "Advised clinics",
         "propietarios": "Owners",

@@ -20,6 +20,7 @@
     },
     "items": {
         "dashboard": "Dashboard",
+        "sala_espera": "Sala de espera",
         "pacientes": "Pacientes",
         "clinicas_asesoradas": "Clínicas asesoradas",
         "propietarios": "Propietarios",

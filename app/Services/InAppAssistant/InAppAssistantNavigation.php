@@ -18,6 +18,7 @@ final class InAppAssistantNavigation
     {
         $destinations = [
             ['id' => 'dashboard', 'label' => 'Dashboard', 'url' => '/dashboard', 'aliases' => ['inicio', 'resumen'], 'required_permissions' => ['dashboard.view']],
+            ['id' => 'sala-espera', 'label' => 'Sala de espera', 'url' => '/clinica/sala-espera', 'aliases' => ['sala', 'espera', 'turnos', 'recepción', 'recepcion'], 'required_permissions' => ['sala-espera.view']],
             ['id' => 'pacientes', 'label' => 'Pacientes', 'url' => '/clinica/pacientes', 'aliases' => ['paciente', 'mascotas', 'historial'], 'required_permissions' => ['pacientes.view']],
             ['id' => 'propietarios', 'label' => 'Propietarios', 'url' => '/clinica/propietarios', 'aliases' => ['dueños', 'duenos', 'titulares', 'clientes'], 'required_permissions' => ['propietarios.view']],
             ['id' => 'citas', 'label' => 'Citas', 'url' => '/clinica/citas', 'aliases' => ['agenda', 'calendario'], 'required_permissions' => ['citas.view']],

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bath, CalendarDays, Check, Stethoscope } from 'lucide-react';
+import { Bath, CalendarDays, Check, Stethoscope, Timer } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ type SalaItem = {
     id: string;
     tipo: 'consulta' | 'grooming';
     paciente: string;
+    propietario?: string;
+    numero?: number | null;
     hora: string;
     estado: string;
     href: string;
@@ -66,6 +68,7 @@ export function SalaEsperaHeaderIcons() {
     const { t } = useTranslation('common');
     const { tenant } = usePage().props;
     const { can } = usePermission();
+    const canVista = can('sala-espera.view');
     const citasOn = useTenantModuleEnabled('citas');
     const groomingOn = useTenantModuleEnabled('grooming');
     const canConsulta = can('sala-espera.consulta') && citasOn;
@@ -127,6 +130,23 @@ export function SalaEsperaHeaderIcons() {
 
     return (
         <>
+            {canVista ? (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="relative size-9 cursor-pointer text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                    asChild
+                >
+                    <Link
+                        href="/clinica/sala-espera"
+                        aria-label={t('sala_espera.ver_sala')}
+                        title={t('sala_espera.ver_sala')}
+                    >
+                        <Timer className="size-4" strokeWidth={2.25} />
+                    </Link>
+                </Button>
+            ) : null}
             {canCitas ? (
                 <Button
                     type="button"
@@ -410,6 +430,9 @@ function SalaGroup({
                         onClick={onNavigate}
                         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-sm"
                     >
+                        <span className="w-7 shrink-0 font-mono text-xs font-semibold tabular-nums text-muted-foreground">
+                            {item.numero != null ? `#${item.numero}` : ''}
+                        </span>
                         <span className="min-w-0 flex-1 truncate font-medium text-foreground">
                             {item.paciente}
                         </span>

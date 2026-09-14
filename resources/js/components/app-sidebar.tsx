@@ -65,6 +65,7 @@ import {
     Stethoscope,
     Store,
     Syringe,
+    Timer,
     Trophy,
     Truck,
     UserCog,
@@ -109,6 +110,13 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                     href: dashboard(),
                     icon: LayoutGrid,
                     permission: 'dashboard.view',
+                },
+                {
+                    title: t('items.sala_espera'),
+                    href: '/clinica/sala-espera',
+                    icon: Timer,
+                    permission: 'sala-espera.view',
+                    context: 'tenant',
                 },
             ],
             groups: [

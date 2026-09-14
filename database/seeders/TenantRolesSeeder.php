@@ -79,7 +79,7 @@ class TenantRolesSeeder extends Seeder
                 'petpass.view', 'petpass.register',
                 'propietarios.view', 'propietarios.create', 'propietarios.update', 'propietarios.delete', 'propietarios.export', 'propietarios.bulk-delete',
                 'citas.view', 'citas.create', 'citas.update', 'citas.delete', 'citas.cancel', 'citas.aperturar',
-                'sala-espera.consulta', 'sala-espera.grooming', 'sala-espera.enviar', 'sala-espera.marcar-atendido',
+                'sala-espera.view', 'sala-espera.consulta', 'sala-espera.grooming', 'sala-espera.enviar', 'sala-espera.marcar-atendido',
                 'historias-clinicas.view', 'historias-clinicas.create', 'historias-clinicas.update', 'historias-clinicas.delete',
                 'historias-clinicas-planes.view', 'historias-clinicas-planes.manage',
                 'vacunaciones.view', 'vacunaciones.create', 'vacunaciones.update', 'vacunaciones.delete',
@@ -246,7 +246,7 @@ class TenantRolesSeeder extends Seeder
 
                 // Agenda completa (sin aperturar: eso lo hace el veterinario)
                 'citas.view', 'citas.create', 'citas.update', 'citas.cancel',
-                'sala-espera.consulta', 'sala-espera.grooming', 'sala-espera.enviar', 'sala-espera.marcar-atendido',
+                'sala-espera.view', 'sala-espera.consulta', 'sala-espera.grooming', 'sala-espera.enviar', 'sala-espera.marcar-atendido',
 
                 // Lista HC solo para cobro (cargos); sin plan clínico ni crear/editar consultas
                 'historias-clinicas.view',

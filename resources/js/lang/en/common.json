@@ -177,6 +177,17 @@
         "send_exists": "Already in today’s queue.",
         "send_error": "Could not add to the waiting room.",
         "marcar": "Mark attended",
-        "ir_citas": "Go to appointments"
+        "llamar": "Call",
+        "llamado": "Called",
+        "ir_citas": "Go to appointments",
+        "ver_sala": "Open waiting room",
+        "search_placeholder": "Search patient, owner or ID…",
+        "search_hint": "Searching an owner lists all of their pets so you can send them to the waiting room.",
+        "search_empty": "No matches.",
+        "search_min": "Type at least 2 characters.",
+        "minutos": "{{count}} min",
+        "turno": "Ticket",
+        "hc": "Record",
+        "owner": "Owner"
     }
 }

@@ -177,6 +177,17 @@
         "send_exists": "Ya estaba en la cola de hoy.",
         "send_error": "No se pudo pasar a sala de espera.",
         "marcar": "Marcar atendido",
-        "ir_citas": "Ir a citas"
+        "llamar": "Llamar",
+        "llamado": "Llamado",
+        "ir_citas": "Ir a citas",
+        "ver_sala": "Abrir sala de espera",
+        "search_placeholder": "Buscar paciente, propietario o documento…",
+        "search_hint": "Si buscas un dueño, verás todas sus mascotas para pasarlas a sala.",
+        "search_empty": "No hay coincidencias.",
+        "search_min": "Escribe al menos 2 caracteres.",
+        "minutos": "{{count}} min",
+        "turno": "Turno",
+        "hc": "Historia",
+        "owner": "Tutor"
     }
 }

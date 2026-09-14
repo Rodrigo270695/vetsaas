@@ -539,7 +539,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:sala-espera.consulta|sala-espera.grooming')
                 ->get('sala-espera/resumen', [SalaEsperaController::class, 'resumen'])
                 ->name('sala-espera.resumen');
-            Route::middleware('permission:sala-espera.consulta|sala-espera.grooming')
+            Route::middleware('permission:sala-espera.view|sala-espera.enviar')
+                ->get('sala-espera/buscar', [SalaEsperaController::class, 'buscar'])
+                ->name('sala-espera.buscar');
+            Route::middleware('permission:sala-espera.view|sala-espera.consulta|sala-espera.grooming')
                 ->get('sala-espera', [SalaEsperaController::class, 'show'])
                 ->name('sala-espera');
             Route::middleware('permission:sala-espera.enviar')

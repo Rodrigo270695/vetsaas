@@ -91,6 +91,7 @@ class GroomingTurno extends Model
         'owner_responded_at',
         'sala_espera_atendido_at',
         'sala_espera_enviado_at',
+        'sala_espera_numero',
     ];
 
     protected function casts(): array
@@ -104,6 +105,7 @@ class GroomingTurno extends Model
             'owner_responded_at' => 'datetime',
             'sala_espera_atendido_at' => 'datetime',
             'sala_espera_enviado_at' => 'datetime',
+            'sala_espera_numero' => 'integer',
         ];
     }
 

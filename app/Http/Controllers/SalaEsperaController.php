@@ -10,6 +10,8 @@ use App\Services\Clinica\SalaEsperaNotifier;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class SalaEsperaController extends Controller
 {
@@ -17,14 +19,39 @@ class SalaEsperaController extends Controller
         Request $request,
         TenantManager $tenants,
         SalaEsperaHoyService $salaEspera,
-    ): JsonResponse {
+    ): JsonResponse|InertiaResponse {
         $user = $request->user();
         abort_if($user === null, 401);
 
-        $tipo = (string) $request->string('tipo', SalaEsperaHoyService::TIPO_CONSULTA);
         $tenant = $tenants->current()?->tenant;
 
+        if ($request->inertia() || ! $request->expectsJson()) {
+            abort_unless($user->can('sala-espera.view'), 403);
+
+            return Inertia::render('clinica/sala-espera/index', [
+                'board' => $salaEspera->board($user, $tenant),
+            ]);
+        }
+
+        $tipo = (string) $request->string('tipo', SalaEsperaHoyService::TIPO_CONSULTA);
+
         return response()->json($salaEspera->forQueue($user, $tenant, $tipo));
+    }
+
+    public function buscar(
+        Request $request,
+        SalaEsperaHoyService $salaEspera,
+    ): JsonResponse {
+        $user = $request->user();
+        abort_if($user === null, 401);
+        abort_unless($user->can('sala-espera.view') || $user->can('sala-espera.enviar'), 403);
+        abort_unless($user->can('pacientes.view'), 403);
+
+        $q = trim((string) $request->string('q', ''));
+
+        return response()->json([
+            'data' => $salaEspera->buscarPacientes($q),
+        ]);
     }
 
     public function resumen(
