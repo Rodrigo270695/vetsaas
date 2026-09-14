@@ -17,6 +17,13 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             locale: string;
             timezone: string;
+            broadcast: {
+                enabled: boolean;
+                key: string | null;
+                host?: string | null;
+                port?: number | null;
+                scheme?: string | null;
+            };
             tenant: TenantShared | null;
             auth_pet_photos: string[];
             clinic_branding: ClinicBranding | null;

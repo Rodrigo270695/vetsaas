@@ -212,77 +212,114 @@ final class SalaEsperaHoyService
         $now = Carbon::now($tz);
         $paciente->loadMissing('propietario');
 
-        if ($tipo === self::TIPO_CONSULTA) {
-            $this->assertModule($tenant, 'citas');
-            $existing = $this->citaEnColaHoy($paciente, $now);
+        return DB::transaction(function () use ($user, $tenant, $paciente, $tipo, $tz, $now): array {
+            $this->lockNumeroDia($now);
+
+            if ($tipo === self::TIPO_CONSULTA) {
+                $this->assertModule($tenant, 'citas');
+                $existing = $this->citaEnColaHoy($paciente, $now);
+                if ($existing !== null) {
+                    $this->marcarEnviado($existing, $now);
+                    $existing->setRelation('paciente', $paciente);
+
+                    return [
+                        'created' => false,
+                        'item' => $this->serializeRecord($existing, self::TIPO_CONSULTA, '/clinica/citas', $tz),
+                    ];
+                }
+
+                $payload = [
+                    'paciente_id' => $paciente->id,
+                    'inicio_at' => $now->copy()->startOfMinute(),
+                    'duracion_minutos' => 15,
+                    'estado' => Cita::ESTADO_PROGRAMADA,
+                    'motivo' => 'Sala de espera',
+                    'sala_espera_enviado_at' => $now,
+                    'created_by_id' => $user->id,
+                    'updated_by_id' => $user->id,
+                ];
+                $numero = $this->siguienteNumeroDia($now);
+                if ($numero !== null) {
+                    $payload['sala_espera_numero'] = $numero;
+                }
+
+                $cita = Cita::query()->create($payload);
+                $cita->setRelation('paciente', $paciente);
+
+                return [
+                    'created' => true,
+                    'item' => $this->serializeRecord($cita, self::TIPO_CONSULTA, '/clinica/citas', $tz),
+                ];
+            }
+
+            $this->assertModule($tenant, 'grooming');
+            $existing = $this->groomingEnColaHoy($paciente, $now);
             if ($existing !== null) {
                 $this->marcarEnviado($existing, $now);
                 $existing->setRelation('paciente', $paciente);
 
                 return [
                     'created' => false,
-                    'item' => $this->serializeRecord($existing, self::TIPO_CONSULTA, '/clinica/citas', $tz),
+                    'item' => $this->serializeRecord($existing, self::TIPO_GROOMING, '/servicios/grooming', $tz),
                 ];
             }
 
             $payload = [
                 'paciente_id' => $paciente->id,
                 'inicio_at' => $now->copy()->startOfMinute(),
-                'duracion_minutos' => 15,
-                'estado' => Cita::ESTADO_PROGRAMADA,
-                'motivo' => 'Sala de espera',
+                'duracion_minutos' => 30,
+                'estado' => GroomingTurno::ESTADO_PROGRAMADA,
+                'servicio' => 'bano_higienico',
                 'sala_espera_enviado_at' => $now,
                 'created_by_id' => $user->id,
                 'updated_by_id' => $user->id,
             ];
-            $numero = $this->siguienteNumero('citas', $now);
+            $numero = $this->siguienteNumeroDia($now);
             if ($numero !== null) {
                 $payload['sala_espera_numero'] = $numero;
             }
 
-            $cita = Cita::query()->create($payload);
-            $cita->setRelation('paciente', $paciente);
+            $turno = GroomingTurno::query()->create($payload);
+            $turno->setRelation('paciente', $paciente);
 
             return [
                 'created' => true,
-                'item' => $this->serializeRecord($cita, self::TIPO_CONSULTA, '/clinica/citas', $tz),
+                'item' => $this->serializeRecord($turno, self::TIPO_GROOMING, '/servicios/grooming', $tz),
             ];
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function item(User $user, string $tipo, string $id): array
+    {
+        $tipo = $this->normalizeTipo($tipo);
+        $tz = (string) config('app.timezone');
+
+        if ($tipo === self::TIPO_CONSULTA) {
+            abort_unless($user->can('sala-espera.consulta') || $user->can('sala-espera.view'), 403);
+            $record = Cita::query()
+                ->with([
+                    'paciente:id,nombre,especie,foto_path,propietario_id',
+                    'paciente.propietario:id,nombres,apellidos,razon_social',
+                ])
+                ->whereKey($id)
+                ->firstOrFail();
+
+            return $this->serializeRecord($record, self::TIPO_CONSULTA, '/clinica/citas', $tz);
         }
 
-        $this->assertModule($tenant, 'grooming');
-        $existing = $this->groomingEnColaHoy($paciente, $now);
-        if ($existing !== null) {
-            $this->marcarEnviado($existing, $now);
-            $existing->setRelation('paciente', $paciente);
+        abort_unless($user->can('sala-espera.grooming') || $user->can('sala-espera.view'), 403);
+        $record = GroomingTurno::query()
+            ->with([
+                'paciente:id,nombre,especie,foto_path,propietario_id',
+                'paciente.propietario:id,nombres,apellidos,razon_social',
+            ])
+            ->whereKey($id)
+            ->firstOrFail();
 
-            return [
-                'created' => false,
-                'item' => $this->serializeRecord($existing, self::TIPO_GROOMING, '/servicios/grooming', $tz),
-            ];
-        }
-
-        $payload = [
-            'paciente_id' => $paciente->id,
-            'inicio_at' => $now->copy()->startOfMinute(),
-            'duracion_minutos' => 30,
-            'estado' => GroomingTurno::ESTADO_PROGRAMADA,
-            'servicio' => 'bano_higienico',
-            'sala_espera_enviado_at' => $now,
-            'created_by_id' => $user->id,
-            'updated_by_id' => $user->id,
-        ];
-        $numero = $this->siguienteNumero('grooming_turnos', $now);
-        if ($numero !== null) {
-            $payload['sala_espera_numero'] = $numero;
-        }
-
-        $turno = GroomingTurno::query()->create($payload);
-        $turno->setRelation('paciente', $paciente);
-
-        return [
-            'created' => true,
-            'item' => $this->serializeRecord($turno, self::TIPO_GROOMING, '/servicios/grooming', $tz),
-        ];
+        return $this->serializeRecord($record, self::TIPO_GROOMING, '/servicios/grooming', $tz);
     }
 
     public function marcarAtendido(User $user, string $tipo, string $id): void
@@ -396,18 +433,58 @@ final class SalaEsperaHoyService
         ];
     }
 
-    private function siguienteNumero(string $table, Carbon $now): ?int
+    /**
+     * Un solo correlativo por clínica y día calendario (consulta + peluquería).
+     * Al cambiar el día vuelve a 1.
+     */
+    private function siguienteNumeroDia(Carbon $now): ?int
     {
-        if (! Schema::hasColumn($table, 'sala_espera_numero')) {
+        if (! Schema::hasColumn('citas', 'sala_espera_numero')
+            && ! Schema::hasColumn('grooming_turnos', 'sala_espera_numero')) {
             return null;
         }
 
-        $max = DB::table($table)
-            ->whereBetween('inicio_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])
-            ->whereNotNull('sala_espera_numero')
-            ->max('sala_espera_numero');
+        $inicio = $now->copy()->startOfDay();
+        $fin = $now->copy()->endOfDay();
+        $max = max(
+            $this->maxNumeroHoy('citas', $inicio, $fin),
+            $this->maxNumeroHoy('grooming_turnos', $inicio, $fin),
+        );
 
-        return ((int) $max) + 1;
+        return $max + 1;
+    }
+
+    private function maxNumeroHoy(string $table, Carbon $inicio, Carbon $fin): int
+    {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'sala_espera_numero')) {
+            return 0;
+        }
+
+        $query = DB::table($table)->whereNotNull('sala_espera_numero');
+
+        if (Schema::hasColumn($table, 'sala_espera_enviado_at')) {
+            $query->where(function ($inner) use ($inicio, $fin): void {
+                $inner->whereBetween('sala_espera_enviado_at', [$inicio, $fin])
+                    ->orWhere(function ($fallback) use ($inicio, $fin): void {
+                        $fallback->whereNull('sala_espera_enviado_at')
+                            ->whereBetween('inicio_at', [$inicio, $fin]);
+                    });
+            });
+        } else {
+            $query->whereBetween('inicio_at', [$inicio, $fin]);
+        }
+
+        return (int) $query->max('sala_espera_numero');
+    }
+
+    private function lockNumeroDia(Carbon $now): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+
+        $key = crc32('sala_espera_numero|'.$now->toDateString());
+        DB::select('select pg_advisory_xact_lock(?)', [$key]);
     }
 
     private function normalizeTipo(string $tipo): string
@@ -476,12 +553,30 @@ final class SalaEsperaHoyService
             return;
         }
 
-        $numero = $this->siguienteNumero($record->getTable(), $now);
-        if ($numero === null) {
+        $assign = function () use ($record, $now): void {
+            $record->refresh();
+            if ($record->sala_espera_numero !== null) {
+                return;
+            }
+
+            $numero = $this->siguienteNumeroDia($now);
+            if ($numero === null) {
+                return;
+            }
+
+            $record->forceFill(['sala_espera_numero' => $numero])->save();
+        };
+
+        if (DB::transactionLevel() > 0) {
+            $assign();
+
             return;
         }
 
-        $record->forceFill(['sala_espera_numero' => $numero])->save();
+        DB::transaction(function () use ($now, $assign): void {
+            $this->lockNumeroDia($now);
+            $assign();
+        });
     }
 
     /**

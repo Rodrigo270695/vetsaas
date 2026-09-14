@@ -84,21 +84,47 @@ class SalaEsperaController extends Controller
         abort_if($tenant === null, 404);
 
         $result = $salaEspera->enviar($user, $tenant, $paciente, (string) $data['tipo']);
-        $notifier->notify($tenant, $user, (string) $result['item']['tipo'], $result['item']);
+        $notifier->ping($tenant, $user, 'enviar', (string) $result['item']['tipo'], $result['item']);
 
         return response()->json($result);
     }
 
-    public function marcarAtendido(
+    public function llamar(
         Request $request,
+        TenantManager $tenants,
         SalaEsperaHoyService $salaEspera,
+        SalaEsperaNotifier $notifier,
         string $tipo,
         string $id,
     ): JsonResponse {
         $user = $request->user();
         abort_if($user === null, 401);
 
+        $tenant = $tenants->current()?->tenant;
+        abort_if($tenant === null, 404);
+
+        $item = $salaEspera->item($user, $tipo, $id);
+        $notifier->ping($tenant, $user, 'llamar', (string) $item['tipo'], $item);
+
+        return response()->json(['ok' => true, 'item' => $item]);
+    }
+
+    public function marcarAtendido(
+        Request $request,
+        TenantManager $tenants,
+        SalaEsperaHoyService $salaEspera,
+        SalaEsperaNotifier $notifier,
+        string $tipo,
+        string $id,
+    ): JsonResponse {
+        $user = $request->user();
+        abort_if($user === null, 401);
+
+        $tenant = $tenants->current()?->tenant;
+        abort_if($tenant === null, 404);
+
         $salaEspera->marcarAtendido($user, $tipo, $id);
+        $notifier->ping($tenant, $user, 'atendido', $tipo, ['id' => $id, 'tipo' => $tipo]);
 
         return response()->json(['ok' => true]);
     }

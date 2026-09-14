@@ -548,6 +548,11 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:sala-espera.enviar')
                 ->post('sala-espera/enviar', [SalaEsperaController::class, 'enviar'])
                 ->name('sala-espera.enviar');
+            Route::middleware('permission:sala-espera.view|sala-espera.consulta|sala-espera.grooming')
+                ->post('sala-espera/{tipo}/{id}/llamar', [SalaEsperaController::class, 'llamar'])
+                ->where('tipo', 'consulta|grooming|cita')
+                ->whereUuid('id')
+                ->name('sala-espera.llamar');
             Route::middleware('permission:sala-espera.marcar-atendido')
                 ->post('sala-espera/{tipo}/{id}/atendido', [SalaEsperaController::class, 'marcarAtendido'])
                 ->where('tipo', 'consulta|grooming|cita')

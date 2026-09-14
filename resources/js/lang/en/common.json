@@ -163,6 +163,7 @@
         "empty_grooming": "No grooming patients waiting",
         "live": "Live",
         "enviar_a": "Send to waiting room",
+        "turnos_dia": "Daily tickets (reset to 1 tomorrow)",
         "count_waiting": "{{count}} waiting",
         "count_now": "{{count}} due now",
         "push_body": "{{count}} patient(s) in the waiting room.",

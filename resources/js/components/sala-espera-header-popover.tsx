@@ -9,6 +9,10 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { usePermission } from '@/hooks/use-permission';
+import {
+    SALA_ESPERA_CHANGED_EVENT,
+    useSalaEsperaRealtime,
+} from '@/hooks/use-sala-espera-realtime';
 import { useTenantModuleEnabled } from '@/hooks/use-tenant-modules';
 import { cn } from '@/lib/utils';
 
@@ -62,11 +66,11 @@ function notifyOs(title: string, body: string): void {
     }
 }
 
-export const SALA_ESPERA_CHANGED_EVENT = 'vetsaas:sala-espera-changed';
+export { SALA_ESPERA_CHANGED_EVENT } from '@/hooks/use-sala-espera-realtime';
 
 export function SalaEsperaHeaderIcons() {
     const { t } = useTranslation('common');
-    const { tenant } = usePage().props;
+    const { tenant, broadcast } = usePage().props;
     const { can } = usePermission();
     const canVista = can('sala-espera.view');
     const citasOn = useTenantModuleEnabled('citas');
@@ -76,6 +80,8 @@ export function SalaEsperaHeaderIcons() {
     const canCitas = can('citas.view') && citasOn;
     const canSala = canConsulta || canGrooming;
     const [visibles, setVisibles] = useState({ consulta: false, grooming: false });
+    const realtimeOn = Boolean(broadcast?.enabled && broadcast.key);
+    useSalaEsperaRealtime(canSala || canVista);
 
     const loadResumen = useCallback(async () => {
         if (!canSala) {
@@ -112,7 +118,7 @@ export function SalaEsperaHeaderIcons() {
         }
         const id = window.setInterval(() => {
             void loadResumen();
-        }, 20_000);
+        }, realtimeOn ? 45_000 : 8_000);
         const onChanged = () => {
             void loadResumen();
         };
@@ -122,7 +128,7 @@ export function SalaEsperaHeaderIcons() {
             window.clearInterval(id);
             window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
         };
-    }, [canSala, loadResumen]);
+    }, [canSala, loadResumen, realtimeOn]);
 
     if (tenant == null) {
         return null;
@@ -226,9 +232,16 @@ function SalaEsperaTipoPopover({ tipo }: { tipo: 'consulta' | 'grooming' }) {
         void load();
         const id = window.setInterval(() => {
             void load();
-        }, 20_000);
+        }, 45_000);
+        const onChanged = () => {
+            void load();
+        };
+        window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
 
-        return () => window.clearInterval(id);
+        return () => {
+            window.clearInterval(id);
+            window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
+        };
     }, [load]);
 
     useEffect(() => {

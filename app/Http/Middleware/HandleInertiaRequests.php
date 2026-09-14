@@ -128,6 +128,14 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'locale' => $request->getLocale(),
             'timezone' => config('app.timezone'),
+            'broadcast' => [
+                'enabled' => filled(config('broadcasting.connections.reverb.key'))
+                    && config('broadcasting.default') === 'reverb',
+                'key' => config('broadcasting.connections.reverb.key'),
+                'host' => config('broadcasting.connections.reverb.options.host') ?: 'localhost',
+                'port' => (int) (config('broadcasting.connections.reverb.options.port') ?: 8080),
+                'scheme' => (string) (config('broadcasting.connections.reverb.options.scheme') ?: 'http'),
+            ],
             'tenant' => $tenantPayload,
             'auth_pet_photos' => $skipHeavySharedProps || $user instanceof User
                 ? []

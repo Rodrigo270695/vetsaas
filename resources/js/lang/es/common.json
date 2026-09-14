@@ -163,6 +163,7 @@
         "empty_grooming": "Sin pacientes en peluquería",
         "live": "En vivo",
         "enviar_a": "Pasar a sala",
+        "turnos_dia": "Turnos del día (mañana empiezan en 1)",
         "count_waiting": "{{count}} en espera",
         "count_now": "{{count}} en hora",
         "push_body": "{{count}} paciente(s) en sala.",

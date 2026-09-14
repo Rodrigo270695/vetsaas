@@ -118,3 +118,29 @@ Broadcast::channel('tenant.{tenantId}.chat.presence', function (User $user, stri
         return false;
     }
 });
+
+Broadcast::channel('tenant.{tenantId}.sala-espera', function (User $user, string $tenantId) use ($matchesTenant) {
+    try {
+        if (! $matchesTenant($user, $tenantId)) {
+            return false;
+        }
+
+        if ($user->isPlatformSuperadmin()) {
+            return ['id' => (string) $user->id, 'name' => (string) $user->name];
+        }
+
+        try {
+            $ok = $user->can('sala-espera.view')
+                || $user->can('sala-espera.consulta')
+                || $user->can('sala-espera.grooming');
+        } catch (Throwable) {
+            $ok = false;
+        }
+
+        return $ok ? ['id' => (string) $user->id, 'name' => (string) $user->name] : false;
+    } catch (Throwable $e) {
+        report($e);
+
+        return false;
+    }
+});

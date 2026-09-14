@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Clinica;
 
+use App\Events\Clinica\SalaEsperaUpdated;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Push\WebPushSender;
@@ -14,6 +15,30 @@ final class SalaEsperaNotifier
     public function __construct(
         private readonly WebPushSender $push,
     ) {}
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    public function ping(Tenant $tenant, User $actor, string $action, string $tipo, array $item = []): void
+    {
+        try {
+            SalaEsperaUpdated::dispatch(
+                (string) $tenant->id,
+                $action,
+                $tipo,
+                $item,
+                (string) $actor->id,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Sala espera broadcast failed', ['error' => $e->getMessage()]);
+        }
+
+        if ($action !== 'enviar') {
+            return;
+        }
+
+        $this->notify($tenant, $actor, $tipo, $item);
+    }
 
     /**
      * @param  array{paciente?: string, hora?: string}  $item
@@ -37,16 +62,18 @@ final class SalaEsperaNotifier
 
         $nombre = (string) ($item['paciente'] ?? 'Paciente');
         $hora = (string) ($item['hora'] ?? '');
+        $numero = $item['numero'] ?? null;
         $title = $tipo === SalaEsperaHoyService::TIPO_GROOMING
             ? 'Sala peluquería'
             : 'Sala consulta';
-        $body = trim($nombre.($hora !== '' ? ' · '.$hora : ''));
+        $turno = is_numeric($numero) ? 'Turno '.((int) $numero).' · ' : '';
+        $body = trim($turno.$nombre.($hora !== '' ? ' · '.$hora : ''));
 
         try {
             $this->push->sendToUsers($users, [
                 'title' => $title,
                 'body' => $body,
-                'url' => '/',
+                'url' => '/clinica/sala-espera',
                 'tag' => 'sala-espera-'.$tipo,
             ]);
         } catch (\Throwable $e) {

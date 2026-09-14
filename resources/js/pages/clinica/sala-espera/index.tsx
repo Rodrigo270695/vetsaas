@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Bath,
     Check,
@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
 import { SALA_ESPERA_CHANGED_EVENT } from '@/components/sala-espera-header-popover';
+import { SALA_ESPERA_LLAMAR_EVENT } from '@/hooks/use-sala-espera-realtime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -140,6 +141,9 @@ function llamarTurno(item: SalaItem, colaLabel: string): void {
 
 export default function SalaEsperaIndex({ board }: Props) {
     const { t } = useTranslation('common');
+    const { auth, broadcast } = usePage().props;
+    const myId = auth.user?.id ? String(auth.user.id) : '';
+    const realtimeOn = Boolean(broadcast?.enabled && broadcast.key);
     const [consulta, setConsulta] = useState(board.consulta);
     const [grooming, setGrooming] = useState(board.grooming);
     const [q, setQ] = useState('');
@@ -163,7 +167,7 @@ export default function SalaEsperaIndex({ board }: Props) {
                     minute: '2-digit',
                 }),
             );
-        }, 15_000);
+        }, 1_000);
 
         return () => window.clearInterval(id);
     }, []);
@@ -177,7 +181,7 @@ export default function SalaEsperaIndex({ board }: Props) {
     }, []);
 
     useEffect(() => {
-        const id = window.setInterval(reloadBoard, 15_000);
+        const id = window.setInterval(reloadBoard, realtimeOn ? 45_000 : 8_000);
         const onChanged = () => reloadBoard();
         window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
 
@@ -185,7 +189,7 @@ export default function SalaEsperaIndex({ board }: Props) {
             window.clearInterval(id);
             window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
         };
-    }, [reloadBoard]);
+    }, [realtimeOn, reloadBoard]);
 
     useEffect(() => {
         const term = q.trim();
@@ -223,6 +227,23 @@ export default function SalaEsperaIndex({ board }: Props) {
     }, [q]);
 
     const mark = useCallback(async (item: SalaItem) => {
+        const drop = (queue: SalaQueue): SalaQueue => {
+            const without = (rows: SalaItem[]) =>
+                rows.filter((row) => !(row.id === item.id && row.tipo === item.tipo));
+
+            return {
+                ...queue,
+                espera: without(queue.espera),
+                proximas: without(queue.proximas),
+                en_curso: without(queue.en_curso),
+            };
+        };
+        if (item.tipo === 'grooming') {
+            setGrooming(drop);
+        } else {
+            setConsulta(drop);
+        }
+
         const res = await fetch(
             `/clinica/sala-espera/${item.tipo}/${item.id}/atendido`,
             {
@@ -238,8 +259,75 @@ export default function SalaEsperaIndex({ board }: Props) {
         );
         if (res.ok) {
             window.dispatchEvent(new Event(SALA_ESPERA_CHANGED_EVENT));
+        } else {
+            reloadBoard();
         }
-    }, []);
+    }, [reloadBoard]);
+
+    const callTurno = useCallback(
+        async (item: SalaItem, colaLabel: string) => {
+            llamarTurno(item, colaLabel);
+            setLlamados((prev) => ({
+                ...prev,
+                [`${item.tipo}-${item.id}`]: true,
+            }));
+            await fetch(`/clinica/sala-espera/${item.tipo}/${item.id}/llamar`, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+        },
+        [],
+    );
+
+    useEffect(() => {
+        const onLlamar = (event: Event) => {
+            const detail = (event as CustomEvent).detail as {
+                actor_id?: string | null;
+                item?: Partial<SalaItem> & { id?: string; tipo?: string };
+            };
+            if (detail.actor_id && myId && String(detail.actor_id) === myId) {
+                return;
+            }
+            const item = detail.item;
+            if (!item?.id || !item.tipo) {
+                return;
+            }
+            setLlamados((prev) => ({
+                ...prev,
+                [`${item.tipo}-${item.id}`]: true,
+            }));
+            llamarTurno(
+                {
+                    id: item.id,
+                    tipo: item.tipo as 'consulta' | 'grooming',
+                    paciente: item.paciente ?? '',
+                    paciente_id: item.paciente_id ?? null,
+                    propietario: item.propietario ?? '',
+                    especie: item.especie ?? null,
+                    foto_url: item.foto_url ?? null,
+                    numero: item.numero ?? null,
+                    hora: item.hora ?? '',
+                    estado: item.estado ?? '',
+                    motivo: item.motivo ?? null,
+                    minutos_espera: item.minutos_espera ?? 0,
+                    href: item.href ?? '',
+                    hc_href: item.hc_href ?? '',
+                },
+                item.tipo === 'grooming'
+                    ? t('sala_espera.grooming')
+                    : t('sala_espera.cita'),
+            );
+        };
+        window.addEventListener(SALA_ESPERA_LLAMAR_EVENT, onLlamar);
+
+        return () => window.removeEventListener(SALA_ESPERA_LLAMAR_EVENT, onLlamar);
+    }, [myId, t]);
 
     const waiting = useMemo(
         () => queueTotal(consulta) + queueTotal(grooming),
@@ -264,6 +352,8 @@ export default function SalaEsperaIndex({ board }: Props) {
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {t('sala_espera.count_waiting', { count: waiting })}
+                            {' · '}
+                            {t('sala_espera.turnos_dia')}
                         </p>
                     </div>
                     <div className="flex items-center gap-3 text-muted-foreground">
@@ -355,11 +445,7 @@ export default function SalaEsperaIndex({ board }: Props) {
                             canMarcar={board.can_marcar}
                             llamados={llamados}
                             onLlamar={(item) => {
-                                llamarTurno(item, t('sala_espera.cita'));
-                                setLlamados((prev) => ({
-                                    ...prev,
-                                    [`${item.tipo}-${item.id}`]: true,
-                                }));
+                                void callTurno(item, t('sala_espera.cita'));
                             }}
                             onMarcar={mark}
                         />
@@ -374,11 +460,7 @@ export default function SalaEsperaIndex({ board }: Props) {
                             canMarcar={board.can_marcar}
                             llamados={llamados}
                             onLlamar={(item) => {
-                                llamarTurno(item, t('sala_espera.grooming'));
-                                setLlamados((prev) => ({
-                                    ...prev,
-                                    [`${item.tipo}-${item.id}`]: true,
-                                }));
+                                void callTurno(item, t('sala_espera.grooming'));
                             }}
                             onMarcar={mark}
                         />

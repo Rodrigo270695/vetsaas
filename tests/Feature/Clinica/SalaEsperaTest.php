@@ -156,6 +156,80 @@ it('asigna número de turno al enviar a sala', function (): void {
         ->assertJsonPath('item.propietario', 'Ana López');
 });
 
+it('comparte un correlativo diario entre consulta y peluquería', function (): void {
+    $ids = app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): array {
+        $propietario = Propietario::query()->create([
+            'nombres' => 'Ana',
+            'apellidos' => 'López',
+            'activo' => true,
+        ]);
+        $uno = Paciente::query()->create([
+            'propietario_id' => $propietario->id,
+            'nombre' => 'Kira',
+            'activo' => true,
+        ]);
+        $dos = Paciente::query()->create([
+            'propietario_id' => $propietario->id,
+            'nombre' => 'Max',
+            'activo' => true,
+        ]);
+
+        return [(string) $uno->id, (string) $dos->id];
+    });
+
+    $this->actingAs($this->testTenantAdmin)
+        ->postJson('http://'.$this->testTenantHost.'/clinica/sala-espera/enviar', [
+            'paciente_id' => $ids[0],
+            'tipo' => 'consulta',
+        ])
+        ->assertOk()
+        ->assertJsonPath('item.numero', 1);
+
+    $this->actingAs($this->testTenantAdmin)
+        ->postJson('http://'.$this->testTenantHost.'/clinica/sala-espera/enviar', [
+            'paciente_id' => $ids[1],
+            'tipo' => 'grooming',
+        ])
+        ->assertOk()
+        ->assertJsonPath('item.numero', 2);
+});
+
+it('reinicia el correlativo al día siguiente', function (): void {
+    $tz = (string) config('app.timezone');
+
+    $pacienteId = app(TenantManager::class)->runForSlug($this->testTenant->slug, function () use ($tz): string {
+        $propietario = Propietario::query()->create([
+            'nombres' => 'Ana',
+            'apellidos' => 'López',
+            'activo' => true,
+        ]);
+        $paciente = Paciente::query()->create([
+            'propietario_id' => $propietario->id,
+            'nombre' => 'Kira',
+            'activo' => true,
+        ]);
+        Cita::query()->create([
+            'paciente_id' => $paciente->id,
+            'inicio_at' => now($tz)->subDay()->setTime(10, 0),
+            'duracion_minutos' => 15,
+            'estado' => Cita::ESTADO_PROGRAMADA,
+            'motivo' => 'Sala de espera',
+            'sala_espera_enviado_at' => now($tz)->subDay()->setTime(10, 0),
+            'sala_espera_numero' => 8,
+        ]);
+
+        return (string) $paciente->id;
+    });
+
+    $this->actingAs($this->testTenantAdmin)
+        ->postJson('http://'.$this->testTenantHost.'/clinica/sala-espera/enviar', [
+            'paciente_id' => $pacienteId,
+            'tipo' => 'consulta',
+        ])
+        ->assertOk()
+        ->assertJsonPath('item.numero', 1);
+});
+
 it('busca mascotas por nombre del propietario', function (): void {
     app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
         $propietario = Propietario::query()->create([
