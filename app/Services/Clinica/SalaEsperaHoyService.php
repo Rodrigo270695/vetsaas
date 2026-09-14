@@ -141,6 +141,7 @@ final class SalaEsperaHoyService
                 $this->constrainSalaActiva($query, 'citas');
 
                 foreach ($query->get() as $cita) {
+                    $this->ensureNumero($cita, $now);
                     $item = $this->serializeRecord($cita, self::TIPO_CONSULTA, '/clinica/citas', $tz);
                     $at = $cita->inicio_at instanceof Carbon
                         ? $cita->inicio_at->timezone($tz)
@@ -171,6 +172,7 @@ final class SalaEsperaHoyService
                 $this->constrainSalaActiva($query, 'grooming_turnos');
 
                 foreach ($query->get() as $turno) {
+                    $this->ensureNumero($turno, $now);
                     $item = $this->serializeRecord($turno, self::TIPO_GROOMING, '/servicios/grooming', $tz);
                     $at = $turno->inicio_at instanceof Carbon
                         ? $turno->inicio_at->timezone($tz)
@@ -457,19 +459,29 @@ final class SalaEsperaHoyService
             $updates['sala_espera_enviado_at'] = now();
         }
 
-        if (Schema::hasColumn($record->getTable(), 'sala_espera_numero')
-            && $record->sala_espera_numero === null) {
-            $numero = $this->siguienteNumero($record->getTable(), $now);
-            if ($numero !== null) {
-                $updates['sala_espera_numero'] = $numero;
-            }
+        if ($updates !== []) {
+            $record->forceFill($updates)->save();
         }
 
-        if ($updates === []) {
+        $this->ensureNumero($record, $now);
+    }
+
+    private function ensureNumero(Cita|GroomingTurno $record, Carbon $now): void
+    {
+        if (! Schema::hasColumn($record->getTable(), 'sala_espera_numero')) {
             return;
         }
 
-        $record->forceFill($updates)->save();
+        if ($record->sala_espera_numero !== null) {
+            return;
+        }
+
+        $numero = $this->siguienteNumero($record->getTable(), $now);
+        if ($numero === null) {
+            return;
+        }
+
+        $record->forceFill(['sala_espera_numero' => $numero])->save();
     }
 
     /**
