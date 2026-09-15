@@ -148,7 +148,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();
         $schedule->command('vetsaas:fel-sync-statuses --limit=100')->everyFiveMinutes();
         if (config('openwa.sync_enabled', true)) {
-            $schedule->command('vetsaas:whatsapp-sync-sessions')->everyFiveMinutes();
+            $schedule->command('vetsaas:whatsapp-sync-sessions')
+                ->everyFiveMinutes()
+                ->withoutOverlapping(12);
         }
         $schedule->command('vetsaas:backup-database')->dailyAt('02:00');
         $schedule->command('vetsaas:chat-prune')->dailyAt('04:15');

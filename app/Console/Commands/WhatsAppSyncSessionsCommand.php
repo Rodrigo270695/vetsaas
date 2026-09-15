@@ -2,25 +2,21 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Tenant;
+use App\Models\PlatformWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
-use App\Services\OpenWa\OpenWaRateLimitedException;
-use App\Services\OpenWa\PlatformWhatsAppSessionSync;
-use App\Services\OpenWa\TenantWhatsAppSessionSync;
-use App\Services\Subscriptions\TenantSubscriptionAccess;
+use App\Services\OpenWa\OpenWaReconnectCoordinator;
 use Illuminate\Console\Command;
 
 class WhatsAppSyncSessionsCommand extends Command
 {
-    protected $signature = 'vetsaas:whatsapp-sync-sessions';
+    protected $signature = 'vetsaas:whatsapp-sync-sessions
+                            {--force : Liberar la cadena de reconexión si quedó colgada}';
 
-    protected $description = 'Sincroniza sesiones OpenWA y reconecta las caídas (plataforma + tenants)';
+    protected $description = 'Refresca estados OpenWA y encola reconexión serial de sesiones caídas';
 
     public function handle(
         OpenWaClient $client,
-        TenantWhatsAppSessionSync $sync,
-        PlatformWhatsAppSessionSync $platformSync,
-        TenantSubscriptionAccess $access,
+        OpenWaReconnectCoordinator $coordinator,
     ): int {
         if (! config('openwa.sync_enabled', true)) {
             $this->warn('Sync OpenWA desactivado (OPENWA_SYNC_ENABLED=false).');
@@ -46,13 +42,17 @@ class WhatsAppSyncSessionsCommand extends Command
             return self::SUCCESS;
         }
 
-        try {
-            $platform = $platformSync->ensure();
-        } catch (OpenWaRateLimitedException $e) {
-            $this->error('OpenWA 429 al sync de plataforma. Se espera el cooldown.');
-
-            return self::SUCCESS;
+        if ((bool) $this->option('force')) {
+            $coordinator->releaseChain();
+            $this->comment('Cadena de reconexión liberada (--force).');
         }
+
+        $result = $coordinator->syncAndEnqueue();
+
+        $platformName = trim((string) config('openwa.platform_session_name', 'vetsaas-platform'));
+        $platform = $platformName !== ''
+            ? PlatformWhatsAppSession::query()->where('openwa_session_name', $platformName)->first()
+            : null;
 
         if ($platform !== null) {
             $this->line(sprintf(
@@ -64,91 +64,20 @@ class WhatsAppSyncSessionsCommand extends Command
             ));
         }
 
-        $limit = max(1, (int) config('openwa.sync_max_tenants_per_run', 8));
-        $pauseMs = max(0, (int) config('openwa.sync_pause_ms', 700));
+        $this->info(sprintf(
+            'Estados refrescados: %d. Caídas encoladas (1 a 1): %d.',
+            $result['refreshed'],
+            $result['queued'],
+        ));
 
-        $synced = 0;
-        $ready = 0;
-
-        $tenants = Tenant::query()
-            ->whereIn('estado', ['trial', 'active'])
-            ->with(['whatsappSession', 'subscriptions.plan'])
-            ->get()
-            ->filter(static fn (Tenant $tenant): bool => $tenant->qualifiesForPaidWhatsApp())
-            ->values();
-
-        $byOldestSync = fn (Tenant $tenant): string => (string) (
-            $tenant->whatsappSession?->last_synced_at?->toIso8601String() ?? '1970-01-01'
-        );
-
-        $down = $tenants
-            ->filter(function (Tenant $tenant): bool {
-                $session = $tenant->whatsappSession;
-                if ($session === null || ! $session->auto_reconnect) {
-                    return false;
-                }
-
-                return in_array((string) $session->status, ['disconnected', 'failed'], true);
-            })
-            ->sortBy($byOldestSync)
-            ->values();
-
-        $rest = $tenants
-            ->reject(fn (Tenant $tenant): bool => $down->contains('id', $tenant->id))
-            ->sortBy($byOldestSync)
-            ->values();
-
-        $reconnectSlots = min(
-            $down->count(),
-            max(0, (int) config('openwa.sync_max_reconnects_per_run', 2)),
-        );
-
-        $tenants = $down->take($reconnectSlots)
-            ->concat($rest)
-            ->concat($down->slice($reconnectSlots))
-            ->unique('id')
-            ->values();
-
-        foreach ($tenants as $tenant) {
-            if ($synced >= $limit) {
-                $this->comment("Lote completo ({$limit} clínicas). El resto rota en la próxima corrida.");
-                break;
-            }
-
-            if (! $access->allowsAccess($tenant)) {
-                continue;
-            }
-
-            try {
-                $session = $sync->ensureForTenant($tenant);
-            } catch (OpenWaRateLimitedException) {
-                $this->error('OpenWA 429: se corta el lote para no empeorar el throttling.');
-                break;
-            }
-
-            if ($session === null) {
-                continue;
-            }
-
-            $synced++;
-            if ($session->isReady()) {
-                $ready++;
-            }
-
-            $this->line(sprintf(
-                '  %s → %s (%s)%s',
-                $tenant->slug,
-                $session->status,
-                $session->phone ?? 'sin teléfono',
-                $session->auto_reconnect ? '' : ' [auto-reconnect off]',
-            ));
-
-            if ($pauseMs > 0 && $synced < $limit) {
-                usleep($pauseMs * 1000);
-            }
+        if ($result['chain_already_running']) {
+            $this->comment('Cadena anterior aún en curso: no se lanza otra en paralelo. Las ya conectadas no se tocan.');
+        } elseif ($result['queued'] === 0) {
+            $this->comment('Nada que reconectar. Las sesiones ready/arrancando no reciben start.');
+        } else {
+            $stagger = max(0, (int) config('openwa.reconnect_stagger_seconds', 20));
+            $this->comment("Worker: un start cada {$stagger}s. Si el job ve la sesión ya conectada, pasa a la siguiente.");
         }
-
-        $this->info("Sesiones sincronizadas: {$synced}, listas (ready): {$ready}");
 
         return self::SUCCESS;
     }

@@ -47,24 +47,29 @@ return [
     'ping_timeout_seconds' => (int) env('OPENWA_PING_TIMEOUT_SECONDS', 4),
 
     /*
-    | Cron que lista/reconecta sesiones. Ponerlo en false si OpenWA se congela
-    | (504 / event loop) al llamar GET /api/sessions.
+    | Cron: lista estados y encola reconexiones. Poner false si OpenWA se
+    | congela (504 / event loop) al llamar GET /api/sessions.
     */
     'sync_enabled' => filter_var(env('OPENWA_SYNC_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
 
     /*
-    | El cron de sync no debe listar/arrancar las ~50 clínicas de un golpe:
-    | OpenWA responde 429 (ThrottlerException). Rotamos un lote por corrida,
-    | cacheamos GET /api/sessions y pausamos si hay rate-limit.
+    | Un GET /api/sessions por corrida (cache corto). Los start van en cola
+    | serial: nunca se reconecta una sesión already live, ni N Chromium a la vez.
     */
     'list_sessions_cache_seconds' => (int) env('OPENWA_LIST_SESSIONS_CACHE_SECONDS', 25),
 
+    'reconnect_stagger_seconds' => (int) env('OPENWA_RECONNECT_STAGGER_SECONDS', 20),
+
+    'rate_limit_cooldown_seconds' => (int) env('OPENWA_RATE_LIMIT_COOLDOWN', 240),
+
+    /*
+    | Legado: el cron ya no usa lotes ni cupo de reconnects. Se mantienen
+    | por si algún entorno todavía exporta las variables.
+    */
     'sync_max_tenants_per_run' => (int) env('OPENWA_SYNC_MAX_TENANTS', 2),
 
     'sync_max_reconnects_per_run' => (int) env('OPENWA_SYNC_MAX_RECONNECTS', 1),
 
     'sync_pause_ms' => (int) env('OPENWA_SYNC_PAUSE_MS', 700),
-
-    'rate_limit_cooldown_seconds' => (int) env('OPENWA_RATE_LIMIT_COOLDOWN', 240),
 
 ];

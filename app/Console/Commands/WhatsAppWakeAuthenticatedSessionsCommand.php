@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\PlatformWhatsAppSession;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
+use App\Support\OpenWa\OpenWaReconnectPolicy;
 use Illuminate\Console\Command;
 
 /**
@@ -73,7 +74,7 @@ class WhatsAppWakeAuthenticatedSessionsCommand extends Command
 
             $session->forceFill(['auto_reconnect' => true])->save();
 
-            if ($session->isReady()) {
+            if (OpenWaReconnectPolicy::isLive((string) $session->status)) {
                 $skipped++;
 
                 continue;
@@ -82,7 +83,7 @@ class WhatsAppWakeAuthenticatedSessionsCommand extends Command
             try {
                 $client->tryStartIfDown(
                     (string) $session->openwa_session_id,
-                    (string) $session->status === 'ready' ? 'disconnected' : (string) $session->status,
+                    (string) $session->status,
                 );
                 $remote = $client->getSession((string) $session->openwa_session_id);
                 $session->forceFill([
@@ -136,7 +137,7 @@ class WhatsAppWakeAuthenticatedSessionsCommand extends Command
 
             $session->forceFill(['auto_reconnect' => true])->save();
 
-            if ($session->isReady()) {
+            if (OpenWaReconnectPolicy::isLive((string) $session->status)) {
                 $skipped++;
 
                 continue;
@@ -145,7 +146,7 @@ class WhatsAppWakeAuthenticatedSessionsCommand extends Command
             try {
                 $client->tryStartIfDown(
                     (string) $session->openwa_session_id,
-                    (string) $session->status === 'ready' ? 'disconnected' : (string) $session->status,
+                    (string) $session->status,
                 );
                 $remote = $client->getSession((string) $session->openwa_session_id);
                 $session->forceFill([

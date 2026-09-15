@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\OpenWa;
 
 use App\Models\PlatformWhatsAppSession;
+use App\Support\OpenWa\OpenWaReconnectPolicy;
 use Illuminate\Support\Carbon;
 
 final class PlatformWhatsAppSessionSync
@@ -65,10 +66,11 @@ final class PlatformWhatsAppSessionSync
         $lastError = null;
         $hadPhone = filled($remote['phone'] ?? null) || filled($local?->phone);
 
-        $shouldStart = $wantsReconnect && (
-            $wakeForLink
-            || in_array($status, ['disconnected', 'failed'], true)
-            || $hadPhone
+        $shouldStart = OpenWaReconnectPolicy::shouldStartEngine(
+            $status,
+            $wantsReconnect,
+            $wakeForLink,
+            $hadPhone,
         );
 
         if ($shouldStart) {
@@ -79,6 +81,7 @@ final class PlatformWhatsAppSessionSync
             } elseif ($reconnect['attempted'] && is_string($reconnect['error']) && $reconnect['error'] !== '') {
                 $lastError = $reconnect['error'];
             }
+            $this->client->forgetSessionListCache();
         }
 
         $payload = [

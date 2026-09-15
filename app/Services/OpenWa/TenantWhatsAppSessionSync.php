@@ -6,8 +6,8 @@ namespace App\Services\OpenWa;
 
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
+use App\Support\OpenWa\OpenWaReconnectPolicy;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 final class TenantWhatsAppSessionSync
@@ -86,14 +86,14 @@ final class TenantWhatsAppSessionSync
         $lastError = null;
         $hadPhone = filled($remote['phone'] ?? null) || filled($local?->phone);
 
-        // Evita start masivo en sesiones solo-QR (created): eso lo dispara Conectar.
-        $shouldStart = $wantsReconnect && (
-            $wakeForLink
-            || in_array($status, ['disconnected', 'failed'], true)
-            || $hadPhone
+        $shouldStart = OpenWaReconnectPolicy::shouldStartEngine(
+            $status,
+            $wantsReconnect,
+            $wakeForLink,
+            $hadPhone,
         );
 
-        if ($shouldStart && ($wakeForLink || $this->consumeReconnectBudget())) {
+        if ($shouldStart) {
             $reconnect = $this->client->tryStartIfDown($sessionId, $status);
             if ($reconnect['remote'] !== null) {
                 $remote = $reconnect['remote'];
@@ -101,6 +101,7 @@ final class TenantWhatsAppSessionSync
             } elseif ($reconnect['attempted'] && is_string($reconnect['error']) && $reconnect['error'] !== '') {
                 $lastError = $reconnect['error'];
             }
+            $this->client->forgetSessionListCache();
         }
 
         $payload = [
@@ -167,9 +168,13 @@ final class TenantWhatsAppSessionSync
         $wantsReconnect = (bool) ($session->auto_reconnect ?? true);
         $sessionId = trim((string) $session->openwa_session_id);
         $hadPhone = filled($session->phone);
+        $status = (string) $session->status;
 
-        if ($wantsReconnect && $hadPhone && $sessionId !== '') {
-            $this->client->tryStartIfDown($sessionId, (string) $session->status);
+        if (
+            $sessionId !== ''
+            && OpenWaReconnectPolicy::shouldStartEngine($status, $wantsReconnect, false, $hadPhone)
+        ) {
+            $this->client->tryStartIfDown($sessionId, $status);
         }
 
         try {
@@ -246,27 +251,5 @@ final class TenantWhatsAppSessionSync
         }
 
         return $session->fresh();
-    }
-
-    /**
-     * El cron no puede arrancar Chromium de todas las clínicas caídas
-     * en la misma corrida (cada start hace varios GET y dispara 429).
-     */
-    private function consumeReconnectBudget(): bool
-    {
-        $max = max(0, (int) config('openwa.sync_max_reconnects_per_run', 2));
-        if ($max === 0) {
-            return false;
-        }
-
-        $key = 'openwa:sync-reconnects';
-        $count = (int) Cache::get($key, 0);
-        if ($count >= $max) {
-            return false;
-        }
-
-        Cache::put($key, $count + 1, now()->addMinutes(6));
-
-        return true;
     }
 }
