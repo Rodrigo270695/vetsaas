@@ -1,0 +1,340 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\WhatsAppCampanaRequest;
+use App\Models\WhatsAppCampana;
+use App\Models\WhatsAppCampanaDestinatario;
+use App\Services\WhatsApp\WhatsAppCampaignAudience;
+use App\Support\OpenWa\TenantWhatsAppPresenter;
+use App\Tenancy\TenantManager;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class WhatsAppCampanaController extends Controller
+{
+    private const PER_PAGE = [10, 15, 25, 50];
+
+    public function index(Request $request): Response
+    {
+        $perPage = $this->perPage($request);
+
+        $items = WhatsAppCampana::query()
+            ->withCount([
+                'destinatarios as pendientes_count' => fn ($q) => $q->where('estado', WhatsAppCampanaDestinatario::ESTADO_PENDIENTE),
+                'destinatarios as enviados_count' => fn ($q) => $q->where('estado', WhatsAppCampanaDestinatario::ESTADO_ENVIADO),
+                'destinatarios as total_count',
+            ])
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return Inertia::render('comunicaciones/campanas/index', [
+            'items' => $items,
+            'filters' => [
+                'per_page' => $perPage,
+            ],
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('comunicaciones/campanas/form', [
+            'campana' => null,
+        ]);
+    }
+
+    public function store(WhatsAppCampanaRequest $request, TenantManager $tenants): RedirectResponse
+    {
+        $data = $this->payload($request);
+        $data['estado'] = WhatsAppCampana::ESTADO_BORRADOR;
+        $data['created_by_id'] = $request->user()?->id;
+        $data['imagen_path'] = $this->storeImagen($request, $tenants, null);
+
+        $campana = WhatsAppCampana::query()->create($data);
+
+        return redirect()
+            ->route('comunicaciones.campanas.show', $campana)
+            ->with('success', 'Campaña creada. Ahora elegí los destinatarios.');
+    }
+
+    public function show(
+        Request $request,
+        WhatsAppCampana $campana,
+        WhatsAppCampaignAudience $audience,
+        TenantManager $tenants,
+        TenantWhatsAppPresenter $whatsapp,
+    ): Response {
+        $perPage = $this->perPage($request);
+        $search = trim((string) $request->string('search', ''));
+        $scope = (string) $request->string('scope', 'lote');
+        if (! in_array($scope, ['lote', 'agregar'], true)) {
+            $scope = 'lote';
+        }
+        $estado = trim((string) $request->string('estado', ''));
+
+        $lote = $campana->destinatarios()
+            ->when($estado !== '', fn ($q) => $q->where('estado', $estado))
+            ->when($scope === 'lote' && $search !== '', function ($q) use ($search): void {
+                $q->where(function ($inner) use ($search): void {
+                    $inner->where('nombre_snapshot', 'ilike', '%'.$search.'%')
+                        ->orWhere('telefono_normalizado', 'ilike', '%'.$search.'%')
+                        ->orWhere('mascota_nombres', 'ilike', '%'.$search.'%');
+                });
+            })
+            ->orderBy('created_at')
+            ->paginate($perPage, ['*'], 'page')
+            ->withQueryString();
+
+        $elegibles = $scope === 'agregar'
+            ? $audience->paginateEligible($campana, $search, $perPage)
+            : null;
+
+        $stats = [
+            'total' => $campana->destinatarios()->count(),
+            'pendiente' => $campana->destinatarios()->where('estado', WhatsAppCampanaDestinatario::ESTADO_PENDIENTE)->count(),
+            'enviado' => $campana->destinatarios()->where('estado', WhatsAppCampanaDestinatario::ESTADO_ENVIADO)->count(),
+            'fallido' => $campana->destinatarios()->where('estado', WhatsAppCampanaDestinatario::ESTADO_FALLIDO)->count(),
+            'omitido' => $campana->destinatarios()->where('estado', WhatsAppCampanaDestinatario::ESTADO_OMITIDO)->count(),
+            'enviados_hoy' => $campana->enviadosHoy(),
+            'elegibles' => $audience->eligibleQuery()->whereNotIn(
+                'id',
+                $campana->destinatarios()->pluck('propietario_id'),
+            )->count(),
+        ];
+
+        return Inertia::render('comunicaciones/campanas/show', [
+            'campana' => $this->campanaPayload($campana),
+            'lote' => $lote,
+            'elegibles' => $elegibles?->through(fn ($owner) => [
+                'id' => $owner->id,
+                'nombre' => $owner->displayName(),
+                'telefono' => $owner->telefono,
+                'telefono_alt' => $owner->telefono_alt,
+            ]),
+            'stats' => $stats,
+            'filters' => [
+                'search' => $search,
+                'scope' => $scope,
+                'estado' => $estado !== '' ? $estado : null,
+                'per_page' => $perPage,
+            ],
+            'whatsapp' => $whatsapp->forTenant($tenants->current()?->tenant),
+        ]);
+    }
+
+    public function edit(WhatsAppCampana $campana): Response
+    {
+        abort_unless($campana->estado === WhatsAppCampana::ESTADO_BORRADOR, 422);
+
+        return Inertia::render('comunicaciones/campanas/form', [
+            'campana' => $this->campanaPayload($campana),
+        ]);
+    }
+
+    public function update(
+        WhatsAppCampanaRequest $request,
+        WhatsAppCampana $campana,
+        TenantManager $tenants,
+    ): RedirectResponse {
+        abort_unless($campana->estado === WhatsAppCampana::ESTADO_BORRADOR, 422);
+
+        $data = $this->payload($request);
+        $path = $this->storeImagen($request, $tenants, $campana->imagen_path);
+        if ($path !== null || $request->boolean('clear_imagen')) {
+            $data['imagen_path'] = $request->boolean('clear_imagen') ? null : $path;
+        }
+
+        $campana->fill($data)->save();
+
+        return redirect()
+            ->route('comunicaciones.campanas.show', $campana)
+            ->with('success', 'Campaña actualizada.');
+    }
+
+    public function destroy(WhatsAppCampana $campana): RedirectResponse
+    {
+        abort_unless($campana->estado === WhatsAppCampana::ESTADO_BORRADOR, 422);
+
+        if ($campana->imagen_path) {
+            Storage::disk('public')->delete($campana->imagen_path);
+        }
+        $campana->delete();
+
+        return redirect()
+            ->route('comunicaciones.campanas.index')
+            ->with('success', 'Campaña eliminada.');
+    }
+
+    public function start(WhatsAppCampana $campana): RedirectResponse
+    {
+        abort_unless(in_array($campana->estado, [
+            WhatsAppCampana::ESTADO_BORRADOR,
+            WhatsAppCampana::ESTADO_PAUSADA,
+        ], true), 422);
+
+        if (count($campana->variantesLimpias()) < 3) {
+            return back()->with('error', 'La campaña necesita al menos 3 textos distintos.');
+        }
+
+        $pendientes = $campana->destinatarios()
+            ->where('estado', WhatsAppCampanaDestinatario::ESTADO_PENDIENTE)
+            ->count();
+        if ($pendientes === 0) {
+            return back()->with('error', 'Agregá al menos un destinatario con celular válido.');
+        }
+
+        $campana->forceFill([
+            'estado' => WhatsAppCampana::ESTADO_ENVIANDO,
+            'started_at' => $campana->started_at ?? now(),
+            'paused_at' => null,
+        ])->save();
+
+        return back()->with('success', 'Campaña en marcha. Los mensajes salen de a uno en el horario configurado.');
+    }
+
+    public function pause(WhatsAppCampana $campana): RedirectResponse
+    {
+        abort_unless($campana->estado === WhatsAppCampana::ESTADO_ENVIANDO, 422);
+
+        $campana->forceFill([
+            'estado' => WhatsAppCampana::ESTADO_PAUSADA,
+            'paused_at' => now(),
+        ])->save();
+
+        return back()->with('success', 'Campaña pausada. No se enviará nada hasta que la reanudes.');
+    }
+
+    public function attach(
+        Request $request,
+        WhatsAppCampana $campana,
+        WhatsAppCampaignAudience $audience,
+    ): RedirectResponse {
+        abort_unless($campana->estado !== WhatsAppCampana::ESTADO_TERMINADA, 422);
+
+        $ids = $request->input('propietario_ids', []);
+        if (! is_array($ids)) {
+            $ids = [];
+        }
+
+        $result = $audience->attachIds($campana, array_map('strval', $ids));
+
+        return back()->with(
+            'success',
+            sprintf('Agregados: %d. Omitidos: %d.', $result['added'], $result['skipped']),
+        );
+    }
+
+    public function attachMatching(
+        Request $request,
+        WhatsAppCampana $campana,
+        WhatsAppCampaignAudience $audience,
+    ): RedirectResponse {
+        abort_unless($campana->estado !== WhatsAppCampana::ESTADO_TERMINADA, 422);
+
+        $result = $audience->attachMatching($campana, trim((string) $request->string('search', '')));
+
+        return back()->with(
+            'success',
+            sprintf('Agregados: %d. Omitidos: %d.', $result['added'], $result['skipped']),
+        );
+    }
+
+    public function detach(WhatsAppCampana $campana, WhatsAppCampanaDestinatario $destinatario): RedirectResponse
+    {
+        abort_unless($destinatario->campana_id === $campana->id, 404);
+        abort_unless($destinatario->estado === WhatsAppCampanaDestinatario::ESTADO_PENDIENTE, 422);
+
+        $destinatario->delete();
+
+        return back()->with('success', 'Destinatario quitado del lote.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payload(WhatsAppCampanaRequest $request): array
+    {
+        $variantes = [];
+        foreach ($request->validated('variantes') as $item) {
+            if (is_string($item) && trim($item) !== '') {
+                $variantes[] = trim($item);
+            }
+        }
+
+        return [
+            'nombre' => trim((string) $request->validated('nombre')),
+            'variantes' => $variantes,
+            'tope_diario' => (int) $request->validated('tope_diario'),
+            'intervalo_minutos' => (int) $request->validated('intervalo_minutos'),
+            'hora_inicio' => $request->validated('hora_inicio'),
+            'hora_fin' => $request->validated('hora_fin'),
+        ];
+    }
+
+    private function storeImagen(
+        WhatsAppCampanaRequest $request,
+        TenantManager $tenants,
+        ?string $current,
+    ): ?string {
+        if ($request->boolean('clear_imagen')) {
+            if ($current) {
+                Storage::disk('public')->delete($current);
+            }
+
+            return null;
+        }
+
+        if (! $request->hasFile('imagen')) {
+            return $current;
+        }
+
+        $slug = $tenants->current()?->slug ?? 'shared';
+        $file = $request->file('imagen');
+        if ($file === null) {
+            return $current;
+        }
+
+        $stored = $file->store('tenants/'.$slug.'/campanas', 'public');
+        if (! is_string($stored) || $stored === '') {
+            return $current;
+        }
+
+        if ($current && $current !== $stored) {
+            Storage::disk('public')->delete($current);
+        }
+
+        return $stored;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function campanaPayload(WhatsAppCampana $campana): array
+    {
+        return [
+            'id' => $campana->id,
+            'nombre' => $campana->nombre,
+            'imagen_url' => $campana->imagenUrl(),
+            'variantes' => $campana->variantesLimpias(),
+            'tope_diario' => $campana->tope_diario,
+            'intervalo_minutos' => $campana->intervalo_minutos,
+            'hora_inicio' => substr((string) $campana->hora_inicio, 0, 5),
+            'hora_fin' => substr((string) $campana->hora_fin, 0, 5),
+            'estado' => $campana->estado,
+            'last_sent_at' => $campana->last_sent_at?->toIso8601String(),
+        ];
+    }
+
+    private function perPage(Request $request): int
+    {
+        $perPage = (int) $request->integer('per_page', 15);
+
+        return in_array($perPage, self::PER_PAGE, true) ? $perPage : 15;
+    }
+}

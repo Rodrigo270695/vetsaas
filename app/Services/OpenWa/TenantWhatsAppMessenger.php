@@ -21,6 +21,15 @@ final class TenantWhatsAppMessenger
         return $this->client->sendText($this->readySessionId($session), $chatId, $text);
     }
 
+    public function sendImage(
+        TenantWhatsAppSession $session,
+        string $chatId,
+        string $url,
+        ?string $caption = null,
+    ): array {
+        return $this->client->sendImage($this->readySessionId($session), $chatId, $url, $caption);
+    }
+
     /**
      * Envío tolerante a timeouts/5xx tardíos de OpenWA: asume entrega en vez
      * de fallar. Usar solo para mensajes one-shot disparados por el usuario.

@@ -145,6 +145,7 @@
         "notas-baja": "Credit notes",
         "resumenes": "Summaries",
         "comunicaciones-cola": "Outbox queue",
+        "comunicaciones-campanas": "WhatsApp campaigns",
         "comunicaciones-historico": "Message history",
         "clinicas-asesoradas": "Advised clinics",
         "plantillas": "Templates",

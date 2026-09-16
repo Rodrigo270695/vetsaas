@@ -117,6 +117,7 @@ class TenantRolesSeeder extends Seeder
 
                 // Comunicaciones
                 'comunicaciones-cola.view', 'comunicaciones-cola.manage',
+                'comunicaciones-campanas.view', 'comunicaciones-campanas.create', 'comunicaciones-campanas.update', 'comunicaciones-campanas.manage',
                 'comunicaciones-historico.view',
                 'comunicaciones-bot-ia.view', 'comunicaciones-bot-ia.manage',
                 'comunicaciones-chat.view', 'comunicaciones-chat.manage',
@@ -272,6 +273,7 @@ class TenantRolesSeeder extends Seeder
 
                 // Comunicaciones (puede revisar el estado de los WhatsApp)
                 'comunicaciones-cola.view',
+                'comunicaciones-campanas.view',
                 'comunicaciones-historico.view',
                 'comunicaciones-chat.view', 'comunicaciones-chat.manage',
             ],

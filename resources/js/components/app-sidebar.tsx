@@ -343,6 +343,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'comunicaciones-cola.view',
                         },
                         {
+                            title: t('items.campanas'),
+                            href: '/comunicaciones/campanas',
+                            icon: Megaphone,
+                            permission: 'comunicaciones-campanas.view',
+                        },
+                        {
                             title: t('items.historico'),
                             href: '/comunicaciones/historico',
                             icon: History,

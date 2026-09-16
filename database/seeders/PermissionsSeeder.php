@@ -77,6 +77,7 @@ class PermissionsSeeder extends Seeder
 
         // ───── Comunicaciones ─────
         'comunicaciones-cola' => ['view', 'manage'],
+        'comunicaciones-campanas' => ['view', 'create', 'update', 'manage'],
         'comunicaciones-historico' => ['view'],
         'comunicaciones-bot-ia' => ['view', 'manage'],
         'comunicaciones-chat' => ['view', 'manage'],

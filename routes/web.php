@@ -108,6 +108,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VacunacionCargoController;
 use App\Http\Controllers\VacunacionController;
 use App\Http\Controllers\VentaController;
+use App\Http\Controllers\WhatsAppCampanaController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -1133,6 +1134,26 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:comunicaciones-cola.view')
             ->get('cola', [NotificationQueueController::class, 'cola'])
             ->name('cola');
+        Route::middleware('permission:comunicaciones-campanas.view')->group(function (): void {
+            Route::get('campanas', [WhatsAppCampanaController::class, 'index'])->name('campanas.index');
+            Route::get('campanas/create', [WhatsAppCampanaController::class, 'create'])->name('campanas.create');
+            Route::get('campanas/{campana}', [WhatsAppCampanaController::class, 'show'])->name('campanas.show');
+            Route::get('campanas/{campana}/edit', [WhatsAppCampanaController::class, 'edit'])->name('campanas.edit');
+        });
+        Route::middleware('permission:comunicaciones-campanas.create')
+            ->post('campanas', [WhatsAppCampanaController::class, 'store'])
+            ->name('campanas.store');
+        Route::middleware('permission:comunicaciones-campanas.update')->group(function (): void {
+            Route::post('campanas/{campana}', [WhatsAppCampanaController::class, 'update'])->name('campanas.update');
+            Route::delete('campanas/{campana}', [WhatsAppCampanaController::class, 'destroy'])->name('campanas.destroy');
+            Route::post('campanas/{campana}/destinatarios', [WhatsAppCampanaController::class, 'attach'])->name('campanas.destinatarios');
+            Route::post('campanas/{campana}/destinatarios/todos', [WhatsAppCampanaController::class, 'attachMatching'])->name('campanas.destinatarios.todos');
+            Route::delete('campanas/{campana}/destinatarios/{destinatario}', [WhatsAppCampanaController::class, 'detach'])->name('campanas.destinatarios.destroy');
+        });
+        Route::middleware('permission:comunicaciones-campanas.manage')->group(function (): void {
+            Route::post('campanas/{campana}/start', [WhatsAppCampanaController::class, 'start'])->name('campanas.start');
+            Route::post('campanas/{campana}/pause', [WhatsAppCampanaController::class, 'pause'])->name('campanas.pause');
+        });
         Route::middleware('permission:comunicaciones-historico.view')
             ->get('historico', [NotificationQueueController::class, 'historico'])
             ->name('historico');
