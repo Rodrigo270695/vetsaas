@@ -104,6 +104,38 @@ export function CampanaFormModal({
 
     const topeNum = Number(tope);
     const intervaloNum = Number(intervalo);
+    const topeError = useMemo(() => {
+        if (tope.trim() === '') {
+            return errors.tope_diario;
+        }
+        if (!Number.isFinite(topeNum) || !Number.isInteger(topeNum)) {
+            return 'Ingresá un número entero.';
+        }
+        if (topeNum > 100) {
+            return 'El tope máximo es 100 mensajes por día.';
+        }
+        if (topeNum < 50) {
+            return 'El tope mínimo es 50 mensajes por día.';
+        }
+
+        return errors.tope_diario;
+    }, [tope, topeNum, errors.tope_diario]);
+    const intervaloError = useMemo(() => {
+        if (intervalo.trim() === '') {
+            return errors.intervalo_minutos;
+        }
+        if (!Number.isFinite(intervaloNum) || !Number.isInteger(intervaloNum)) {
+            return 'Ingresá un número entero.';
+        }
+        if (intervaloNum > 30) {
+            return 'El máximo es 30 minutos entre mensajes.';
+        }
+        if (intervaloNum < 1) {
+            return 'El mínimo es 1 minuto entre mensajes.';
+        }
+
+        return errors.intervalo_minutos;
+    }, [intervalo, intervaloNum, errors.intervalo_minutos]);
     const canSubmit = useMemo(() => {
         if (saving) {
             return false;
@@ -273,12 +305,19 @@ export function CampanaFormModal({
 
             <FormSection title="Ritmo de envío" icon={Clock} className="mt-4">
                 <div className="grid gap-3 sm:grid-cols-2">
-                    <FormField id="campana-tope" label="Tope por día" required error={errors.tope_diario}>
+                    <FormField
+                        id="campana-tope"
+                        label="Tope por día"
+                        required
+                        error={topeError}
+                        hint={topeError ? undefined : 'Máximo 100 por día.'}
+                    >
                         <Input
                             id="campana-tope"
                             type="number"
                             min={50}
                             max={100}
+                            aria-invalid={Boolean(topeError)}
                             value={tope}
                             onChange={(e) => setTope(e.target.value)}
                         />
@@ -287,13 +326,14 @@ export function CampanaFormModal({
                         id="campana-intervalo"
                         label="Minutos entre mensajes"
                         required
-                        error={errors.intervalo_minutos}
+                        error={intervaloError}
                     >
                         <Input
                             id="campana-intervalo"
                             type="number"
                             min={1}
                             max={30}
+                            aria-invalid={Boolean(intervaloError)}
                             value={intervalo}
                             onChange={(e) => setIntervalo(e.target.value)}
                         />
