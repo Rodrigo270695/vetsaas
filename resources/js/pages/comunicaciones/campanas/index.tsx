@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     CheckCircle2,
+    History,
     Loader2,
     Megaphone,
     Pause,
@@ -44,6 +45,7 @@ type CampanaRow = CampanaFormValues & {
     pendientes_count: number;
     enviados_count: number;
     total_count: number;
+    pacing_hint?: { code: string; label: string };
 };
 
 type EstadoFilter = 'todos' | 'borrador' | 'enviando' | 'pausada' | 'terminada';
@@ -167,7 +169,7 @@ export default function CampanasIndex({
                             </Link>
                             <span className="truncate text-xs text-muted-foreground">
                                 {String(row.hora_inicio).slice(0, 5)}–
-                                {String(row.hora_fin).slice(0, 5)} · {row.tope_diario}/día
+                                {String(row.hora_fin).slice(0, 5)} · cada {row.intervalo_minutos} min · {row.tope_diario}/día
                             </span>
                         </div>
                     </div>
@@ -186,6 +188,9 @@ export default function CampanasIndex({
                         </span>
                         <span className="text-xs text-muted-foreground">
                             {row.pendientes_count} pendientes
+                            {row.pacing_hint && row.estado === 'enviando'
+                                ? ` · ${row.pacing_hint.label}`
+                                : ''}
                         </span>
                     </div>
                 ),
@@ -205,12 +210,10 @@ export default function CampanasIndex({
                 key: 'acciones',
                 header: <span className="sr-only">Acciones</span>,
                 align: 'right',
-                className: 'w-44',
+                className: 'w-56',
                 cell: (row) => {
                     const busy = busyId === row.id;
-                    const canEdit =
-                        canUpdate &&
-                        (row.estado === 'borrador' || row.estado === 'pausada');
+                    const canEdit = canUpdate && row.estado !== 'terminada';
                     const canPick =
                         canUpdate && row.estado !== 'terminada';
                     const canStart =
@@ -230,6 +233,22 @@ export default function CampanasIndex({
 
                     return (
                         <div className="flex items-center justify-end gap-1.5">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="size-8 cursor-pointer bg-violet-500/10 text-violet-700 hover:bg-violet-500/20 hover:text-violet-800"
+                                        asChild
+                                    >
+                                        <Link href={`${ROUTE_URL}/${row.id}`}>
+                                            <History className="size-4" strokeWidth={2.25} />
+                                        </Link>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Historial de envíos</TooltipContent>
+                            </Tooltip>
                             {canPick ? (
                                 <Tooltip>
                                     <TooltipTrigger asChild>

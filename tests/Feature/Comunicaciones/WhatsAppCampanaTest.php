@@ -148,3 +148,130 @@ it('envía un destinatario por tick y no toca a los ya enviados', function (): v
             ->and($row->cuerpo_enviado)->toContain('María');
     });
 });
+
+it('permite editar intervalo y horario aunque la campaña esté enviando', function (): void {
+    $campana = app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): WhatsAppCampana {
+        return WhatsAppCampana::query()->create([
+            'nombre' => 'Desparasitación',
+            'variantes' => ['Hola {nombre}, ven y unete a la campa'],
+            'tope_diario' => 50,
+            'intervalo_minutos' => 12,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '18:00',
+            'estado' => WhatsAppCampana::ESTADO_ENVIANDO,
+            'started_at' => now(),
+        ]);
+    });
+
+    $this->actingAs($this->testTenantAdmin)
+        ->post('http://'.$this->testTenantHost.'/comunicaciones/campanas/'.$campana->id, [
+            'nombre' => 'Desparasitación',
+            'cuerpo' => 'Hola {nombre}, ven y unete a la campa',
+            'tope_diario' => 50,
+            'intervalo_minutos' => 1,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '23:05',
+        ])
+        ->assertRedirect();
+
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function () use ($campana): void {
+        $fresh = $campana->fresh();
+        expect($fresh?->intervalo_minutos)->toBe(1)
+            ->and(substr((string) $fresh?->hora_fin, 0, 5))->toBe('23:05');
+    });
+});
+
+it('respeta un intervalo de 1 minuto y no envía fuera de horario', function (): void {
+    $session = TenantWhatsAppSession::query()->create([
+        'tenant_id' => $this->testTenant->id,
+        'openwa_session_id' => 'sess-camp-2',
+        'openwa_session_name' => $this->testTenant->slug,
+        'status' => TenantWhatsAppSession::STATUS_READY,
+        'last_synced_at' => now(),
+        'auto_reconnect' => true,
+    ]);
+
+    $this->mock(OpenWaClient::class, function ($mock): void {
+        $mock->shouldReceive('isConfigured')->andReturn(true);
+        $mock->shouldReceive('isRateLimited')->andReturn(false);
+        $mock->shouldReceive('isAmbiguousDeliveryError')->andReturn(false);
+        $mock->shouldReceive('isNoResponseTimeout')->andReturn(false);
+    });
+
+    $this->mock(TenantWhatsAppSessionSync::class, function ($mock) use ($session): void {
+        $mock->shouldReceive('ensureReadyForSend')->andReturn($session);
+    });
+
+    $this->mock(TenantWhatsAppMessenger::class, function ($mock): void {
+        $mock->shouldReceive('sendText')->once()->andReturn(['messageId' => 'm2']);
+        $mock->shouldReceive('sendImage')->never();
+    });
+
+    $this->travelTo(now()->setTime(12, 0));
+
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+        $owner = Propietario::query()->create([
+            'nombres' => 'Luis',
+            'apellidos' => 'Rojas',
+            'telefono' => '999111222',
+            'activo' => true,
+        ]);
+
+        $campana = WhatsAppCampana::query()->create([
+            'nombre' => 'Campaña intervalo',
+            'variantes' => ['Hola {nombre}, recordatorio de {mascota} en {clinica}.'],
+            'tope_diario' => 50,
+            'intervalo_minutos' => 1,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '18:00',
+            'estado' => WhatsAppCampana::ESTADO_ENVIANDO,
+            'started_at' => now(),
+            'last_sent_at' => now(),
+        ]);
+
+        WhatsAppCampanaDestinatario::query()->create([
+            'campana_id' => $campana->id,
+            'propietario_id' => $owner->id,
+            'telefono_normalizado' => '51999111222',
+            'nombre_snapshot' => 'Luis Rojas',
+            'mascota_nombres' => 'Luna',
+            'estado' => WhatsAppCampanaDestinatario::ESTADO_PENDIENTE,
+        ]);
+    });
+
+    $tooSoon = app(TenantManager::class)->runForSlug(
+        $this->testTenant->slug,
+        fn () => app(WhatsAppCampaignDispatcher::class)->tick($this->testTenant),
+    );
+    expect($tooSoon['sent'])->toBe(0);
+
+    $this->travel(1)->minutes();
+
+    $due = app(TenantManager::class)->runForSlug(
+        $this->testTenant->slug,
+        fn () => app(WhatsAppCampaignDispatcher::class)->tick($this->testTenant),
+    );
+    expect($due['sent'])->toBe(1);
+
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+        WhatsAppCampana::query()->update([
+            'estado' => WhatsAppCampana::ESTADO_ENVIANDO,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '18:00',
+            'last_sent_at' => null,
+        ]);
+        WhatsAppCampanaDestinatario::query()->update([
+            'estado' => WhatsAppCampanaDestinatario::ESTADO_PENDIENTE,
+            'enviado_at' => null,
+            'cuerpo_enviado' => null,
+        ]);
+    });
+
+    $this->travelTo(now()->setTime(22, 47));
+
+    $outside = app(TenantManager::class)->runForSlug(
+        $this->testTenant->slug,
+        fn () => app(WhatsAppCampaignDispatcher::class)->tick($this->testTenant),
+    );
+    expect($outside['sent'])->toBe(0);
+});

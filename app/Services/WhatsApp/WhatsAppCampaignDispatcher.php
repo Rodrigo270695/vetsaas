@@ -52,11 +52,11 @@ final class WhatsAppCampaignDispatcher
             return ['sent' => 0, 'skipped' => 0, 'failed' => 0];
         }
 
-        if (! $this->inWindow($campana, $now)) {
+        if (! $campana->inSendWindow($now)) {
             return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
         }
 
-        $interval = max(8, min(30, (int) $campana->intervalo_minutos));
+        $interval = $campana->intervaloEfectivo();
         if ($campana->last_sent_at instanceof CarbonInterface
             && $campana->last_sent_at->copy()->addMinutes($interval)->greaterThan($now)
         ) {
@@ -211,14 +211,5 @@ final class WhatsAppCampaignDispatcher
         ])->save();
 
         $campana->forceFill(['last_sent_at' => $now])->save();
-    }
-
-    private function inWindow(WhatsAppCampana $campana, CarbonInterface $now): bool
-    {
-        $start = substr((string) $campana->hora_inicio, 0, 5);
-        $end = substr((string) $campana->hora_fin, 0, 5);
-        $hm = $now->format('H:i');
-
-        return $hm >= $start && $hm <= $end;
     }
 }

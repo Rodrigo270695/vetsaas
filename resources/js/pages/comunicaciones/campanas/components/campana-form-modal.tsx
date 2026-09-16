@@ -242,7 +242,7 @@ export function CampanaFormModal({
 
             <FormSection title="Ritmo de envío" icon={Clock} className="mt-4">
                 <div className="grid gap-3 sm:grid-cols-2">
-                    <FormField id="campana-tope" label="Tope por día" required>
+                    <FormField id="campana-tope" label="Tope por día" required error={errors.tope_diario}>
                         <Input
                             id="campana-tope"
                             type="number"
@@ -252,17 +252,22 @@ export function CampanaFormModal({
                             onChange={(e) => setTope(e.target.value)}
                         />
                     </FormField>
-                    <FormField id="campana-intervalo" label="Minutos entre mensajes" required>
+                    <FormField
+                        id="campana-intervalo"
+                        label="Minutos entre mensajes"
+                        required
+                        error={errors.intervalo_minutos}
+                    >
                         <Input
                             id="campana-intervalo"
                             type="number"
-                            min={8}
+                            min={1}
                             max={30}
                             value={intervalo}
                             onChange={(e) => setIntervalo(e.target.value)}
                         />
                     </FormField>
-                    <FormField id="campana-desde" label="Desde" required>
+                    <FormField id="campana-desde" label="Desde" required error={errors.hora_inicio}>
                         <Input
                             id="campana-desde"
                             type="time"
@@ -270,7 +275,7 @@ export function CampanaFormModal({
                             onChange={(e) => setHoraInicio(e.target.value)}
                         />
                     </FormField>
-                    <FormField id="campana-hasta" label="Hasta" required>
+                    <FormField id="campana-hasta" label="Hasta" required error={errors.hora_fin}>
                         <Input
                             id="campana-hasta"
                             type="time"
@@ -281,7 +286,8 @@ export function CampanaFormModal({
                 </div>
                 <p className="flex items-start gap-1.5 rounded-md bg-emerald-500/10 p-2.5 text-xs text-emerald-800 dark:text-emerald-300">
                     <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
-                    Sale 1 mensaje a la vez, dentro del horario, hasta el tope del día. Así se cuida el número de WhatsApp.
+                    Sale 1 mensaje a la vez, dentro del horario (Desde–Hasta), hasta el tope del día.
+                    Si lanzás fuera de ese horario, espera. El intervalo puede ser de 1 a 30 minutos.
                 </p>
             </FormSection>
         </FormModal>

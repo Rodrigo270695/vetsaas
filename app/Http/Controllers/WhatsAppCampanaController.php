@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\WhatsAppCampanaRequest;
+use App\Models\Tenant;
 use App\Models\WhatsAppCampana;
 use App\Models\WhatsAppCampanaDestinatario;
 use App\Services\WhatsApp\WhatsAppCampaignAudience;
+use App\Services\WhatsApp\WhatsAppCampaignDispatcher;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
 use App\Tenancy\TenantManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -24,8 +27,7 @@ class WhatsAppCampanaController extends Controller
         Request $request,
         TenantManager $tenants,
         TenantWhatsAppPresenter $whatsapp,
-    ): Response
-    {
+    ): Response {
         $perPage = $this->perPage($request);
         $search = trim((string) $request->string('search', ''));
         $estado = trim((string) $request->string('estado', ''));
@@ -102,16 +104,21 @@ class WhatsAppCampanaController extends Controller
             $scope = 'lote';
         }
         $estado = trim((string) $request->string('estado', ''));
+        if ($estado === 'todos') {
+            $estado = '';
+        }
 
         $lote = $campana->destinatarios()
             ->when($estado !== '', fn ($q) => $q->where('estado', $estado))
-            ->when($scope === 'lote' && $search !== '', function ($q) use ($search): void {
+            ->when($search !== '', function ($q) use ($search): void {
                 $q->where(function ($inner) use ($search): void {
                     $inner->where('nombre_snapshot', 'ilike', '%'.$search.'%')
                         ->orWhere('telefono_normalizado', 'ilike', '%'.$search.'%')
-                        ->orWhere('mascota_nombres', 'ilike', '%'.$search.'%');
+                        ->orWhere('mascota_nombres', 'ilike', '%'.$search.'%')
+                        ->orWhere('cuerpo_enviado', 'ilike', '%'.$search.'%');
                 });
             })
+            ->orderByRaw('enviado_at DESC NULLS LAST')
             ->orderBy('created_at')
             ->paginate($perPage, ['*'], 'page')
             ->withQueryString();
@@ -135,7 +142,16 @@ class WhatsAppCampanaController extends Controller
 
         return Inertia::render('comunicaciones/campanas/show', [
             'campana' => $this->campanaPayload($campana),
-            'lote' => $lote,
+            'lote' => $lote->through(fn (WhatsAppCampanaDestinatario $row) => [
+                'id' => $row->id,
+                'nombre_snapshot' => $row->nombre_snapshot,
+                'telefono_normalizado' => $row->telefono_normalizado,
+                'mascota_nombres' => $row->mascota_nombres,
+                'estado' => $row->estado,
+                'cuerpo_enviado' => $row->cuerpo_enviado,
+                'error' => $row->error,
+                'enviado_at' => $row->enviado_at?->toIso8601String(),
+            ]),
             'elegibles' => $elegibles?->through(fn ($owner) => [
                 'id' => $owner->id,
                 'nombre' => $owner->displayName(),
@@ -162,11 +178,9 @@ class WhatsAppCampanaController extends Controller
         WhatsAppCampanaRequest $request,
         WhatsAppCampana $campana,
         TenantManager $tenants,
+        WhatsAppCampaignDispatcher $dispatcher,
     ): RedirectResponse {
-        abort_unless(in_array($campana->estado, [
-            WhatsAppCampana::ESTADO_BORRADOR,
-            WhatsAppCampana::ESTADO_PAUSADA,
-        ], true), 422);
+        abort_unless($campana->estado !== WhatsAppCampana::ESTADO_TERMINADA, 422);
 
         $data = $this->payload($request);
         $path = $this->storeImagen($request, $tenants, $campana->imagen_path);
@@ -175,6 +189,17 @@ class WhatsAppCampanaController extends Controller
         }
 
         $campana->fill($data)->save();
+
+        if ($campana->estado === WhatsAppCampana::ESTADO_ENVIANDO
+            && $campana->destinatarios()
+                ->where('estado', WhatsAppCampanaDestinatario::ESTADO_PENDIENTE)
+                ->exists()
+        ) {
+            $tenant = $tenants->current()?->tenant;
+            if ($tenant instanceof Tenant) {
+                $dispatcher->tick($tenant);
+            }
+        }
 
         return redirect()
             ->route('comunicaciones.campanas.index')
@@ -199,8 +224,8 @@ class WhatsAppCampanaController extends Controller
         WhatsAppCampana $campana,
         TenantManager $tenants,
         TenantWhatsAppPresenter $whatsapp,
-    ): RedirectResponse
-    {
+        WhatsAppCampaignDispatcher $dispatcher,
+    ): RedirectResponse {
         abort_unless(in_array($campana->estado, [
             WhatsAppCampana::ESTADO_BORRADOR,
             WhatsAppCampana::ESTADO_PAUSADA,
@@ -228,7 +253,20 @@ class WhatsAppCampanaController extends Controller
             'paused_at' => null,
         ])->save();
 
-        return back()->with('success', 'Campaña en marcha. Los mensajes salen de a uno en el horario configurado.');
+        $sent = 0;
+        $tenant = $tenants->current()?->tenant;
+        if ($tenant instanceof Tenant) {
+            $sent = $dispatcher->tick($tenant)['sent'];
+        }
+
+        $campana->refresh();
+        $hint = $campana->pacingHint(now())['label'];
+
+        if ($sent > 0) {
+            return back()->with('success', 'Campaña en marcha. Ya salió el primer mensaje.');
+        }
+
+        return back()->with('success', 'Campaña en marcha. '.$hint.'.');
     }
 
     public function pause(WhatsAppCampana $campana): RedirectResponse
@@ -247,7 +285,7 @@ class WhatsAppCampanaController extends Controller
         Request $request,
         WhatsAppCampana $campana,
         WhatsAppCampaignAudience $audience,
-    ): \Illuminate\Http\JsonResponse {
+    ): JsonResponse {
         $search = trim((string) $request->string('search', ''));
         $perPage = $this->perPage($request);
         $page = $audience->paginateEligible($campana, $search, $perPage);
@@ -380,6 +418,7 @@ class WhatsAppCampanaController extends Controller
             'hora_fin' => substr((string) $campana->hora_fin, 0, 5),
             'estado' => $campana->estado,
             'last_sent_at' => $campana->last_sent_at?->toIso8601String(),
+            'pacing_hint' => $campana->pacingHint(now()),
         ];
     }
 

@@ -1,23 +1,26 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    AlertCircle,
     CheckCircle2,
-    Megaphone,
+    Clock,
+    History,
     Pause,
     Phone,
     Send,
     Users,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DataPagination,
     DataTable,
     DataToolbar,
     EmptyState,
+    FilterChips,
     PageHeader,
     StatBadge,
 } from '@/components/data-page';
-import type { DataTableColumn } from '@/components/data-page';
+import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
@@ -29,11 +32,17 @@ import { DestinatariosPickerModal } from './components/destinatarios-picker-moda
 
 const ROUTE_URL = '/comunicaciones/campanas';
 
+type EstadoLote = 'todos' | 'pendiente' | 'enviado' | 'fallido' | 'omitido';
+
 type Campana = {
     id: string;
     nombre: string;
     tope_diario: number;
+    intervalo_minutos: number;
+    hora_inicio: string;
+    hora_fin: string;
     estado: string;
+    pacing_hint?: { code: string; label: string };
 };
 
 type LoteRow = {
@@ -42,6 +51,8 @@ type LoteRow = {
     telefono_normalizado: string;
     mascota_nombres: string | null;
     estado: string;
+    cuerpo_enviado: string | null;
+    error: string | null;
     enviado_at: string | null;
 };
 
@@ -56,10 +67,22 @@ type Props = {
     };
     filters: {
         search: string;
+        estado: string | null;
         per_page: number;
     };
     whatsapp: WhatsAppProps;
 };
+
+function formatWhen(iso: string | null): string {
+    if (!iso) {
+        return '—';
+    }
+
+    return new Date(iso).toLocaleString('es-PE', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    });
+}
 
 export default function CampanaShow({
     campana,
@@ -75,17 +98,46 @@ export default function CampanaShow({
     const whatsappReady = Boolean(whatsapp.session?.is_ready);
     const [pickerOpen, setPickerOpen] = useState(false);
     const routeUrl = `${ROUTE_URL}/${campana.id}`;
+    const estadoFilter = (filters.estado ?? 'todos') as EstadoLote;
 
-    const { search, setSearch, isLoading } = useDataTablePage({
+    const { search, setSearch, isLoading, applyFilter } = useDataTablePage<{
+        estado: EstadoLote;
+    }>({
         routeUrl,
         initialFilters: {
             search: filters.search,
+            estado: estadoFilter,
             per_page: filters.per_page,
             sort: null,
             direction: null,
         },
         only: ['lote', 'stats', 'filters', 'campana', 'whatsapp'],
     });
+
+    useEffect(() => {
+        if (campana.estado !== 'enviando') {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            router.reload({
+                only: ['lote', 'stats', 'campana', 'whatsapp'],
+            });
+        }, 20000);
+
+        return () => window.clearInterval(timer);
+    }, [campana.estado, campana.id]);
+
+    const estadoOptions: readonly FilterChip<EstadoLote>[] = useMemo(
+        () => [
+            { value: 'todos', label: 'Todos' },
+            { value: 'enviado', label: t('campanas.estado.enviado') },
+            { value: 'pendiente', label: t('campanas.estado.pendiente') },
+            { value: 'fallido', label: t('campanas.estado.fallido') },
+            { value: 'omitido', label: t('campanas.estado.omitido') },
+        ],
+        [t],
+    );
 
     const columns = useMemo<DataTableColumn<LoteRow>[]>(
         () => [
@@ -112,19 +164,35 @@ export default function CampanaShow({
                 ),
             },
             {
+                key: 'mensaje',
+                header: 'Mensaje',
+                cell: (row) => (
+                    <div className="max-w-sm">
+                        {row.cuerpo_enviado ? (
+                            <p className="line-clamp-2 text-xs text-foreground/80">{row.cuerpo_enviado}</p>
+                        ) : (
+                            <span className="text-xs text-muted-foreground">Aún no sale</span>
+                        )}
+                        {row.error ? (
+                            <p className="mt-1 flex items-start gap-1 text-xs text-destructive">
+                                <AlertCircle className="mt-0.5 size-3 shrink-0" />
+                                {row.error}
+                            </p>
+                        ) : null}
+                    </div>
+                ),
+            },
+            {
                 key: 'estado',
                 header: t('campanas.columns.estado'),
                 cell: (row) =>
                     row.estado === 'enviado' ? (
-                        <span className="flex items-center gap-1 text-xs text-emerald-600">
-                            <CheckCircle2 className="size-3.5" />
-                            {t('campanas.estado.enviado')}
-                            {row.enviado_at
-                                ? ` · ${new Date(row.enviado_at).toLocaleString('es-PE', {
-                                      dateStyle: 'short',
-                                      timeStyle: 'short',
-                                  })}`
-                                : ''}
+                        <span className="flex flex-col text-xs text-emerald-700">
+                            <span className="flex items-center gap-1 font-medium">
+                                <CheckCircle2 className="size-3.5" />
+                                {t('campanas.estado.enviado')}
+                            </span>
+                            <span className="text-muted-foreground">{formatWhen(row.enviado_at)}</span>
                         </span>
                     ) : (
                         <StatBadge
@@ -142,6 +210,7 @@ export default function CampanaShow({
         canManage &&
         (campana.estado === 'borrador' || campana.estado === 'pausada');
     const sendBlocked = !whatsappReady || stats.pendiente === 0;
+    const hint = campana.pacing_hint;
 
     return (
         <>
@@ -151,7 +220,11 @@ export default function CampanaShow({
                     title={campana.nombre}
                     description={
                         <span className="flex flex-wrap items-center gap-2">
-                            <span>{t('campanas.only_mobile')}</span>
+                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                <Clock className="size-3.5" />
+                                {String(campana.hora_inicio).slice(0, 5)}–
+                                {String(campana.hora_fin).slice(0, 5)} · cada {campana.intervalo_minutos} min
+                            </span>
                             {whatsappReady ? (
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                                     <span className="size-1.5 rounded-full bg-emerald-500" />
@@ -165,12 +238,25 @@ export default function CampanaShow({
                                     WhatsApp desconectado
                                 </Link>
                             )}
+                            {hint && campana.estado === 'enviando' ? (
+                                <span
+                                    className={cn(
+                                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                        hint.code === 'window'
+                                            ? 'bg-amber-500/10 text-amber-800'
+                                            : 'bg-sky-500/10 text-sky-800',
+                                    )}
+                                >
+                                    {hint.label}
+                                </span>
+                            ) : null}
                         </span>
                     }
                     stats={[
                         { label: t('campanas.stats.pendiente'), value: stats.pendiente, variant: 'warning' },
                         { label: t('campanas.stats.enviado'), value: stats.enviado, variant: 'success' },
                         { label: t('campanas.stats.fallido'), value: stats.fallido, variant: stats.fallido > 0 ? 'danger' : 'muted' },
+                        { label: 'Hoy', value: stats.enviados_hoy, variant: 'info' },
                     ]}
                     action={
                         <div className="flex flex-wrap gap-2">
@@ -241,13 +327,20 @@ export default function CampanaShow({
                             onSearchChange={setSearch}
                             placeholder={t('campanas.search_placeholder')}
                             isSearching={isLoading}
-                        />
+                        >
+                            <FilterChips
+                                ariaLabel={t('campanas.columns.estado')}
+                                value={estadoFilter}
+                                onChange={(estado) => applyFilter({ estado })}
+                                options={estadoOptions}
+                            />
+                        </DataToolbar>
                     }
                     emptyState={
                         <EmptyState
-                            icon={Megaphone}
-                            title="Sin destinatarios aún"
-                            description="Usá Destinatarios para marcar dueños con celular válido."
+                            icon={History}
+                            title="Sin movimientos aún"
+                            description="Cuando salga un mensaje vas a ver acá el texto, la hora y si llegó o falló."
                         />
                     }
                     footer={
@@ -255,6 +348,7 @@ export default function CampanaShow({
                             meta={lote}
                             preservedQuery={{
                                 search: filters.search || undefined,
+                                estado: filters.estado ?? undefined,
                                 per_page: filters.per_page,
                             }}
                         />

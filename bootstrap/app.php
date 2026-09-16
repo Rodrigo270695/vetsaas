@@ -147,8 +147,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:reminders-scan')->everyFiveMinutes();
         $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();
         $schedule->command('vetsaas:whatsapp-campaigns-tick')
-            ->everyFiveMinutes()
-            ->withoutOverlapping(10);
+            ->everyMinute()
+            ->withoutOverlapping(2);
         $schedule->command('vetsaas:fel-sync-statuses --limit=100')->everyFiveMinutes();
         if (config('openwa.sync_enabled', true)) {
             $schedule->command('vetsaas:whatsapp-sync-sessions')
