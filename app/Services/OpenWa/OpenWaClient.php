@@ -429,6 +429,19 @@ final class OpenWaClient
 
             return ['attempted' => true, 'remote' => $remote, 'error' => null];
         } catch (\Throwable $e) {
+            if ($this->isAlreadyRunningError($e)) {
+                $remote = $this->tryGetSession($sessionId);
+
+                Log::info('OpenWA start skipped: engine already running', [
+                    'session_id' => $sessionId,
+                    'from_status' => $status,
+                    'to_status' => $remote['status'] ?? null,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return ['attempted' => false, 'remote' => $remote, 'error' => null];
+            }
+
             Log::warning('OpenWA reconnect failed', [
                 'session_id' => $sessionId,
                 'from_status' => $status,
@@ -449,36 +462,14 @@ final class OpenWaClient
         $remote = $this->getSession($sessionId);
         $status = (string) ($remote['status'] ?? $fromStatus);
 
-        // Hasta 1 reintento corto: no dormir 12s en un request HTTP (provoca 500).
-        $maxLoops = 1;
-        for ($i = 0; $i < $maxLoops; $i++) {
-            if (in_array($status, ['ready', 'qr_ready', 'authenticating'], true)) {
-                break;
-            }
-            if (in_array($status, ['created', 'initializing', 'disconnected', 'failed'], true)) {
-                $wait = min(1, max(0, (int) config('openwa.reconnect_poll_seconds', 3)));
-                if ($wait > 0) {
-                    sleep($wait);
-                }
-                $remote = $this->getSession($sessionId);
-                $status = (string) ($remote['status'] ?? $status);
-            } else {
-                break;
-            }
+        if (in_array($status, ['ready', 'qr_ready', 'authenticating', 'initializing'], true)) {
+            return $remote;
         }
 
-        // Si sigue caída tras el primer start, un segundo intento suave.
-        if (in_array($status, ['disconnected', 'failed'], true)) {
-            try {
-                $this->startSession($sessionId);
-                $wait = max(0, (int) config('openwa.reconnect_poll_seconds', 3));
-                if ($wait > 0) {
-                    sleep($wait);
-                }
-                $remote = $this->getSession($sessionId);
-            } catch (\Throwable) {
-                // Dejamos el último remote conocido.
-            }
+        $wait = min(2, max(0, (int) config('openwa.reconnect_poll_seconds', 3)));
+        if ($wait > 0) {
+            sleep($wait);
+            $remote = $this->getSession($sessionId);
         }
 
         return $remote;
@@ -565,7 +556,16 @@ final class OpenWaClient
      */
     public function updateWebhook(string $sessionId, string $webhookId, array $payload): array
     {
-        $response = $this->request('put', '/api/sessions/'.$sessionId.'/webhooks/'.$webhookId, $payload);
+        $path = '/api/sessions/'.$sessionId.'/webhooks/'.$webhookId;
+
+        try {
+            $response = $this->request('put', $path, $payload);
+        } catch (RuntimeException $e) {
+            if (! str_contains($e->getMessage(), 'HTTP 405')) {
+                throw $e;
+            }
+            $response = $this->request('patch', $path, $payload);
+        }
 
         if (! is_array($response)) {
             throw new RuntimeException('OpenWA no confirmó la actualización del webhook.');
@@ -931,6 +931,7 @@ final class OpenWaClient
                 'get' => $pending->get($url),
                 'post' => $pending->post($url, $body ?? []),
                 'put' => $pending->put($url, $body ?? []),
+                'patch' => $pending->patch($url, $body ?? []),
                 'delete' => $pending->delete($url),
                 default => throw new RuntimeException('Método HTTP no soportado: '.$method),
             };
@@ -968,5 +969,16 @@ final class OpenWaClient
         }
 
         throw new RuntimeException('OpenWA HTTP '.$status.': '.$body);
+    }
+
+    private function isAlreadyRunningError(\Throwable $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'http 405')
+            || str_contains($message, 'http 409')
+            || str_contains($message, 'already started')
+            || str_contains($message, 'already running')
+            || str_contains($message, 'not allowed');
     }
 }

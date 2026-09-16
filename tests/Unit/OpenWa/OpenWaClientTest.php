@@ -105,9 +105,7 @@ it('intenta start si la sesión OpenWA está caída', function (): void {
 
     Http::fake([
         'wa.test/api/sessions/sess-1/start' => Http::response(['status' => 'initializing'], 200),
-        'wa.test/api/sessions/sess-1' => Http::sequence()
-            ->push(['id' => 'sess-1', 'status' => 'initializing'], 200)
-            ->push(['id' => 'sess-1', 'status' => 'ready', 'phone' => '51999999999'], 200),
+        'wa.test/api/sessions/sess-1' => Http::response(['id' => 'sess-1', 'status' => 'initializing'], 200),
     ]);
 
     $client = new OpenWaClient;
@@ -115,7 +113,7 @@ it('intenta start si la sesión OpenWA está caída', function (): void {
 
     expect($result['attempted'])->toBeTrue()
         ->and($result['error'])->toBeNull()
-        ->and($result['remote']['status'] ?? null)->toBe('ready');
+        ->and($result['remote']['status'] ?? null)->toBe('initializing');
 
     Http::assertSent(fn ($request): bool => $request->method() === 'POST'
         && $request->url() === 'https://wa.test/api/sessions/sess-1/start');
@@ -146,6 +144,26 @@ it('no intenta start si la sesión OpenWA ya está ready', function (): void {
 
     expect($result['attempted'])->toBeFalse();
     Http::assertNothingSent();
+});
+
+it('no relanza start si OpenWA responde 405 (motor ya en marcha)', function (): void {
+    config(['openwa.reconnect_poll_seconds' => 0]);
+
+    Http::fake([
+        'wa.test/api/sessions/sess-1/start' => Http::response(['message' => 'Method Not Allowed'], 405),
+        'wa.test/api/sessions/sess-1' => Http::response([
+            'id' => 'sess-1',
+            'status' => 'ready',
+            'phone' => '51999999999',
+        ], 200),
+    ]);
+
+    $result = (new OpenWaClient)->tryStartIfDown('sess-1', 'disconnected');
+
+    expect($result['attempted'])->toBeFalse()
+        ->and($result['remote']['status'] ?? null)->toBe('ready');
+
+    Http::assertSentCount(2);
 });
 
 it('cachea el listado de sesiones OpenWA', function (): void {

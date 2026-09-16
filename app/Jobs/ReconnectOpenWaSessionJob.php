@@ -12,6 +12,7 @@ use App\Services\OpenWa\OpenWaReconnectCoordinator;
 use App\Services\OpenWa\PlatformWhatsAppSessionSync;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use App\Services\Subscriptions\TenantSubscriptionAccess;
+use App\Support\OpenWa\OpenWaReconnectPolicy;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -117,6 +118,14 @@ final class ReconnectOpenWaSessionJob implements ShouldQueue
 
         if (! $tenant instanceof Tenant || ! $access->allowsAccess($tenant)) {
             return;
+        }
+
+        $local = $tenant->whatsappSession;
+        if ($local instanceof TenantWhatsAppSession) {
+            $local = $tenantSync->pullRemoteStatus($local);
+            if (OpenWaReconnectPolicy::isLive((string) $local->status)) {
+                return;
+            }
         }
 
         $tenantSync->ensureForTenant($tenant, wakeForLink: false);

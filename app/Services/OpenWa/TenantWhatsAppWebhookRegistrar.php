@@ -75,6 +75,12 @@ final class TenantWhatsAppWebhookRegistrar
                 throw new \RuntimeException('Webhook clinic-bot sin id.');
             }
 
+            $existingUrl = rtrim(strtolower(trim((string) ($clinicKept['url'] ?? ''))), '/');
+            $wantedUrl = rtrim(strtolower(trim($url)), '/');
+            if ($existingUrl === $wantedUrl) {
+                return;
+            }
+
             $this->client->updateWebhook($sessionId, $webhookId, $this->webhookPayload($url, $secret));
             Log::info('ClinicBot: webhook OpenWA actualizado', [
                 'session_id' => $sessionId,

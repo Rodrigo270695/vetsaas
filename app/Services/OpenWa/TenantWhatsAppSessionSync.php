@@ -126,7 +126,7 @@ final class TenantWhatsAppSessionSync
             $session = TenantWhatsAppSession::query()->create($payload);
         }
 
-        if ($session instanceof TenantWhatsAppSession && $session->isReady()) {
+        if ($session instanceof TenantWhatsAppSession && $shouldStart && $session->isReady()) {
             try {
                 $this->webhookRegistrar->ensureForSession($session);
             } catch (\Throwable $e) {
@@ -242,17 +242,6 @@ final class TenantWhatsAppSessionSync
         ])->save();
 
         $session = $session->fresh();
-
-        if ($session->isReady()) {
-            try {
-                $this->webhookRegistrar->ensureForSession($session);
-            } catch (\Throwable $e) {
-                Log::warning('OpenWA tenant webhook ensure failed after status pull', [
-                    'session_id' => $session->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
 
         return $session;
     }

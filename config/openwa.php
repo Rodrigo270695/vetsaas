@@ -58,7 +58,7 @@ return [
     */
     'list_sessions_cache_seconds' => (int) env('OPENWA_LIST_SESSIONS_CACHE_SECONDS', 25),
 
-    'reconnect_stagger_seconds' => (int) env('OPENWA_RECONNECT_STAGGER_SECONDS', 20),
+    'reconnect_stagger_seconds' => (int) env('OPENWA_RECONNECT_STAGGER_SECONDS', 35),
 
     'rate_limit_cooldown_seconds' => (int) env('OPENWA_RATE_LIMIT_COOLDOWN', 240),
 
