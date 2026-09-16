@@ -32,10 +32,12 @@ final class ReconnectOpenWaSessionJob implements ShouldQueue
     public int $timeout = 120;
 
     /**
-     * @param  list<QueueItem>  $queue
+     * Lista serial de sesiones a reconectar (no confundir con Queueable::$queue).
+     *
+     * @param  list<QueueItem>  $targets
      */
     public function __construct(
-        public readonly array $queue,
+        public readonly array $targets,
         public readonly int $index = 0,
     ) {}
 
@@ -46,7 +48,7 @@ final class ReconnectOpenWaSessionJob implements ShouldQueue
         PlatformWhatsAppSessionSync $platformSync,
         TenantSubscriptionAccess $access,
     ): void {
-        $item = $this->queue[$this->index] ?? null;
+        $item = $this->targets[$this->index] ?? null;
         if (! is_array($item)) {
             $coordinator->releaseChain();
 
@@ -80,14 +82,14 @@ final class ReconnectOpenWaSessionJob implements ShouldQueue
         }
 
         $next = $this->index + 1;
-        if (! isset($this->queue[$next])) {
+        if (! isset($this->targets[$next])) {
             $coordinator->releaseChain();
 
             return;
         }
 
         $stagger = max(0, (int) config('openwa.reconnect_stagger_seconds', 20));
-        self::dispatch($this->queue, $next)->delay(now()->addSeconds($stagger));
+        self::dispatch($this->targets, $next)->delay(now()->addSeconds($stagger));
     }
 
     /**
@@ -133,7 +135,7 @@ final class ReconnectOpenWaSessionJob implements ShouldQueue
             'rate_limited' => $client->isRateLimited(),
         ]);
 
-        self::dispatch($this->queue, $this->index)->delay(now()->addSeconds($wait));
+        self::dispatch($this->targets, $this->index)->delay(now()->addSeconds($wait));
         $coordinator->touchChainTtl();
     }
 }
