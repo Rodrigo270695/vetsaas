@@ -252,7 +252,8 @@ SQL;
             'last_error' => $platform?->last_error,
             'last_synced_at' => $platform?->last_synced_at?->toIso8601String(),
             'auto_reconnect' => $platform?->auto_reconnect,
-            'ready' => $platform?->isReady() ?? false,
+            'ready' => ($platform?->isReady() ?? false)
+                && ($platform?->isSyncedRecently(self::STALE_MINUTES) ?? false),
         ];
     }
 

@@ -7,11 +7,13 @@ namespace App\Support\OpenWa;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
+use App\Services\OpenWa\TenantWhatsAppSessionSync;
 
 final class TenantWhatsAppPresenter
 {
     public function __construct(
         private readonly OpenWaClient $client,
+        private readonly TenantWhatsAppSessionSync $sync,
     ) {}
 
     /**
@@ -33,6 +35,13 @@ final class TenantWhatsAppPresenter
             ->where('tenant_id', $tenant->id)
             ->first();
 
+        if (
+            $session instanceof TenantWhatsAppSession
+            && ! $session->isSyncedRecently(3)
+        ) {
+            $session = $this->sync->pullRemoteStatus($session);
+        }
+
         return [
             'enabled' => true,
             'configured' => true,
@@ -46,7 +55,7 @@ final class TenantWhatsAppPresenter
                 'connected_at' => $session->connected_at?->toIso8601String(),
                 'last_synced_at' => $session->last_synced_at?->toIso8601String(),
                 'last_error' => $session->last_error,
-                'is_ready' => $session->isReady(),
+                'is_ready' => $session->isReady() && $session->isSyncedRecently(15),
             ],
         ];
     }

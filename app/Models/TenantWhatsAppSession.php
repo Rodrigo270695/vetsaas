@@ -46,4 +46,10 @@ class TenantWhatsAppSession extends Model
     {
         return $this->status === self::STATUS_READY;
     }
+
+    public function isSyncedRecently(int $minutes = 15): bool
+    {
+        return $this->last_synced_at !== null
+            && $this->last_synced_at->gte(now()->subMinutes($minutes));
+    }
 }

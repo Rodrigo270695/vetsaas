@@ -161,7 +161,11 @@ final class TenantWhatsAppSessionSync
             return null;
         }
 
-        if ($session->isReady()) {
+        if (! ($session->isReady() && $session->isSyncedRecently(2))) {
+            $session = $this->pullRemoteStatus($session);
+        }
+
+        if ($session->isReady() && $session->isSyncedRecently(2)) {
             return $session;
         }
 
@@ -189,15 +193,43 @@ final class TenantWhatsAppSessionSync
             $session = $this->ensureForTenant($tenant) ?? $session;
         }
 
-        return $session instanceof TenantWhatsAppSession && $session->isReady()
+        return $session instanceof TenantWhatsAppSession
+            && $session->isReady()
+            && $session->isSyncedRecently(5)
             ? $session
             : null;
+    }
+
+    /**
+     * GET a OpenWA y actualiza la fila. No dispara start.
+     */
+    public function pullRemoteStatus(TenantWhatsAppSession $session): TenantWhatsAppSession
+    {
+        $id = trim((string) $session->openwa_session_id);
+        if ($id === '') {
+            return $session;
+        }
+
+        $remote = $this->client->tryGetSession($id);
+        if (! is_array($remote)) {
+            return $session;
+        }
+
+        return $this->fillFromRemote($session, $remote);
     }
 
     public function refresh(TenantWhatsAppSession $session): TenantWhatsAppSession
     {
         $remote = $this->client->getSession($session->openwa_session_id);
 
+        return $this->fillFromRemote($session, $remote);
+    }
+
+    /**
+     * @param  array<string, mixed>  $remote
+     */
+    private function fillFromRemote(TenantWhatsAppSession $session, array $remote): TenantWhatsAppSession
+    {
         $session->forceFill([
             'status' => (string) ($remote['status'] ?? $session->status),
             'phone' => isset($remote['phone']) ? (string) $remote['phone'] : $session->phone,
@@ -212,7 +244,14 @@ final class TenantWhatsAppSessionSync
         $session = $session->fresh();
 
         if ($session->isReady()) {
-            $this->webhookRegistrar->ensureForSession($session);
+            try {
+                $this->webhookRegistrar->ensureForSession($session);
+            } catch (\Throwable $e) {
+                Log::warning('OpenWA tenant webhook ensure failed after status pull', [
+                    'session_id' => $session->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $session;
