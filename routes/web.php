@@ -54,6 +54,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaApiPeruController;
 use App\Http\Controllers\PlataformaChatUsageController;
 use App\Http\Controllers\PlataformaClosingQueueController;
+use App\Http\Controllers\PlataformaFreeOnboardingController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlataformaOperacionesController;
 use App\Http\Controllers\PlataformaReportesController;
@@ -77,12 +78,12 @@ use App\Http\Controllers\ProspectoVeterinariaController;
 use App\Http\Controllers\ProveedorInventarioController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RecetaController;
-use App\Http\Controllers\SalaEsperaController;
 use App\Http\Controllers\RecordatorioTemplateController;
 use App\Http\Controllers\ReporteEgresosController;
 use App\Http\Controllers\ReporteFinancieroController;
 use App\Http\Controllers\ReporteVentasController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalaEsperaController;
 use App\Http\Controllers\SalesBotConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
 use App\Http\Controllers\SalesBotMeetingController;
@@ -94,7 +95,6 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Http\Controllers\TarifaServiciosController;
 use App\Http\Controllers\TenantChatController;
-use App\Http\Controllers\PlataformaFreeOnboardingController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantGeoController;
 use App\Http\Controllers\TenantImpersonationController;
@@ -1547,6 +1547,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('whatsapp-salud', [PlataformaWhatsAppHealthController::class, 'index'])
             ->name('whatsapp-salud.index');
+        Route::middleware('permission:plataforma-tenants.whatsapp-restart')
+            ->post('whatsapp-salud/sync', [PlataformaWhatsAppHealthController::class, 'sync'])
+            ->middleware('throttle:4,1')
+            ->name('whatsapp-salud.sync');
 
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('apiperu', [PlataformaApiPeruController::class, 'index'])

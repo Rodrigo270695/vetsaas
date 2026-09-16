@@ -9,7 +9,7 @@ import {
     WifiOff,
     QrCode,
 } from 'lucide-react';
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DataPagination,
@@ -187,6 +187,7 @@ export default function PlataformaWhatsAppSaludIndex({
     const { can } = usePermission();
     const canRestart = can('plataforma-tenants.whatsapp-restart');
     const canStop = can('plataforma-tenants.whatsapp-stop');
+    const [syncing, setSyncing] = useState(false);
 
     const initialFilters: PageFilters = {
         search: filters.search,
@@ -213,6 +214,29 @@ export default function PlataformaWhatsAppSaludIndex({
     const postAction = useCallback((path: string) => {
         router.post(path, {}, { preserveScroll: true });
     }, []);
+
+    const syncSessions = useCallback(() => {
+        if (!window.confirm(t('sync_confirm'))) {
+            return;
+        }
+
+        setSyncing(true);
+        router.post(
+            `${ROUTE_URL}/sync`,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSyncing(false),
+            },
+        );
+    }, [t]);
+
+    const hasPlatformSession = Boolean(
+        platform.status ||
+            platform.phone ||
+            platform.last_synced_at ||
+            platform.last_error,
+    );
 
     const restart = useCallback(
         (row: HealthRow) => {
@@ -399,25 +423,46 @@ export default function PlataformaWhatsAppSaludIndex({
                     title={t('title')}
                     description={t('description')}
                     action={
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="cursor-pointer gap-2"
-                            disabled={isRefreshing || isLoading}
-                            onClick={() => refresh()}
-                        >
-                            <RefreshCw
-                                className={cn(
-                                    'size-4',
-                                    (isRefreshing || isLoading) && 'animate-spin',
-                                )}
-                            />
-                            {t('refresh')}
-                            <span className="text-xs text-muted-foreground">
-                                {secondsSince}s
-                            </span>
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {canRestart ? (
+                                <Button
+                                    type="button"
+                                    variant="default"
+                                    size="sm"
+                                    className="cursor-pointer gap-2"
+                                    disabled={syncing || isRefreshing || isLoading}
+                                    onClick={syncSessions}
+                                >
+                                    <PlugZap
+                                        className={cn(
+                                            'size-4',
+                                            syncing && 'animate-pulse',
+                                        )}
+                                    />
+                                    {t('sync')}
+                                </Button>
+                            ) : null}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="cursor-pointer gap-2"
+                                disabled={isRefreshing || isLoading}
+                                onClick={() => refresh()}
+                            >
+                                <RefreshCw
+                                    className={cn(
+                                        'size-4',
+                                        (isRefreshing || isLoading) &&
+                                            'animate-spin',
+                                    )}
+                                />
+                                {t('refresh')}
+                                <span className="text-xs text-muted-foreground">
+                                    {secondsSince}s
+                                </span>
+                            </Button>
+                        </div>
                     }
                 />
 
@@ -431,7 +476,7 @@ export default function PlataformaWhatsAppSaludIndex({
                 {!stats.openwa_configured ? (
                     <Alert>
                         <WifiOff />
-                        <AlertDescription>{t('openwa_off')}</AlertDescription>
+                        <AlertTitle>{t('openwa_off')}</AlertTitle>
                     </Alert>
                 ) : null}
 
@@ -445,35 +490,44 @@ export default function PlataformaWhatsAppSaludIndex({
                     </Alert>
                 ) : null}
 
-                <div className="rounded-xl border border-border/60 bg-card px-4 py-3">
-                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {t('platform.title')}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <StatBadge
-                            icon={Smartphone}
-                            label={t('platform.title')}
-                            value={
-                                platform.ready
-                                    ? t('platform.ready')
-                                    : t('platform.not_ready')
-                            }
-                            variant={platform.ready ? 'success' : 'warning'}
-                        />
-                        <StatBadge
-                            icon={Phone}
-                            label={t('platform.phone')}
-                            value={platform.phone ?? '—'}
-                            variant="muted"
-                        />
-                        <span className="text-xs text-muted-foreground">
-                            {t('platform.synced')}: {formatWhen(platform.last_synced_at)}
-                        </span>
+                {hasPlatformSession ? (
+                    <div className="rounded-xl border border-border/60 bg-card px-4 py-3">
+                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            {t('platform.title')}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <StatBadge
+                                icon={Smartphone}
+                                label={t('platform.title')}
+                                value={
+                                    platform.ready
+                                        ? t('platform.ready')
+                                        : t('platform.not_ready')
+                                }
+                                variant={platform.ready ? 'success' : 'warning'}
+                            />
+                            {platform.phone ? (
+                                <StatBadge
+                                    icon={Phone}
+                                    label={t('platform.phone')}
+                                    value={platform.phone}
+                                    variant="muted"
+                                />
+                            ) : null}
+                            {platform.last_synced_at ? (
+                                <span className="text-xs text-muted-foreground">
+                                    {t('platform.synced')}:{' '}
+                                    {formatWhen(platform.last_synced_at)}
+                                </span>
+                            ) : null}
+                        </div>
+                        {platform.last_error ? (
+                            <p className="mt-2 text-xs text-destructive">
+                                {platform.last_error}
+                            </p>
+                        ) : null}
                     </div>
-                    {platform.last_error ? (
-                        <p className="mt-2 text-xs text-destructive">{platform.last_error}</p>
-                    ) : null}
-                </div>
+                ) : null}
 
                 <div className="flex flex-wrap gap-2">
                     <StatBadge

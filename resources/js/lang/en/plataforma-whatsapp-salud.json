@@ -2,6 +2,8 @@
     "title": "WhatsApp health",
     "description": "OpenWA status per clinic from local DB. “Ready” is only a recent sync (not the OpenWA admin). Restart/stop do talk to OpenWA.",
     "refresh": "Refresh",
+    "sync": "Sync (--force)",
+    "sync_confirm": "Run vetsaas:whatsapp-sync-sessions --force? This releases the chain, refreshes status, and queues downs one by one. Live sessions are left alone.",
     "search_placeholder": "Search clinic, slug or phone…",
     "cache_note": "This screen is not live OpenWA. Cron syncs a batch every 5 min. “Ready” requires a sync within {{minutes}} min. If OpenWA shows 2 connected and you see 12 here, those 12 are stale.",
     "rate_limited": "OpenWA is in a 429 cooldown. Do not restart sessions until this clears; cron is paused too.",

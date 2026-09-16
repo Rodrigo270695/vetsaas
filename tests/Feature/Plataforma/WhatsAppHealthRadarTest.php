@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\TenantWhatsAppSession;
+use App\Services\OpenWa\OpenWaClient;
+use App\Services\OpenWa\OpenWaReconnectCoordinator;
 use Tests\Support\CreatesTestTenant;
 use Tests\Support\RefreshDatabaseWithPgsqlSafety;
 
@@ -62,5 +64,35 @@ it('lista problemas y sesiones que piden QR', function (): void {
 it('rechaza el radar whatsapp a un admin de clínica', function (): void {
     $this->actingAs($this->testTenantAdmin)
         ->get('http://127.0.0.1/plataforma/whatsapp-salud')
+        ->assertForbidden();
+});
+
+it('lanza el sync --force desde el radar de superadmin', function (): void {
+    $this->mock(OpenWaClient::class, function ($mock): void {
+        $mock->shouldReceive('clearRateLimited')->once();
+        $mock->shouldReceive('isConfigured')->andReturn(true);
+        $mock->shouldReceive('ping')->andReturn(true);
+        $mock->shouldReceive('isRateLimited')->andReturn(false);
+    });
+
+    $this->mock(OpenWaReconnectCoordinator::class, function ($mock): void {
+        $mock->shouldReceive('releaseChain')->once();
+        $mock->shouldReceive('syncAndEnqueue')->once()->andReturn([
+            'refreshed' => 2,
+            'queued' => 1,
+            'skipped_live' => 1,
+            'chain_already_running' => false,
+        ]);
+    });
+
+    $this->actingAs($this->superadmin)
+        ->post('http://127.0.0.1/plataforma/whatsapp-salud/sync')
+        ->assertRedirect()
+        ->assertSessionHas('success');
+});
+
+it('rechaza el sync whatsapp a un admin de clínica', function (): void {
+    $this->actingAs($this->testTenantAdmin)
+        ->post('http://127.0.0.1/plataforma/whatsapp-salud/sync')
         ->assertForbidden();
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\OpenWa;
 
+use App\Support\OpenWa\OpenWaWebhookEvents;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
@@ -250,7 +251,6 @@ final class OpenWaClient
     }
 
     /**
-     * @param  mixed  $response
      * @return list<array<string, mixed>>
      */
     private function unwrapMessageList(mixed $response): array
@@ -511,7 +511,7 @@ final class OpenWaClient
     {
         $payload = [
             'url' => $url,
-            'events' => \App\Support\OpenWa\OpenWaWebhookEvents::inboundMessageSubscriptions(),
+            'events' => OpenWaWebhookEvents::inboundMessageSubscriptions(),
         ];
 
         if ($secret !== null && $secret !== '') {
@@ -951,6 +951,11 @@ final class OpenWaClient
     public function isRateLimited(): bool
     {
         return Cache::has('openwa:rate-limited');
+    }
+
+    public function clearRateLimited(): void
+    {
+        Cache::forget('openwa:rate-limited');
     }
 
     public function markRateLimited(): void
