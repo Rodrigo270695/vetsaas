@@ -467,9 +467,11 @@ export default function PlataformaWhatsAppSaludIndex({
                 />
 
                 {stats.rate_limited ? (
-                    <Alert variant="destructive">
+                    <Alert className="border-destructive/40 bg-destructive/10 text-destructive [&>svg]:text-destructive">
                         <AlertTriangle />
-                        <AlertTitle>{t('rate_limited')}</AlertTitle>
+                        <AlertTitle className="text-destructive">
+                            {t('rate_limited')}
+                        </AlertTitle>
                     </Alert>
                 ) : null}
 
