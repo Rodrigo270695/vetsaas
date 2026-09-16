@@ -37,6 +37,7 @@ final class TenantWhatsAppPresenter
 
         if (
             $session instanceof TenantWhatsAppSession
+            && ! ($session->isReady() && $session->isSyncedRecently(15))
             && ! $session->isSyncedRecently(3)
         ) {
             $session = $this->sync->pullRemoteStatus($session);

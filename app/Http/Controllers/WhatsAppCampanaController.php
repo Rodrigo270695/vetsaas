@@ -8,7 +8,6 @@ use App\Http\Requests\WhatsAppCampanaRequest;
 use App\Models\Tenant;
 use App\Models\WhatsAppCampana;
 use App\Models\WhatsAppCampanaDestinatario;
-use App\Services\OpenWa\OpenWaClient;
 use App\Services\WhatsApp\WhatsAppCampaignAudience;
 use App\Services\WhatsApp\WhatsAppCampaignDispatcher;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
@@ -30,7 +29,6 @@ class WhatsAppCampanaController extends Controller
         TenantManager $tenants,
         TenantWhatsAppPresenter $whatsapp,
         WhatsAppCampaignDispatcher $dispatcher,
-        OpenWaClient $openWa,
     ): Response {
         $this->kickDueCampaigns($tenants, $dispatcher);
 
@@ -53,7 +51,7 @@ class WhatsAppCampanaController extends Controller
             ->paginate($perPage)
             ->withQueryString()
             ->through(fn (WhatsAppCampana $campana) => [
-                ...$this->campanaPayload($campana, $openWa),
+                ...$this->campanaPayload($campana),
                 'pendientes_count' => (int) $campana->pendientes_count,
                 'enviados_count' => (int) $campana->enviados_count,
                 'total_count' => (int) $campana->total_count,
@@ -103,7 +101,6 @@ class WhatsAppCampanaController extends Controller
         TenantManager $tenants,
         TenantWhatsAppPresenter $whatsapp,
         WhatsAppCampaignDispatcher $dispatcher,
-        OpenWaClient $openWa,
     ): Response {
         $this->kickDueCampaigns($tenants, $dispatcher);
         $campana->refresh();
@@ -152,7 +149,7 @@ class WhatsAppCampanaController extends Controller
         ];
 
         return Inertia::render('comunicaciones/campanas/show', [
-            'campana' => $this->campanaPayload($campana, $openWa),
+            'campana' => $this->campanaPayload($campana),
             'lote' => $lote->through(fn (WhatsAppCampanaDestinatario $row) => [
                 'id' => $row->id,
                 'nombre_snapshot' => $row->nombre_snapshot,
@@ -415,15 +412,9 @@ class WhatsAppCampanaController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function campanaPayload(WhatsAppCampana $campana, ?OpenWaClient $openWa = null): array
+    private function campanaPayload(WhatsAppCampana $campana): array
     {
         $hint = $campana->pacingHint();
-        if ($openWa?->isRateLimited()) {
-            $hint = [
-                'code' => 'rate',
-                'label' => 'WhatsApp en pausa (429). Esperá 2-4 minutos y recargá.',
-            ];
-        }
 
         return [
             'id' => $campana->id,

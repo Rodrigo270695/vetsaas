@@ -141,8 +141,8 @@ export default function CampanasIndex({
         }
 
         const timer = window.setInterval(() => {
-            router.reload({ only: ['items', 'filters', 'stats', 'whatsapp'] });
-        }, 15000);
+            router.reload({ only: ['items', 'filters', 'stats'] });
+        }, 20000);
 
         return () => window.clearInterval(timer);
     }, [stats.enviando]);

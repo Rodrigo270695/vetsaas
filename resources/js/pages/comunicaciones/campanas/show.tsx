@@ -121,7 +121,7 @@ export default function CampanaShow({
 
         const timer = window.setInterval(() => {
             router.reload({
-                only: ['lote', 'stats', 'campana', 'whatsapp'],
+                only: ['lote', 'stats', 'campana'],
             });
         }, 20000);
 

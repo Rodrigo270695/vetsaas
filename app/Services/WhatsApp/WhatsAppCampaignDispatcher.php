@@ -46,12 +46,6 @@ final class WhatsAppCampaignDispatcher
             return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
         }
 
-        if ($this->client->isRateLimited()) {
-            Log::warning('Campaña WhatsApp: cooldown 429', ['tenant' => $tenant->slug]);
-
-            return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
-        }
-
         $campana = WhatsAppCampana::query()
             ->where('estado', WhatsAppCampana::ESTADO_ENVIANDO)
             ->orderBy('started_at')
@@ -87,6 +81,11 @@ final class WhatsAppCampaignDispatcher
             ->where('tenant_id', $tenant->id)
             ->first();
         if (! $session instanceof TenantWhatsAppSession || ! $session->isReady()) {
+            if ($this->client->isRateLimited()) {
+                Log::warning('Campaña WhatsApp: cooldown 429 y sesión no lista', ['tenant' => $tenant->slug]);
+
+                return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
+            }
             $session = $this->sessionSync->ensureReadyForSend($tenant);
         }
 
