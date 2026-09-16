@@ -98,10 +98,19 @@ final class WhatsAppCampaignAudience
     {
         $existingPhones = $campana->destinatarios()->pluck('telefono_normalizado')->all();
         $phoneSet = array_fill_keys($existingPhones, true);
+        $existingOwners = array_fill_keys(
+            $campana->destinatarios()->pluck('propietario_id')->all(),
+            true,
+        );
         $added = 0;
         $skipped = 0;
 
         foreach ($owners as $owner) {
+            if (isset($existingOwners[$owner->id])) {
+                $skipped++;
+
+                continue;
+            }
             $phone = PeruMobilePhone::pickFromOwner($owner->telefono, $owner->telefono_alt);
             if ($phone === null) {
                 $skipped++;
@@ -128,6 +137,7 @@ final class WhatsAppCampaignAudience
             ]);
 
             $phoneSet[$phone] = true;
+            $existingOwners[$owner->id] = true;
             $added++;
         }
 

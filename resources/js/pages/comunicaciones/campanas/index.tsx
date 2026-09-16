@@ -225,12 +225,13 @@ export default function CampanasIndex({
                 className: 'w-56',
                 cell: (row) => {
                     const busy = busyId === row.id;
-                    const canEdit = canUpdate && row.estado !== 'terminada';
-                    const canPick =
-                        canUpdate && row.estado !== 'terminada';
+                    const canEdit = canUpdate;
+                    const canPick = canUpdate;
                     const canStart =
                         canManage &&
-                        (row.estado === 'borrador' || row.estado === 'pausada');
+                        (row.estado === 'borrador' ||
+                            row.estado === 'pausada' ||
+                            (row.estado === 'terminada' && row.pendientes_count > 0));
                     const canPause = canManage && row.estado === 'enviando';
                     const sendBlocked =
                         !whatsappReady || row.pendientes_count === 0;
@@ -277,7 +278,7 @@ export default function CampanasIndex({
                                             <Users className="size-4" strokeWidth={2.25} />
                                         </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>Elegir destinatarios</TooltipContent>
+                                    <TooltipContent>Agregar dueños (sin repetir los ya enviados)</TooltipContent>
                                 </Tooltip>
                             ) : null}
                             {canEdit ? (

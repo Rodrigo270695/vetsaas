@@ -276,3 +276,65 @@ it('respeta un intervalo de 1 minuto y no envía fuera de horario', function ():
     );
     expect($outside['sent'])->toBe(0);
 });
+
+it('agrega dueños nuevos a una campaña terminada y no reenvía a los ya enviados', function (): void {
+    $ids = app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): array {
+        $sentOwner = Propietario::query()->create([
+            'nombres' => 'Ana',
+            'apellidos' => 'Enviada',
+            'telefono' => '911111111',
+            'activo' => true,
+        ]);
+        $newOwner = Propietario::query()->create([
+            'nombres' => 'Bruno',
+            'apellidos' => 'Nuevo',
+            'telefono' => '922222222',
+            'activo' => true,
+        ]);
+
+        $campana = WhatsAppCampana::query()->create([
+            'nombre' => 'Desparasitación',
+            'variantes' => ['Hola {nombre}, campaña de {mascota} en {clinica}.'],
+            'tope_diario' => 50,
+            'intervalo_minutos' => 12,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '23:59',
+            'estado' => WhatsAppCampana::ESTADO_TERMINADA,
+            'started_at' => now()->subHour(),
+        ]);
+
+        WhatsAppCampanaDestinatario::query()->create([
+            'campana_id' => $campana->id,
+            'propietario_id' => $sentOwner->id,
+            'telefono_normalizado' => '51911111111',
+            'nombre_snapshot' => 'Ana Enviada',
+            'mascota_nombres' => 'Lola',
+            'estado' => WhatsAppCampanaDestinatario::ESTADO_ENVIADO,
+            'enviado_at' => now()->subMinutes(10),
+        ]);
+
+        return [
+            'campana' => $campana->id,
+            'sent' => $sentOwner->id,
+            'nuevo' => $newOwner->id,
+        ];
+    });
+
+    $this->actingAs($this->testTenantAdmin)
+        ->post('http://'.$this->testTenantHost.'/comunicaciones/campanas/'.$ids['campana'].'/destinatarios', [
+            'propietario_ids' => [$ids['sent'], $ids['nuevo']],
+        ])
+        ->assertRedirect();
+
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function () use ($ids): void {
+        $campana = WhatsAppCampana::query()->findOrFail($ids['campana']);
+        $rows = WhatsAppCampanaDestinatario::query()->orderBy('nombre_snapshot')->get();
+
+        expect($campana->estado)->toBe(WhatsAppCampana::ESTADO_ENVIANDO)
+            ->and($rows)->toHaveCount(2)
+            ->and($rows->firstWhere('propietario_id', $ids['sent'])?->estado)
+            ->toBe(WhatsAppCampanaDestinatario::ESTADO_ENVIADO)
+            ->and($rows->firstWhere('propietario_id', $ids['nuevo'])?->estado)
+            ->toBe(WhatsAppCampanaDestinatario::ESTADO_PENDIENTE);
+    });
+});

@@ -188,8 +188,6 @@ class WhatsAppCampanaController extends Controller
         TenantManager $tenants,
         WhatsAppCampaignDispatcher $dispatcher,
     ): RedirectResponse {
-        abort_unless($campana->estado !== WhatsAppCampana::ESTADO_TERMINADA, 422);
-
         $data = $this->payload($request);
         $path = $this->storeImagen($request, $tenants, $campana->imagen_path);
         if ($path !== null || $request->boolean('clear_imagen')) {
@@ -237,6 +235,7 @@ class WhatsAppCampanaController extends Controller
         abort_unless(in_array($campana->estado, [
             WhatsAppCampana::ESTADO_BORRADOR,
             WhatsAppCampana::ESTADO_PAUSADA,
+            WhatsAppCampana::ESTADO_TERMINADA,
         ], true), 422);
 
         $session = $whatsapp->forTenant($tenants->current()?->tenant)['session'] ?? null;
@@ -318,9 +317,9 @@ class WhatsAppCampanaController extends Controller
         Request $request,
         WhatsAppCampana $campana,
         WhatsAppCampaignAudience $audience,
+        TenantManager $tenants,
+        WhatsAppCampaignDispatcher $dispatcher,
     ): RedirectResponse {
-        abort_unless($campana->estado !== WhatsAppCampana::ESTADO_TERMINADA, 422);
-
         $ids = $request->input('propietario_ids', []);
         if (! is_array($ids)) {
             $ids = [];
@@ -328,25 +327,19 @@ class WhatsAppCampanaController extends Controller
 
         $result = $audience->attachIds($campana, array_map('strval', $ids));
 
-        return back()->with(
-            'success',
-            sprintf('Agregados: %d. Omitidos: %d.', $result['added'], $result['skipped']),
-        );
+        return $this->afterAttach($campana, $result, $tenants, $dispatcher);
     }
 
     public function attachMatching(
         Request $request,
         WhatsAppCampana $campana,
         WhatsAppCampaignAudience $audience,
+        TenantManager $tenants,
+        WhatsAppCampaignDispatcher $dispatcher,
     ): RedirectResponse {
-        abort_unless($campana->estado !== WhatsAppCampana::ESTADO_TERMINADA, 422);
-
         $result = $audience->attachMatching($campana, trim((string) $request->string('search', '')));
 
-        return back()->with(
-            'success',
-            sprintf('Agregados: %d. Omitidos: %d.', $result['added'], $result['skipped']),
-        );
+        return $this->afterAttach($campana, $result, $tenants, $dispatcher);
     }
 
     public function detach(WhatsAppCampana $campana, WhatsAppCampanaDestinatario $destinatario): RedirectResponse
@@ -444,6 +437,37 @@ class WhatsAppCampanaController extends Controller
         }
 
         $dispatcher->tick($tenant);
+    }
+
+    private function afterAttach(
+        WhatsAppCampana $campana,
+        array $result,
+        TenantManager $tenants,
+        WhatsAppCampaignDispatcher $dispatcher,
+    ): RedirectResponse {
+        $added = (int) ($result['added'] ?? 0);
+        $skipped = (int) ($result['skipped'] ?? 0);
+
+        if ($added > 0 && $campana->estado === WhatsAppCampana::ESTADO_TERMINADA) {
+            $campana->forceFill([
+                'estado' => WhatsAppCampana::ESTADO_ENVIANDO,
+                'paused_at' => null,
+                'started_at' => $campana->started_at ?? now(),
+            ])->save();
+
+            $tenant = $tenants->current()?->tenant;
+            if ($tenant instanceof Tenant) {
+                $dispatcher->tick($tenant);
+            }
+        }
+
+        $message = sprintf(
+            'Agregados: %d. Omitidos: %d (ya estaban en el lote o el celular se usó). Solo salen los nuevos; los ya enviados no se repiten.',
+            $added,
+            $skipped,
+        );
+
+        return back()->with('success', $message);
     }
 
     private function perPage(Request $request): int

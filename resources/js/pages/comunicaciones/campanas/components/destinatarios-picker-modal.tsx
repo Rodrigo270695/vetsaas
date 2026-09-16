@@ -189,7 +189,7 @@ export function DestinatariosPickerModal({
             open={open}
             onOpenChange={onOpenChange}
             title="Elegir destinatarios"
-            description={`${campanaNombre ?? 'Campaña'} · ya hay ${inLote} en el lote. Solo celulares Perú (9 dígitos).`}
+            description={`${campanaNombre ?? 'Campaña'} · ${inLote} ya en el lote (no se listan). Solo celulares Perú; los ya enviados no vuelven a salir.`}
             size="lg"
             footer={
                 <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -260,7 +260,7 @@ export function DestinatariosPickerModal({
                     </div>
                 ) : rows.length === 0 ? (
                     <p className="px-3 py-10 text-center text-sm text-muted-foreground">
-                        No hay dueños con celular válido fuera del lote.
+                        No hay más dueños con celular válido. Quienes ya están en el lote (enviados o pendientes) no aparecen.
                     </p>
                 ) : (
                     <ul className="divide-y divide-border/60">

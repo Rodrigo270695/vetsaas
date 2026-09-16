@@ -208,7 +208,9 @@ export default function CampanaShow({
 
     const canStart =
         canManage &&
-        (campana.estado === 'borrador' || campana.estado === 'pausada');
+        (campana.estado === 'borrador' ||
+            campana.estado === 'pausada' ||
+            (campana.estado === 'terminada' && stats.pendiente > 0));
     const sendBlocked = !whatsappReady || stats.pendiente === 0;
     const hint = campana.pacing_hint;
 
@@ -263,7 +265,7 @@ export default function CampanaShow({
                             <Button variant="outline" size="sm" asChild>
                                 <Link href={ROUTE_URL}>{t('common:actions.back')}</Link>
                             </Button>
-                            {canUpdate && campana.estado !== 'terminada' ? (
+                            {canUpdate ? (
                                 <Button
                                     type="button"
                                     size="sm"
@@ -271,7 +273,7 @@ export default function CampanaShow({
                                     onClick={() => setPickerOpen(true)}
                                 >
                                     <Users className="size-3.5" />
-                                    Destinatarios
+                                    Agregar dueños
                                 </Button>
                             ) : null}
                             {canStart ? (
