@@ -159,10 +159,10 @@
     },
     "campanas": {
         "title": "Campañas WhatsApp",
-        "description": "Avisos masivos a dueños con celular Perú (9 dígitos). Se envían de a uno, con tope diario y textos rotados.",
+        "description": "Avisos a dueños con celular Perú. Un mensaje, variables con un clic, envío de a uno con tope diario.",
         "new": "Nueva campaña",
         "empty": "Todavía no hay campañas.",
-        "empty_hint": "Creá una campaña, armá 3 textos distintos y elegí a quiénes llega.",
+        "empty_hint": "Creá una campaña, marcá destinatarios y pulsá Enviar.",
         "search_placeholder": "Buscar dueño o teléfono…",
         "form_title_create": "Nueva campaña",
         "form_title_edit": "Editar campaña",

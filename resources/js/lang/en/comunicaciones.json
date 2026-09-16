@@ -159,10 +159,10 @@
     },
     "campanas": {
         "title": "WhatsApp campaigns",
-        "description": "Bulk notices to owners with a valid Peru mobile (9 digits). Sent one by one, with a daily cap and rotating copy.",
+        "description": "Notices to owners with a Peru mobile. One message, clickable variables, sent one by one with a daily cap.",
         "new": "New campaign",
         "empty": "No campaigns yet.",
-        "empty_hint": "Create a campaign, write 3 different texts, then pick recipients.",
+        "empty_hint": "Create a campaign, pick recipients, then tap Send.",
         "search_placeholder": "Search owner or phone…",
         "form_title_create": "New campaign",
         "form_title_edit": "Edit campaign",

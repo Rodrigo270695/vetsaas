@@ -1,5 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Megaphone, Pause, Play, Trash2 } from 'lucide-react';
+import {
+    CheckCircle2,
+    Megaphone,
+    Pause,
+    Phone,
+    Send,
+    Users,
+} from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -27,13 +34,12 @@ type Campana = {
     id: string;
     nombre: string;
     imagen_url: string | null;
-    variantes: string[];
+    cuerpo: string;
     tope_diario: number;
     intervalo_minutos: number;
     hora_inicio: string;
     hora_fin: string;
     estado: string;
-    last_sent_at: string | null;
 };
 
 type LoteRow = {
@@ -43,7 +49,6 @@ type LoteRow = {
     mascota_nombres: string | null;
     estado: string;
     enviado_at: string | null;
-    error: string | null;
 };
 
 type ElegibleRow = {
@@ -112,42 +117,68 @@ export default function CampanaShow({
         rowKey: (row) => row.id,
     });
 
+    const post = (path: string, extra: Record<string, unknown> = {}) => {
+        router.post(path, extra, { preserveScroll: true });
+    };
+
     const loteColumns = useMemo<DataTableColumn<LoteRow>[]>(
         () => [
             {
                 key: 'nombre',
                 header: t('campanas.columns.destinatario'),
-                cell: (row) => row.nombre_snapshot,
+                cell: (row) => (
+                    <div className="flex items-center gap-2">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                            <Users className="size-4" strokeWidth={2.25} />
+                        </span>
+                        <div className="flex min-w-0 flex-col leading-tight">
+                            <span className="truncate text-sm font-semibold">
+                                {row.nombre_snapshot}
+                            </span>
+                            <span className="truncate text-xs text-muted-foreground">
+                                {row.mascota_nombres ?? '—'}
+                            </span>
+                        </div>
+                    </div>
+                ),
             },
             {
                 key: 'telefono',
                 header: t('campanas.columns.telefono'),
-                cell: (row) => formatWhatsAppPhone(row.telefono_normalizado),
-            },
-            {
-                key: 'mascota',
-                header: t('campanas.columns.mascota'),
-                cell: (row) => row.mascota_nombres ?? '—',
+                cell: (row) => (
+                    <span className="flex items-center gap-1 font-mono text-xs">
+                        <Phone className="size-3" />
+                        {formatWhatsAppPhone(row.telefono_normalizado)}
+                    </span>
+                ),
             },
             {
                 key: 'estado',
                 header: t('campanas.columns.estado'),
-                cell: (row) => t(`campanas.estado.${row.estado}`),
-            },
-            {
-                key: 'enviado',
-                header: t('campanas.columns.enviado'),
                 cell: (row) =>
-                    row.enviado_at
-                        ? new Date(row.enviado_at).toLocaleString('es-PE', {
-                              dateStyle: 'short',
-                              timeStyle: 'short',
-                          })
-                        : '—',
+                    row.estado === 'enviado' ? (
+                        <span className="flex items-center gap-1 text-xs text-emerald-600">
+                            <CheckCircle2 className="size-3.5" />
+                            {t('campanas.estado.enviado')}
+                            {row.enviado_at
+                                ? ` · ${new Date(row.enviado_at).toLocaleString('es-PE', {
+                                      dateStyle: 'short',
+                                      timeStyle: 'short',
+                                  })}`
+                                : ''}
+                        </span>
+                    ) : (
+                        <StatBadge
+                            label={t(`campanas.estado.${row.estado}`)}
+                            value=""
+                            variant={row.estado === 'fallido' ? 'danger' : 'warning'}
+                        />
+                    ),
             },
             {
                 key: 'acciones',
-                header: '',
+                header: <span className="sr-only">Acciones</span>,
+                align: 'right',
                 cell: (row) =>
                     canUpdate && row.estado === 'pendiente' ? (
                         <Button
@@ -156,10 +187,9 @@ export default function CampanaShow({
                             size="sm"
                             className="cursor-pointer text-destructive"
                             onClick={() =>
-                                router.delete(
-                                    `${routeUrl}/destinatarios/${row.id}`,
-                                    { preserveScroll: true },
-                                )
+                                router.delete(`${routeUrl}/destinatarios/${row.id}`, {
+                                    preserveScroll: true,
+                                })
                             }
                         >
                             {t('campanas.remove')}
@@ -175,57 +205,64 @@ export default function CampanaShow({
             {
                 key: 'nombre',
                 header: t('campanas.columns.destinatario'),
-                cell: (row) => row.nombre,
+                cell: (row) => (
+                    <span className="text-sm font-semibold">{row.nombre}</span>
+                ),
             },
             {
                 key: 'telefono',
                 header: t('campanas.columns.telefono'),
-                cell: (row) =>
-                    formatWhatsAppPhone(row.telefono ?? row.telefono_alt ?? ''),
+                cell: (row) => (
+                    <span className="font-mono text-xs">
+                        {formatWhatsAppPhone(row.telefono ?? row.telefono_alt ?? '')}
+                    </span>
+                ),
             },
         ],
         [t],
     );
 
-    const post = (path: string, extra: Record<string, unknown> = {}) => {
-        router.post(path, extra, { preserveScroll: true });
-    };
-
     return (
         <>
             <Head title={campana.nombre} />
-            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
+            <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
                 <PageHeader
                     title={campana.nombre}
                     description={t('campanas.only_mobile')}
+                    stats={[
+                        { label: t('campanas.stats.pendiente'), value: stats.pendiente, variant: 'warning' },
+                        { label: t('campanas.stats.enviado'), value: stats.enviado, variant: 'success' },
+                        { label: t('campanas.stats.fallido'), value: stats.fallido, variant: stats.fallido > 0 ? 'danger' : 'muted' },
+                        { label: t('campanas.stats.elegibles'), value: stats.elegibles, variant: 'info' },
+                        {
+                            label: t('campanas.today', {
+                                count: stats.enviados_hoy,
+                                tope: campana.tope_diario,
+                            }),
+                            value: '',
+                            variant: 'primary',
+                        },
+                    ]}
                     action={
                         <div className="flex flex-wrap gap-2">
-                            {canUpdate && campana.estado === 'borrador' ? (
-                                <Button variant="outline" size="sm" asChild>
-                                    <Link href={`${routeUrl}/edit`}>
-                                        {t('campanas.edit')}
-                                    </Link>
-                                </Button>
-                            ) : null}
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={ROUTE_URL}>{t('common:actions.back')}</Link>
+                            </Button>
                             {canManage &&
                             (campana.estado === 'borrador' ||
                                 campana.estado === 'pausada') ? (
                                 <Button
                                     type="button"
                                     size="sm"
-                                    className="cursor-pointer gap-2"
+                                    className="cursor-pointer gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
                                     onClick={() => {
-                                        if (
-                                            !window.confirm(
-                                                t('campanas.start_confirm'),
-                                            )
-                                        ) {
+                                        if (!window.confirm(t('campanas.start_confirm'))) {
                                             return;
                                         }
                                         post(`${routeUrl}/start`);
                                     }}
                                 >
-                                    <Play className="size-4" />
+                                    <Send className="size-3.5" />
                                     {campana.estado === 'pausada'
                                         ? t('campanas.resume')
                                         : t('campanas.start')}
@@ -236,41 +273,16 @@ export default function CampanaShow({
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    className="cursor-pointer gap-2"
+                                    className="cursor-pointer gap-1.5"
                                     onClick={() => {
-                                        if (
-                                            !window.confirm(
-                                                t('campanas.pause_confirm'),
-                                            )
-                                        ) {
+                                        if (!window.confirm(t('campanas.pause_confirm'))) {
                                             return;
                                         }
                                         post(`${routeUrl}/pause`);
                                     }}
                                 >
-                                    <Pause className="size-4" />
+                                    <Pause className="size-3.5" />
                                     {t('campanas.pause')}
-                                </Button>
-                            ) : null}
-                            {canUpdate && campana.estado === 'borrador' ? (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="cursor-pointer gap-2 text-destructive"
-                                    onClick={() => {
-                                        if (
-                                            !window.confirm(
-                                                t('campanas.delete_confirm'),
-                                            )
-                                        ) {
-                                            return;
-                                        }
-                                        router.delete(routeUrl);
-                                    }}
-                                >
-                                    <Trash2 className="size-4" />
-                                    {t('campanas.delete')}
                                 </Button>
                             ) : null}
                         </div>
@@ -281,48 +293,6 @@ export default function CampanaShow({
                     whatsapp={whatsapp}
                     canManage={can('comunicaciones-cola.manage')}
                 />
-
-                <div className="flex flex-wrap gap-2">
-                    <StatBadge
-                        label={t(`campanas.estado.${campana.estado}`)}
-                        value=""
-                    />
-                    <StatBadge
-                        label={t('campanas.stats.pendiente')}
-                        value={stats.pendiente}
-                        variant="warning"
-                    />
-                    <StatBadge
-                        label={t('campanas.stats.enviado')}
-                        value={stats.enviado}
-                        variant="success"
-                    />
-                    <StatBadge
-                        label={t('campanas.stats.fallido')}
-                        value={stats.fallido}
-                        variant={stats.fallido > 0 ? 'danger' : 'muted'}
-                    />
-                    <StatBadge
-                        label={t('campanas.today', {
-                            count: stats.enviados_hoy,
-                            tope: campana.tope_diario,
-                        })}
-                        value=""
-                    />
-                    <StatBadge
-                        label={t('campanas.stats.elegibles')}
-                        value={stats.elegibles}
-                        variant="info"
-                    />
-                </div>
-
-                {campana.imagen_url ? (
-                    <img
-                        src={campana.imagen_url}
-                        alt=""
-                        className="h-32 w-32 rounded-lg object-cover ring-1 ring-border"
-                    />
-                ) : null}
 
                 <div className="flex flex-wrap gap-2">
                     <Button
@@ -338,123 +308,89 @@ export default function CampanaShow({
                         type="button"
                         size="sm"
                         variant={isAgregar ? 'default' : 'outline'}
-                        className="cursor-pointer"
+                        className="cursor-pointer gap-1.5"
                         onClick={() => applyFilter({ scope: 'agregar' })}
                     >
+                        <Users className="size-3.5" />
                         {t('campanas.agregar')}
                     </Button>
                 </div>
 
-                <DataToolbar
-                    search={search}
-                    onSearchChange={setSearch}
-                    placeholder={t('campanas.search_placeholder')}
-                    isSearching={isLoading}
+                <DataTable
+                    columns={isAgregar ? elegibleColumns : loteColumns}
+                    data={isAgregar ? elegibleRows : lote.data}
+                    rowKey={(row) => row.id}
+                    selection={isAgregar && canUpdate ? selection : undefined}
+                    isLoading={isLoading}
+                    toolbar={
+                        <DataToolbar
+                            search={search}
+                            onSearchChange={setSearch}
+                            placeholder={t('campanas.search_placeholder')}
+                            isSearching={isLoading}
+                        />
+                    }
+                    emptyState={
+                        <EmptyState
+                            icon={Megaphone}
+                            title={t('campanas.empty')}
+                            description={t('campanas.only_mobile')}
+                        />
+                    }
+                    footer={
+                        <DataPagination
+                            meta={isAgregar && elegibles ? elegibles : lote}
+                            preservedQuery={{
+                                search: filters.search || undefined,
+                                scope: filters.scope,
+                                per_page: filters.per_page,
+                            }}
+                        />
+                    }
                 />
 
-                {isAgregar ? (
+                {isAgregar && canUpdate ? (
                     <>
-                        {(elegibles?.data.length ?? 0) === 0 ? (
-                            <EmptyState
-                                icon={Megaphone}
-                                title={t('campanas.empty')}
-                                description={t('campanas.only_mobile')}
-                            />
-                        ) : (
-                            <DataTable
-                                columns={elegibleColumns}
-                                data={elegibleRows}
-                                rowKey={(row) => row.id}
-                                selection={canUpdate ? selection : undefined}
-                                isLoading={isLoading}
-                                footer={
-                                    elegibles ? (
-                                        <DataPagination
-                                            meta={elegibles}
-                                            preservedQuery={{
-                                                search: filters.search || undefined,
-                                                scope: 'agregar',
-                                                per_page: filters.per_page,
-                                            }}
-                                        />
-                                    ) : null
-                                }
-                            />
-                        )}
-                        {canUpdate ? (
-                            <BulkActionBar
-                                count={selection.count}
-                                labels={{
-                                    singular: 'dueño seleccionado',
-                                    plural: 'dueños seleccionados',
-                                }}
-                                onClear={selection.clear}
-                            >
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    className="cursor-pointer"
-                                    onClick={() => {
-                                        post(`${routeUrl}/destinatarios`, {
-                                            propietario_ids: [
-                                                ...selection.selectedIds,
-                                            ],
-                                        });
-                                        selection.clear();
-                                    }}
-                                >
-                                    {t('campanas.add_selected')}
-                                </Button>
-                            </BulkActionBar>
-                        ) : null}
-                        {canUpdate ? (
+                        <BulkActionBar
+                            count={selection.count}
+                            labels={{
+                                singular: 'dueño seleccionado',
+                                plural: 'dueños seleccionados',
+                            }}
+                            onClear={selection.clear}
+                        >
                             <Button
                                 type="button"
-                                variant="outline"
                                 size="sm"
-                                className="w-fit cursor-pointer"
+                                className="cursor-pointer"
                                 onClick={() => {
-                                    if (
-                                        !window.confirm(
-                                            t('campanas.add_all_confirm'),
-                                        )
-                                    ) {
-                                        return;
-                                    }
-                                    post(`${routeUrl}/destinatarios/todos`, {
-                                        search: filters.search,
+                                    post(`${routeUrl}/destinatarios`, {
+                                        propietario_ids: [...selection.selectedIds],
                                     });
+                                    selection.clear();
                                 }}
                             >
-                                {t('campanas.add_all')}
+                                {t('campanas.add_selected')}
                             </Button>
-                        ) : null}
+                        </BulkActionBar>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-fit cursor-pointer"
+                            onClick={() => {
+                                if (!window.confirm(t('campanas.add_all_confirm'))) {
+                                    return;
+                                }
+                                post(`${routeUrl}/destinatarios/todos`, {
+                                    search: filters.search,
+                                });
+                            }}
+                        >
+                            {t('campanas.add_all')}
+                        </Button>
                     </>
-                ) : lote.data.length === 0 ? (
-                    <EmptyState
-                        icon={Megaphone}
-                        title={t('campanas.empty')}
-                        description={t('campanas.only_mobile')}
-                    />
-                ) : (
-                    <DataTable
-                        columns={loteColumns}
-                        data={lote.data}
-                        rowKey={(row) => row.id}
-                        isLoading={isLoading}
-                        footer={
-                            <DataPagination
-                                meta={lote}
-                                preservedQuery={{
-                                    search: filters.search || undefined,
-                                    scope: 'lote',
-                                    estado: filters.estado ?? undefined,
-                                    per_page: filters.per_page,
-                                }}
-                            />
-                        }
-                    />
-                )}
+                ) : null}
             </div>
         </>
     );

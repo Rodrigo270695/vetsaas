@@ -23,6 +23,11 @@ class WhatsAppCampanaController extends Controller
     public function index(Request $request): Response
     {
         $perPage = $this->perPage($request);
+        $search = trim((string) $request->string('search', ''));
+        $estado = trim((string) $request->string('estado', ''));
+        if ($estado === 'todos') {
+            $estado = '';
+        }
 
         $items = WhatsAppCampana::query()
             ->withCount([
@@ -30,23 +35,38 @@ class WhatsAppCampanaController extends Controller
                 'destinatarios as enviados_count' => fn ($q) => $q->where('estado', WhatsAppCampanaDestinatario::ESTADO_ENVIADO),
                 'destinatarios as total_count',
             ])
+            ->when($search !== '', fn ($q) => $q->where('nombre', 'ilike', '%'.$search.'%'))
+            ->when($estado !== '', fn ($q) => $q->where('estado', $estado))
             ->latest()
             ->paginate($perPage)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn (WhatsAppCampana $campana) => [
+                ...$this->campanaPayload($campana),
+                'pendientes_count' => (int) $campana->pendientes_count,
+                'enviados_count' => (int) $campana->enviados_count,
+                'total_count' => (int) $campana->total_count,
+            ]);
 
         return Inertia::render('comunicaciones/campanas/index', [
             'items' => $items,
+            'stats' => [
+                'total' => WhatsAppCampana::query()->count(),
+                'borrador' => WhatsAppCampana::query()->where('estado', WhatsAppCampana::ESTADO_BORRADOR)->count(),
+                'enviando' => WhatsAppCampana::query()->where('estado', WhatsAppCampana::ESTADO_ENVIANDO)->count(),
+                'pausada' => WhatsAppCampana::query()->where('estado', WhatsAppCampana::ESTADO_PAUSADA)->count(),
+                'terminada' => WhatsAppCampana::query()->where('estado', WhatsAppCampana::ESTADO_TERMINADA)->count(),
+            ],
             'filters' => [
+                'search' => $search,
+                'estado' => $estado !== '' ? $estado : null,
                 'per_page' => $perPage,
             ],
         ]);
     }
 
-    public function create(): Response
+    public function create(): RedirectResponse
     {
-        return Inertia::render('comunicaciones/campanas/form', [
-            'campana' => null,
-        ]);
+        return redirect()->route('comunicaciones.campanas.index');
     }
 
     public function store(WhatsAppCampanaRequest $request, TenantManager $tenants): RedirectResponse
@@ -56,11 +76,11 @@ class WhatsAppCampanaController extends Controller
         $data['created_by_id'] = $request->user()?->id;
         $data['imagen_path'] = $this->storeImagen($request, $tenants, null);
 
-        $campana = WhatsAppCampana::query()->create($data);
+        WhatsAppCampana::query()->create($data);
 
         return redirect()
-            ->route('comunicaciones.campanas.show', $campana)
-            ->with('success', 'Campaña creada. Ahora elegí los destinatarios.');
+            ->route('comunicaciones.campanas.index')
+            ->with('success', 'Campaña creada. En Acciones elegí los destinatarios y luego Enviar.');
     }
 
     public function show(
@@ -128,13 +148,9 @@ class WhatsAppCampanaController extends Controller
         ]);
     }
 
-    public function edit(WhatsAppCampana $campana): Response
+    public function edit(WhatsAppCampana $campana): RedirectResponse
     {
-        abort_unless($campana->estado === WhatsAppCampana::ESTADO_BORRADOR, 422);
-
-        return Inertia::render('comunicaciones/campanas/form', [
-            'campana' => $this->campanaPayload($campana),
-        ]);
+        return redirect()->route('comunicaciones.campanas.index');
     }
 
     public function update(
@@ -142,7 +158,10 @@ class WhatsAppCampanaController extends Controller
         WhatsAppCampana $campana,
         TenantManager $tenants,
     ): RedirectResponse {
-        abort_unless($campana->estado === WhatsAppCampana::ESTADO_BORRADOR, 422);
+        abort_unless(in_array($campana->estado, [
+            WhatsAppCampana::ESTADO_BORRADOR,
+            WhatsAppCampana::ESTADO_PAUSADA,
+        ], true), 422);
 
         $data = $this->payload($request);
         $path = $this->storeImagen($request, $tenants, $campana->imagen_path);
@@ -153,7 +172,7 @@ class WhatsAppCampanaController extends Controller
         $campana->fill($data)->save();
 
         return redirect()
-            ->route('comunicaciones.campanas.show', $campana)
+            ->route('comunicaciones.campanas.index')
             ->with('success', 'Campaña actualizada.');
     }
 
@@ -178,8 +197,8 @@ class WhatsAppCampanaController extends Controller
             WhatsAppCampana::ESTADO_PAUSADA,
         ], true), 422);
 
-        if (count($campana->variantesLimpias()) < 3) {
-            return back()->with('error', 'La campaña necesita al menos 3 textos distintos.');
+        if (count($campana->variantesLimpias()) < 1) {
+            return back()->with('error', 'La campaña necesita un mensaje.');
         }
 
         $pendientes = $campana->destinatarios()
@@ -260,16 +279,9 @@ class WhatsAppCampanaController extends Controller
      */
     private function payload(WhatsAppCampanaRequest $request): array
     {
-        $variantes = [];
-        foreach ($request->validated('variantes') as $item) {
-            if (is_string($item) && trim($item) !== '') {
-                $variantes[] = trim($item);
-            }
-        }
-
         return [
             'nombre' => trim((string) $request->validated('nombre')),
-            'variantes' => $variantes,
+            'variantes' => [trim((string) $request->validated('cuerpo'))],
             'tope_diario' => (int) $request->validated('tope_diario'),
             'intervalo_minutos' => (int) $request->validated('intervalo_minutos'),
             'hora_inicio' => $request->validated('hora_inicio'),
@@ -322,6 +334,7 @@ class WhatsAppCampanaController extends Controller
             'nombre' => $campana->nombre,
             'imagen_url' => $campana->imagenUrl(),
             'variantes' => $campana->variantesLimpias(),
+            'cuerpo' => $campana->variantesLimpias()[0] ?? '',
             'tope_diario' => $campana->tope_diario,
             'intervalo_minutos' => $campana->intervalo_minutos,
             'hora_inicio' => substr((string) $campana->hora_inicio, 0, 5),

@@ -31,15 +31,6 @@ afterEach(function (): void {
     $this->tearDownTestTenant();
 });
 
-function campaignVariantes(): array
-{
-    return [
-        'Hola {nombre}, campaña de desparasitación de {mascota} en {clinica}. Texto uno para rotar.',
-        'Hola {nombre_completo}, te escribe {clinica} por {mascota}. Texto dos distinto al anterior.',
-        '{nombre}, recordatorio de desparasitación para {mascota} en {clinica}. Texto tres diferente.',
-    ];
-}
-
 it('lista campañas al admin de la clínica', function (): void {
     $this->actingAs($this->testTenantAdmin)
         ->get('http://'.$this->testTenantHost.'/comunicaciones/campanas')
@@ -66,7 +57,7 @@ it('crea una campaña y agrega solo celulares Perú válidos', function (): void
     $this->actingAs($this->testTenantAdmin)
         ->post('http://'.$this->testTenantHost.'/comunicaciones/campanas', [
             'nombre' => 'Desparasitación',
-            'variantes' => campaignVariantes(),
+            'cuerpo' => 'Hola {nombre}, te escribimos de {clinica} por la campaña de {mascota}. ¿Agendamos?',
             'tope_diario' => 50,
             'intervalo_minutos' => 12,
             'hora_inicio' => '09:00',
@@ -125,7 +116,7 @@ it('envía un destinatario por tick y no toca a los ya enviados', function (): v
 
         $campana = WhatsAppCampana::query()->create([
             'nombre' => 'Campaña test',
-            'variantes' => campaignVariantes(),
+            'variantes' => ['Hola {nombre}, campaña de desparasitación de {mascota} en {clinica}.'],
             'tope_diario' => 50,
             'intervalo_minutos' => 8,
             'hora_inicio' => '00:00',
