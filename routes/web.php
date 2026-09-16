@@ -1137,6 +1137,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:comunicaciones-campanas.view')->group(function (): void {
             Route::get('campanas', [WhatsAppCampanaController::class, 'index'])->name('campanas.index');
             Route::get('campanas/create', [WhatsAppCampanaController::class, 'create'])->name('campanas.create');
+            Route::get('campanas/{campana}/elegibles', [WhatsAppCampanaController::class, 'elegibles'])->name('campanas.elegibles');
             Route::get('campanas/{campana}', [WhatsAppCampanaController::class, 'show'])->name('campanas.show');
             Route::get('campanas/{campana}/edit', [WhatsAppCampanaController::class, 'edit'])->name('campanas.edit');
         });

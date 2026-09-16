@@ -26,11 +26,14 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
+import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types';
+import type { WhatsAppProps } from '../components/whatsapp-connect-card';
 import {
     CampanaFormModal,
     type CampanaFormValues,
 } from './components/campana-form-modal';
+import { DestinatariosPickerModal } from './components/destinatarios-picker-modal';
 
 const ROUTE_URL = '/comunicaciones/campanas';
 const DEFAULT_PER_PAGE = 15;
@@ -59,6 +62,7 @@ type Props = {
         estado: string | null;
         per_page: number;
     };
+    whatsapp?: WhatsAppProps;
 };
 
 const EMPTY: Paginated<CampanaRow> = {
@@ -100,14 +104,18 @@ export default function CampanasIndex({
     items: paginated = EMPTY,
     stats = EMPTY_STATS,
     filters = { search: '', estado: null, per_page: DEFAULT_PER_PAGE },
+    whatsapp = { enabled: false, configured: false, session: null },
 }: Props) {
     const { t } = useTranslation(['comunicaciones', 'common']);
     const { can } = usePermission();
     const canCreate = can('comunicaciones-campanas.create');
     const canUpdate = can('comunicaciones-campanas.update');
     const canManage = can('comunicaciones-campanas.manage');
+    const whatsappReady = Boolean(whatsapp.session?.is_ready);
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<CampanaFormValues | null>(null);
+    const [pickerId, setPickerId] = useState<string | null>(null);
+    const [pickerNombre, setPickerNombre] = useState('');
     const [busyId, setBusyId] = useState<string | null>(null);
 
     const estadoFilter = (filters.estado ?? 'todos') as EstadoFilter;
@@ -122,7 +130,7 @@ export default function CampanasIndex({
                 sort: null,
                 direction: null,
             },
-            only: ['items', 'filters', 'stats'],
+            only: ['items', 'filters', 'stats', 'whatsapp'],
         });
 
     const estadoOptions: readonly FilterChip<EstadoFilter>[] = useMemo(
@@ -197,36 +205,50 @@ export default function CampanasIndex({
                 key: 'acciones',
                 header: <span className="sr-only">Acciones</span>,
                 align: 'right',
-                className: 'w-40',
+                className: 'w-44',
                 cell: (row) => {
                     const busy = busyId === row.id;
                     const canEdit =
                         canUpdate &&
                         (row.estado === 'borrador' || row.estado === 'pausada');
+                    const canPick =
+                        canUpdate && row.estado !== 'terminada';
                     const canStart =
                         canManage &&
                         (row.estado === 'borrador' || row.estado === 'pausada');
                     const canPause = canManage && row.estado === 'enviando';
-                    const enviada = row.estado === 'terminada';
+                    const sendBlocked =
+                        !whatsappReady || row.pendientes_count === 0;
+                    let sendHint = t('campanas.start');
+                    if (!whatsappReady) {
+                        sendHint = 'Conectá WhatsApp para enviar';
+                    } else if (row.pendientes_count === 0) {
+                        sendHint = 'Elegí destinatarios primero';
+                    } else if (row.estado === 'pausada') {
+                        sendHint = t('campanas.resume');
+                    }
 
                     return (
-                        <div className="flex items-center justify-end gap-1">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        className="size-8 cursor-pointer"
-                                        asChild
-                                    >
-                                        <Link href={`${ROUTE_URL}/${row.id}`}>
+                        <div className="flex items-center justify-end gap-1.5">
+                            {canPick ? (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="size-8 cursor-pointer bg-sky-500/10 text-sky-700 hover:bg-sky-500/20 hover:text-sky-800"
+                                            onClick={() => {
+                                                setPickerId(row.id);
+                                                setPickerNombre(row.nombre);
+                                            }}
+                                        >
                                             <Users className="size-4" strokeWidth={2.25} />
-                                        </Link>
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Marcar destinatarios</TooltipContent>
-                            </Tooltip>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Elegir destinatarios</TooltipContent>
+                                </Tooltip>
+                            ) : null}
                             {canEdit ? (
                                 <Tooltip>
                                     <TooltipTrigger asChild>
@@ -234,7 +256,7 @@ export default function CampanasIndex({
                                             type="button"
                                             size="icon"
                                             variant="ghost"
-                                            className="size-8 cursor-pointer"
+                                            className="size-8 cursor-pointer bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 hover:text-amber-800"
                                             onClick={() => {
                                                 setEditing(row);
                                                 setModalOpen(true);
@@ -253,14 +275,10 @@ export default function CampanasIndex({
                                             type="button"
                                             size="icon"
                                             variant="ghost"
-                                            className="size-8 cursor-pointer"
+                                            className="size-8 cursor-pointer bg-orange-500/10 text-orange-700 hover:bg-orange-500/20"
                                             disabled={busy}
                                             onClick={() => {
-                                                if (
-                                                    !window.confirm(
-                                                        t('campanas.pause_confirm'),
-                                                    )
-                                                ) {
+                                                if (!window.confirm(t('campanas.pause_confirm'))) {
                                                     return;
                                                 }
                                                 setBusyId(row.id);
@@ -280,15 +298,15 @@ export default function CampanasIndex({
                                             <Button
                                                 type="button"
                                                 size="icon"
-                                                variant="ghost"
-                                                className="size-8 cursor-pointer text-primary hover:text-primary"
-                                                disabled={busy || row.total_count === 0}
+                                                className={cn(
+                                                    'size-8 cursor-pointer',
+                                                    sendBlocked
+                                                        ? 'bg-muted text-muted-foreground'
+                                                        : 'bg-emerald-600 text-white hover:bg-emerald-700',
+                                                )}
+                                                disabled={busy || sendBlocked}
                                                 onClick={() => {
-                                                    if (
-                                                        !window.confirm(
-                                                            t('campanas.start_confirm'),
-                                                        )
-                                                    ) {
+                                                    if (!window.confirm(t('campanas.start_confirm'))) {
                                                         return;
                                                     }
                                                     setBusyId(row.id);
@@ -305,16 +323,10 @@ export default function CampanasIndex({
                                             </Button>
                                         </span>
                                     </TooltipTrigger>
-                                    <TooltipContent>
-                                        {row.total_count === 0
-                                            ? 'Primero marcá destinatarios'
-                                            : row.estado === 'pausada'
-                                              ? t('campanas.resume')
-                                              : t('campanas.start')}
-                                    </TooltipContent>
+                                    <TooltipContent>{sendHint}</TooltipContent>
                                 </Tooltip>
                             ) : null}
-                            {enviada ? (
+                            {row.estado === 'terminada' ? (
                                 <CheckCircle2 className="size-4 text-emerald-500" />
                             ) : null}
                         </div>
@@ -322,7 +334,7 @@ export default function CampanasIndex({
                 },
             },
         ],
-        [busyId, canManage, canUpdate, t],
+        [busyId, canManage, canUpdate, t, whatsappReady],
     );
 
     return (
@@ -331,7 +343,28 @@ export default function CampanasIndex({
             <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
                 <PageHeader
                     title={t('campanas.title')}
-                    description={t('campanas.description')}
+                    description={
+                        <span className="flex flex-wrap items-center gap-2">
+                            <span>{t('campanas.description')}</span>
+                            {whatsappReady ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                                    WhatsApp listo
+                                    {whatsapp.session?.phone
+                                        ? ` · ${whatsapp.session.phone}`
+                                        : ''}
+                                </span>
+                            ) : (
+                                <Link
+                                    href="/comunicaciones/cola"
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-500/20 dark:text-amber-300"
+                                >
+                                    <span className="size-1.5 rounded-full bg-amber-500" />
+                                    WhatsApp desconectado — ir a vincular
+                                </Link>
+                            )}
+                        </span>
+                    }
                     stats={[
                         { label: 'Total', value: stats.total, variant: 'info', icon: Megaphone },
                         { label: t('campanas.estado.borrador'), value: stats.borrador, variant: 'muted' },
@@ -367,7 +400,7 @@ export default function CampanasIndex({
                             search={search}
                             onSearchChange={setSearch}
                             isSearching={isLoading}
-                            placeholder={t('campanas.search_placeholder')}
+                            placeholder="Buscar campaña…"
                         >
                             <FilterChips
                                 ariaLabel={t('campanas.columns.estado')}
@@ -402,6 +435,16 @@ export default function CampanasIndex({
                 open={modalOpen}
                 onOpenChange={setModalOpen}
                 campana={editing}
+            />
+            <DestinatariosPickerModal
+                open={pickerId !== null}
+                campanaId={pickerId}
+                campanaNombre={pickerNombre}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPickerId(null);
+                    }
+                }}
             />
         </>
     );

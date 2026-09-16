@@ -7,10 +7,9 @@ import {
     Send,
     Users,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    BulkActionBar,
     DataPagination,
     DataTable,
     DataToolbar,
@@ -22,23 +21,18 @@ import type { DataTableColumn } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
-import { useRowSelection } from '@/hooks/use-row-selection';
 import { formatWhatsAppPhone } from '@/lib/format-whatsapp-phone';
+import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types';
-import { WhatsAppConnectCard } from '../components/whatsapp-connect-card';
 import type { WhatsAppProps } from '../components/whatsapp-connect-card';
+import { DestinatariosPickerModal } from './components/destinatarios-picker-modal';
 
 const ROUTE_URL = '/comunicaciones/campanas';
 
 type Campana = {
     id: string;
     nombre: string;
-    imagen_url: string | null;
-    cuerpo: string;
     tope_diario: number;
-    intervalo_minutos: number;
-    hora_inicio: string;
-    hora_fin: string;
     estado: string;
 };
 
@@ -51,30 +45,17 @@ type LoteRow = {
     enviado_at: string | null;
 };
 
-type ElegibleRow = {
-    id: string;
-    nombre: string;
-    telefono: string | null;
-    telefono_alt: string | null;
-};
-
 type Props = {
     campana: Campana;
     lote: Paginated<LoteRow>;
-    elegibles?: Paginated<ElegibleRow> | null;
     stats: {
-        total: number;
         pendiente: number;
         enviado: number;
         fallido: number;
-        omitido: number;
         enviados_hoy: number;
-        elegibles: number;
     };
     filters: {
         search: string;
-        scope: 'lote' | 'agregar';
-        estado: string | null;
         per_page: number;
     };
     whatsapp: WhatsAppProps;
@@ -83,7 +64,6 @@ type Props = {
 export default function CampanaShow({
     campana,
     lote,
-    elegibles = null,
     stats,
     filters,
     whatsapp,
@@ -92,53 +72,32 @@ export default function CampanaShow({
     const { can } = usePermission();
     const canUpdate = can('comunicaciones-campanas.update');
     const canManage = can('comunicaciones-campanas.manage');
+    const whatsappReady = Boolean(whatsapp.session?.is_ready);
+    const [pickerOpen, setPickerOpen] = useState(false);
     const routeUrl = `${ROUTE_URL}/${campana.id}`;
 
-    const { search, setSearch, isLoading, applyFilter } = useDataTablePage<{
-        scope: string;
-        estado: string | null;
-    }>({
+    const { search, setSearch, isLoading } = useDataTablePage({
         routeUrl,
         initialFilters: {
             search: filters.search,
-            scope: filters.scope,
-            estado: filters.estado,
             per_page: filters.per_page,
             sort: null,
             direction: null,
         },
-        only: ['lote', 'elegibles', 'stats', 'filters', 'campana', 'whatsapp'],
+        only: ['lote', 'stats', 'filters', 'campana', 'whatsapp'],
     });
 
-    const isAgregar = filters.scope === 'agregar';
-    const elegibleRows = elegibles?.data ?? [];
-    const selection = useRowSelection({
-        rows: elegibleRows,
-        rowKey: (row) => row.id,
-    });
-
-    const post = (path: string, extra: Record<string, unknown> = {}) => {
-        router.post(path, extra, { preserveScroll: true });
-    };
-
-    const loteColumns = useMemo<DataTableColumn<LoteRow>[]>(
+    const columns = useMemo<DataTableColumn<LoteRow>[]>(
         () => [
             {
                 key: 'nombre',
                 header: t('campanas.columns.destinatario'),
                 cell: (row) => (
-                    <div className="flex items-center gap-2">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <Users className="size-4" strokeWidth={2.25} />
+                    <div className="flex min-w-0 flex-col leading-tight">
+                        <span className="truncate text-sm font-semibold">{row.nombre_snapshot}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                            {row.mascota_nombres ?? '—'}
                         </span>
-                        <div className="flex min-w-0 flex-col leading-tight">
-                            <span className="truncate text-sm font-semibold">
-                                {row.nombre_snapshot}
-                            </span>
-                            <span className="truncate text-xs text-muted-foreground">
-                                {row.mascota_nombres ?? '—'}
-                            </span>
-                        </div>
                     </div>
                 ),
             },
@@ -175,52 +134,14 @@ export default function CampanaShow({
                         />
                     ),
             },
-            {
-                key: 'acciones',
-                header: <span className="sr-only">Acciones</span>,
-                align: 'right',
-                cell: (row) =>
-                    canUpdate && row.estado === 'pendiente' ? (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="cursor-pointer text-destructive"
-                            onClick={() =>
-                                router.delete(`${routeUrl}/destinatarios/${row.id}`, {
-                                    preserveScroll: true,
-                                })
-                            }
-                        >
-                            {t('campanas.remove')}
-                        </Button>
-                    ) : null,
-            },
-        ],
-        [canUpdate, routeUrl, t],
-    );
-
-    const elegibleColumns = useMemo<DataTableColumn<ElegibleRow>[]>(
-        () => [
-            {
-                key: 'nombre',
-                header: t('campanas.columns.destinatario'),
-                cell: (row) => (
-                    <span className="text-sm font-semibold">{row.nombre}</span>
-                ),
-            },
-            {
-                key: 'telefono',
-                header: t('campanas.columns.telefono'),
-                cell: (row) => (
-                    <span className="font-mono text-xs">
-                        {formatWhatsAppPhone(row.telefono ?? row.telefono_alt ?? '')}
-                    </span>
-                ),
-            },
         ],
         [t],
     );
+
+    const canStart =
+        canManage &&
+        (campana.estado === 'borrador' || campana.estado === 'pausada');
+    const sendBlocked = !whatsappReady || stats.pendiente === 0;
 
     return (
         <>
@@ -228,38 +149,61 @@ export default function CampanaShow({
             <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
                 <PageHeader
                     title={campana.nombre}
-                    description={t('campanas.only_mobile')}
+                    description={
+                        <span className="flex flex-wrap items-center gap-2">
+                            <span>{t('campanas.only_mobile')}</span>
+                            {whatsappReady ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                                    WhatsApp listo
+                                </span>
+                            ) : (
+                                <Link
+                                    href="/comunicaciones/cola"
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-800"
+                                >
+                                    WhatsApp desconectado
+                                </Link>
+                            )}
+                        </span>
+                    }
                     stats={[
                         { label: t('campanas.stats.pendiente'), value: stats.pendiente, variant: 'warning' },
                         { label: t('campanas.stats.enviado'), value: stats.enviado, variant: 'success' },
                         { label: t('campanas.stats.fallido'), value: stats.fallido, variant: stats.fallido > 0 ? 'danger' : 'muted' },
-                        { label: t('campanas.stats.elegibles'), value: stats.elegibles, variant: 'info' },
-                        {
-                            label: t('campanas.today', {
-                                count: stats.enviados_hoy,
-                                tope: campana.tope_diario,
-                            }),
-                            value: '',
-                            variant: 'primary',
-                        },
                     ]}
                     action={
                         <div className="flex flex-wrap gap-2">
                             <Button variant="outline" size="sm" asChild>
                                 <Link href={ROUTE_URL}>{t('common:actions.back')}</Link>
                             </Button>
-                            {canManage &&
-                            (campana.estado === 'borrador' ||
-                                campana.estado === 'pausada') ? (
+                            {canUpdate && campana.estado !== 'terminada' ? (
                                 <Button
                                     type="button"
                                     size="sm"
-                                    className="cursor-pointer gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                                    className="cursor-pointer gap-1.5 bg-sky-600 text-white hover:bg-sky-700"
+                                    onClick={() => setPickerOpen(true)}
+                                >
+                                    <Users className="size-3.5" />
+                                    Destinatarios
+                                </Button>
+                            ) : null}
+                            {canStart ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className={cn(
+                                        'cursor-pointer gap-1.5',
+                                        sendBlocked
+                                            ? 'bg-muted text-muted-foreground'
+                                            : 'bg-emerald-600 text-white hover:bg-emerald-700',
+                                    )}
+                                    disabled={sendBlocked}
                                     onClick={() => {
                                         if (!window.confirm(t('campanas.start_confirm'))) {
                                             return;
                                         }
-                                        post(`${routeUrl}/start`);
+                                        router.post(`${routeUrl}/start`, {}, { preserveScroll: true });
                                     }}
                                 >
                                     <Send className="size-3.5" />
@@ -274,12 +218,9 @@ export default function CampanaShow({
                                     variant="outline"
                                     size="sm"
                                     className="cursor-pointer gap-1.5"
-                                    onClick={() => {
-                                        if (!window.confirm(t('campanas.pause_confirm'))) {
-                                            return;
-                                        }
-                                        post(`${routeUrl}/pause`);
-                                    }}
+                                    onClick={() =>
+                                        router.post(`${routeUrl}/pause`, {}, { preserveScroll: true })
+                                    }
                                 >
                                     <Pause className="size-3.5" />
                                     {t('campanas.pause')}
@@ -289,38 +230,10 @@ export default function CampanaShow({
                     }
                 />
 
-                <WhatsAppConnectCard
-                    whatsapp={whatsapp}
-                    canManage={can('comunicaciones-cola.manage')}
-                />
-
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant={!isAgregar ? 'default' : 'outline'}
-                        className="cursor-pointer"
-                        onClick={() => applyFilter({ scope: 'lote' })}
-                    >
-                        {t('campanas.lote')}
-                    </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant={isAgregar ? 'default' : 'outline'}
-                        className="cursor-pointer gap-1.5"
-                        onClick={() => applyFilter({ scope: 'agregar' })}
-                    >
-                        <Users className="size-3.5" />
-                        {t('campanas.agregar')}
-                    </Button>
-                </div>
-
                 <DataTable
-                    columns={isAgregar ? elegibleColumns : loteColumns}
-                    data={isAgregar ? elegibleRows : lote.data}
+                    columns={columns}
+                    data={lote.data}
                     rowKey={(row) => row.id}
-                    selection={isAgregar && canUpdate ? selection : undefined}
                     isLoading={isLoading}
                     toolbar={
                         <DataToolbar
@@ -333,65 +246,28 @@ export default function CampanaShow({
                     emptyState={
                         <EmptyState
                             icon={Megaphone}
-                            title={t('campanas.empty')}
-                            description={t('campanas.only_mobile')}
+                            title="Sin destinatarios aún"
+                            description="Usá Destinatarios para marcar dueños con celular válido."
                         />
                     }
                     footer={
                         <DataPagination
-                            meta={isAgregar && elegibles ? elegibles : lote}
+                            meta={lote}
                             preservedQuery={{
                                 search: filters.search || undefined,
-                                scope: filters.scope,
                                 per_page: filters.per_page,
                             }}
                         />
                     }
                 />
-
-                {isAgregar && canUpdate ? (
-                    <>
-                        <BulkActionBar
-                            count={selection.count}
-                            labels={{
-                                singular: 'dueño seleccionado',
-                                plural: 'dueños seleccionados',
-                            }}
-                            onClear={selection.clear}
-                        >
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="cursor-pointer"
-                                onClick={() => {
-                                    post(`${routeUrl}/destinatarios`, {
-                                        propietario_ids: [...selection.selectedIds],
-                                    });
-                                    selection.clear();
-                                }}
-                            >
-                                {t('campanas.add_selected')}
-                            </Button>
-                        </BulkActionBar>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-fit cursor-pointer"
-                            onClick={() => {
-                                if (!window.confirm(t('campanas.add_all_confirm'))) {
-                                    return;
-                                }
-                                post(`${routeUrl}/destinatarios/todos`, {
-                                    search: filters.search,
-                                });
-                            }}
-                        >
-                            {t('campanas.add_all')}
-                        </Button>
-                    </>
-                ) : null}
             </div>
+
+            <DestinatariosPickerModal
+                open={pickerOpen}
+                campanaId={pickerOpen ? campana.id : null}
+                campanaNombre={campana.nombre}
+                onOpenChange={setPickerOpen}
+            />
         </>
     );
 }

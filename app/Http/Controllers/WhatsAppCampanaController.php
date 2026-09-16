@@ -20,7 +20,11 @@ class WhatsAppCampanaController extends Controller
 {
     private const PER_PAGE = [10, 15, 25, 50];
 
-    public function index(Request $request): Response
+    public function index(
+        Request $request,
+        TenantManager $tenants,
+        TenantWhatsAppPresenter $whatsapp,
+    ): Response
     {
         $perPage = $this->perPage($request);
         $search = trim((string) $request->string('search', ''));
@@ -61,6 +65,7 @@ class WhatsAppCampanaController extends Controller
                 'estado' => $estado !== '' ? $estado : null,
                 'per_page' => $perPage,
             ],
+            'whatsapp' => $whatsapp->forTenant($tenants->current()?->tenant),
         ]);
     }
 
@@ -190,12 +195,21 @@ class WhatsAppCampanaController extends Controller
             ->with('success', 'Campaña eliminada.');
     }
 
-    public function start(WhatsAppCampana $campana): RedirectResponse
+    public function start(
+        WhatsAppCampana $campana,
+        TenantManager $tenants,
+        TenantWhatsAppPresenter $whatsapp,
+    ): RedirectResponse
     {
         abort_unless(in_array($campana->estado, [
             WhatsAppCampana::ESTADO_BORRADOR,
             WhatsAppCampana::ESTADO_PAUSADA,
         ], true), 422);
+
+        $session = $whatsapp->forTenant($tenants->current()?->tenant)['session'] ?? null;
+        if (! is_array($session) || empty($session['is_ready'])) {
+            return back()->with('error', 'WhatsApp no está conectado. Vincúlalo en Cola saliente para lanzar la campaña.');
+        }
 
         if (count($campana->variantesLimpias()) < 1) {
             return back()->with('error', 'La campaña necesita un mensaje.');
@@ -227,6 +241,31 @@ class WhatsAppCampanaController extends Controller
         ])->save();
 
         return back()->with('success', 'Campaña pausada. No se enviará nada hasta que la reanudes.');
+    }
+
+    public function elegibles(
+        Request $request,
+        WhatsAppCampana $campana,
+        WhatsAppCampaignAudience $audience,
+    ): \Illuminate\Http\JsonResponse {
+        $search = trim((string) $request->string('search', ''));
+        $perPage = $this->perPage($request);
+        $page = $audience->paginateEligible($campana, $search, $perPage);
+
+        return response()->json([
+            'data' => $page->getCollection()
+                ->map(static fn ($owner) => [
+                    'id' => $owner->id,
+                    'nombre' => $owner->displayName(),
+                    'telefono' => $owner->telefono,
+                    'telefono_alt' => $owner->telefono_alt,
+                ])
+                ->values(),
+            'current_page' => $page->currentPage(),
+            'last_page' => $page->lastPage(),
+            'total' => $page->total(),
+            'in_lote' => $campana->destinatarios()->count(),
+        ]);
     }
 
     public function attach(
