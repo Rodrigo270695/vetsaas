@@ -123,7 +123,10 @@ final class ReconnectOpenWaSessionJob implements ShouldQueue
         $local = $tenant->whatsappSession;
         if ($local instanceof TenantWhatsAppSession) {
             $local = $tenantSync->pullRemoteStatus($local);
-            if (OpenWaReconnectPolicy::isLive((string) $local->status)) {
+            if (OpenWaReconnectPolicy::isLive(
+                (string) $local->status,
+                $local->last_synced_at ?? $local->updated_at,
+            )) {
                 return;
             }
         }

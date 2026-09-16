@@ -1255,6 +1255,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::post('cola/{notification}/retry', [NotificationQueueController::class, 'retry'])
                 ->whereUuid('notification')
                 ->name('cola.retry');
+            Route::post('historico/{notification}/resend', [NotificationQueueController::class, 'resend'])
+                ->whereUuid('notification')
+                ->name('historico.resend');
             Route::post('whatsapp/sync', [TenantWhatsAppController::class, 'sync'])->name('whatsapp.sync');
             Route::post('whatsapp/test', [TenantWhatsAppController::class, 'sendTest'])->name('whatsapp.test');
             Route::post('whatsapp/logout', [TenantWhatsAppController::class, 'logout'])->name('whatsapp.logout');

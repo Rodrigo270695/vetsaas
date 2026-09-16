@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Inbox, RotateCcw, XCircle } from 'lucide-react';
+import { Inbox, Send, XCircle } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -157,9 +157,16 @@ export default function Index({
                 key: 'intentos',
                 header: t('columns.intentos'),
                 cell: (row) => (
-                    <span className="text-sm tabular-nums">
-                        {row.intentos}/{row.max_intentos}
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="text-sm tabular-nums">
+                            {row.intentos}/{row.max_intentos}
+                        </span>
+                        {row.error_mensaje ? (
+                            <span className="max-w-[12rem] truncate text-[11px] text-destructive" title={row.error_mensaje}>
+                                {row.error_mensaje}
+                            </span>
+                        ) : null}
+                    </div>
                 ),
             },
             {
@@ -168,16 +175,16 @@ export default function Index({
                 cell: (row) =>
                     canManage ? (
                         <div className="flex justify-end gap-1">
-                            {row.estado === 'fallido' ? (
+                            {row.estado === 'fallido' || row.estado === 'pendiente' ? (
                                 <Button
                                     type="button"
                                     size="icon"
                                     variant="ghost"
-                                    className="size-8"
+                                    className="size-8 cursor-pointer bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-800"
                                     onClick={() => retryItem(row.id)}
                                     title={t('actions.retry')}
                                 >
-                                    <RotateCcw className="size-4" />
+                                    <Send className="size-4" strokeWidth={2.25} />
                                 </Button>
                             ) : null}
                             {row.estado === 'pendiente' || row.estado === 'fallido' ? (

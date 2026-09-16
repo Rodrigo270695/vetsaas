@@ -33,3 +33,9 @@ it('no encola reconnect si falta el id de sesión OpenWA', function (): void {
 it('encola disconnected con auto-reconnect', function (): void {
     expect(OpenWaReconnectPolicy::shouldEnqueueAutoReconnect('disconnected', true, true, true))->toBeTrue();
 });
+
+it('trata initializing viejo como caído y lo reconecta', function (): void {
+    $stale = now()->subMinutes(10);
+    expect(OpenWaReconnectPolicy::isLive('initializing', $stale))->toBeFalse()
+        ->and(OpenWaReconnectPolicy::shouldEnqueueAutoReconnect('initializing', true, true, true, $stale))->toBeTrue();
+});

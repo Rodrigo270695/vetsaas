@@ -170,6 +170,7 @@ final class OpenWaReconnectCoordinator
                 (bool) $platform->auto_reconnect,
                 filled($platform->phone),
                 trim((string) $platform->openwa_session_id) !== '',
+                $platform->last_synced_at ?? $platform->updated_at,
             )
         ) {
             $queue[] = ['kind' => 'platform', 'id' => (string) $platform->id];
@@ -194,6 +195,7 @@ final class OpenWaReconnectCoordinator
                     (bool) $session->auto_reconnect,
                     filled($session->phone),
                     trim((string) $session->openwa_session_id) !== '',
+                    $session->last_synced_at ?? $session->updated_at,
                 );
             })
             ->sortBy(fn (Tenant $tenant): string => (string) (
@@ -233,7 +235,6 @@ final class OpenWaReconnectCoordinator
     }
 
     /**
-     * @param  TenantWhatsAppSession|PlatformWhatsAppSession  $session
      * @param  array<string, mixed>  $remote
      */
     private function applyRemote(TenantWhatsAppSession|PlatformWhatsAppSession $session, array $remote): void

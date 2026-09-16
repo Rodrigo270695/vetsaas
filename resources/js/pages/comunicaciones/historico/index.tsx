@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
-import { History } from 'lucide-react';
-import { useMemo } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { History, Send } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DataPagination,
@@ -11,7 +11,9 @@ import {
     StatBadge,
 } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
+import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePermission } from '@/hooks/use-permission';
 import type { HistoricoPageProps } from '../types';
 
 const ROUTE_URL = '/comunicaciones/historico';
@@ -39,7 +41,9 @@ export default function Index({
     },
     stats = { enviado: 0 },
 }: HistoricoPageProps) {
-    const { t, i18n } = useTranslation('comunicaciones');
+    const { t, i18n } = useTranslation(['comunicaciones', 'common']);
+    const { can } = usePermission();
+    const canResend = can('comunicaciones-cola.manage');
 
     const { search, setSearch, isLoading, setPerPage } = useDataTablePage<{
         tipo: string | null;
@@ -51,6 +55,16 @@ export default function Index({
         storageKey: 'vetsaas.comunicaciones.historico.prefs',
         defaults: { per_page: DEFAULT_PER_PAGE, sort: null, direction: null },
     });
+
+    const resendItem = useCallback(
+        (id: string) => {
+            if (!window.confirm(t('actions.resend_confirm'))) {
+                return;
+            }
+            router.post(`/comunicaciones/historico/${id}/resend`, {}, { preserveScroll: true });
+        },
+        [t],
+    );
 
     const columns = useMemo((): DataTableColumn<(typeof paginated.data)[number]>[] => {
         return [
@@ -95,8 +109,27 @@ export default function Index({
                     </span>
                 ),
             },
+            {
+                key: 'actions',
+                header: '',
+                cell: (row) =>
+                    canResend ? (
+                        <div className="flex justify-end">
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="size-8 cursor-pointer bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
+                                onClick={() => resendItem(row.id)}
+                                title={t('actions.resend')}
+                            >
+                                <Send className="size-4" strokeWidth={2.25} />
+                            </Button>
+                        </div>
+                    ) : null,
+            },
         ];
-    }, [t, i18n.language]);
+    }, [t, i18n.language, canResend, resendItem]);
 
     return (
         <>

@@ -8,6 +8,7 @@ use App\Models\NotificationQueue;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
+use App\Services\OpenWa\OpenWaRateLimitedException;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use App\Support\Agenda\AgendaRsvpFromInbound;
 use Carbon\CarbonInterface;
@@ -33,6 +34,18 @@ final class WhatsAppNotificationDispatcher
 
         $session = $this->resolveReadySession($tenant);
         if ($session === null) {
+            NotificationQueue::query()
+                ->where('estado', NotificationQueue::ESTADO_PENDIENTE)
+                ->where('canal', NotificationQueue::CANAL_WHATSAPP)
+                ->where('enviar_at', '<=', $now)
+                ->where(function ($q): void {
+                    $q->whereNull('error_mensaje')->orWhere('error_mensaje', '');
+                })
+                ->limit(50)
+                ->update([
+                    'error_mensaje' => 'WhatsApp no estuvo listo para enviar. Pulsá Enviar ahora cuando esté conectado.',
+                ]);
+
             return ['sent' => 0, 'failed' => 0, 'skipped' => 0];
         }
 
@@ -212,10 +225,21 @@ final class WhatsAppNotificationDispatcher
 
     private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession
     {
-        $session = $this->sessionSync->ensureReadyForSend($tenant);
+        try {
+            $session = $this->sessionSync->ensureReadyForSend($tenant);
+            if ($session instanceof TenantWhatsAppSession && $session->isReady()) {
+                return $session;
+            }
+        } catch (OpenWaRateLimitedException) {
+            // El 429 es del listado; si la sesión ya está ready se envía igual.
+        }
 
-        return $session instanceof TenantWhatsAppSession && $session->isReady()
-            ? $session
+        $local = TenantWhatsAppSession::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        return $local instanceof TenantWhatsAppSession && $local->isReady()
+            ? $local
             : null;
     }
 

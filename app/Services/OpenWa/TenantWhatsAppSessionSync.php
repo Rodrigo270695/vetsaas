@@ -161,11 +161,17 @@ final class TenantWhatsAppSessionSync
             return null;
         }
 
-        if (! ($session->isReady() && $session->isSyncedRecently(2))) {
-            $session = $this->pullRemoteStatus($session);
+        if (! ($session->isReady() && $session->isSyncedRecently(15))) {
+            try {
+                $session = $this->pullRemoteStatus($session);
+            } catch (OpenWaRateLimitedException) {
+                if ($session->isReady()) {
+                    return $session;
+                }
+            }
         }
 
-        if ($session->isReady() && $session->isSyncedRecently(2)) {
+        if ($session->isReady()) {
             return $session;
         }
 
@@ -176,9 +182,21 @@ final class TenantWhatsAppSessionSync
 
         if (
             $sessionId !== ''
-            && OpenWaReconnectPolicy::shouldStartEngine($status, $wantsReconnect, false, $hadPhone)
+            && OpenWaReconnectPolicy::shouldStartEngine(
+                $status,
+                $wantsReconnect,
+                false,
+                $hadPhone,
+                $session->last_synced_at ?? $session->updated_at,
+            )
         ) {
-            $this->client->tryStartIfDown($sessionId, $status);
+            $this->client->tryStartIfDown(
+                $sessionId,
+                OpenWaReconnectPolicy::normalizeStatus(
+                    $status,
+                    $session->last_synced_at ?? $session->updated_at,
+                ),
+            );
         }
 
         try {
@@ -193,9 +211,7 @@ final class TenantWhatsAppSessionSync
             $session = $this->ensureForTenant($tenant) ?? $session;
         }
 
-        return $session instanceof TenantWhatsAppSession
-            && $session->isReady()
-            && $session->isSyncedRecently(5)
+        return $session instanceof TenantWhatsAppSession && $session->isReady()
             ? $session
             : null;
     }

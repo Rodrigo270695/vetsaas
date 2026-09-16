@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NotificationQueue;
+use App\Models\Tenant;
 use App\Services\Notifications\WhatsAppNotificationDispatcher;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
 use App\Tenancy\TenantManager;
@@ -68,16 +69,66 @@ class NotificationQueueController extends Controller
 
     public function retry(NotificationQueue $notification): RedirectResponse
     {
-        abort_unless($notification->estado === NotificationQueue::ESTADO_FALLIDO, 422);
+        abort_unless(in_array($notification->estado, [
+            NotificationQueue::ESTADO_FALLIDO,
+            NotificationQueue::ESTADO_PENDIENTE,
+        ], true), 422);
 
         $notification->forceFill([
             'estado' => NotificationQueue::ESTADO_PENDIENTE,
-            'intentos' => 0,
+            'intentos' => $notification->estado === NotificationQueue::ESTADO_FALLIDO
+                ? 0
+                : $notification->intentos,
             'error_mensaje' => null,
             'enviar_at' => now(),
         ])->save();
 
-        return back()->with('success', 'Mensaje reencolado.');
+        return $this->dispatchNow($notification, 'Mensaje reencolado.');
+    }
+
+    public function resend(NotificationQueue $notification): RedirectResponse
+    {
+        abort_unless($notification->estado === NotificationQueue::ESTADO_ENVIADO, 422);
+
+        $clone = $notification->replicate([
+            'proveedor_msg_id',
+            'ultimo_intento_at',
+            'error_mensaje',
+        ]);
+        $clone->forceFill([
+            'estado' => NotificationQueue::ESTADO_PENDIENTE,
+            'intentos' => 0,
+            'error_mensaje' => null,
+            'proveedor_msg_id' => null,
+            'enviar_at' => now(),
+            'dedupe_key' => trim((string) $notification->dedupe_key).':resend:'.now()->format('YmdHis'),
+        ]);
+        $clone->save();
+
+        return $this->dispatchNow($clone, 'Reenvío encolado.');
+    }
+
+    private function dispatchNow(NotificationQueue $notification, string $queuedMessage): RedirectResponse
+    {
+        $tenant = app(TenantManager::class)->current()?->tenant;
+        if (! $tenant instanceof Tenant) {
+            return back()->with('success', $queuedMessage);
+        }
+
+        $ok = app(WhatsAppNotificationDispatcher::class)->dispatchOne($notification->fresh() ?? $notification, $tenant);
+        $fresh = $notification->fresh();
+        if ($ok && $fresh?->estado === NotificationQueue::ESTADO_ENVIADO) {
+            return back()->with('success', 'Mensaje enviado por WhatsApp.');
+        }
+
+        $error = trim((string) ($fresh?->error_mensaje ?? ''));
+
+        return back()->with(
+            'error',
+            $error !== ''
+                ? $error
+                : 'No se pudo enviar ahora. Revisá que WhatsApp esté conectado; quedó pendiente para el próximo ciclo.',
+        );
     }
 
     private function renderIndex(

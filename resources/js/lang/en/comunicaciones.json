@@ -64,9 +64,11 @@
     },
     "actions": {
         "cancel": "Cancel",
-        "retry": "Retry",
+        "retry": "Send now",
+        "resend": "Resend",
         "cancel_confirm": "Cancel this message?",
-        "retry_confirm": "Retry sending?"
+        "retry_confirm": "Send this message now via WhatsApp?",
+        "resend_confirm": "Resend this message to the same number?"
     },
     "whatsapp": {
         "title": "WhatsApp sync",

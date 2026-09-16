@@ -64,9 +64,11 @@
     },
     "actions": {
         "cancel": "Cancelar",
-        "retry": "Reintentar",
+        "retry": "Enviar ahora",
+        "resend": "Reenviar",
         "cancel_confirm": "¿Cancelar este mensaje?",
-        "retry_confirm": "¿Reintentar el envío?"
+        "retry_confirm": "¿Enviar este mensaje ahora por WhatsApp?",
+        "resend_confirm": "¿Reenviar este mensaje al mismo número?"
     },
     "whatsapp": {
         "title": "Sinc. WhatsApp",
