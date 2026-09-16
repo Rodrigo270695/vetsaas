@@ -8,9 +8,11 @@ use App\Http\Requests\WhatsAppCampanaRequest;
 use App\Models\Tenant;
 use App\Models\WhatsAppCampana;
 use App\Models\WhatsAppCampanaDestinatario;
+use App\Services\OpenWa\OpenWaClient;
 use App\Services\WhatsApp\WhatsAppCampaignAudience;
 use App\Services\WhatsApp\WhatsAppCampaignDispatcher;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
+use App\Support\WhatsApp\WhatsAppCampaignClock;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +29,11 @@ class WhatsAppCampanaController extends Controller
         Request $request,
         TenantManager $tenants,
         TenantWhatsAppPresenter $whatsapp,
+        WhatsAppCampaignDispatcher $dispatcher,
+        OpenWaClient $openWa,
     ): Response {
+        $this->kickDueCampaigns($tenants, $dispatcher);
+
         $perPage = $this->perPage($request);
         $search = trim((string) $request->string('search', ''));
         $estado = trim((string) $request->string('estado', ''));
@@ -47,7 +53,7 @@ class WhatsAppCampanaController extends Controller
             ->paginate($perPage)
             ->withQueryString()
             ->through(fn (WhatsAppCampana $campana) => [
-                ...$this->campanaPayload($campana),
+                ...$this->campanaPayload($campana, $openWa),
                 'pendientes_count' => (int) $campana->pendientes_count,
                 'enviados_count' => (int) $campana->enviados_count,
                 'total_count' => (int) $campana->total_count,
@@ -96,7 +102,12 @@ class WhatsAppCampanaController extends Controller
         WhatsAppCampaignAudience $audience,
         TenantManager $tenants,
         TenantWhatsAppPresenter $whatsapp,
+        WhatsAppCampaignDispatcher $dispatcher,
+        OpenWaClient $openWa,
     ): Response {
+        $this->kickDueCampaigns($tenants, $dispatcher);
+        $campana->refresh();
+
         $perPage = $this->perPage($request);
         $search = trim((string) $request->string('search', ''));
         $scope = (string) $request->string('scope', 'lote');
@@ -141,7 +152,7 @@ class WhatsAppCampanaController extends Controller
         ];
 
         return Inertia::render('comunicaciones/campanas/show', [
-            'campana' => $this->campanaPayload($campana),
+            'campana' => $this->campanaPayload($campana, $openWa),
             'lote' => $lote->through(fn (WhatsAppCampanaDestinatario $row) => [
                 'id' => $row->id,
                 'nombre_snapshot' => $row->nombre_snapshot,
@@ -260,7 +271,7 @@ class WhatsAppCampanaController extends Controller
         }
 
         $campana->refresh();
-        $hint = $campana->pacingHint(now())['label'];
+        $hint = $campana->pacingHint()['label'];
 
         if ($sent > 0) {
             return back()->with('success', 'Campaña en marcha. Ya salió el primer mensaje.');
@@ -404,8 +415,16 @@ class WhatsAppCampanaController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function campanaPayload(WhatsAppCampana $campana): array
+    private function campanaPayload(WhatsAppCampana $campana, ?OpenWaClient $openWa = null): array
     {
+        $hint = $campana->pacingHint();
+        if ($openWa?->isRateLimited()) {
+            $hint = [
+                'code' => 'rate',
+                'label' => 'WhatsApp en pausa (429). Esperá 2-4 minutos y recargá.',
+            ];
+        }
+
         return [
             'id' => $campana->id,
             'nombre' => $campana->nombre,
@@ -414,12 +433,26 @@ class WhatsAppCampanaController extends Controller
             'cuerpo' => $campana->variantesLimpias()[0] ?? '',
             'tope_diario' => $campana->tope_diario,
             'intervalo_minutos' => $campana->intervalo_minutos,
-            'hora_inicio' => substr((string) $campana->hora_inicio, 0, 5),
-            'hora_fin' => substr((string) $campana->hora_fin, 0, 5),
+            'hora_inicio' => WhatsAppCampaignClock::hm($campana->hora_inicio),
+            'hora_fin' => WhatsAppCampaignClock::hm($campana->hora_fin),
             'estado' => $campana->estado,
             'last_sent_at' => $campana->last_sent_at?->toIso8601String(),
-            'pacing_hint' => $campana->pacingHint(now()),
+            'pacing_hint' => $hint,
         ];
+    }
+
+    private function kickDueCampaigns(TenantManager $tenants, WhatsAppCampaignDispatcher $dispatcher): void
+    {
+        $tenant = $tenants->current()?->tenant;
+        if (! $tenant instanceof Tenant) {
+            return;
+        }
+
+        if (! WhatsAppCampana::query()->where('estado', WhatsAppCampana::ESTADO_ENVIANDO)->exists()) {
+            return;
+        }
+
+        $dispatcher->tick($tenant);
     }
 
     private function perPage(Request $request): int

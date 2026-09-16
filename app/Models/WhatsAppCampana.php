@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\WhatsApp\WhatsAppCampaignClock;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -118,9 +119,11 @@ class WhatsAppCampana extends Model
 
     public function enviadosHoy(): int
     {
+        $lima = WhatsAppCampaignClock::now();
+
         return $this->destinatarios()
             ->where('estado', WhatsAppCampanaDestinatario::ESTADO_ENVIADO)
-            ->whereDate('enviado_at', now()->toDateString())
+            ->whereBetween('enviado_at', [$lima->copy()->startOfDay(), $lima->copy()->endOfDay()])
             ->count();
     }
 
@@ -129,22 +132,24 @@ class WhatsAppCampana extends Model
         return max(1, min(30, (int) $this->intervalo_minutos));
     }
 
-    public function inSendWindow(CarbonInterface $now): bool
+    public function inSendWindow(?CarbonInterface $now = null): bool
     {
-        $start = substr((string) $this->hora_inicio, 0, 5);
-        $end = substr((string) $this->hora_fin, 0, 5);
-        $hm = $now->copy()->timezone((string) config('app.timezone'))->format('H:i');
+        $lima = WhatsAppCampaignClock::now($now);
+        $current = ($lima->hour * 60) + $lima->minute;
+        $start = WhatsAppCampaignClock::minutes($this->hora_inicio);
+        $end = WhatsAppCampaignClock::minutes($this->hora_fin);
 
-        return $hm >= $start && $hm <= $end;
+        return $current >= $start && $current <= $end;
     }
 
     /**
      * @return array{code: string, label: string}
      */
-    public function pacingHint(CarbonInterface $now): array
+    public function pacingHint(?CarbonInterface $now = null): array
     {
-        $start = substr((string) $this->hora_inicio, 0, 5);
-        $end = substr((string) $this->hora_fin, 0, 5);
+        $lima = WhatsAppCampaignClock::now($now);
+        $start = WhatsAppCampaignClock::hm($this->hora_inicio);
+        $end = WhatsAppCampaignClock::hm($this->hora_fin);
         $interval = $this->intervaloEfectivo();
 
         if ($this->estado === self::ESTADO_BORRADOR) {
@@ -159,21 +164,24 @@ class WhatsAppCampana extends Model
             return ['code' => 'done', 'label' => 'Terminada'];
         }
 
-        if (! $this->inSendWindow($now)) {
-            return ['code' => 'window', 'label' => "Fuera de horario ({$start}–{$end})"];
+        if (! $this->inSendWindow($lima)) {
+            return [
+                'code' => 'window',
+                'label' => "Fuera de horario ({$start}–{$end}, hora Perú {$lima->format('H:i')})",
+            ];
         }
 
         if ($this->last_sent_at instanceof CarbonInterface
-            && $this->last_sent_at->copy()->addMinutes($interval)->greaterThan($now)
+            && $this->last_sent_at->copy()->addMinutes($interval)->greaterThan($lima)
         ) {
             $next = $this->last_sent_at
                 ->copy()
                 ->addMinutes($interval)
-                ->timezone((string) config('app.timezone'));
+                ->timezone(WhatsAppCampaignClock::TIMEZONE);
 
-            return ['code' => 'wait', 'label' => 'Próximo '.$next->format('H:i')];
+            return ['code' => 'wait', 'label' => 'Próximo '.$next->format('H:i').' (hora Perú)'];
         }
 
-        return ['code' => 'due', 'label' => 'Saliendo ahora'];
+        return ['code' => 'due', 'label' => 'Saliendo ahora · '.$lima->format('H:i').' hora Perú'];
     }
 }

@@ -11,6 +11,7 @@ use App\Services\OpenWa\TenantWhatsAppMessenger;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use App\Services\WhatsApp\WhatsAppCampaignDispatcher;
 use App\Tenancy\TenantManager;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\CreatesTestTenant;
 use Tests\Support\RefreshDatabaseWithPgsqlSafety;
@@ -207,7 +208,7 @@ it('respeta un intervalo de 1 minuto y no envía fuera de horario', function ():
         $mock->shouldReceive('sendImage')->never();
     });
 
-    $this->travelTo(now()->setTime(12, 0));
+    $this->travelTo(Carbon::parse('2026-09-15 12:00:00', 'America/Lima'));
 
     app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
         $owner = Propietario::query()->create([
@@ -267,7 +268,7 @@ it('respeta un intervalo de 1 minuto y no envía fuera de horario', function ():
         ]);
     });
 
-    $this->travelTo(now()->setTime(22, 47));
+    $this->travelTo(Carbon::parse('2026-09-15 22:47:00', 'America/Lima'));
 
     $outside = app(TenantManager::class)->runForSlug(
         $this->testTenant->slug,

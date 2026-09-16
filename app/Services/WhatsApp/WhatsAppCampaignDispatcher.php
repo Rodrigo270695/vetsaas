@@ -13,6 +13,7 @@ use App\Services\OpenWa\OpenWaClient;
 use App\Services\OpenWa\OpenWaRateLimitedException;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
+use App\Support\WhatsApp\WhatsAppCampaignClock;
 use App\Support\WhatsApp\WhatsAppCampaignMessageRenderer;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
@@ -33,13 +34,21 @@ final class WhatsAppCampaignDispatcher
      */
     public function tick(Tenant $tenant, ?CarbonInterface $now = null): array
     {
-        $now ??= now();
+        $now = WhatsAppCampaignClock::now($now);
 
         if (! Schema::hasTable('whatsapp_campanas')) {
             return ['sent' => 0, 'skipped' => 0, 'failed' => 0];
         }
 
-        if (! $this->client->isConfigured() || $this->client->isRateLimited()) {
+        if (! $this->client->isConfigured()) {
+            Log::warning('Campaña WhatsApp: OpenWA no configurado', ['tenant' => $tenant->slug]);
+
+            return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
+        }
+
+        if ($this->client->isRateLimited()) {
+            Log::warning('Campaña WhatsApp: cooldown 429', ['tenant' => $tenant->slug]);
+
             return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
         }
 
@@ -53,6 +62,12 @@ final class WhatsAppCampaignDispatcher
         }
 
         if (! $campana->inSendWindow($now)) {
+            Log::info('Campaña WhatsApp fuera de horario Perú', [
+                'campana_id' => $campana->id,
+                'hora_peru' => $now->format('H:i'),
+                'ventana' => WhatsAppCampaignClock::hm($campana->hora_inicio).'-'.WhatsAppCampaignClock::hm($campana->hora_fin),
+            ]);
+
             return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
         }
 
@@ -68,8 +83,20 @@ final class WhatsAppCampaignDispatcher
             return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
         }
 
-        $session = $this->sessionSync->ensureReadyForSend($tenant);
+        $session = TenantWhatsAppSession::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
         if (! $session instanceof TenantWhatsAppSession || ! $session->isReady()) {
+            $session = $this->sessionSync->ensureReadyForSend($tenant);
+        }
+
+        if (! $session instanceof TenantWhatsAppSession || ! $session->isReady()) {
+            Log::warning('Campaña WhatsApp: sesión no lista', [
+                'tenant' => $tenant->slug,
+                'campana_id' => $campana->id,
+                'status' => $session instanceof TenantWhatsAppSession ? $session->status : null,
+            ]);
+
             return ['sent' => 0, 'skipped' => 1, 'failed' => 0];
         }
 

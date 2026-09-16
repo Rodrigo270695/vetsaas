@@ -66,7 +66,7 @@ export function CampanaFormModal({
     const [tope, setTope] = useState('50');
     const [intervalo, setIntervalo] = useState('12');
     const [horaInicio, setHoraInicio] = useState('09:00');
-    const [horaFin, setHoraFin] = useState('18:00');
+    const [horaFin, setHoraFin] = useState('23:59');
     const [imagen, setImagen] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [clearImagen, setClearImagen] = useState(false);
@@ -82,7 +82,7 @@ export function CampanaFormModal({
         setTope(String(campana?.tope_diario ?? 50));
         setIntervalo(String(campana?.intervalo_minutos ?? 12));
         setHoraInicio(String(campana?.hora_inicio ?? '09:00').slice(0, 5));
-        setHoraFin(String(campana?.hora_fin ?? '18:00').slice(0, 5));
+        setHoraFin(String(campana?.hora_fin ?? '23:59').slice(0, 5));
         setImagen(null);
         setClearImagen(false);
         setPreviewUrl(null);

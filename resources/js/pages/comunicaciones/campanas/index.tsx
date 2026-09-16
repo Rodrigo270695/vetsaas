@@ -11,7 +11,7 @@ import {
     Send,
     Users,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DataPagination,
@@ -134,6 +134,18 @@ export default function CampanasIndex({
             },
             only: ['items', 'filters', 'stats', 'whatsapp'],
         });
+
+    useEffect(() => {
+        if (stats.enviando < 1) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            router.reload({ only: ['items', 'filters', 'stats', 'whatsapp'] });
+        }, 15000);
+
+        return () => window.clearInterval(timer);
+    }, [stats.enviando]);
 
     const estadoOptions: readonly FilterChip<EstadoFilter>[] = useMemo(
         () => [
