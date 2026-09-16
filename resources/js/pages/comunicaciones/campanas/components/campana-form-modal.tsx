@@ -1,6 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { Clock, ImagePlus, Loader2, MessageSquareText, ShieldCheck } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,8 +102,39 @@ export function CampanaFormModal({
     const imagenVisible = previewUrl
         ?? (clearImagen ? null : campana?.imagen_url ?? null);
 
+    const topeNum = Number(tope);
+    const intervaloNum = Number(intervalo);
+    const canSubmit = useMemo(() => {
+        if (saving) {
+            return false;
+        }
+        if (nombre.trim().length < 1) {
+            return false;
+        }
+        if (cuerpo.trim().length < 10) {
+            return false;
+        }
+        if (!Number.isInteger(topeNum) || topeNum < 50 || topeNum > 100) {
+            return false;
+        }
+        if (!Number.isInteger(intervaloNum) || intervaloNum < 1 || intervaloNum > 30) {
+            return false;
+        }
+        if (!/^\d{2}:\d{2}$/.test(horaInicio) || !/^\d{2}:\d{2}$/.test(horaFin)) {
+            return false;
+        }
+        if (horaFin <= horaInicio) {
+            return false;
+        }
+
+        return true;
+    }, [saving, nombre, cuerpo, topeNum, intervaloNum, horaInicio, horaFin]);
+
     const handleSubmit = (event?: FormEvent) => {
         event?.preventDefault();
+        if (!canSubmit) {
+            return;
+        }
         setSaving(true);
 
         const payload: Record<string, unknown> = {
@@ -149,7 +180,7 @@ export function CampanaFormModal({
                     >
                         Cancelar
                     </Button>
-                    <Button type="submit" disabled={saving} className="cursor-pointer gap-2">
+                    <Button type="submit" disabled={!canSubmit} className="cursor-pointer gap-2">
                         {saving ? <Loader2 className="size-4 animate-spin" /> : null}
                         {saving ? 'Guardando…' : 'Guardar campaña'}
                     </Button>

@@ -67,9 +67,11 @@ export function PlantillaFormModal({ open, onOpenChange, plantilla }: Props) {
         });
     }, [data.cuerpo, plantilla]);
 
+    const canSubmit = data.cuerpo.trim().length > 0 && !processing;
+
     const onSubmit = (event: FormEvent) => {
         event.preventDefault();
-        if (!plantilla) {
+        if (!plantilla || !canSubmit) {
             return;
         }
 
@@ -128,7 +130,7 @@ export function PlantillaFormModal({ open, onOpenChange, plantilla }: Props) {
                         >
                             {t('common:actions.cancel')}
                         </Button>
-                        <Button type="submit" disabled={processing}>
+                        <Button type="submit" disabled={!canSubmit} className="cursor-pointer">
                             {processing ? (
                                 <Loader2 className="size-4 animate-spin" />
                             ) : null}
