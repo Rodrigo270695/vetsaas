@@ -4,9 +4,13 @@ import {
     ChevronDown,
     ChevronRight,
     CircleHelp,
+    LineChart,
+    MessageCircle,
     Package,
     Receipt,
+    Scissors,
     Search,
+    Smartphone,
     Stethoscope,
     Wallet,
 } from 'lucide-react';
@@ -22,9 +26,14 @@ import { HELP_CATEGORIES } from './help-articles';
 const CATEGORY_ICONS = {
     setup: Building2,
     clinic: Stethoscope,
+    servicios: Scissors,
     caja: Wallet,
     inventario: Package,
     facturacion: Receipt,
+    comunicaciones: MessageCircle,
+    reportes: LineChart,
+    app: Smartphone,
+    faq: CircleHelp,
 } as const;
 
 function normalizeSearch(value: string): string {
@@ -53,8 +62,16 @@ export default function ConfiguracionAyudaIndex() {
                         returnObjects: true,
                     }) as string[];
 
+                    const cta = t(`articles.${article.id}.cta`, {
+                        defaultValue: '',
+                    });
                     const haystack = normalizeSearch(
-                        [title, summary, ...(Array.isArray(steps) ? steps : [])].join(' '),
+                        [
+                            title,
+                            summary,
+                            cta,
+                            ...(Array.isArray(steps) ? steps : []),
+                        ].join(' '),
                     );
 
                     const matches =
@@ -100,8 +117,8 @@ export default function ConfiguracionAyudaIndex() {
                         <p className="max-w-sm text-sm text-muted-foreground">{t('page.empty')}</p>
                     </div>
                 ) : (
-                    <div className="grid gap-4 lg:grid-cols-2">
-                        {visibleCategories.map((category) => {
+                    <div className="grid gap-4 xl:grid-cols-2">
+                        {visibleCategories.map((category, categoryIndex) => {
                             const Icon = CATEGORY_ICONS[category.id as keyof typeof CATEGORY_ICONS] ?? CircleHelp;
 
                             return (
@@ -123,7 +140,12 @@ export default function ConfiguracionAyudaIndex() {
                                             <details
                                                 key={article.id}
                                                 className="group px-2 py-1"
-                                                open={category.articles[0]?.id === article.id}
+                                                open={
+                                                    normalizedQuery !== '' ||
+                                                    (categoryIndex === 0 &&
+                                                        category.articles[0]?.id ===
+                                                            article.id)
+                                                }
                                             >
                                                 <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md py-2.5 text-sm font-medium text-foreground marker:content-none hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
                                                     <span>{article.title}</span>

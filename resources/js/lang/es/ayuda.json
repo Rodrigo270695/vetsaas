@@ -1,17 +1,22 @@
 {
     "page": {
         "title": "Centro de ayuda",
-        "description": "Guías rápidas para configurar tu clínica y usar VetSaaS día a día.",
-        "search": "Buscar tema…",
-        "empty": "No hay resultados para tu búsqueda. Prueba con otra palabra.",
-        "footer": "¿Necesitas más ayuda? Contacta al soporte de tu plan o revisa la documentación que te envió el equipo VetSaaS."
+        "description": "Guías de cada módulo, acciones del día a día y preguntas frecuentes de VetSaaS.",
+        "search": "Buscar tema, módulo o pregunta…",
+        "empty": "No hay resultados para tu búsqueda. Prueba con otra palabra (WhatsApp, receta, firma, caja…).",
+        "footer": "¿Necesitas más ayuda? Usa el Asistente IA o contacta al soporte de tu plan."
     },
     "categories": {
-        "setup": { "title": "Primeros pasos" },
+        "setup": { "title": "Primeros pasos y configuración" },
         "clinic": { "title": "Atención clínica" },
+        "servicios": { "title": "Servicios (grooming y hotel)" },
         "caja": { "title": "Caja y ventas" },
         "inventario": { "title": "Inventario" },
-        "facturacion": { "title": "Facturación electrónica" }
+        "facturacion": { "title": "Facturación electrónica" },
+        "comunicaciones": { "title": "WhatsApp y comunicaciones" },
+        "reportes": { "title": "Reportes" },
+        "app": { "title": "App instalada (celular, tablet y PC)" },
+        "faq": { "title": "Preguntas frecuentes" }
     },
     "articles": {
         "sede": {
@@ -26,61 +31,223 @@
         },
         "clinic": {
             "title": "Datos de la clínica",
-            "summary": "RUC, razón social y logo para comprobantes y comunicaciones.",
+            "summary": "RUC, razón social, logo y colores para PDFs y comunicaciones.",
             "steps": [
-                "Abre Configuración → General.",
+                "Abre Configuración → General → pestaña Mi clínica.",
                 "Completa RUC, razón social y nombre comercial.",
-                "Opcional: sube el logo de la clínica."
+                "Sube el logo y elige colores. Se usan en el sidebar y en los PDF."
             ],
             "cta": "Ir a General"
         },
+        "firma_digital": {
+            "title": "Firma digital en los PDF",
+            "summary": "Sello o rúbrica del veterinario al pie de recetas, HC, vacunas y autorizaciones.",
+            "steps": [
+                "Configuración → General → sección Firma digital (debajo del logo).",
+                "Sube la imagen del sello. El fondo blanco se quita solo para que se vea limpio.",
+                "Escribe el nombre del veterinario y el CMVP.",
+                "Marca en qué PDF debe salir: recetas, consulta, historial, carnet, aplicación clínica y autorizaciones.",
+                "Guarda. Los tickets de venta y arqueos de caja no llevan esta firma."
+            ],
+            "cta": "Configurar firma"
+        },
+        "autorizaciones": {
+            "title": "Documentos de autorización",
+            "summary": "Plantillas que el titular firma (consentimientos, autorizaciones).",
+            "steps": [
+                "Configuración → Autorizaciones: crea o edita la plantilla.",
+                "Desde la atención clínica envía el documento al propietario.",
+                "El titular firma; el PDF puede incluir también la firma digital de la clínica si la marcaste."
+            ],
+            "cta": "Ir a Autorizaciones"
+        },
+        "usuarios_roles": {
+            "title": "Usuarios y permisos",
+            "summary": "Cada persona entra con un rol: lo que ve en el menú depende de sus permisos.",
+            "steps": [
+                "Configuración → Roles: define qué puede hacer cada perfil.",
+                "Configuración → Usuarios: invita o crea usuarios y asígnales un rol.",
+                "Si alguien no ve un módulo, suele faltar el permiso en su rol."
+            ],
+            "cta": "Ir a Usuarios"
+        },
+        "tarifas": {
+            "title": "Tarifas y catálogo clínico",
+            "summary": "Precios de servicios, paquetes y lo que se cobra en consulta o caja.",
+            "steps": [
+                "Configuración → Tarifas.",
+                "Revisa servicios clínicos, grooming u hotel según tu plan.",
+                "Los cargos de una consulta o turno usan estas tarifas."
+            ],
+            "cta": "Ir a Tarifas"
+        },
+        "horarios": {
+            "title": "Horarios y bloqueos de agenda",
+            "summary": "Define cuándo se puede agendar y cierra días u horas no disponibles.",
+            "steps": [
+                "Configuración → General: primera y última hora visible de la agenda.",
+                "Configuración → Horarios: reglas por día o profesional.",
+                "Configuración → Bloqueos: feriados, vacaciones o mantenimiento."
+            ],
+            "cta": "Ir a Horarios"
+        },
+        "modo_asesora": {
+            "title": "Modo asesora (varias veterinarias)",
+            "summary": "Para quien atiende mascotas de varias clínicas de origen.",
+            "steps": [
+                "Configuración → General → activa Modo asesora.",
+                "Aparece Clínica → Clínicas asesoradas para el catálogo de origen.",
+                "En cada mascota puedes indicar de qué veterinaria viene."
+            ],
+            "cta": "Ir a General"
+        },
+        "sala_espera": {
+            "title": "Sala de espera",
+            "summary": "Vista del día: quién llegó, quién está en atención y quién espera.",
+            "steps": [
+                "Abre Sala de espera en el menú principal.",
+                "Marca llegada o pasa a atención según el flujo de tu clínica.",
+                "Úsala en tablet o mostrador para no perder turnos."
+            ],
+            "cta": "Ir a Sala de espera"
+        },
+        "propietario": {
+            "title": "Registrar un propietario",
+            "summary": "Teléfono y datos del titular: se usan en WhatsApp, recetas y ventas.",
+            "steps": [
+                "Clínica → Propietarios → nuevo registro.",
+                "Guarda nombres y un celular válido (Perú: 9 dígitos o 51…). ",
+                "Sin teléfono no se puede enviar recetas, tickets ni campañas por WhatsApp."
+            ],
+            "cta": "Ir a Propietarios"
+        },
         "paciente": {
             "title": "Registrar un paciente",
-            "summary": "La mascota es el centro de citas, historias y ventas.",
+            "summary": "La mascota es el centro de citas, historias, recetas y ventas.",
             "steps": [
-                "Entra a Clínica → Pacientes.",
-                "Crea o selecciona un propietario.",
-                "Registra la mascota con especie, raza y datos básicos."
+                "Clínica → Pacientes.",
+                "Crea o elige el propietario.",
+                "Registra especie, raza y datos básicos. Luego puedes abrir HC, vacunas o recetas."
             ],
             "cta": "Ir a Pacientes"
         },
         "cita": {
             "title": "Agendar una cita",
-            "summary": "Organiza la agenda por veterinario y sede.",
+            "summary": "Agenda por veterinario y sede, con recordatorios WhatsApp si están activos.",
             "steps": [
-                "Ve a Clínica → Citas.",
-                "Elige fecha, hora, paciente y veterinario.",
-                "Guarda la cita; podrás marcarla como completada después."
+                "Clínica → Citas: elige fecha, hora, paciente y profesional.",
+                "Guarda. Puedes reprogramar, cancelar o aperturar consulta.",
+                "En General activa avisos al crear/reprogramar y recordatorios (1–30 días y 2 h)."
             ],
             "cta": "Ir a Citas"
         },
         "consulta": {
-            "title": "Abrir una historia clínica",
-            "summary": "Documenta la atención durante o después de la consulta.",
+            "title": "Historia clínica y consulta",
+            "summary": "Documenta la visita, descarga PDF y envía al titular si corresponde.",
             "steps": [
-                "Desde una cita o Pacientes, inicia una consulta.",
-                "Registra motivo, examen y diagnóstico.",
-                "Agrega cargos o productos si corresponde."
+                "Desde una cita o Historias clínicas, abre o crea la consulta.",
+                "Registra motivo, examen, plan y cargos.",
+                "Usa PDF de la consulta o del historial completo del paciente."
             ],
             "cta": "Ir a Historias clínicas"
         },
-        "vacuna": {
-            "title": "Registrar una vacunación",
-            "summary": "Lleva control de vacunas y próximas dosis.",
+        "receta": {
+            "title": "Crear una receta",
+            "summary": "Medicamentos, posología y PDF para el titular.",
             "steps": [
-                "Abre Clínica → Vacunaciones.",
-                "Selecciona paciente y producto o protocolo.",
-                "Guarda la aplicación y la fecha de refuerzo."
+                "Clínica → Recetas → Nueva receta.",
+                "Elige paciente, fecha, estado (borrador o emitida) y añade líneas de medicación.",
+                "Puedes vincular inventario y una consulta abierta. Luego PDF / imprimir desde el menú de la fila."
+            ],
+            "cta": "Ir a Recetas"
+        },
+        "receta_whatsapp": {
+            "title": "Enviar receta por WhatsApp",
+            "summary": "El icono verde de la fila envía el PDF al celular del titular.",
+            "steps": [
+                "WhatsApp de la clínica debe estar conectado (Comunicaciones → Cola).",
+                "En Recetas pulsa el globo verde (no está en el menú de tres puntos).",
+                "Confirma o cambia el número y envía. Las recetas anuladas no se envían."
+            ],
+            "cta": "Ir a Recetas"
+        },
+        "vacuna": {
+            "title": "Vacunaciones y carnet PDF",
+            "summary": "Aplicaciones, próxima dosis, stock y documento para el dueño.",
+            "steps": [
+                "Clínica → Vacunaciones: registra paciente, vacuna y fecha.",
+                "Si el producto sale de inventario, el stock se descuenta.",
+                "Descarga el carnet o el PDF de esa aplicación. Pueden llevar firma digital."
             ],
             "cta": "Ir a Vacunaciones"
+        },
+        "laboratorio": {
+            "title": "Laboratorio y resultados por WhatsApp",
+            "summary": "Pedidos de exámenes y envío de archivos al propietario.",
+            "steps": [
+                "Clínica → Laboratorio: crea el pedido y carga resultados.",
+                "Cuando hay documentos, envía por WhatsApp (mismo flujo que ventas).",
+                "El titular recibe los adjuntos con un mensaje de la clínica."
+            ],
+            "cta": "Ir a Laboratorio"
+        },
+        "cirugia": {
+            "title": "Cirugías",
+            "summary": "Programa y documenta procedimientos quirúrgicos.",
+            "steps": [
+                "Clínica → Cirugías.",
+                "Registra paciente, procedimiento y estado.",
+                "Puedes vincularlo a una consulta y a cargos de caja."
+            ],
+            "cta": "Ir a Cirugías"
+        },
+        "hospitalizacion": {
+            "title": "Hospitalización",
+            "summary": "Internamientos, evoluciones y cargos durante la estancia.",
+            "steps": [
+                "Clínica → Hospitalización.",
+                "Ingresa al paciente con motivo y sede.",
+                "Carga evoluciones y cierra el internamiento al alta."
+            ],
+            "cta": "Ir a Hospitalización"
+        },
+        "agenda_servicios": {
+            "title": "Agenda de grooming y hotel",
+            "summary": "Calendario de turnos de peluquería y estancias.",
+            "steps": [
+                "Servicios → Agenda.",
+                "Revisa ocupaciones del día y abre el detalle del turno o estancia.",
+                "Los recordatorios (1 día, 2 h, etc.) se configuran en General → Notificaciones."
+            ],
+            "cta": "Ir a Agenda"
+        },
+        "grooming": {
+            "title": "Grooming",
+            "summary": "Turnos, estados y fotos de proceso por WhatsApp.",
+            "steps": [
+                "Servicios → Grooming: crea el turno con servicio, fecha y mascota.",
+                "Cambia a en proceso / completado; el dueño puede recibir WhatsApp.",
+                "En General elige qué avisos de grooming están activos (crear, proceso, listo, cancelado, no asistió)."
+            ],
+            "cta": "Ir a Grooming"
+        },
+        "hotel": {
+            "title": "Hotel",
+            "summary": "Estancias, bitácora y avisos al propietario.",
+            "steps": [
+                "Servicios → Hotel: reserva ingreso y egreso.",
+                "Confirma, da ingreso y completa o cancela según el caso.",
+                "La bitácora puede enviarse por WhatsApp si está activa en General."
+            ],
+            "cta": "Ir a Hotel"
         },
         "sesion": {
             "title": "Abrir sesión de caja",
             "summary": "Debes tener caja abierta para registrar ventas del turno.",
             "steps": [
-                "Ve a Caja → Sesiones.",
-                "Pulsa «Abrir caja» y elige la sede.",
-                "Indica el monto inicial si aplica."
+                "Caja → Sesiones → Abrir caja.",
+                "Elige sede y monto inicial si aplica.",
+                "Al cierre puedes imprimir o descargar el arqueo PDF / ticket."
             ],
             "cta": "Ir a Sesiones de caja"
         },
@@ -88,71 +255,328 @@
             "title": "Registrar una venta",
             "summary": "Cobra productos y servicios desde el punto de venta.",
             "steps": [
-                "Con caja abierta, entra a Caja → Nueva venta.",
-                "Agrega líneas (productos o conceptos) y elige comprobante.",
-                "Confirma el pago y emite boleta o ticket según corresponda."
+                "Con caja abierta, Caja → Ventas → Nueva venta.",
+                "Agrega líneas, elige cliente y forma de pago.",
+                "Confirma. Luego puedes ver el detalle, anular o emitir comprobante SUNAT."
             ],
-            "cta": "Nueva venta"
+            "cta": "Ir a Ventas"
+        },
+        "venta_whatsapp": {
+            "title": "Enviar ticket de venta por WhatsApp",
+            "summary": "Icono verde en el listado de ventas (igual que en recetas).",
+            "steps": [
+                "WhatsApp de la clínica conectado.",
+                "En Ventas pulsa el globo verde de la fila (no en ventas anuladas).",
+                "Confirma el número del propietario y envía el PDF del ticket."
+            ],
+            "cta": "Ir a Ventas"
+        },
+        "pagos": {
+            "title": "Pagos y cuentas por cobrar",
+            "summary": "Registra cobros posteriores o abonos vinculados a ventas.",
+            "steps": [
+                "Caja → Pagos.",
+                "Asocia el pago a la venta o documento pendiente.",
+                "La sesión de caja debe estar abierta si el flujo lo exige."
+            ],
+            "cta": "Ir a Pagos"
+        },
+        "descuentos": {
+            "title": "Descuentos",
+            "summary": "Promociones o descuentos reutilizables en el POS.",
+            "steps": [
+                "Caja → Descuentos: crea el descuento y sus reglas.",
+                "Al vender, aplícalo en la línea o en el total según esté definido."
+            ],
+            "cta": "Ir a Descuentos"
         },
         "producto": {
             "title": "Cargar productos",
-            "summary": "El catálogo alimenta ventas, stock y alertas.",
+            "summary": "El catálogo alimenta ventas, stock, recetas y vacunas.",
             "steps": [
                 "Inventario → Productos → Nuevo producto.",
-                "Define SKU, precio de venta y precio de compra (para margen).",
-                "Asigna categoría y sede de stock si aplica."
+                "Define SKU, precios, categoría y si controla stock.",
+                "Los medicamentos pueden vincularse luego en recetas."
             ],
             "cta": "Ir a Productos"
         },
         "stock": {
             "title": "Consultar stock",
-            "summary": "Revisa existencias por sede y producto.",
+            "summary": "Existencias por sede y producto.",
             "steps": [
                 "Inventario → Stock.",
                 "Filtra por sede o busca por nombre.",
-                "Usa movimientos para ajustes o entradas manuales."
+                "Revisa lotes (FEFO) si el producto los usa."
             ],
             "cta": "Ir a Stock"
+        },
+        "movimientos": {
+            "title": "Movimientos de inventario",
+            "summary": "Entradas, salidas, ajustes y traslados entre sedes.",
+            "steps": [
+                "Inventario → Movimientos.",
+                "Registra el tipo, producto, cantidad y sede.",
+                "Queda trazabilidad para auditoría y reportes."
+            ],
+            "cta": "Ir a Movimientos"
+        },
+        "alertas": {
+            "title": "Alertas de stock",
+            "summary": "Avisos de mínimo, vencimiento o quiebre.",
+            "steps": [
+                "Inventario → Alertas.",
+                "Revisa productos bajo mínimo o por vencer.",
+                "Completa una compra o ajuste para regularizar."
+            ],
+            "cta": "Ir a Alertas"
+        },
+        "proveedores": {
+            "title": "Proveedores",
+            "summary": "Datos de quienes te venden mercadería.",
+            "steps": [
+                "Inventario → Proveedores.",
+                "Crea el proveedor con RUC o documento.",
+                "Úsalo al registrar compras."
+            ],
+            "cta": "Ir a Proveedores"
         },
         "compra": {
             "title": "Registrar una compra",
             "summary": "Ingresa mercadería al inventario con costo real.",
             "steps": [
                 "Inventario → Compras → Nueva compra.",
-                "Elige proveedor, sede y líneas de producto.",
-                "Confirma para actualizar el stock automáticamente."
+                "Elige proveedor, sede y líneas.",
+                "Confirma para actualizar stock (y lotes si aplica)."
             ],
             "cta": "Ir a Compras"
         },
         "fel": {
             "title": "Configurar facturación SUNAT",
-            "summary": "Conecta APISUNAT para emitir boletas y facturas electrónicas.",
+            "summary": "Emite boletas y facturas electrónicas según tu plan.",
             "steps": [
-                "Configuración → General → sección Facturación electrónica.",
-                "Ingresa el token de APISUNAT y guarda.",
-                "Activa «Emite comprobantes SUNAT» si tu plan lo permite."
+                "Configuración → General → pestaña Facturación.",
+                "Activa emisión SUNAT si el plan lo permite. El token APISUNAT lo configura soporte.",
+                "Define IGV, afectación y si el precio incluye impuesto."
             ],
             "cta": "Ir a General"
         },
         "series": {
             "title": "Series de comprobantes",
-            "summary": "Define series F001, B001, etc. por sede.",
+            "summary": "Series F001, B001, etc. por sede.",
             "steps": [
                 "Facturación → Series.",
                 "Crea la serie según tipo (factura o boleta).",
-                "Asóciala a la sede correspondiente."
+                "Asóciala a la sede."
             ],
             "cta": "Ir a Series"
         },
         "comprobantes": {
-            "title": "Ver comprobantes emitidos",
-            "summary": "Consulta boletas, facturas y su estado ante SUNAT.",
+            "title": "Comprobantes emitidos",
+            "summary": "Consulta estado SUNAT, PDF y reenvío por WhatsApp.",
             "steps": [
                 "Facturación → Comprobantes emitidos.",
-                "Filtra por fecha o tipo.",
-                "Descarga PDF/XML o revisa rechazos."
+                "Filtra por fecha o tipo. Revisa aceptados o rechazados.",
+                "Puedes enviar el CPE por WhatsApp si hay número del cliente."
             ],
             "cta": "Ir a Comprobantes"
+        },
+        "notas_baja": {
+            "title": "Notas de baja y resúmenes",
+            "summary": "Trámites SUNAT de anulación y resumen diario.",
+            "steps": [
+                "Facturación → Notas de baja o Resúmenes.",
+                "Sigue el estado enviado / aceptado.",
+                "No anules a mano un documento ya informado a SUNAT; usa este flujo."
+            ],
+            "cta": "Ir a Notas de baja"
+        },
+        "whatsapp_conectar": {
+            "title": "Conectar WhatsApp de la clínica",
+            "summary": "Un número para recordatorios, cola, campañas, recetas y tickets.",
+            "steps": [
+                "Comunicaciones → Cola: conecta o sincroniza la sesión.",
+                "Escanea el QR con el celular de la clínica (no el personal, si es posible).",
+                "El chip debe decir Conectado. Si ves pausa por límite, espera el enfriamiento; la sesión puede seguir lista para enviar."
+            ],
+            "cta": "Ir a Cola"
+        },
+        "cola": {
+            "title": "Cola saliente y reintentos",
+            "summary": "Mensajes pendientes, fallidos e historial.",
+            "steps": [
+                "Cola: revisa pendientes. «Enviar ahora» dispara el envío.",
+                "Histórico: mensajes ya enviados; puedes reenviar al mismo número.",
+                "Fallidos: corrige el teléfono o reconecta WhatsApp y reintenta."
+            ],
+            "cta": "Ir a Cola"
+        },
+        "campanas": {
+            "title": "Campañas WhatsApp a propietarios",
+            "summary": "Difusión con tope diario, intervalo y horario Perú (Lima).",
+            "steps": [
+                "Comunicaciones → Campañas → nueva campaña: nombre, mensaje, tope (máx. 100/día) e intervalo (1–30 min).",
+                "Ventana de envío en hora de Lima (ej. 09:00–23:59). Fuera de horario no sale.",
+                "Elige destinatarios en el modal (no se reenvía a quienes ya recibieron esa campaña).",
+                "WhatsApp debe estar conectado. Al terminar puedes añadir más dueños sin repetir los enviados."
+            ],
+            "cta": "Ir a Campañas"
+        },
+        "historico": {
+            "title": "Histórico de mensajes",
+            "summary": "Auditoría de lo enviado: recetas, tickets, recordatorios, campañas.",
+            "steps": [
+                "Comunicaciones → Histórico.",
+                "Filtra por tipo o destinatario.",
+                "Reenvía si el mensaje original se entregó y necesitas repetirlo."
+            ],
+            "cta": "Ir a Histórico"
+        },
+        "plantillas": {
+            "title": "Plantillas de recordatorios",
+            "summary": "Textos de citas, vacunas, grooming y hotel. Ventas, lab y recetas van fijos.",
+            "steps": [
+                "Comunicaciones → Plantillas.",
+                "Edita el cuerpo con variables (mascota, fecha, clínica).",
+                "Los envíos de receta, ticket y laboratorio no se editan aquí."
+            ],
+            "cta": "Ir a Plantillas"
+        },
+        "chat_interno": {
+            "title": "Chat interno del equipo",
+            "summary": "Mensajes entre usuarios de la misma clínica y grupo de soporte.",
+            "steps": [
+                "Comunicaciones → Chat interno.",
+                "Abre un chat 1 a 1 o un grupo de equipo.",
+                "Puedes adjuntar archivos según el módulo de chat."
+            ],
+            "cta": "Ir al chat"
+        },
+        "bot_ia": {
+            "title": "Asistente IA para clientes (WhatsApp)",
+            "summary": "Respuestas automáticas al número de la clínica, si tu plan lo incluye.",
+            "steps": [
+                "Comunicaciones → Asistente IA: activa o pausa respuestas.",
+                "Carga conocimiento de la clínica (horarios, servicios).",
+                "En General también hay un interruptor de respuestas del bot."
+            ],
+            "cta": "Ir al Asistente IA"
+        },
+        "snapshots": {
+            "title": "Snapshots",
+            "summary": "Fotos de indicadores para comparar periodos.",
+            "steps": [
+                "Reportes → Snapshots.",
+                "Genera o consulta el corte de la fecha.",
+                "Úsalo para reuniones internas, no reemplaza los reportes financieros."
+            ],
+            "cta": "Ir a Snapshots"
+        },
+        "financiero": {
+            "title": "Reportes de ventas y caja",
+            "summary": "Análisis financiero, productos, servicios, ingresos y egresos.",
+            "steps": [
+                "Reportes: elige el informe (financiero, por producto, servicios, egresos, top pacientes).",
+                "Filtra el rango de fechas.",
+                "Exporta o imprime según la pantalla."
+            ],
+            "cta": "Ir a análisis financiero"
+        },
+        "instalar_app": {
+            "title": "Instalar VetSaaS en el celular, tablet o PC",
+            "summary": "Puedes «instalar» el sistema como app (PWA) desde el navegador.",
+            "steps": [
+                "Abre VetSaaS en Chrome o Edge (en iPhone: Safari).",
+                "Usa el banner de instalar o el menú del navegador → Instalar aplicación / Añadir a inicio.",
+                "Entra siempre con el subdominio de tu clínica (no el de otra).",
+                "La app usa el mismo usuario y permisos que la web."
+            ]
+        },
+        "app_splash": {
+            "title": "La app se queda en el logo al abrir",
+            "summary": "Pantalla blanca con el icono verde y «VetSaaS»: suele ser caché de la app instalada.",
+            "steps": [
+                "Espera unos segundos: si el sistema se actualizó, puede recargar solo una vez.",
+                "Si a los 10 segundos no entra, pulsa «Toca para continuar» para limpiar caché.",
+                "Si no aparece el botón, cierra la app por completo y ábrela de nuevo (una vez basta en la mayoría de casos).",
+                "Último recurso: desinstala el acceso y vuelve a instalar desde el navegador."
+            ]
+        },
+        "offline": {
+            "title": "Trabajar con poca señal (offline)",
+            "summary": "Caja, clínica e inventario pueden cachearse si los abriste antes con internet.",
+            "steps": [
+                "Con internet, abre al menos una vez Caja, Clínica o Inventario.",
+                "Si no hay red, verás avisos de cola offline. Al volver la señal se sincroniza.",
+                "Cola de pendientes: menú Offline / cola según tu rol.",
+                "Login, dashboard y plataforma no se sirven desde caché a propósito."
+            ]
+        },
+        "faq_splash": {
+            "title": "¿Por qué a veces hay que abrir la app dos veces?",
+            "summary": "Al actualizar VetSaaS, el servicio en segundo plano toma el control a mitad de carga.",
+            "steps": [
+                "Ya no debería hacer falta cerrar dos veces: la app recarga sola al detectar la actualización.",
+                "Si igual se congela, usa «Toca para continuar» o cierra desde el administrador de apps y abre otra vez.",
+                "Tablets Android antiguas tardan más la primera vez del día; ten Wi‑Fi estable."
+            ]
+        },
+        "faq_whatsapp_campana": {
+            "title": "La campaña no envía o se queda en pendiente",
+            "summary": "Revisa horario Lima, intervalo, tope y que WhatsApp esté conectado.",
+            "steps": [
+                "El reloj de envío es America/Lima, no la hora del celular si está mal configurada.",
+                "Fuera de «desde–hasta» no sale ningún mensaje.",
+                "Tope máximo 100 por día; intervalo mínimo 1 minuto.",
+                "Si el listado muestra pausa 429, la API de estado puede estar limitada, pero igual se envía si la sesión está lista.",
+                "Al terminar una campaña, añade más propietarios: no se reenvía a los ya enviados."
+            ]
+        },
+        "faq_whatsapp_sesion": {
+            "title": "WhatsApp se desconecta o no manda recordatorios",
+            "summary": "La sesión OpenWA debe estar lista; los recordatorios salen en ventanas de tiempo.",
+            "steps": [
+                "En Cola, sincroniza estado. Si pide QR, vuelve a vincular el mismo número.",
+                "El recordatorio de cita 2 h sale cerca de esa hora, no en el momento de crear la cita.",
+                "En Histórico puedes reenviar; en Cola, «Enviar ahora» para pendientes o fallidos.",
+                "El celular con WhatsApp de la clínica debe tener internet; no uses el modo ahorro extremo."
+            ]
+        },
+        "faq_receta_enviar": {
+            "title": "No veo enviar receta por WhatsApp o falla el envío",
+            "summary": "Icono verde en la fila, receta no anulada y teléfono del dueño.",
+            "steps": [
+                "El envío está en el globo verde, no en los tres puntos.",
+                "Estado anulado: no se envía.",
+                "El propietario necesita celular. Puedes escribir otro número en el modal.",
+                "WhatsApp de la clínica tiene que estar conectado, igual que en ventas."
+            ]
+        },
+        "faq_firma": {
+            "title": "La firma se ve con recuadro blanco en el PDF",
+            "summary": "Sube de nuevo el sello: se quita el fondo blanco al guardar.",
+            "steps": [
+                "Configuración → General → Firma digital: vuelve a cargar la imagen.",
+                "Al generar el PDF también se limpia el fondo de una imagen ya guardada.",
+                "Marca los checks de los documentos donde debe verse. Sin checks no imprime."
+            ]
+        },
+        "faq_caja": {
+            "title": "No me deja vender o cobrar",
+            "summary": "Casi siempre falta sesión de caja abierta en esa sede.",
+            "steps": [
+                "Caja → Sesiones: abre caja en la misma sede de la venta.",
+                "No puedes tener dos flujos incompatibles (cierra la sesión anterior si quedó colgada).",
+                "Revisa que tu rol tenga permiso de ventas y de sesiones."
+            ]
+        },
+        "faq_recordatorios": {
+            "title": "¿Cómo activo recordatorios de citas, vacunas y servicios?",
+            "summary": "Todo se arma en Configuración → General → Notificaciones.",
+            "steps": [
+                "Marca 2 h antes y los días (1, 2, 3, 7, 30) para citas y para grooming/hotel.",
+                "Vacunas: elige cuántos días antes de la fecha sugerida avisar.",
+                "WhatsApp debe estar conectado. Los textos se editan en Comunicaciones → Plantillas."
+            ]
         }
     }
 }

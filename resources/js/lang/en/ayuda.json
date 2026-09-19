@@ -1,17 +1,22 @@
 {
     "page": {
         "title": "Help center",
-        "description": "Quick guides to set up your clinic and use VetSaaS day to day.",
-        "search": "Search topics…",
-        "empty": "No results for your search. Try another keyword.",
-        "footer": "Need more help? Contact your plan support or check the documentation from the VetSaaS team."
+        "description": "Guides for every module, day-to-day actions, and VetSaaS FAQs.",
+        "search": "Search topic, module or question…",
+        "empty": "No results. Try another word (WhatsApp, prescription, signature, register…).",
+        "footer": "Need more help? Use the in-app assistant or contact your plan support."
     },
     "categories": {
-        "setup": { "title": "Getting started" },
+        "setup": { "title": "Getting started & settings" },
         "clinic": { "title": "Clinical care" },
+        "servicios": { "title": "Services (grooming & hotel)" },
         "caja": { "title": "Register & sales" },
         "inventario": { "title": "Inventory" },
-        "facturacion": { "title": "Electronic invoicing" }
+        "facturacion": { "title": "Electronic invoicing" },
+        "comunicaciones": { "title": "WhatsApp & communications" },
+        "reportes": { "title": "Reports" },
+        "app": { "title": "Installed app (phone, tablet & PC)" },
+        "faq": { "title": "Frequently asked questions" }
     },
     "articles": {
         "sede": {
@@ -26,133 +31,552 @@
         },
         "clinic": {
             "title": "Clinic details",
-            "summary": "Tax ID, legal name, and logo for receipts and communications.",
+            "summary": "Tax ID, legal name, logo and colors for PDFs and messages.",
             "steps": [
-                "Open Settings → General.",
+                "Open Settings → General → My clinic.",
                 "Fill in tax ID, legal name, and trade name.",
-                "Optional: upload the clinic logo."
+                "Upload the logo and pick colors (sidebar and PDFs)."
             ],
             "cta": "Go to General"
         },
+        "firma_digital": {
+            "title": "Digital signature on PDFs",
+            "summary": "Vet stamp at the bottom of prescriptions, records, vaccines and authorizations.",
+            "steps": [
+                "Settings → General → Digital signature (below the logo).",
+                "Upload the stamp image. White paper is removed automatically.",
+                "Enter the veterinarian name and CMVP number.",
+                "Check which PDFs should show it: prescriptions, visit, history, booklet, vaccine application, authorizations.",
+                "Save. Sale tickets and cash audits do not use this stamp."
+            ],
+            "cta": "Set up signature"
+        },
+        "autorizaciones": {
+            "title": "Authorization documents",
+            "summary": "Templates the owner signs (consents, authorizations).",
+            "steps": [
+                "Settings → Authorizations: create or edit the template.",
+                "Send the document to the owner from clinical care.",
+                "The owner signs; the PDF can also show the clinic vet stamp if enabled."
+            ],
+            "cta": "Go to Authorizations"
+        },
+        "usuarios_roles": {
+            "title": "Users and permissions",
+            "summary": "Each person signs in with a role; the menu follows their permissions.",
+            "steps": [
+                "Settings → Roles: decide what each profile can do.",
+                "Settings → Users: create users and assign a role.",
+                "If someone cannot see a module, the role is usually missing the permission."
+            ],
+            "cta": "Go to Users"
+        },
+        "tarifas": {
+            "title": "Fees and clinical catalog",
+            "summary": "Prices for services and packages charged in visits or at the register.",
+            "steps": [
+                "Settings → Fees.",
+                "Review clinical, grooming or hotel services for your plan.",
+                "Visit charges use these prices."
+            ],
+            "cta": "Go to Fees"
+        },
+        "horarios": {
+            "title": "Schedule hours and blocks",
+            "summary": "When booking is allowed and closed days or hours.",
+            "steps": [
+                "Settings → General: first and last visible agenda hour.",
+                "Settings → Hours: rules by day or clinician.",
+                "Settings → Blocks: holidays, leave or maintenance."
+            ],
+            "cta": "Go to Hours"
+        },
+        "modo_asesora": {
+            "title": "Advisor mode (several clinics)",
+            "summary": "For teams that treat pets coming from multiple origin clinics.",
+            "steps": [
+                "Settings → General → enable Advisor mode.",
+                "Clinic → Advised clinics appears for the origin catalog.",
+                "On each pet you can record which clinic it comes from."
+            ],
+            "cta": "Go to General"
+        },
+        "sala_espera": {
+            "title": "Waiting room",
+            "summary": "Today’s board: arrived, in care, waiting.",
+            "steps": [
+                "Open Waiting room in the main menu.",
+                "Mark arrival or move to care.",
+                "Use it on a tablet at reception."
+            ],
+            "cta": "Go to Waiting room"
+        },
+        "propietario": {
+            "title": "Register an owner",
+            "summary": "Phone and details used for WhatsApp, prescriptions and sales.",
+            "steps": [
+                "Clinic → Owners → new record.",
+                "Save names and a valid mobile number (Peru: 9 digits or 51…).",
+                "Without a phone you cannot send prescriptions, tickets or campaigns."
+            ],
+            "cta": "Go to Owners"
+        },
         "paciente": {
             "title": "Register a patient",
-            "summary": "The pet is the center of appointments, records, and sales.",
+            "summary": "The pet is the center of appointments, records, prescriptions and sales.",
             "steps": [
-                "Go to Clinic → Patients.",
-                "Create or select an owner.",
-                "Register the pet with species, breed, and basic data."
+                "Clinic → Patients.",
+                "Create or select the owner.",
+                "Add species, breed and basics. Then open records, vaccines or prescriptions."
             ],
             "cta": "Go to Patients"
         },
         "cita": {
             "title": "Schedule an appointment",
-            "summary": "Organize the schedule by vet and branch.",
+            "summary": "By veterinarian and branch, with WhatsApp reminders if enabled.",
             "steps": [
-                "Go to Clinic → Appointments.",
-                "Pick date, time, patient, and veterinarian.",
-                "Save; you can mark it completed later."
+                "Clinic → Appointments: date, time, patient and clinician.",
+                "Save. You can reschedule, cancel or open a visit.",
+                "In General, enable create/reschedule notices and reminders (1–30 days and 2 h)."
             ],
             "cta": "Go to Appointments"
         },
         "consulta": {
-            "title": "Open a medical record",
-            "summary": "Document care during or after the visit.",
+            "title": "Medical record and visit",
+            "summary": "Document the visit and download PDFs for the owner.",
             "steps": [
-                "From an appointment or Patients, start a consultation.",
-                "Record reason, exam, and diagnosis.",
-                "Add charges or products if needed."
+                "From an appointment or Medical records, open or create the visit.",
+                "Record reason, exam, plan and charges.",
+                "Use the visit PDF or the full patient history PDF."
             ],
             "cta": "Go to Medical records"
         },
-        "vacuna": {
-            "title": "Record a vaccination",
-            "summary": "Track vaccines and booster due dates.",
+        "receta": {
+            "title": "Create a prescription",
+            "summary": "Drugs, posology and a PDF for the owner.",
             "steps": [
-                "Open Clinic → Vaccinations.",
-                "Select patient and product or protocol.",
-                "Save the dose and next due date."
+                "Clinic → Prescriptions → New prescription.",
+                "Pick patient, date, status (draft or issued) and add drug lines.",
+                "You can link inventory and an open visit. Then PDF / print from the row menu."
+            ],
+            "cta": "Go to Prescriptions"
+        },
+        "receta_whatsapp": {
+            "title": "Send a prescription via WhatsApp",
+            "summary": "The green icon on the row sends the PDF to the owner’s phone.",
+            "steps": [
+                "Clinic WhatsApp must be connected (Communications → Outbox).",
+                "On Prescriptions tap the green bubble (it is not in the three-dot menu).",
+                "Confirm or change the number and send. Voided prescriptions cannot be sent."
+            ],
+            "cta": "Go to Prescriptions"
+        },
+        "vacuna": {
+            "title": "Vaccinations and booklet PDF",
+            "summary": "Doses, next due date, stock and owner document.",
+            "steps": [
+                "Clinic → Vaccinations: patient, vaccine and date.",
+                "If the product comes from inventory, stock is deducted.",
+                "Download the booklet or that application PDF. They can show the digital stamp."
             ],
             "cta": "Go to Vaccinations"
+        },
+        "laboratorio": {
+            "title": "Lab and results via WhatsApp",
+            "summary": "Exam orders and files sent to the owner.",
+            "steps": [
+                "Clinic → Laboratory: create the order and attach results.",
+                "When files exist, send via WhatsApp (same flow as sales).",
+                "The owner receives the attachments with a clinic caption."
+            ],
+            "cta": "Go to Laboratory"
+        },
+        "cirugia": {
+            "title": "Surgeries",
+            "summary": "Plan and document surgical procedures.",
+            "steps": [
+                "Clinic → Surgeries.",
+                "Record patient, procedure and status.",
+                "You can link a visit and register charges."
+            ],
+            "cta": "Go to Surgeries"
+        },
+        "hospitalizacion": {
+            "title": "Hospitalization",
+            "summary": "In-patient stays, notes and charges.",
+            "steps": [
+                "Clinic → Hospitalization.",
+                "Admit the patient with reason and branch.",
+                "Add progress notes and close the stay on discharge."
+            ],
+            "cta": "Go to Hospitalization"
+        },
+        "agenda_servicios": {
+            "title": "Grooming and hotel calendar",
+            "summary": "Bookings for grooming slots and hotel stays.",
+            "steps": [
+                "Services → Calendar.",
+                "Check the day and open the slot or stay.",
+                "Reminders (1 day, 2 h, etc.) are set in General → Notifications."
+            ],
+            "cta": "Go to Calendar"
+        },
+        "grooming": {
+            "title": "Grooming",
+            "summary": "Slots, statuses and process photos via WhatsApp.",
+            "steps": [
+                "Services → Grooming: create the slot with service, date and pet.",
+                "Move to in progress / completed; the owner can get WhatsApp updates.",
+                "In General choose which grooming notices are on (create, process, done, cancel, no-show)."
+            ],
+            "cta": "Go to Grooming"
+        },
+        "hotel": {
+            "title": "Hotel",
+            "summary": "Stays, daily log and owner notices.",
+            "steps": [
+                "Services → Hotel: book check-in and check-out.",
+                "Confirm, check in, complete or cancel.",
+                "Daily log WhatsApp can be enabled in General."
+            ],
+            "cta": "Go to Hotel"
         },
         "sesion": {
             "title": "Open a register session",
             "summary": "You need an open session to record sales for the shift.",
             "steps": [
-                "Go to Register → Sessions.",
-                "Click «Open register» and choose the branch.",
-                "Enter opening float if applicable."
+                "Register → Sessions → Open register.",
+                "Choose branch and opening float if needed.",
+                "At close you can print or download the cash-up PDF / ticket."
             ],
             "cta": "Go to Register sessions"
         },
         "venta": {
             "title": "Record a sale",
-            "summary": "Charge for products and services from the POS.",
+            "summary": "Charge products and services from the POS.",
             "steps": [
-                "With register open, go to Register → New sale.",
-                "Add lines (products or concepts) and pick receipt type.",
-                "Confirm payment and issue receipt or ticket as needed."
+                "With register open, Register → Sales → New sale.",
+                "Add lines, customer and payment method.",
+                "Confirm. Then you can view, void or issue a SUNAT receipt."
             ],
-            "cta": "New sale"
+            "cta": "Go to Sales"
+        },
+        "venta_whatsapp": {
+            "title": "Send a sale ticket via WhatsApp",
+            "summary": "Green icon on the sales list (same idea as prescriptions).",
+            "steps": [
+                "Clinic WhatsApp connected.",
+                "On Sales tap the green bubble (not on voided sales).",
+                "Confirm the owner number and send the ticket PDF."
+            ],
+            "cta": "Go to Sales"
+        },
+        "pagos": {
+            "title": "Payments and receivables",
+            "summary": "Later collections or installments linked to sales.",
+            "steps": [
+                "Register → Payments.",
+                "Link the payment to the pending sale or document.",
+                "A register session may be required."
+            ],
+            "cta": "Go to Payments"
+        },
+        "descuentos": {
+            "title": "Discounts",
+            "summary": "Reusable promotions at the POS.",
+            "steps": [
+                "Register → Discounts: create the discount and rules.",
+                "Apply it on a line or the total when selling."
+            ],
+            "cta": "Go to Discounts"
         },
         "producto": {
             "title": "Add products",
-            "summary": "The catalog feeds sales, stock, and alerts.",
+            "summary": "The catalog feeds sales, stock, prescriptions and vaccines.",
             "steps": [
                 "Inventory → Products → New product.",
-                "Set SKU, sale price, and purchase price (for margin).",
-                "Assign category and stock branch if applicable."
+                "Set SKU, prices, category and whether it tracks stock.",
+                "Drugs can later be linked on prescriptions."
             ],
             "cta": "Go to Products"
         },
         "stock": {
             "title": "Check stock",
-            "summary": "Review quantities by branch and product.",
+            "summary": "Quantities by branch and product.",
             "steps": [
                 "Inventory → Stock.",
                 "Filter by branch or search by name.",
-                "Use movements for adjustments or manual entries."
+                "Check lots (FEFO) if the product uses them."
             ],
             "cta": "Go to Stock"
+        },
+        "movimientos": {
+            "title": "Inventory movements",
+            "summary": "In, out, adjustments and transfers between branches.",
+            "steps": [
+                "Inventory → Movements.",
+                "Set type, product, quantity and branch.",
+                "You keep an audit trail for reports."
+            ],
+            "cta": "Go to Movements"
+        },
+        "alertas": {
+            "title": "Stock alerts",
+            "summary": "Minimum, expiry or stock-out warnings.",
+            "steps": [
+                "Inventory → Alerts.",
+                "Review below-minimum or soon-to-expire items.",
+                "Purchase or adjust to clear the alert."
+            ],
+            "cta": "Go to Alerts"
+        },
+        "proveedores": {
+            "title": "Suppliers",
+            "summary": "Who you buy goods from.",
+            "steps": [
+                "Inventory → Suppliers.",
+                "Create the supplier with tax ID.",
+                "Use them when recording purchases."
+            ],
+            "cta": "Go to Suppliers"
         },
         "compra": {
             "title": "Record a purchase",
             "summary": "Bring goods into inventory at real cost.",
             "steps": [
                 "Inventory → Purchases → New purchase.",
-                "Choose supplier, branch, and product lines.",
-                "Confirm to update stock automatically."
+                "Choose supplier, branch and lines.",
+                "Confirm to update stock (and lots if used)."
             ],
             "cta": "Go to Purchases"
         },
         "fel": {
             "title": "Set up SUNAT e-invoicing",
-            "summary": "Connect APISUNAT to issue electronic receipts and invoices.",
+            "summary": "Issue electronic receipts according to your plan.",
             "steps": [
-                "Settings → General → Electronic invoicing section.",
-                "Enter your APISUNAT token and save.",
-                "Enable «Issue SUNAT receipts» if your plan allows it."
+                "Settings → General → Billing tab.",
+                "Enable SUNAT issuance if the plan allows it. Support configures the APISUNAT token.",
+                "Set VAT, tax treatment and whether prices include tax."
             ],
             "cta": "Go to General"
         },
         "series": {
             "title": "Receipt series",
-            "summary": "Define F001, B001, etc. per branch.",
+            "summary": "F001, B001, etc. per branch.",
             "steps": [
                 "Invoicing → Series.",
                 "Create the series for invoice or receipt type.",
-                "Link it to the corresponding branch."
+                "Link it to the branch."
             ],
             "cta": "Go to Series"
         },
         "comprobantes": {
-            "title": "View issued receipts",
-            "summary": "Check invoices, receipts, and SUNAT status.",
+            "title": "Issued receipts",
+            "summary": "SUNAT status, PDF and WhatsApp resend.",
             "steps": [
                 "Invoicing → Issued documents.",
-                "Filter by date or type.",
-                "Download PDF/XML or review rejections."
+                "Filter by date or type. Check accepted or rejected.",
+                "You can send the e-receipt via WhatsApp if a phone is on file."
             ],
             "cta": "Go to Documents"
+        },
+        "notas_baja": {
+            "title": "Void notices and daily summaries",
+            "summary": "SUNAT void and summary filings.",
+            "steps": [
+                "Invoicing → Void notices or Summaries.",
+                "Follow sent / accepted status.",
+                "Do not void by hand a document already reported to SUNAT; use this flow."
+            ],
+            "cta": "Go to Void notices"
+        },
+        "whatsapp_conectar": {
+            "title": "Connect clinic WhatsApp",
+            "summary": "One number for reminders, outbox, campaigns, prescriptions and tickets.",
+            "steps": [
+                "Communications → Outbox: connect or sync the session.",
+                "Scan the QR with the clinic phone.",
+                "The chip should say Connected. A 429 pause is a list-API cooldown; sending can still work if the session is ready."
+            ],
+            "cta": "Go to Outbox"
+        },
+        "cola": {
+            "title": "Outbox and retries",
+            "summary": "Pending, failed and history.",
+            "steps": [
+                "Outbox: review pending. «Send now» fires delivery.",
+                "History: already sent; you can resend to the same number.",
+                "Failed: fix the phone or reconnect WhatsApp and retry."
+            ],
+            "cta": "Go to Outbox"
+        },
+        "campanas": {
+            "title": "WhatsApp campaigns to owners",
+            "summary": "Broadcast with daily cap, interval and Peru (Lima) window.",
+            "steps": [
+                "Communications → Campaigns → new: name, message, cap (max 100/day) and interval (1–30 min).",
+                "Send window uses Lima time (e.g. 09:00–23:59). Outside the window nothing is sent.",
+                "Pick recipients in the modal (people already sent in that campaign are not repeated).",
+                "WhatsApp must be connected. After it finishes you can add more owners without resending."
+            ],
+            "cta": "Go to Campaigns"
+        },
+        "historico": {
+            "title": "Message history",
+            "summary": "Audit of sent items: prescriptions, tickets, reminders, campaigns.",
+            "steps": [
+                "Communications → History.",
+                "Filter by type or recipient.",
+                "Resend if the original was delivered and you need it again."
+            ],
+            "cta": "Go to History"
+        },
+        "plantillas": {
+            "title": "Reminder templates",
+            "summary": "Copy for appointments, vaccines, grooming and hotel. Sales, lab and prescriptions stay fixed.",
+            "steps": [
+                "Communications → Templates.",
+                "Edit the body with variables (pet, date, clinic).",
+                "Prescription, ticket and lab sends are not edited here."
+            ],
+            "cta": "Go to Templates"
+        },
+        "chat_interno": {
+            "title": "Internal team chat",
+            "summary": "Messages between clinic users and the support group.",
+            "steps": [
+                "Communications → Internal chat.",
+                "Open a 1:1 chat or a team group.",
+                "You can attach files where the chat module allows it."
+            ],
+            "cta": "Go to chat"
+        },
+        "bot_ia": {
+            "title": "Client AI assistant (WhatsApp)",
+            "summary": "Automatic replies on the clinic number, if your plan includes it.",
+            "steps": [
+                "Communications → AI assistant: turn replies on or off.",
+                "Load clinic knowledge (hours, services).",
+                "General also has a bot-replies switch."
+            ],
+            "cta": "Go to AI assistant"
+        },
+        "snapshots": {
+            "title": "Snapshots",
+            "summary": "Indicator photos to compare periods.",
+            "steps": [
+                "Reports → Snapshots.",
+                "Create or open the date cut.",
+                "For internal meetings; it does not replace financial reports."
+            ],
+            "cta": "Go to Snapshots"
+        },
+        "financiero": {
+            "title": "Sales and cash reports",
+            "summary": "Financial analysis, products, services, income and expenses.",
+            "steps": [
+                "Reports: pick the report (financial, by product, services, expenses, top patients).",
+                "Filter the date range.",
+                "Export or print from that screen."
+            ],
+            "cta": "Go to financial analysis"
+        },
+        "instalar_app": {
+            "title": "Install VetSaaS on phone, tablet or PC",
+            "summary": "You can install the system as an app (PWA) from the browser.",
+            "steps": [
+                "Open VetSaaS in Chrome or Edge (iPhone: Safari).",
+                "Use the install banner or the browser menu → Install / Add to Home Screen.",
+                "Always use your clinic subdomain.",
+                "The app uses the same user and permissions as the web."
+            ]
+        },
+        "app_splash": {
+            "title": "The app stays on the logo when opening",
+            "summary": "White screen with the green icon and «VetSaaS»: usually installed-app cache.",
+            "steps": [
+                "Wait a few seconds: after an update it may reload once by itself.",
+                "If it does not enter after 10 seconds, tap «Tap to continue» to clear cache.",
+                "If there is no button, fully close the app and open it again (once is enough in most cases).",
+                "Last resort: remove the shortcut and install again from the browser."
+            ]
+        },
+        "offline": {
+            "title": "Working with a weak signal (offline)",
+            "summary": "Register, clinic and inventory can be cached if you opened them online first.",
+            "steps": [
+                "With internet, open Register, Clinic or Inventory at least once.",
+                "Offline, you will see outbox notices. Sync resumes when the signal returns.",
+                "Pending queue: Offline / queue depending on your role.",
+                "Login, dashboard and platform are never served from cache on purpose."
+            ]
+        },
+        "faq_splash": {
+            "title": "Why do I sometimes have to open the app twice?",
+            "summary": "After a VetSaaS update the background worker can take over mid-load.",
+            "steps": [
+                "You should no longer need to close twice: the app reloads itself when it detects the update.",
+                "If it still freezes, use «Tap to continue» or swipe the app away and open again.",
+                "Older Android tablets are slower the first open of the day; use stable Wi‑Fi."
+            ]
+        },
+        "faq_whatsapp_campana": {
+            "title": "The campaign does not send or stays pending",
+            "summary": "Check Lima hours, interval, cap and that WhatsApp is connected.",
+            "steps": [
+                "Send clock is America/Lima, not a mis-set phone timezone.",
+                "Outside the from–to window nothing is sent.",
+                "Daily cap max 100; interval min 1 minute.",
+                "A 429 pause is often the status API; sending can still work if the session is ready.",
+                "After a campaign ends, add more owners: already-sent people are not repeated."
+            ]
+        },
+        "faq_whatsapp_sesion": {
+            "title": "WhatsApp disconnects or reminders do not go out",
+            "summary": "The OpenWA session must be ready; reminders fire in time windows.",
+            "steps": [
+                "In Outbox, sync status. If you see a QR, link the same number again.",
+                "The 2 h appointment reminder fires near that time, not when you created the appointment.",
+                "History can resend; Outbox «Send now» for pending or failed.",
+                "The clinic WhatsApp phone needs internet; avoid extreme battery saver."
+            ]
+        },
+        "faq_receta_enviar": {
+            "title": "I cannot send a prescription via WhatsApp",
+            "summary": "Green row icon, not voided, and an owner phone.",
+            "steps": [
+                "Sending is the green bubble, not the three-dot menu.",
+                "Voided status cannot be sent.",
+                "The owner needs a mobile number. You can type another number in the modal.",
+                "Clinic WhatsApp must be connected, same as sales."
+            ]
+        },
+        "faq_firma": {
+            "title": "The signature shows a white box on the PDF",
+            "summary": "Upload the stamp again: white paper is stripped on save.",
+            "steps": [
+                "Settings → General → Digital signature: upload the image again.",
+                "Generating the PDF also cleans the background of a stored image.",
+                "Check the documents where it should print. With no checks it will not appear."
+            ]
+        },
+        "faq_caja": {
+            "title": "I cannot sell or take payment",
+            "summary": "Almost always there is no open register session for that branch.",
+            "steps": [
+                "Register → Sessions: open the register on the same branch as the sale.",
+                "Close a stuck previous session if needed.",
+                "Check that your role has sales and session permissions."
+            ]
+        },
+        "faq_recordatorios": {
+            "title": "How do I turn on appointment, vaccine and service reminders?",
+            "summary": "All of it is in Settings → General → Notifications.",
+            "steps": [
+                "Enable 2 h before and the day options (1, 2, 3, 7, 30) for appointments and for grooming/hotel.",
+                "Vaccines: choose how many days before the suggested date to notify.",
+                "WhatsApp must be connected. Copy is edited in Communications → Templates."
+            ]
         }
     }
 }
