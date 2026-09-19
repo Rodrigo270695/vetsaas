@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Clinica;
 
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
-use App\Models\ClinicSetting;
 use App\Models\Receta;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
@@ -32,7 +31,6 @@ final class RecetaPdfService
             throw new \RuntimeException('La receta no tiene paciente.');
         }
 
-        $clinic = ClinicSetting::current();
         $tz = (string) config('app.timezone', 'America/Lima');
         $emitidaAt = $receta->emitida_at !== null
             ? $receta->emitida_at->copy()->timezone($tz)->format('d/m/Y H:i')
@@ -43,23 +41,15 @@ final class RecetaPdfService
             $consultaAt = Carbon::parse($receta->consulta->atendido_at)->timezone($tz)->format('d/m/Y H:i');
         }
 
-        $pdf = Pdf::loadView('pdf.receta', [
-            'clinicNombre' => $clinic->nombre_comercial
-                ?: $clinic->razon_social
-                ?: (string) config('app.name', 'Clínica'),
-            'logoDataUri' => $this->clinicLogoDataUri($clinic),
-            'colorPrimario' => $this->sanitizeHexColor($clinic->color_primario, '#166534'),
-            'colorSecundario' => $this->sanitizeHexColor($clinic->color_secundario, '#f0fdf4'),
-            'clinicEmail' => $clinic->email_institucional,
-            'clinicTelefono' => $clinic->telefono_principal,
-            'clinicWeb' => $clinic->web_url,
-            'clinicDireccion' => $clinic->direccion_fiscal,
-            'receta' => $receta,
-            'propietarioNombre' => $this->propietarioNombreParaPdf($receta->paciente),
-            'emitidaAt' => $emitidaAt,
-            'consultaAt' => $consultaAt,
-            'generadoEn' => now($tz)->format('d/m/Y H:i'),
-        ]);
+        $pdf = Pdf::loadView('pdf.receta', array_merge(
+            $this->clinicPdfBranding('receta'),
+            [
+                'receta' => $receta,
+                'propietarioNombre' => $this->propietarioNombreParaPdf($receta->paciente),
+                'emitidaAt' => $emitidaAt,
+                'consultaAt' => $consultaAt,
+            ],
+        ));
         $pdf->setPaper('a4', 'portrait');
 
         $slug = Str::slug($receta->paciente->nombre ?? 'paciente') ?: 'paciente';

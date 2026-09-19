@@ -13,6 +13,7 @@ use App\Models\Farmaco;
 use App\Models\HistoriaClinica;
 use App\Models\Paciente;
 use App\Models\ServicioClinico;
+use App\Support\ConsultaCargo\ConsultaCargoCobroEstado;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -22,7 +23,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
@@ -107,7 +107,7 @@ class ConsultaHistoriaController extends Controller
                 'terapiaLineas',
             ]);
 
-        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::withCobradosCount($query);
+        ConsultaCargoCobroEstado::withCobradosCount($query);
 
         if ($canAudit) {
             $query->with([
@@ -127,10 +127,10 @@ class ConsultaHistoriaController extends Controller
         }
 
         $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
-        if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
-            $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
+        if (! in_array($cobroFiltro, ConsultaCargoCobroEstado::FILTERS, true)) {
+            $cobroFiltro = ConsultaCargoCobroEstado::FILTER_TODOS;
         }
-        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::applyListFilter($query, $cobroFiltro);
+        ConsultaCargoCobroEstado::applyListFilter($query, $cobroFiltro);
 
         if ($sort === 'paciente') {
             $query
@@ -820,7 +820,7 @@ class ConsultaHistoriaController extends Controller
         $entry = HistorialClinicoPdfBuilder::make()->fromConsulta($consulta);
 
         $pdf = Pdf::loadView('pdf.consulta-clinica', array_merge(
-            $this->clinicPdfBranding(),
+            $this->clinicPdfBranding('consulta'),
             [
                 'paciente' => $paciente,
                 'propietarioNombre' => $this->propietarioNombreParaPdf($paciente),

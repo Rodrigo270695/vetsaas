@@ -527,6 +527,30 @@ it('al reemplazar el logo elimina el archivo previo (no deja huérfanos)', funct
     Storage::disk('public')->assertMissing($firstPath);
 });
 
+it('persiste nombre, colegiatura y documentos de la firma digital', function (): void {
+    $this->actingAs($this->admin);
+    Storage::fake('public');
+
+    $file = UploadedFile::fake()->image('firma.png', 320, 140);
+
+    $this->put('http://'.$this->host.'/configuracion/general', array_merge(validPayload(), [
+        'firma' => $file,
+        'firma_digital_nombre' => 'Guillermo Martín Mayanga Gonzáles',
+        'firma_digital_colegiatura' => '12094',
+        'firma_digital_documentos' => ['receta', 'consulta', 'venta_ticket'],
+    ]))->assertSessionHasNoErrors();
+
+    DB::statement('SET search_path TO "'.$this->schema.'", public');
+    $row = DB::table('cfg_clinic_settings')->first();
+    DB::statement('SET search_path TO public');
+
+    expect($row->firma_digital_nombre)->toBe('Guillermo Martín Mayanga Gonzáles');
+    expect($row->firma_digital_colegiatura)->toBe('12094');
+    expect(json_decode($row->firma_digital_documentos, true))->toBe(['receta', 'consulta']);
+    expect($row->firma_digital_path)->toStartWith('tenants/'.$this->slug.'/firmas/');
+    Storage::disk('public')->assertExists($row->firma_digital_path);
+});
+
 /* -------------------------------------------------------------------------- */
 /*                                  Helpers */
 /* -------------------------------------------------------------------------- */

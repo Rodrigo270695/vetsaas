@@ -91,6 +91,8 @@
         </p>
     </div>
 
+    @include('pdf.partials.vet-firma')
+
     <div class="footer">
         <div>{{ $generadoEn }}</div>
     </div>

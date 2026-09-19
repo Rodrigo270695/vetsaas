@@ -29,6 +29,8 @@
         @endif
     </div>
 
+    @include('pdf.partials.vet-firma')
+
     <div class="footer">
         <div>{{ __('carnet_vacunacion.footer_generated', ['fecha' => $generadoEn]) }}</div>
         <div class="muted" style="margin-top: 5px; line-height: 1.35;">{{ __('historial_clinico.footer_disclaimer') }}</div>

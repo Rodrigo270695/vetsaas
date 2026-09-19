@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const ACCEPTED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+const ACCEPTED_MIME_FIRMA = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 2 * 1024 * 1024;
 
 export type LogoUploaderProps = {
@@ -18,6 +19,8 @@ export type LogoUploaderProps = {
     error?: string;
     /** Si false, deshabilita todas las interacciones. */
     canUpdate: boolean;
+    /** Prefijo i18n bajo `general:fields.*` (`logo` o `firma`). */
+    i18nPrefix?: 'logo' | 'firma';
 
     /** El usuario eligió un archivo nuevo (file picker o drag&drop). */
     onSelect: (file: File) => void;
@@ -55,8 +58,11 @@ export function LogoUploader({
     onSelect,
     onClearSelection,
     onTogglePendingRemoval,
+    i18nPrefix = 'logo',
 }: LogoUploaderProps) {
     const { t } = useTranslation(['general', 'common']);
+    const acceptedMime =
+        i18nPrefix === 'firma' ? ACCEPTED_MIME_FIRMA : ACCEPTED_MIME;
     const inputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
@@ -85,14 +91,14 @@ export function LogoUploader({
 
         const candidate = files[0];
 
-        if (!ACCEPTED_MIME.includes(candidate.type)) {
-            setLocalError(t('general:fields.logo_drop_supported'));
+        if (!acceptedMime.includes(candidate.type)) {
+            setLocalError(t(`general:fields.${i18nPrefix}_drop_supported`));
 
             return;
         }
 
         if (candidate.size > MAX_BYTES) {
-            setLocalError(t('general:fields.logo_drop_supported'));
+            setLocalError(t(`general:fields.${i18nPrefix}_drop_supported`));
 
             return;
         }
@@ -146,7 +152,7 @@ export function LogoUploader({
             <input
                 ref={inputRef}
                 type="file"
-                accept={ACCEPTED_MIME.join(',')}
+                accept={acceptedMime.join(',')}
                 className="sr-only"
                 onChange={(event) => handleFiles(event.target.files)}
                 disabled={!canUpdate}
@@ -163,7 +169,7 @@ export function LogoUploader({
                         {previewSrc && (
                             <img
                                 src={previewSrc}
-                                alt={t('general:fields.logo_preview_alt')}
+                                alt={t(`general:fields.${i18nPrefix}_preview_alt`)}
                                 className="size-full object-contain"
                             />
                         )}
@@ -174,7 +180,7 @@ export function LogoUploader({
                             {hasNewFile && file && (
                                 <>
                                     <span className="truncate text-sm font-medium">
-                                        {t('general:fields.logo_pending', {
+                                        {t(`general:fields.${i18nPrefix}_pending`, {
                                             name: file.name,
                                         })}
                                     </span>
@@ -185,12 +191,12 @@ export function LogoUploader({
                             )}
                             {!hasNewFile && pendingRemoval && (
                                 <span className="text-sm font-medium text-destructive">
-                                    {t('general:fields.logo_remove_pending')}
+                                    {t(`general:fields.${i18nPrefix}_remove_pending`)}
                                 </span>
                             )}
                             {!hasNewFile && !pendingRemoval && (
                                 <span className="text-sm text-muted-foreground">
-                                    {t('general:fields.logo_hint_uploaded')}
+                                    {t(`general:fields.${i18nPrefix}_hint_uploaded`)}
                                 </span>
                             )}
                         </div>
@@ -206,8 +212,8 @@ export function LogoUploader({
                             >
                                 <Upload className="size-3.5" strokeWidth={2.25} />
                                 {hasNewFile
-                                    ? t('general:fields.logo_select')
-                                    : t('general:fields.logo_replace')}
+                                    ? t(`general:fields.${i18nPrefix}_select`)
+                                    : t(`general:fields.${i18nPrefix}_replace`)}
                             </Button>
 
                             {hasNewFile ? (
@@ -241,7 +247,7 @@ export function LogoUploader({
                                                 className="size-3.5"
                                                 strokeWidth={2.25}
                                             />
-                                            {t('general:fields.logo_undo_remove')}
+                                            {t(`general:fields.${i18nPrefix}_undo_remove`)}
                                         </>
                                     ) : (
                                         <>
@@ -249,7 +255,7 @@ export function LogoUploader({
                                                 className="size-3.5"
                                                 strokeWidth={2.25}
                                             />
-                                            {t('general:fields.logo_remove')}
+                                            {t(`general:fields.${i18nPrefix}_remove`)}
                                         </>
                                     )}
                                 </Button>
@@ -283,10 +289,10 @@ export function LogoUploader({
                         )}
                     </span>
                     <span className="text-sm font-medium">
-                        {t('general:fields.logo_drop')}
+                        {t(`general:fields.${i18nPrefix}_drop`)}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                        {t('general:fields.logo_drop_supported')}
+                        {t(`general:fields.${i18nPrefix}_drop_supported`)}
                     </span>
                 </label>
             )}

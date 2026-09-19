@@ -133,4 +133,20 @@
         padding-top: 5px;
     }
     .muted { color: #888; }
+    .vet-firma {
+        margin: 18px 0 36px;
+        text-align: center;
+        page-break-inside: avoid;
+    }
+    .vet-firma img {
+        max-height: 72px;
+        max-width: 200px;
+    }
+    .vet-firma-name {
+        margin-top: 4px;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    .vet-firma-cmvp { font-size: 9px; }
+    .vet-firma-role { font-size: 8px; color: #666; }
 </style>

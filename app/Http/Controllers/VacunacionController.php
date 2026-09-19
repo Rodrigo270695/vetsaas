@@ -6,7 +6,6 @@ use App\Exports\VacunasAplicadasImportTemplateXlsx;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\StoreVacunaAplicadaRequest;
 use App\Http\Requests\UpdateVacunaAplicadaRequest;
-use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\MovimientoInventario;
 use App\Models\Paciente;
@@ -17,6 +16,7 @@ use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Services\Clinica\VacunaAplicadaImportService;
 use App\Services\Clinica\VacunaProximaCitaSync;
+use App\Support\ConsultaCargo\ConsultaCargoCobroEstado;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Support\Vacunas\VacunaAplicadaStockSync;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -154,7 +154,7 @@ class VacunacionController extends Controller
         $query = VacunaAplicada::query()->with($withVacuna);
 
         if (Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')) {
-            \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::withCobradosCount($query);
+            ConsultaCargoCobroEstado::withCobradosCount($query);
         }
 
         if ($canAudit) {
@@ -168,11 +168,11 @@ class VacunacionController extends Controller
             $query->whereBetween('vacunas_aplicadas.aplicada_at', [$inicioRango, $finRango]);
         }
         $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
-        if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
-            $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
+        if (! in_array($cobroFiltro, ConsultaCargoCobroEstado::FILTERS, true)) {
+            $cobroFiltro = ConsultaCargoCobroEstado::FILTER_TODOS;
         }
         if (Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')) {
-            \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::applyListFilter(
+            ConsultaCargoCobroEstado::applyListFilter(
                 $query,
                 $cobroFiltro,
             );
@@ -397,15 +397,6 @@ class VacunacionController extends Controller
             ->orderByDesc('aplicada_at')
             ->get();
 
-        $clinic = ClinicSetting::current();
-        $logoDataUri = $this->clinicLogoDataUri($clinic);
-        $colorPrimario = $this->sanitizeHexColor($clinic->color_primario, '#166534');
-        $colorSecundario = $this->sanitizeHexColor($clinic->color_secundario, '#f0fdf4');
-
-        $clinicNombre = $clinic->nombre_comercial
-            ?: $clinic->razon_social
-            ?: (string) config('app.name', 'Clínica');
-
         $propietarioNombre = $this->propietarioNombreParaPdf($paciente);
         $tz = (string) config('app.timezone', 'UTC');
 
@@ -452,23 +443,15 @@ class VacunacionController extends Controller
             ];
         });
 
-        $generadoEn = now($tz)->format('d/m/Y H:i');
-
-        $pdf = Pdf::loadView('pdf.carnet-vacunacion', [
-            'clinicNombre' => $clinicNombre,
-            'logoDataUri' => $logoDataUri,
-            'colorPrimario' => $colorPrimario,
-            'colorSecundario' => $colorSecundario,
-            'clinicEmail' => $clinic->email_institucional,
-            'clinicTelefono' => $clinic->telefono_principal,
-            'clinicWeb' => $clinic->web_url,
-            'clinicDireccion' => $clinic->direccion_fiscal,
-            'paciente' => $paciente,
-            'propietarioNombre' => $propietarioNombre,
-            'vacunas' => $vacunasRows,
-            'generadoEn' => $generadoEn,
-            'vacunasCount' => $vacunas->count(),
-        ]);
+        $pdf = Pdf::loadView('pdf.carnet-vacunacion', array_merge(
+            $this->clinicPdfBranding('carnet_vacunacion'),
+            [
+                'paciente' => $paciente,
+                'propietarioNombre' => $propietarioNombre,
+                'vacunas' => $vacunasRows,
+                'vacunasCount' => $vacunas->count(),
+            ],
+        ));
         $pdf->setPaper('a4', 'portrait');
 
         $slug = Str::slug($paciente->nombre) ?: 'paciente';
@@ -510,7 +493,7 @@ class VacunacionController extends Controller
         $entry = HistorialClinicoPdfBuilder::make()->fromAplicacion($vacuna_aplicada);
 
         $pdf = Pdf::loadView('pdf.aplicacion-clinica', array_merge(
-            $this->clinicPdfBranding(),
+            $this->clinicPdfBranding('aplicacion_clinica'),
             [
                 'paciente' => $paciente,
                 'propietarioNombre' => $this->propietarioNombreParaPdf($paciente),

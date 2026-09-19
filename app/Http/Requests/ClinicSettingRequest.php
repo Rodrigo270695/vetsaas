@@ -52,6 +52,12 @@ class ClinicSettingRequest extends FormRequest
             'clear_logo' => ['nullable', 'boolean'],
             'color_primario' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'color_secundario' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'firma' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'clear_firma' => ['nullable', 'boolean'],
+            'firma_digital_nombre' => ['nullable', 'string', 'max:180'],
+            'firma_digital_colegiatura' => ['nullable', 'string', 'max:40'],
+            'firma_digital_documentos' => ['nullable', 'array'],
+            'firma_digital_documentos.*' => ['string', Rule::in(ClinicSetting::FIRMA_DIGITAL_PDF_KEYS)],
 
             // Contacto
             'email_institucional' => ['nullable', 'email', 'max:150'],
@@ -138,6 +144,10 @@ class ClinicSettingRequest extends FormRequest
             'direccion_fiscal' => 'dirección fiscal',
             'distrito_id' => 'distrito',
             'logo' => 'logo',
+            'firma' => 'firma digital',
+            'firma_digital_nombre' => 'nombre del veterinario',
+            'firma_digital_colegiatura' => 'colegiatura',
+            'firma_digital_documentos' => 'documentos con firma',
             'color_primario' => 'color primario',
             'color_secundario' => 'color secundario',
             'email_institucional' => 'correo institucional',
@@ -214,7 +224,12 @@ class ClinicSettingRequest extends FormRequest
             'emite_comprobantes_sunat' => $this->boolean('emite_comprobantes_sunat'),
             'clear_apisunat' => $this->boolean('clear_apisunat'),
             'clear_logo' => $this->boolean('clear_logo'),
+            'clear_firma' => $this->boolean('clear_firma'),
         ]);
+
+        if (! $this->exists('firma_digital_documentos')) {
+            $this->merge(['firma_digital_documentos' => []]);
+        }
     }
 
     public function withValidator(Validator $validator): void

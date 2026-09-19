@@ -106,6 +106,12 @@ class ClinicSettingController extends Controller
             'distrito_id' => $data['distrito_id'] ?? null,
             'color_primario' => $data['color_primario'] ?? null,
             'color_secundario' => $data['color_secundario'] ?? null,
+            'firma_digital_nombre' => $data['firma_digital_nombre'] ?? null,
+            'firma_digital_colegiatura' => $data['firma_digital_colegiatura'] ?? null,
+            'firma_digital_documentos' => array_values(array_intersect(
+                ClinicSetting::FIRMA_DIGITAL_PDF_KEYS,
+                array_map(strval(...), $data['firma_digital_documentos'] ?? []),
+            )),
             'email_institucional' => $data['email_institucional'] ?? null,
             'telefono_principal' => $data['telefono_principal'] ?? null,
             'web_url' => $data['web_url'] ?? null,
@@ -150,6 +156,7 @@ class ClinicSettingController extends Controller
         ]);
 
         $this->applyLogo($setting, $request, $tenants);
+        $this->applyFirma($setting, $request, $tenants);
 
         // El token de APISUNAT SOLO lo puede tocar el superadmin de la
         // plataforma (rol global, tenant_id null). Si un usuario de la
@@ -231,6 +238,47 @@ class ClinicSettingController extends Controller
         }
     }
 
+    private function applyFirma(
+        ClinicSetting $setting,
+        ClinicSettingRequest $request,
+        TenantManager $tenants,
+    ): void {
+        $disk = Storage::disk('public');
+
+        if (($request->validated('clear_firma') ?? false) === true) {
+            if ($setting->firma_digital_path && $disk->exists($setting->firma_digital_path)) {
+                $disk->delete($setting->firma_digital_path);
+            }
+            $setting->firma_digital_path = null;
+
+            return;
+        }
+
+        if (! $request->hasFile('firma')) {
+            return;
+        }
+
+        $slug = $tenants->current()?->slug ?? 'shared';
+        $previous = $setting->firma_digital_path;
+        $file = $request->file('firma');
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'png');
+        $filename = Str::uuid()->toString().'.'.$extension;
+        $path = "tenants/{$slug}/firmas/{$filename}";
+
+        $disk->putFileAs(
+            "tenants/{$slug}/firmas",
+            $file,
+            $filename,
+            'public',
+        );
+
+        $setting->firma_digital_path = $path;
+
+        if ($previous && $previous !== $path && $disk->exists($previous)) {
+            $disk->delete($previous);
+        }
+    }
+
     /**
      * Aplica los cambios al token APISUNAT del tenant. Tres caminos:
      *
@@ -296,6 +344,10 @@ class ClinicSettingController extends Controller
             'logo_url' => $setting->logo_url,
             'color_primario' => $setting->color_primario,
             'color_secundario' => $setting->color_secundario,
+            'firma_digital_url' => $setting->firma_digital_url,
+            'firma_digital_nombre' => $setting->firma_digital_nombre,
+            'firma_digital_colegiatura' => $setting->firma_digital_colegiatura,
+            'firma_digital_documentos' => $setting->firmaDigitalDocumentos(),
             // Contacto
             'email_institucional' => $setting->email_institucional,
             'telefono_principal' => $setting->telefono_principal,

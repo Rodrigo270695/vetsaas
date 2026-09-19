@@ -177,7 +177,7 @@ final class DocumentoAutorizacionService
     public function renderPdf(DocumentoAutorizacionEnvio $envio): string
     {
         $envio->loadMissing(['paciente.propietario', 'consulta']);
-        $branding = $this->clinicPdfBranding();
+        $branding = $this->clinicPdfBranding('autorizacion');
         $firmaDataUri = null;
         if (is_string($envio->firma_path) && Storage::disk('public')->exists($envio->firma_path)) {
             $bin = Storage::disk('public')->get($envio->firma_path);

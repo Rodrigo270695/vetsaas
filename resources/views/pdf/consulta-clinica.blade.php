@@ -22,6 +22,8 @@
     </h2>
     @include('pdf.partials.historial-entry', ['entry' => $entry])
 
+    @include('pdf.partials.vet-firma')
+
     <div class="footer">
         <div>{{ __('carnet_vacunacion.footer_generated', ['fecha' => $generadoEn]) }}</div>
         <div class="muted" style="margin-top: 3px; line-height: 1.3;">{{ __('historial_clinico.footer_disclaimer') }}</div>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -43,6 +44,11 @@ use Throwable;
  * @property ?int $distrito_id
  * @property ?string $logo_path
  * @property-read ?string $logo_url
+ * @property ?string $firma_digital_path
+ * @property-read ?string $firma_digital_url
+ * @property ?string $firma_digital_nombre
+ * @property ?string $firma_digital_colegiatura
+ * @property array<int, string>|null $firma_digital_documentos
  * @property ?string $email_institucional
  * @property ?string $telefono_principal
  * @property ?string $web_url
@@ -119,6 +125,16 @@ class ClinicSetting extends Model
         self::IGV_AFECTACION_INAFECTO,
     ];
 
+    /** PDFs clínicos donde puede imprimirse la firma de la clínica. */
+    public const FIRMA_DIGITAL_PDF_KEYS = [
+        'receta',
+        'consulta',
+        'historial',
+        'carnet_vacunacion',
+        'aplicacion_clinica',
+        'autorizacion',
+    ];
+
     protected $table = 'cfg_clinic_settings';
 
     protected $fillable = [
@@ -177,6 +193,10 @@ class ClinicSetting extends Model
         'chat_retention_days',
         'color_primario',
         'color_secundario',
+        'firma_digital_path',
+        'firma_digital_nombre',
+        'firma_digital_colegiatura',
+        'firma_digital_documentos',
         'updated_by_id',
     ];
 
@@ -194,7 +214,7 @@ class ClinicSetting extends Model
      * del logo se calcula desde `logo_path` y se incluye en el JSON para
      * que el frontend pueda mostrar la imagen sin lógica extra.
      */
-    protected $appends = ['logo_url'];
+    protected $appends = ['logo_url', 'firma_digital_url'];
 
     protected function casts(): array
     {
@@ -235,6 +255,7 @@ class ClinicSetting extends Model
             'horas_min_cancelacion' => 'integer',
             'chat_retention_days' => 'integer',
             'igv_porcentaje' => 'decimal:2',
+            'firma_digital_documentos' => 'array',
         ];
     }
 
@@ -257,6 +278,38 @@ class ClinicSetting extends Model
                 ? asset('storage/'.ltrim($this->logo_path, '/'))
                 : null,
         );
+    }
+
+    protected function firmaDigitalUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => $this->firma_digital_path
+                ? asset('storage/'.ltrim($this->firma_digital_path, '/'))
+                : null,
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function firmaDigitalDocumentos(): array
+    {
+        $raw = $this->firma_digital_documentos;
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $allowed = self::FIRMA_DIGITAL_PDF_KEYS;
+
+        return array_values(array_unique(array_filter(
+            array_map(strval(...), $raw),
+            static fn (string $key): bool => in_array($key, $allowed, true),
+        )));
+    }
+
+    public function usaFirmaDigitalEn(string $documento): bool
+    {
+        return in_array($documento, $this->firmaDigitalDocumentos(), true);
     }
 
     public function actualizadoPor(): BelongsTo
@@ -285,7 +338,7 @@ class ClinicSetting extends Model
     public static function current(): self
     {
         if (! static::tableReady()) {
-            $slug = app(\App\Tenancy\TenantManager::class)->slug() ?? 'la-clinica';
+            $slug = app(TenantManager::class)->slug() ?? 'la-clinica';
 
             throw new \RuntimeException(
                 'Falta el schema de esta clínica (no existe cfg_clinic_settings). En Plataforma → Tenants usá «Crear schema», o en el servidor: php artisan vetsaas:tenant-migrate-all --slug='.$slug,

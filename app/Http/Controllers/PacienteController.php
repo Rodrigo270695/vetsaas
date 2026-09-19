@@ -32,9 +32,9 @@ use App\Models\Venta;
 use App\Services\Clinica\PacienteImportService;
 use App\Services\PetPass\AlmaPetHandoffClient;
 use App\Support\Clinica\PublicClinicalHistoryPayload;
-use App\Support\Tenancy\TenantModuleAccess;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
+use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -550,7 +550,7 @@ class PacienteController extends Controller
         );
 
         $pdf = Pdf::loadView('pdf.historial-clinico', array_merge(
-            $this->clinicPdfBranding(),
+            $this->clinicPdfBranding('historial'),
             [
                 'paciente' => $paciente,
                 'propietarioNombre' => $this->propietarioNombreParaPdf($paciente),

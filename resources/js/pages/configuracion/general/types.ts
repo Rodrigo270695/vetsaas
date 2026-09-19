@@ -59,6 +59,10 @@ export type ClinicSetting = {
     logo_url: string | null;
     color_primario: string | null;
     color_secundario: string | null;
+    firma_digital_url: string | null;
+    firma_digital_nombre: string | null;
+    firma_digital_colegiatura: string | null;
+    firma_digital_documentos: string[];
     // Contacto
     email_institucional: string | null;
     telefono_principal: string | null;

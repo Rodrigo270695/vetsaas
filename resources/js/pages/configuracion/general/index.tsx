@@ -13,6 +13,7 @@ import {
     Loader2,
     Megaphone,
     Palette,
+    PenLine,
     Phone,
     Receipt,
     Save,
@@ -64,6 +65,17 @@ type GeneralTab =
     | 'comunicaciones';
 
 const REMINDER_DAY_OPTIONS = [1, 2, 3, 7, 30] as const;
+
+const FIRMA_PDF_KEYS = [
+    'receta',
+    'consulta',
+    'historial',
+    'carnet_vacunacion',
+    'aplicacion_clinica',
+    'autorizacion',
+] as const;
+
+type FirmaPdfKey = (typeof FIRMA_PDF_KEYS)[number];
 
 /**
  * Shape del formulario de configuración (campos no-archivo).
@@ -137,6 +149,9 @@ type FormState = {
     whatsapp_display_number: string;
     email_from: string;
     email_from_nombre: string;
+    firma_digital_nombre: string;
+    firma_digital_colegiatura: string;
+    firma_digital_documentos: FirmaPdfKey[];
 };
 
 const buildInitialState = (setting: ClinicSetting): FormState => ({
@@ -227,6 +242,12 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     whatsapp_display_number: setting.whatsapp_display_number ?? '',
     email_from: setting.email_from ?? '',
     email_from_nombre: setting.email_from_nombre ?? '',
+    firma_digital_nombre: setting.firma_digital_nombre ?? '',
+    firma_digital_colegiatura: setting.firma_digital_colegiatura ?? '',
+    firma_digital_documentos: (setting.firma_digital_documentos ?? []).filter(
+        (key): key is FirmaPdfKey =>
+            (FIRMA_PDF_KEYS as readonly string[]).includes(key),
+    ),
 });
 
 const buildInitialGeo = (setting: ClinicSetting): GeoCascadeValue => {
@@ -337,6 +358,8 @@ export default function Index({
     const [activeTab, setActiveTab] = useState<GeneralTab>('clinica');
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [clearLogo, setClearLogo] = useState(false);
+    const [firmaFile, setFirmaFile] = useState<File | null>(null);
+    const [clearFirma, setClearFirma] = useState(false);
     const [clearApisunat, setClearApisunat] = useState(false);
     const [showApisunatToken, setShowApisunatToken] = useState(false);
     const [geo, setGeo] = useState<GeoCascadeValue>(() =>
@@ -360,6 +383,8 @@ export default function Index({
         setGeo(buildInitialGeo(setting));
         setLogoFile(null);
         setClearLogo(false);
+        setFirmaFile(null);
+        setClearFirma(false);
         setClearApisunat(false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [setting.updated_at]);
@@ -392,6 +417,26 @@ export default function Index({
 
     const handleLogoClearSelection = () => setLogoFile(null);
     const handleLogoTogglePendingRemoval = () => setClearLogo((c) => !c);
+
+    const handleFirmaSelect = (file: File) => {
+        setFirmaFile(file);
+        setClearFirma(false);
+    };
+    const handleFirmaClearSelection = () => setFirmaFile(null);
+    const handleFirmaTogglePendingRemoval = () => setClearFirma((c) => !c);
+
+    const toggleFirmaDocumento = (key: FirmaPdfKey, checked: boolean) => {
+        setDataInternal((current) => ({
+            ...current,
+            firma_digital_documentos: checked
+                ? Array.from(
+                      new Set([...current.firma_digital_documentos, key]),
+                  )
+                : current.firma_digital_documentos.filter(
+                      (item) => item !== key,
+                  ),
+        }));
+    };
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -450,7 +495,12 @@ export default function Index({
             modo_asesora_activo: data.modo_asesora_activo ? 1 : 0,
             precio_incluye_igv: data.precio_incluye_igv ? 1 : 0,
             emite_comprobantes_sunat: data.emite_comprobantes_sunat ? 1 : 0,
+            email_from_nombre: data.email_from_nombre,
+            firma_digital_nombre: data.firma_digital_nombre,
+            firma_digital_colegiatura: data.firma_digital_colegiatura,
+            firma_digital_documentos: data.firma_digital_documentos,
             clear_logo: clearLogo ? 1 : 0,
+            clear_firma: clearFirma ? 1 : 0,
             clear_apisunat: clearApisunat ? 1 : 0,
             ...(data.apisunat_token
                 ? { apisunat_token: data.apisunat_token }
@@ -460,6 +510,9 @@ export default function Index({
 
         if (logoFile) {
             payload.logo = logoFile;
+        }
+        if (firmaFile) {
+            payload.firma = firmaFile;
         }
 
         const logoChanged = Boolean(logoFile) || clearLogo;
@@ -1046,6 +1099,126 @@ export default function Index({
                                             className="font-mono uppercase"
                                             disabled={!canUpdate}
                                         />
+                                    </div>
+                                </FormField>
+                            </FormSection>
+                        </SectionCard>
+
+                        <SectionCard
+                            icon={PenLine}
+                            title={t('sections.firma_digital.title')}
+                            description={t(
+                                'sections.firma_digital.description',
+                            )}
+                        >
+                            <FormSection
+                                index={3}
+                                title=""
+                                columns={2}
+                                className="gap-0"
+                            >
+                                <FormField
+                                    id="general-firma"
+                                    label={t('fields.firma')}
+                                    error={errors.firma}
+                                    hint={t('fields.firma_hint')}
+                                    className="sm:col-span-2"
+                                >
+                                    <LogoUploader
+                                        i18nPrefix="firma"
+                                        currentUrl={setting.firma_digital_url ?? null}
+                                        file={firmaFile}
+                                        pendingRemoval={clearFirma}
+                                        error={errors.firma}
+                                        canUpdate={canUpdate}
+                                        onSelect={handleFirmaSelect}
+                                        onClearSelection={
+                                            handleFirmaClearSelection
+                                        }
+                                        onTogglePendingRemoval={
+                                            handleFirmaTogglePendingRemoval
+                                        }
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-firma-nombre"
+                                    label={t('fields.firma_nombre')}
+                                    error={errors.firma_digital_nombre}
+                                >
+                                    <Input
+                                        id="general-firma-nombre"
+                                        value={data.firma_digital_nombre}
+                                        onChange={(e) =>
+                                            setData(
+                                                'firma_digital_nombre',
+                                                e.target.value,
+                                            )
+                                        }
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-firma-cmvp"
+                                    label={t('fields.firma_colegiatura')}
+                                    error={errors.firma_digital_colegiatura}
+                                    hint={t('fields.firma_colegiatura_hint')}
+                                >
+                                    <Input
+                                        id="general-firma-cmvp"
+                                        value={data.firma_digital_colegiatura}
+                                        onChange={(e) =>
+                                            setData(
+                                                'firma_digital_colegiatura',
+                                                e.target.value,
+                                            )
+                                        }
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-firma-docs"
+                                    label={t('fields.firma_documentos')}
+                                    error={errors.firma_digital_documentos}
+                                    className="sm:col-span-2"
+                                >
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        {FIRMA_PDF_KEYS.map((key) => {
+                                            const id = `firma-doc-${key}`;
+                                            const checked =
+                                                data.firma_digital_documentos.includes(
+                                                    key,
+                                                );
+
+                                            return (
+                                                <label
+                                                    key={key}
+                                                    htmlFor={id}
+                                                    className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/60 p-3"
+                                                >
+                                                    <Checkbox
+                                                        id={id}
+                                                        checked={checked}
+                                                        onCheckedChange={(
+                                                            value,
+                                                        ) =>
+                                                            toggleFirmaDocumento(
+                                                                key,
+                                                                value === true,
+                                                            )
+                                                        }
+                                                        disabled={!canUpdate}
+                                                    />
+                                                    <span className="text-sm leading-snug">
+                                                        {t(
+                                                            `fields.firma_doc_${key}`,
+                                                        )}
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
                                     </div>
                                 </FormField>
                             </FormSection>
