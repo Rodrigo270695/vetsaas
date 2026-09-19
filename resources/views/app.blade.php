@@ -58,6 +58,88 @@
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">
+        <div id="vetsaas-boot" role="status" aria-live="polite">
+            <img src="/icons/pwa/icon-192.png" width="72" height="72" alt="">
+            <p>VetSaaS</p>
+            <button type="button" id="vetsaas-boot-retry" hidden>Toca para continuar</button>
+        </div>
+        <style>
+            #vetsaas-boot {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483646;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                margin: 0;
+                background: #FAFAF9;
+                color: #57534e;
+                font-family: system-ui, sans-serif;
+            }
+            html.dark #vetsaas-boot {
+                background: #0A1F18;
+                color: #d6d3d1;
+            }
+            #vetsaas-boot img { width: 72px; height: 72px; }
+            #vetsaas-boot p { margin: 28px 0 0; font-size: 15px; }
+            #vetsaas-boot button {
+                margin-top: 28px;
+                padding: 10px 16px;
+                border: 0;
+                border-radius: 8px;
+                background: #008064;
+                color: #fff;
+                font-size: 14px;
+            }
+        </style>
+        <script>
+            (function () {
+                var boot = document.getElementById('vetsaas-boot');
+                var retry = document.getElementById('vetsaas-boot-retry');
+                if (!boot) {
+                    return;
+                }
+                var gone = false;
+                function hide() {
+                    if (gone) {
+                        return;
+                    }
+                    gone = true;
+                    boot.remove();
+                }
+                window.__vetsaasHideBoot = hide;
+                window.setTimeout(function () {
+                    if (!gone && retry) {
+                        retry.hidden = false;
+                    }
+                }, 10000);
+                if (retry) {
+                    retry.addEventListener('click', function () {
+                        retry.disabled = true;
+                        function reload() {
+                            window.location.reload();
+                        }
+                        if (!('caches' in window) || !('serviceWorker' in navigator)) {
+                            reload();
+                            return;
+                        }
+                        Promise.all([
+                            caches.keys().then(function (keys) {
+                                return Promise.all(keys.map(function (key) {
+                                    return caches.delete(key);
+                                }));
+                            }),
+                            navigator.serviceWorker.getRegistrations().then(function (regs) {
+                                return Promise.all(regs.map(function (reg) {
+                                    return reg.unregister();
+                                }));
+                            }),
+                        ]).then(reload).catch(reload);
+                    });
+                }
+            })();
+        </script>
         <x-inertia::app />
     </body>
 </html>

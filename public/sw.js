@@ -1,8 +1,8 @@
 /**
  * Service Worker VetSaaS — Fase 8 offline (+ centro de sync /offline/cola).
  */
-const STATIC_CACHE = 'vetsaas-static-v13';
-const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v13';
+const STATIC_CACHE = 'vetsaas-static-v14';
+const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v14';
 const OFFLINE_PREFIXES = [
     '/offline',
     '/caja',
@@ -15,8 +15,14 @@ const OFFLINE_PREFIXES = [
     '/configuracion',
 ];
 
-/** Rutas de plataforma/superadmin: siempre red, nunca caché (evita 500 por assets viejos en PWA). */
-const NETWORK_ONLY_PREFIXES = ['/plataforma', '/login', '/dashboard', '/reportes/financiero'];
+/** Rutas siempre a red (evita HTML/JS viejo en la PWA). */
+const NETWORK_ONLY_EXACT = ['/'];
+const NETWORK_ONLY_PREFIXES = [
+    '/plataforma',
+    '/login',
+    '/dashboard',
+    '/reportes/financiero',
+];
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -56,9 +62,31 @@ function isOfflineModulePath(pathname) {
 }
 
 function isNetworkOnlyPath(pathname) {
+    if (NETWORK_ONLY_EXACT.includes(pathname)) {
+        return true;
+    }
+
     return NETWORK_ONLY_PREFIXES.some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     );
+}
+
+async function networkFirstStatic(request) {
+    const cache = await caches.open(STATIC_CACHE);
+
+    try {
+        const response = await fetch(request);
+
+        if (response.ok) {
+            await cache.put(request, response.clone());
+        }
+
+        return response;
+    } catch {
+        const cached = await cache.match(request);
+
+        return cached || Response.error();
+    }
 }
 
 function isStaticAsset(url) {
@@ -112,27 +140,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     if (isStaticAsset(url)) {
-        event.respondWith(
-            caches.open(STATIC_CACHE).then(async (cache) => {
-                const cached = await cache.match(event.request);
-
-                if (cached) {
-                    return cached;
-                }
-
-                try {
-                    const response = await fetch(event.request);
-
-                    if (response.ok) {
-                        await cache.put(event.request, response.clone());
-                    }
-
-                    return response;
-                } catch {
-                    return cached || Response.error();
-                }
-            }),
-        );
+        event.respondWith(networkFirstStatic(event.request));
 
         return;
     }
