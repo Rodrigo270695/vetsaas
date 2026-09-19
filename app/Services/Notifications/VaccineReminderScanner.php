@@ -33,6 +33,9 @@ final class VaccineReminderScanner
             ->mapWithKeys(fn (int $dias): array => [
                 $today->copy()->addDays($dias)->toDateString() => $dias,
             ]);
+        if ($targetDates->isEmpty()) {
+            return 0;
+        }
         $clinicName = $this->messages->clinicDisplayName($setting);
         $enqueued = 0;
 

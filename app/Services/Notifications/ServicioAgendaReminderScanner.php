@@ -8,8 +8,12 @@ use App\Models\ClinicSetting;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\NotificationQueue;
+use App\Models\Tenant;
+use App\Support\Notifications\ReminderLifecycleSkip;
+use App\Support\WhatsApp\DeferredWhatsAppDispatch;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 final class ServicioAgendaReminderScanner
 {
@@ -135,6 +139,7 @@ final class ServicioAgendaReminderScanner
                     'grooming_turno',
                     $turno->id,
                     $cuerpo,
+                    $inicio,
                 );
             },
             fn (int $days): string => $this->tipoGroomingDias($days),
@@ -183,6 +188,7 @@ final class ServicioAgendaReminderScanner
                     'hotel_estancia',
                     $estancia->id,
                     $cuerpo,
+                    $ingreso,
                 );
             },
             fn (int $days): string => $this->tipoHotelDias($days),
@@ -237,6 +243,9 @@ final class ServicioAgendaReminderScanner
 
         $enqueued = 0;
         foreach ($turnos as $turno) {
+            if ($turno->inicio_at === null) {
+                continue;
+            }
             $enqueued += $this->enqueueOne(
                 $tipo,
                 $turno->paciente?->propietario?->telefono,
@@ -244,6 +253,7 @@ final class ServicioAgendaReminderScanner
                 'grooming_turno',
                 $turno->id,
                 $bodyBuilder($turno),
+                $turno->inicio_at,
             );
         }
 
@@ -266,6 +276,9 @@ final class ServicioAgendaReminderScanner
 
         $enqueued = 0;
         foreach ($estancias as $estancia) {
+            if ($estancia->ingreso_at === null) {
+                continue;
+            }
             $enqueued += $this->enqueueOne(
                 $tipo,
                 $estancia->paciente?->propietario?->telefono,
@@ -273,6 +286,7 @@ final class ServicioAgendaReminderScanner
                 'hotel_estancia',
                 $estancia->id,
                 $bodyBuilder($estancia),
+                $estancia->ingreso_at,
             );
         }
 
@@ -286,13 +300,14 @@ final class ServicioAgendaReminderScanner
         string $referenciaTipo,
         string $referenciaId,
         string $cuerpo,
+        CarbonInterface $eventAt,
     ): int {
         $chatId = WhatsAppChatId::fromPhone(is_string($phone) ? $phone : null);
         if ($chatId === null) {
             return 0;
         }
 
-        if ($this->shouldSkipReminderAfterLifecycleNotice($referenciaTipo, $referenciaId, $tipo)) {
+        if ($this->shouldSkipReminderAfterLifecycleNotice($referenciaTipo, $referenciaId, $tipo, $eventAt)) {
             return 0;
         }
 
@@ -308,26 +323,45 @@ final class ServicioAgendaReminderScanner
             prioridad: str_ends_with($tipo, '_2h') ? 3 : 5,
         );
 
-        return $created instanceof NotificationQueue ? 1 : 0;
+        if (! $created instanceof NotificationQueue) {
+            return 0;
+        }
+
+        $tenantId = tenant_id();
+        $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenant !== null) {
+            DeferredWhatsAppDispatch::queueItem($created, $tenant);
+        }
+
+        return 1;
     }
 
-    private function shouldSkipReminderAfterLifecycleNotice(string $referenciaTipo, string $referenciaId, string $tipo): bool
-    {
+    private function shouldSkipReminderAfterLifecycleNotice(
+        string $referenciaTipo,
+        string $referenciaId,
+        string $tipo,
+        CarbonInterface $eventAt,
+    ): bool {
         $lifecycle = match ($referenciaTipo) {
             'grooming_turno' => ['grooming_programado', 'grooming_reprogramado'],
             'hotel_estancia' => ['hotel_registrada', 'hotel_reprogramada'],
             default => [],
         };
-        if ($lifecycle === [] || in_array($tipo, $lifecycle, true)) {
+        if ($lifecycle === []) {
             return false;
         }
 
-        return NotificationQueue::query()
+        $raw = NotificationQueue::query()
             ->where('referencia_tipo', $referenciaTipo)
             ->where('referencia_id', $referenciaId)
             ->whereIn('tipo', $lifecycle)
-            ->where('created_at', '>=', now()->subHours(6))
-            ->exists();
+            ->max('created_at');
+
+        $noticeAt = is_string($raw) || $raw instanceof CarbonInterface
+            ? Carbon::parse($raw)
+            : null;
+
+        return ReminderLifecycleSkip::shouldSkip($eventAt, $tipo, $noticeAt);
     }
 
     private function tipoGroomingDias(int $days): string

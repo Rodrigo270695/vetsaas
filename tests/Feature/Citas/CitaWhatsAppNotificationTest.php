@@ -111,3 +111,50 @@ it('envía al crear y editar solo cuando la preferencia WhatsApp está activa', 
         },
     );
 });
+
+it('encola el recordatorio de 2 h al crear una cita que empieza en ~2 horas', function (): void {
+    $pacienteId = app(TenantManager::class)->runForSlug(
+        $this->testTenant->slug,
+        function (): string {
+            $propietario = Propietario::query()->create([
+                'nombres' => 'Rodrigo',
+                'apellidos' => 'Granja',
+                'telefono' => '+51 999 888 777',
+                'activo' => true,
+            ]);
+
+            ClinicSetting::current()->update([
+                'recordatorio_2h_activo' => true,
+                'notificar_cita_whatsapp_activo' => true,
+            ]);
+
+            return (string) Paciente::query()->create([
+                'propietario_id' => $propietario->id,
+                'nombre' => 'Pelotito',
+                'activo' => true,
+            ])->id;
+        },
+    );
+
+    $inicioAt = now()->addHours(2)->addMinutes(3)->toIso8601String();
+
+    $this->actingAs($this->testTenantAdmin)
+        ->post('http://'.$this->testTenantHost.'/clinica/citas', [
+            'paciente_id' => $pacienteId,
+            'veterinario_id' => null,
+            'sede_id' => null,
+            'inicio_at' => $inicioAt,
+            'duracion_minutos' => 30,
+            'motivo' => 'Vacuna',
+            'notas' => null,
+        ])
+        ->assertSessionHasNoErrors();
+
+    app(TenantManager::class)->runForSlug(
+        $this->testTenant->slug,
+        function (): void {
+            expect(NotificationQueue::query()->where('tipo', 'cita_creada')->count())->toBe(1);
+            expect(NotificationQueue::query()->where('tipo', 'cita_2h')->count())->toBe(1);
+        },
+    );
+});

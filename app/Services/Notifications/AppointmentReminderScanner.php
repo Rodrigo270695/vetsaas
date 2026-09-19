@@ -7,8 +7,12 @@ namespace App\Services\Notifications;
 use App\Models\Cita;
 use App\Models\ClinicSetting;
 use App\Models\NotificationQueue;
+use App\Models\Tenant;
+use App\Support\Notifications\ReminderLifecycleSkip;
+use App\Support\WhatsApp\DeferredWhatsAppDispatch;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 final class AppointmentReminderScanner
 {
@@ -43,7 +47,7 @@ final class AppointmentReminderScanner
                     $cita->inicio_at,
                     $this->motivo($cita),
                 ),
-                [Cita::ESTADO_PROGRAMADA],
+                [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA],
             );
         }
 
@@ -87,7 +91,7 @@ final class AppointmentReminderScanner
 
         foreach ($setting?->recordatorioCitaDiasAntesOpciones() ?? [] as $days) {
             $target = $now->copy()->addDays($days);
-            if ($cita->estado !== Cita::ESTADO_PROGRAMADA || ! self::inWindow($inicio, $target)) {
+            if (! self::inWindow($inicio, $target)) {
                 continue;
             }
             $enqueued += $this->enqueueOne(
@@ -180,25 +184,52 @@ final class AppointmentReminderScanner
             prioridad: $tipo === 'cita_2h' ? 3 : 5,
         );
 
-        return $created instanceof NotificationQueue ? 1 : 0;
+        if (! $created instanceof NotificationQueue) {
+            return 0;
+        }
+
+        $this->dispatchSoon($created);
+
+        return 1;
     }
 
     /**
-     * Tras "Registramos la cita" no mandar el recordatorio de 1 día / 2 h
-     * en el mismo instante (cita a ~24 h o ~2 h).
+     * Tras "Registramos la cita" no repetir el recordatorio por días de esa
+     * misma ventana. El de 2 h sí se envía (es otro texto: "en 2 horas").
      */
     private function shouldSkipReminderAfterLifecycleNotice(Cita $cita, string $tipo): bool
     {
-        if (in_array($tipo, ['cita_creada', 'cita_reprogramada', 'cita_actualizada'], true)) {
+        if ($cita->inicio_at === null) {
             return false;
         }
 
-        return NotificationQueue::query()
+        return ReminderLifecycleSkip::shouldSkip(
+            $cita->inicio_at,
+            $tipo,
+            $this->lifecycleNoticeAt($cita),
+        );
+    }
+
+    private function lifecycleNoticeAt(Cita $cita): ?CarbonInterface
+    {
+        $raw = NotificationQueue::query()
             ->where('referencia_tipo', 'cita')
             ->where('referencia_id', $cita->id)
             ->whereIn('tipo', ['cita_creada', 'cita_reprogramada', 'cita_actualizada'])
-            ->where('created_at', '>=', now()->subHours(6))
-            ->exists();
+            ->max('created_at');
+
+        return is_string($raw) || $raw instanceof CarbonInterface
+            ? Carbon::parse($raw)
+            : null;
+    }
+
+    private function dispatchSoon(NotificationQueue $item): void
+    {
+        $tenantId = tenant_id();
+        $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenant !== null) {
+            DeferredWhatsAppDispatch::queueItem($item, $tenant);
+        }
     }
 
     private function ownerName(Cita $cita): string
