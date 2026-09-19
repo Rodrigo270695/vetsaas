@@ -120,7 +120,7 @@
         "logo_preview_alt": "Vista previa del logo",
         "logo_sidebar_updated": "Logo actualizado. El sidebar ya muestra el nuevo logo.",
         "firma": "Imagen de la firma",
-        "firma_hint": "PNG, JPG o WEBP de máximo 2 MB. Fondo transparente queda mejor sobre el PDF.",
+        "firma_hint": "PNG, JPG o WEBP de máximo 2 MB. Al subirla se quita el fondo blanco para que el sello se vea limpio en el PDF.",
         "firma_hint_uploaded": "Firma guardada. Reemplázala o quítala con el botón.",
         "firma_drop": "Arrastra la firma aquí o haz clic para elegir un archivo",
         "firma_drop_supported": "PNG · JPG · WEBP · máximo 2 MB",

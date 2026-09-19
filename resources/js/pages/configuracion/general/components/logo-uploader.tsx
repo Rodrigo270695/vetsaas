@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { stripSignaturePaper } from './strip-signature-paper';
 
 const ACCEPTED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
 const ACCEPTED_MIME_FIRMA = ['image/jpeg', 'image/png', 'image/webp'];
@@ -103,7 +104,15 @@ export function LogoUploader({
             return;
         }
 
-        onSelect(candidate);
+        if (i18nPrefix !== 'firma') {
+            onSelect(candidate);
+
+            return;
+        }
+
+        void stripSignaturePaper(candidate)
+            .then((cleaned) => onSelect(cleaned))
+            .catch(() => onSelect(candidate));
     };
 
     const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
@@ -163,6 +172,8 @@ export function LogoUploader({
                     <div
                         className={cn(
                             'flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/40 p-2',
+                            i18nPrefix === 'firma' &&
+                                'bg-size-[12px_12px] bg-[linear-gradient(45deg,#e5e7eb_25%,transparent_25%,transparent_75%,#e5e7eb_75%,#e5e7eb),linear-gradient(45deg,#e5e7eb_25%,transparent_25%,transparent_75%,#e5e7eb_75%,#e5e7eb)] bg-position-[0_0,6px_6px] dark:bg-[linear-gradient(45deg,#3f3f46_25%,transparent_25%,transparent_75%,#3f3f46_75%,#3f3f46),linear-gradient(45deg,#3f3f46_25%,transparent_25%,transparent_75%,#3f3f46_75%,#3f3f46)]',
                             pendingRemoval && !hasNewFile && 'opacity-40 grayscale',
                         )}
                     >

@@ -120,7 +120,7 @@
         "logo_preview_alt": "Logo preview",
         "logo_sidebar_updated": "Logo updated. The sidebar now shows your new logo.",
         "firma": "Signature image",
-        "firma_hint": "PNG, JPG or WEBP up to 2 MB. A transparent background looks better on the PDF.",
+        "firma_hint": "PNG, JPG or WEBP up to 2 MB. White paper is removed on upload so the stamp sits cleanly on the PDF.",
         "firma_hint_uploaded": "Signature stored. Replace it or remove it with the button.",
         "firma_drop": "Drag the signature here or click to choose a file",
         "firma_drop_supported": "PNG · JPG · WEBP · 2 MB max",

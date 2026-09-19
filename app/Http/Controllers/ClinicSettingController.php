@@ -9,6 +9,7 @@ use App\Models\Departamento;
 use App\Models\User;
 use App\Services\Tenancy\TenantShowcaseService;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\Pdf\SignatureImageProcessor;
 use App\Support\PlanCapabilities;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
@@ -261,16 +262,19 @@ class ClinicSettingController extends Controller
         $slug = $tenants->current()?->slug ?? 'shared';
         $previous = $setting->firma_digital_path;
         $file = $request->file('firma');
-        $extension = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'png');
-        $filename = Str::uuid()->toString().'.'.$extension;
-        $path = "tenants/{$slug}/firmas/{$filename}";
+        $raw = file_get_contents($file->getRealPath() ?: $file->getPathname());
+        if (! is_string($raw) || $raw === '') {
+            return;
+        }
 
-        $disk->putFileAs(
-            "tenants/{$slug}/firmas",
-            $file,
-            $filename,
-            'public',
-        );
+        try {
+            $png = app(SignatureImageProcessor::class)->toTransparentPng($raw);
+        } catch (\Throwable) {
+            $png = $raw;
+        }
+        $filename = Str::uuid()->toString().'.png';
+        $path = "tenants/{$slug}/firmas/{$filename}";
+        $disk->put($path, $png, 'public');
 
         $setting->firma_digital_path = $path;
 

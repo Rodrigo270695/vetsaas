@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Concerns;
 
 use App\Models\ClinicSetting;
 use App\Models\Paciente;
+use App\Support\Pdf\SignatureImageProcessor;
 use Barryvdh\DomPDF\PDF;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 trait ResolvesClinicPdfBranding
 {
@@ -79,12 +81,21 @@ trait ResolvesClinicPdfBranding
             return null;
         }
         $binary = Storage::disk('public')->get($path);
-        $mime = Storage::disk('public')->mimeType($path) ?? 'image/png';
-        if (! is_string($mime) || ! str_starts_with($mime, 'image/')) {
+        if (! is_string($binary) || $binary === '') {
             return null;
         }
 
-        return 'data:'.$mime.';base64,'.base64_encode((string) $binary);
+        try {
+            $binary = app(SignatureImageProcessor::class)->toTransparentPng($binary);
+            $mime = 'image/png';
+        } catch (Throwable) {
+            $mime = Storage::disk('public')->mimeType($path) ?? 'image/png';
+            if (! is_string($mime) || ! str_starts_with($mime, 'image/')) {
+                return null;
+            }
+        }
+
+        return 'data:'.$mime.';base64,'.base64_encode($binary);
     }
 
     protected function respondClinicPdf(Request $request, PDF $pdf, string $filename): Response
