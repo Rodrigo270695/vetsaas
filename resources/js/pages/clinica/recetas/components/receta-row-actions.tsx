@@ -33,8 +33,9 @@ export function RecetaRowActions({
 }: RecetaRowActionsProps) {
     const { t } = useTranslation(['recetas', 'common']);
     const showWhatsApp = canWhatsApp && receta.estado !== 'anulada';
+    const showMenu = canUpdate || canDelete || canPrint;
 
-    if (!canUpdate && !canDelete && !canPrint && !showWhatsApp) {
+    if (!showMenu && !showWhatsApp) {
         return null;
     }
 
@@ -57,6 +58,7 @@ export function RecetaRowActions({
                     <MessageCircle className="size-4" strokeWidth={2.25} aria-hidden />
                 </Button>
             ) : null}
+            {showMenu ? (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
@@ -74,18 +76,6 @@ export function RecetaRowActions({
                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => openPdf()}>
                             <Printer className="size-4" strokeWidth={2.25} />
                             {t('actions.print_pdf')}
-                        </DropdownMenuItem>
-                    ) : null}
-                    {showWhatsApp ? (
-                        <DropdownMenuItem
-                            className="cursor-pointer gap-2 text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
-                            onClick={() => onWhatsApp(receta)}
-                        >
-                            <MessageCircle
-                                className="size-4 text-emerald-600 dark:text-emerald-400"
-                                strokeWidth={2.25}
-                            />
-                            {t('actions.send_whatsapp')}
                         </DropdownMenuItem>
                     ) : null}
                     {canUpdate ? (
@@ -108,6 +98,7 @@ export function RecetaRowActions({
                     ) : null}
                 </DropdownMenuContent>
             </DropdownMenu>
+            ) : null}
         </div>
     );
 }
