@@ -5,6 +5,10 @@ return [
         'created' => 'Receta guardada correctamente.',
         'updated' => 'Receta actualizada correctamente.',
         'deleted' => 'Receta eliminada correctamente.',
+        'whatsapp_enviado' => 'Receta enviada por WhatsApp.',
+        'whatsapp_no_phone' => 'Indica un número de WhatsApp válido.',
+        'whatsapp_fallo' => 'No se pudo enviar la receta por WhatsApp.',
+        'whatsapp_anulada' => 'No se puede enviar una receta anulada.',
     ],
     'validation' => [
         'consulta_invalida' => 'La consulta no corresponde al paciente seleccionado.',

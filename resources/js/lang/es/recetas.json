@@ -20,7 +20,8 @@
         "new_short": "Nueva",
         "create_first": "Crear primera receta",
         "add_line": "Añadir medicamento",
-        "print_pdf": "PDF / imprimir"
+        "print_pdf": "PDF / imprimir",
+        "send_whatsapp": "Enviar por WhatsApp"
     },
     "columns": {
         "emitida_at": "Fecha",
@@ -51,6 +52,17 @@
     },
     "toast": {
         "load_error": "No se pudo cargar el listado."
+    },
+    "whatsapp": {
+        "title": "Enviar receta por WhatsApp",
+        "description_with_phone": "Se enviará el PDF de la receta de {{paciente}} a {{propietario}} ({{telefono}}). Puedes cambiar el número si hace falta.",
+        "description_no_phone": "Se enviará el PDF de la receta de {{paciente}} a {{propietario}}. Indica un número de WhatsApp.",
+        "phone_label": "Número de WhatsApp",
+        "phone_placeholder": "987654321",
+        "phone_hint": "Incluye código de país si no es Perú (ej. 51987654321).",
+        "cancel": "Cancelar",
+        "submit": "Enviar",
+        "sending": "Enviando…"
     },
     "form": {
         "title_create": "Nueva receta",

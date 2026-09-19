@@ -60,7 +60,8 @@
         "cumple_paciente": "Birthday",
         "prueba": "Test",
         "venta_comprobante": "Sale receipt",
-        "documento_comprobante": "Electronic receipt"
+        "documento_comprobante": "Electronic receipt",
+        "receta": "Prescription"
     },
     "actions": {
         "cancel": "Cancel",

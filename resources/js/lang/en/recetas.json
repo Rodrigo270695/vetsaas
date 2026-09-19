@@ -20,7 +20,8 @@
         "new_short": "New",
         "create_first": "Create first prescription",
         "add_line": "Add drug",
-        "print_pdf": "PDF / print"
+        "print_pdf": "PDF / print",
+        "send_whatsapp": "Send via WhatsApp"
     },
     "columns": {
         "emitida_at": "Date",
@@ -51,6 +52,17 @@
     },
     "toast": {
         "load_error": "Could not load the list."
+    },
+    "whatsapp": {
+        "title": "Send prescription via WhatsApp",
+        "description_with_phone": "The PDF for {{paciente}} will be sent to {{propietario}} ({{telefono}}). You can change the number if needed.",
+        "description_no_phone": "The PDF for {{paciente}} will be sent to {{propietario}}. Enter a WhatsApp number.",
+        "phone_label": "WhatsApp number",
+        "phone_placeholder": "987654321",
+        "phone_hint": "Include country code if not Peru (e.g. 51987654321).",
+        "cancel": "Cancel",
+        "submit": "Send",
+        "sending": "Sending…"
     },
     "form": {
         "title_create": "New prescription",

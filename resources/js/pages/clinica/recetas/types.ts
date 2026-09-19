@@ -81,6 +81,8 @@ export type RecetaRow = {
             nombres: string;
             apellidos: string | null;
             razon_social: string | null;
+            telefono?: string | null;
+            telefono_alt?: string | null;
         };
     };
     consulta: {
@@ -98,3 +100,16 @@ export type RecetaRow = {
     creado_por?: AuditUser | null;
     actualizado_por?: AuditUser | null;
 };
+
+export function propietarioDisplayName(receta: RecetaRow): string {
+    const p = receta.paciente.propietario;
+    if (!p) {
+        return '—';
+    }
+
+    if (p.razon_social) {
+        return p.razon_social;
+    }
+
+    return [p.nombres, p.apellidos].filter(Boolean).join(' ') || '—';
+}

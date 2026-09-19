@@ -222,6 +222,37 @@ final class ReminderMessageBuilder
         ]);
     }
 
+    /**
+     * @param  list<string>  $medicamentos
+     */
+    public function recetaPdf(
+        string $clinicName,
+        string $recipientName,
+        string $petName,
+        array $medicamentos,
+        string $fechaDisplay,
+    ): string {
+        $medsLabel = $medicamentos !== []
+            ? implode(', ', array_slice($medicamentos, 0, 5))
+            : 'medicación indicada';
+
+        if (count($medicamentos) > 5) {
+            $medsLabel .= '…';
+        }
+
+        return implode("\n", [
+            "Hola {$recipientName} 👋",
+            '',
+            "💊 Receta de *{$petName}*",
+            "📋 {$medsLabel}",
+            "📅 {$fechaDisplay}",
+            '',
+            'Te compartimos la receta en PDF. Sigue las indicaciones de tu veterinario.',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
     public function groomingProcesoFoto(
         string $clinicName,
         string $ownerName,

@@ -60,7 +60,8 @@
         "cumple_paciente": "Cumpleaños",
         "prueba": "Prueba",
         "venta_comprobante": "Comprobante de venta",
-        "documento_comprobante": "CPE electrónico"
+        "documento_comprobante": "CPE electrónico",
+        "receta": "Receta"
     },
     "actions": {
         "cancel": "Cancelar",

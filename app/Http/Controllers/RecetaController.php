@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\StoreRecetaRequest;
 use App\Http\Requests\UpdateRecetaRequest;
 use App\Models\ClinicSetting;
@@ -12,8 +11,11 @@ use App\Models\Producto;
 use App\Models\Receta;
 use App\Models\RecetaLinea;
 use App\Models\Sede;
+use App\Models\Tenant;
 use App\Models\User;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Clinica\RecetaPdfService;
+use App\Services\Clinica\RecetaWhatsAppSender;
+use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,14 +23,14 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Throwable;
 
 class RecetaController extends Controller
 {
-    use ResolvesClinicPdfBranding;
-
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -77,7 +79,7 @@ class RecetaController extends Controller
             $canAudit = $request->user()?->can('audit-trail.view') ?? false;
             $qEdit = Receta::query()
                 ->with([
-                    'paciente.propietario:id,nombres,apellidos,razon_social',
+                    'paciente.propietario:id,nombres,apellidos,razon_social,telefono,telefono_alt',
                     'consulta:id,atendido_at,cerrada_at,historia_clinica_id',
                     'consulta.historiaClinica:id,paciente_id',
                     'veterinario:id,name',
@@ -113,7 +115,7 @@ class RecetaController extends Controller
         $query = Receta::query()
             ->withCount('lineas')
             ->with([
-                'paciente.propietario:id,nombres,apellidos,razon_social',
+                'paciente.propietario:id,nombres,apellidos,razon_social,telefono,telefono_alt',
                 'consulta:id,atendido_at,historia_clinica_id',
                 'consulta.historiaClinica:id,paciente_id',
                 'veterinario:id,name',
@@ -263,65 +265,85 @@ class RecetaController extends Controller
      * PDF de la receta para entrega al titular (vista en navegador o impresión).
      * Query `?download=1`: descarga del archivo.
      */
-    public function pdf(Request $request, Receta $receta): Response
+    public function pdf(Request $request, Receta $receta, RecetaPdfService $pdfService): Response
     {
         abort_unless($request->user()?->can('recetas.view') ?? false, 403);
 
-        $receta->load([
-            'paciente.propietario:id,nombres,apellidos,razon_social',
-            'lineas' => fn ($q) => $q->orderBy('orden')->with('producto:id,nombre,sku,unidad'),
-            'veterinario:id,name',
-            'sede:id,nombre,codigo',
-            'consulta:id,atendido_at',
+        $file = $pdfService->render($receta);
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+        $filename = str_replace(['"', "\n", "\r"], '', $file['filename']);
+
+        return response($file['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition.'; filename="'.$filename.'"',
         ]);
+    }
 
-        $clinic = ClinicSetting::current();
-        $logoDataUri = $this->clinicLogoDataUri($clinic);
-        $colorPrimario = $this->sanitizeHexColor($clinic->color_primario, '#166534');
-        $colorSecundario = $this->sanitizeHexColor($clinic->color_secundario, '#f0fdf4');
+    public function enviarWhatsApp(
+        Request $request,
+        Receta $receta,
+        RecetaWhatsAppSender $sender,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('recetas.view') ?? false, 403);
 
-        $clinicNombre = $clinic->nombre_comercial
-            ?: $clinic->razon_social
-            ?: (string) config('app.name', 'Clínica');
-
-        $tz = (string) config('app.timezone', 'UTC');
-        $emitidaAt = $receta->emitida_at !== null
-            ? $receta->emitida_at->copy()->timezone($tz)->format('d/m/Y H:i')
-            : '—';
-
-        $consultaAt = '—';
-        if ($receta->consulta?->atendido_at !== null) {
-            $consultaAt = Carbon::parse($receta->consulta->atendido_at)->timezone($tz)->format('d/m/Y H:i');
+        if ($receta->estado === Receta::ESTADO_ANULADA) {
+            return back()->with('warning', __('recetas.flash.whatsapp_anulada'));
         }
 
-        $propietarioNombre = $this->propietarioNombreParaPdf($receta->paciente);
-        $generadoEn = now($tz)->format('d/m/Y H:i');
-
-        $pdf = Pdf::loadView('pdf.receta', [
-            'clinicNombre' => $clinicNombre,
-            'logoDataUri' => $logoDataUri,
-            'colorPrimario' => $colorPrimario,
-            'colorSecundario' => $colorSecundario,
-            'clinicEmail' => $clinic->email_institucional,
-            'clinicTelefono' => $clinic->telefono_principal,
-            'clinicWeb' => $clinic->web_url,
-            'clinicDireccion' => $clinic->direccion_fiscal,
-            'receta' => $receta,
-            'propietarioNombre' => $propietarioNombre,
-            'emitidaAt' => $emitidaAt,
-            'consultaAt' => $consultaAt,
-            'generadoEn' => $generadoEn,
+        $data = $request->validate([
+            'telefono' => ['nullable', 'string', 'max:20'],
         ]);
-        $pdf->setPaper('a4', 'portrait');
 
-        $slug = Str::slug($receta->paciente->nombre ?? 'paciente') ?: 'paciente';
-        $filename = 'receta-'.$slug.'.pdf';
+        $receta->loadMissing([
+            'paciente:id,nombre,propietario_id',
+            'paciente.propietario:id,nombres,apellidos,razon_social,telefono,telefono_alt',
+            'lineas',
+        ]);
 
-        if ($request->boolean('download')) {
-            return $pdf->download($filename);
+        $propietario = $receta->paciente?->propietario;
+        $phone = trim((string) ($data['telefono'] ?? '')) !== ''
+            ? (string) $data['telefono']
+            : ($propietario?->telefono ?: $propietario?->telefono_alt);
+
+        $chatId = WhatsAppChatId::fromPhone($phone);
+        if ($chatId === null) {
+            return back()->with('warning', __('recetas.flash.whatsapp_no_phone'));
         }
 
-        return $pdf->stream($filename);
+        $tenantId = tenant_id();
+        $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenant === null) {
+            return back()->with('warning', __('recetas.flash.whatsapp_fallo'));
+        }
+
+        $ownerName = $propietario !== null
+            ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'propietario')
+            : 'propietario';
+
+        try {
+            $sender->send(
+                $receta,
+                $tenant,
+                $chatId,
+                $ownerName,
+                ClinicSetting::current(),
+            );
+
+            return back()->with('success', __('recetas.flash.whatsapp_enviado'));
+        } catch (Throwable $e) {
+            Log::warning('No se pudo enviar receta por WhatsApp', [
+                'receta_id' => $receta->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $msg = __('recetas.flash.whatsapp_fallo');
+            $detail = trim($e->getMessage());
+            if ($detail !== '') {
+                $msg .= ' '.$detail;
+            }
+
+            return back()->with('warning', $msg);
+        }
     }
 
     public function store(StoreRecetaRequest $request): RedirectResponse

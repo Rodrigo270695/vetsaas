@@ -5,6 +5,10 @@ return [
         'created' => 'Prescription saved successfully.',
         'updated' => 'Prescription updated successfully.',
         'deleted' => 'Prescription deleted successfully.',
+        'whatsapp_enviado' => 'Prescription sent via WhatsApp.',
+        'whatsapp_no_phone' => 'Enter a valid WhatsApp number.',
+        'whatsapp_fallo' => 'The prescription could not be sent via WhatsApp.',
+        'whatsapp_anulada' => 'A voided prescription cannot be sent.',
     ],
     'validation' => [
         'consulta_invalida' => 'The visit does not belong to the selected patient.',

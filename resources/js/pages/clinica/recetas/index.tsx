@@ -24,6 +24,7 @@ import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendi
 import { RecetaDeleteDialog } from './components/receta-delete-dialog';
 import { RecetaFormModal } from './components/receta-form-modal';
 import { RecetaRowActions } from './components/receta-row-actions';
+import { RecetaWhatsAppModal } from './components/receta-whatsapp-modal';
 import type {
     ConsultaRecetaOpcion,
     PacienteRecetaOpcion,
@@ -99,8 +100,9 @@ export default function Index({
     const canUpdate = can('recetas.update');
     const canDelete = can('recetas.delete');
     const canPrintPdf = can('recetas.view');
+    const canWhatsApp = can('recetas.view');
     const canSeeAudit = can('audit-trail.view');
-    const showRowActions = canUpdate || canDelete || canPrintPdf;
+    const showRowActions = canUpdate || canDelete || canPrintPdf || canWhatsApp;
 
     const estadoOptions = useMemo<readonly FilterChip<string>[]>(
         () => [
@@ -149,10 +151,12 @@ export default function Index({
     });
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
+    const [whatsappReceta, setWhatsappReceta] = useState<RecetaRow | null>(null);
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
     const openEdit = useCallback((r: RecetaRow) => setModal({ type: 'edit', receta: r }), []);
     const openDelete = useCallback((r: RecetaRow) => setModal({ type: 'delete', receta: r }), []);
+    const openWhatsApp = useCallback((r: RecetaRow) => setWhatsappReceta(r), []);
 
     const openedRecetaEditarRef = useRef<string | null>(null);
     useEffect(() => {
@@ -325,13 +329,15 @@ export default function Index({
                             receta={row}
                             onEdit={openEdit}
                             onDelete={openDelete}
+                            onWhatsApp={openWhatsApp}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
                             canPrint={canPrintPdf}
+                            canWhatsApp={canWhatsApp}
                         />
                     </div>
                 ),
-                className: 'w-12',
+                className: 'w-24',
             });
         }
 
@@ -345,6 +351,8 @@ export default function Index({
         canUpdate,
         canDelete,
         canPrintPdf,
+        canWhatsApp,
+        openWhatsApp,
         openEdit,
         openDelete,
     ]);
@@ -490,6 +498,16 @@ export default function Index({
                     }
                 }}
                 receta={modal.type === 'delete' ? modal.receta : null}
+            />
+
+            <RecetaWhatsAppModal
+                open={whatsappReceta !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setWhatsappReceta(null);
+                    }
+                }}
+                receta={whatsappReceta}
             />
         </>
     );

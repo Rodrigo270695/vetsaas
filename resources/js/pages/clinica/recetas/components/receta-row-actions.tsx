@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Printer, Trash2 } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Pencil, Printer, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,22 +14,27 @@ export type RecetaRowActionsProps = {
     receta: RecetaRow;
     onEdit: (r: RecetaRow) => void;
     onDelete: (r: RecetaRow) => void;
+    onWhatsApp: (r: RecetaRow) => void;
     canUpdate: boolean;
     canDelete: boolean;
     canPrint: boolean;
+    canWhatsApp: boolean;
 };
 
 export function RecetaRowActions({
     receta,
     onEdit,
     onDelete,
+    onWhatsApp,
     canUpdate,
     canDelete,
     canPrint,
+    canWhatsApp,
 }: RecetaRowActionsProps) {
     const { t } = useTranslation(['recetas', 'common']);
+    const showWhatsApp = canWhatsApp && receta.estado !== 'anulada';
 
-    if (!canUpdate && !canDelete && !canPrint) {
+    if (!canUpdate && !canDelete && !canPrint && !showWhatsApp) {
         return null;
     }
 
@@ -39,44 +44,70 @@ export function RecetaRowActions({
     };
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        <div className="flex items-center justify-end gap-0.5">
+            {showWhatsApp ? (
                 <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="size-8 cursor-pointer text-muted-foreground"
-                    aria-label={t('columns.acciones')}
+                    className="size-8 shrink-0 cursor-pointer border-0 bg-transparent text-emerald-600 shadow-none hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    aria-label={t('actions.send_whatsapp')}
+                    onClick={() => onWhatsApp(receta)}
                 >
-                    <MoreHorizontal className="size-4" strokeWidth={2.5} />
+                    <MessageCircle className="size-4" strokeWidth={2.25} aria-hidden />
                 </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-                {canPrint ? (
-                    <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => openPdf()}>
-                        <Printer className="size-4" strokeWidth={2.25} />
-                        {t('actions.print_pdf')}
-                    </DropdownMenuItem>
-                ) : null}
-                {canUpdate ? (
-                    <DropdownMenuItem
-                        className="cursor-pointer gap-2"
-                        onClick={() => onEdit(receta)}
+            ) : null}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 cursor-pointer text-muted-foreground"
+                        aria-label={t('columns.acciones')}
                     >
-                        <Pencil className="size-4" strokeWidth={2.25} />
-                        {t('common:actions.edit')}
-                    </DropdownMenuItem>
-                ) : null}
-                {canDelete ? (
-                    <DropdownMenuItem
-                        className="cursor-pointer gap-2 text-destructive focus:text-destructive"
-                        onClick={() => onDelete(receta)}
-                    >
-                        <Trash2 className="size-4" strokeWidth={2.25} />
-                        {t('common:actions.delete')}
-                    </DropdownMenuItem>
-                ) : null}
-            </DropdownMenuContent>
-        </DropdownMenu>
+                        <MoreHorizontal className="size-4" strokeWidth={2.5} />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                    {canPrint ? (
+                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => openPdf()}>
+                            <Printer className="size-4" strokeWidth={2.25} />
+                            {t('actions.print_pdf')}
+                        </DropdownMenuItem>
+                    ) : null}
+                    {showWhatsApp ? (
+                        <DropdownMenuItem
+                            className="cursor-pointer gap-2 text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
+                            onClick={() => onWhatsApp(receta)}
+                        >
+                            <MessageCircle
+                                className="size-4 text-emerald-600 dark:text-emerald-400"
+                                strokeWidth={2.25}
+                            />
+                            {t('actions.send_whatsapp')}
+                        </DropdownMenuItem>
+                    ) : null}
+                    {canUpdate ? (
+                        <DropdownMenuItem
+                            className="cursor-pointer gap-2"
+                            onClick={() => onEdit(receta)}
+                        >
+                            <Pencil className="size-4" strokeWidth={2.25} />
+                            {t('common:actions.edit')}
+                        </DropdownMenuItem>
+                    ) : null}
+                    {canDelete ? (
+                        <DropdownMenuItem
+                            className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                            onClick={() => onDelete(receta)}
+                        >
+                            <Trash2 className="size-4" strokeWidth={2.25} />
+                            {t('common:actions.delete')}
+                        </DropdownMenuItem>
+                    ) : null}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
     );
 }
