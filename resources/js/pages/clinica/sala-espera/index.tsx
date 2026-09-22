@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
 import { SALA_ESPERA_CHANGED_EVENT } from '@/components/sala-espera-header-popover';
 import { SALA_ESPERA_LLAMAR_EVENT } from '@/hooks/use-sala-espera-realtime';
@@ -978,9 +979,12 @@ function TurnoCard({
                 <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                            <p className="truncate text-lg font-semibold leading-tight">
+                            <PacienteHcLink
+                                pacienteId={item.paciente_id}
+                                className="block truncate text-lg font-semibold leading-tight"
+                            >
                                 {item.paciente}
-                            </p>
+                            </PacienteHcLink>
                             <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-sm text-muted-foreground">
                                 <UserRound className="size-3.5 shrink-0" />
                                 <span className="truncate">{item.propietario}</span>

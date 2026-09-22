@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import type { Locale } from 'date-fns';
 import { CalendarDays, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ProximaCitaRow } from '@/pages/dashboard/types';
@@ -65,8 +66,10 @@ export function DashboardAppointmentsList({
                                         aria-hidden
                                     />
                                     <div className="min-w-0">
-                                        <p className="font-medium text-foreground">
-                                            {cita.paciente_nombre ?? '—'}
+                                        <p className="font-medium">
+                                            <PacienteHcLink pacienteId={cita.paciente_id} className="font-medium">
+                                                {cita.paciente_nombre ?? '—'}
+                                            </PacienteHcLink>
                                         </p>
                                         <p className="mt-0.5 truncate text-sm text-muted-foreground">
                                             {[cita.veterinario_nombre, cita.sede_nombre, cita.motivo]

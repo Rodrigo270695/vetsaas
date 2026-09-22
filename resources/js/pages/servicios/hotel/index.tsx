@@ -3,6 +3,7 @@ import { Activity, CalendarDays, Filter, Plus, UserCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import {
     DataPagination,
     DataTable,
@@ -257,7 +258,9 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="truncate text-sm font-medium">{row.paciente.nombre}</span>
+                        <PacienteHcLink pacienteId={row.paciente.id} className="truncate text-sm font-medium">
+                            {row.paciente.nombre}
+                        </PacienteHcLink>
                         <span className="truncate text-xs text-muted-foreground">
                             {displayPropietario(row.paciente.propietario)}
                         </span>

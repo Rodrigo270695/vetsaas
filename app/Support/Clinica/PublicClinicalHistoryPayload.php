@@ -49,17 +49,23 @@ final class PublicClinicalHistoryPayload
 
         $hc = HistoriaClinica::query()->where('paciente_id', $paciente->id)->first();
         if ($hc !== null) {
+            $consultaWith = [
+                'veterinario:id,name',
+                'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
+                'pedidosLaboratorio' => fn ($q) => $q
+                    ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
+                    ->withCount('lineas')
+                    ->orderByDesc('solicitado_at'),
+                'cirugias' => fn ($q) => $q->orderByDesc('programada_at'),
+                'internamientos' => fn ($q) => $q->orderByDesc('ingreso_at'),
+            ];
+            if (Schema::hasTable('consulta_planes_tratamiento')) {
+                $consultaWith[] = 'planTratamiento.lineas';
+                $consultaWith[] = 'planTratamiento.seguimientos.creadoPor:id,name';
+            }
+
             $consultas = $hc->consultas()
-                ->with([
-                    'veterinario:id,name',
-                    'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
-                    'pedidosLaboratorio' => fn ($q) => $q
-                        ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
-                        ->withCount('lineas')
-                        ->orderByDesc('solicitado_at'),
-                    'cirugias' => fn ($q) => $q->orderByDesc('programada_at'),
-                    'internamientos' => fn ($q) => $q->orderByDesc('ingreso_at'),
-                ])
+                ->with($consultaWith)
                 ->orderByDesc('atendido_at')
                 ->limit(200)
                 ->get();
@@ -93,6 +99,7 @@ final class PublicClinicalHistoryPayload
                         'plan' => self::preview($c->plan, 800),
                         'anotaciones' => self::preview($c->anotaciones ?? null, 800),
                         'medico_tratante' => self::trimOrNull($c->medico_tratante),
+                        'plan_medicacion' => self::planMedicacion($c, $tz),
                         'vinculos' => [
                             'recetas' => self::recetas($c->recetas),
                             'laboratorio' => self::laboratorio($c->pedidosLaboratorio, $tenantSlug, $expiresAt, $tz),
@@ -372,6 +379,58 @@ final class PublicClinicalHistoryPayload
         }
 
         return Str::limit($trim, $max);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function planMedicacion($consulta, string $tz): ?array
+    {
+        if (! $consulta->relationLoaded('planTratamiento') || $consulta->planTratamiento === null) {
+            return null;
+        }
+
+        $plan = $consulta->planTratamiento;
+        $lineas = $plan->relationLoaded('lineas') ? $plan->lineas : collect();
+        $seguimientos = $plan->relationLoaded('seguimientos') ? $plan->seguimientos : collect();
+
+        return [
+            'fecha_inicio' => $plan->fecha_inicio?->format('d/m/Y'),
+            'fecha_fin' => $plan->fecha_fin?->format('d/m/Y'),
+            'estado' => (string) $plan->estado,
+            'indicaciones' => self::preview($plan->indicaciones, 800),
+            'lineas' => $lineas
+                ->map(function ($ln): array {
+                    $medicamento = trim((string) ($ln->medicamento ?? ''));
+                    $cantidad = $ln->cantidad !== null ? trim((string) $ln->cantidad) : '';
+
+                    return [
+                        'id' => (string) $ln->id,
+                        'medicamento' => $medicamento,
+                        'dosis' => self::preview(isset($ln->dosis) ? (string) $ln->dosis : null, 80),
+                        'unidad' => self::preview(isset($ln->unidad) ? (string) $ln->unidad : null, 40),
+                        'via' => self::preview(isset($ln->via) ? (string) $ln->via : null, 40),
+                        'frecuencia' => self::preview(isset($ln->frecuencia) ? (string) $ln->frecuencia : null, 80),
+                        'cantidad' => $cantidad !== '' ? $cantidad : null,
+                        'notas' => self::preview(isset($ln->notas) ? (string) $ln->notas : null, 300),
+                    ];
+                })
+                ->filter(fn (array $ln): bool => $ln['medicamento'] !== '')
+                ->values()
+                ->all(),
+            'seguimientos' => $seguimientos
+                ->map(function ($seg) use ($tz): array {
+                    return [
+                        'id' => (string) $seg->id,
+                        'registrado_at' => $seg->registrado_at?->timezone($tz)->format('d/m/Y H:i'),
+                        'nota' => trim((string) $seg->nota),
+                        'autor' => trim((string) ($seg->creadoPor?->name ?? '')) ?: null,
+                    ];
+                })
+                ->filter(fn (array $seg): bool => $seg['nota'] !== '')
+                ->values()
+                ->all(),
+        ];
     }
 
     /**

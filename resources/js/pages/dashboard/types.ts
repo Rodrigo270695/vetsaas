@@ -63,6 +63,7 @@ export type ProximaCitaRow = {
     estado: string;
     motivo: string | null;
     paciente_nombre: string | null;
+    paciente_id: string | null;
     veterinario_nombre: string | null;
     sede_nombre: string | null;
 };

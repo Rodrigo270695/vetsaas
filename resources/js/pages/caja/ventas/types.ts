@@ -34,6 +34,7 @@ export type VentaRow = {
     cliente: string;
     cliente_telefono: string | null;
     paciente: string | null;
+    paciente_id: string | null;
     cajero: string;
     sede: string;
     pdf_url: string | null;
@@ -215,6 +216,7 @@ export type VentaDetalle = {
     cliente: string;
     cliente_doc: string | null;
     paciente: string | null;
+    paciente_id: string | null;
     cajero: string;
     sede: string;
     lineas: VentaLineaShow[];

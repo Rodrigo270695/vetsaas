@@ -13,6 +13,7 @@ import {
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { PageHeader } from '@/components/data-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -597,7 +598,11 @@ export default function Show({
                                     {venta.paciente ? (
                                         <div className="flex justify-between gap-3">
                                             <dt className="text-muted-foreground">{t('caja:ventas.show.paciente')}</dt>
-                                            <dd className="text-right">{venta.paciente}</dd>
+                                            <dd className="text-right">
+                                                <PacienteHcLink pacienteId={venta.paciente_id} className="font-medium">
+                                                    {venta.paciente}
+                                                </PacienteHcLink>
+                                            </dd>
                                         </div>
                                     ) : null}
                                 </dl>

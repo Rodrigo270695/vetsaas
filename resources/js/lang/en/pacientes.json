@@ -285,6 +285,16 @@
         "det_objetivo": "Clinical findings",
         "det_analisis": "Diagnosis",
         "det_plan_soap": "Therapeutic plan",
+        "det_plan_medicacion": "Medication plan",
+        "det_plan_seguimiento": "Follow-up",
+        "plan_sin_lineas": "There are no medicines on this plan yet.",
+        "plan_inicio": "Start {{fecha}}",
+        "plan_fin": "End {{fecha}}",
+        "plan_estado": {
+            "activo": "Active",
+            "completado": "Completed",
+            "suspendido": "Suspended"
+        },
         "det_examenes": "Complementary exams",
         "det_anotaciones": "Additional notes",
         "det_motivo": "Reason for visit",

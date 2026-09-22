@@ -2,6 +2,7 @@ import { ImageOff, MessageCircle } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePage } from '@inertiajs/react';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { FormModal } from '@/components/forms';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -99,9 +100,9 @@ export function GroomingDetalleModal({ open, onOpenChange, turno }: Props) {
                     <div className="grid gap-3 sm:grid-cols-2">
                         <div>
                             <p className="text-xs text-muted-foreground">{t('columns.paciente')}</p>
-                            <p className="text-sm font-medium">
+                            <PacienteHcLink pacienteId={turno.paciente?.id} className="text-sm font-medium">
                                 {turno.paciente?.nombre ?? t('row.paciente_no_disponible')}
-                            </p>
+                            </PacienteHcLink>
                             <p className="text-xs text-muted-foreground">
                                 {displayPropietario(turno.paciente?.propietario)}
                             </p>

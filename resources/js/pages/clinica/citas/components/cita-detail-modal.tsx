@@ -3,6 +3,7 @@ import { Clock, Loader2, MapPin, MessagesSquare, Pencil, Stethoscope, Trash2, Us
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -226,7 +227,12 @@ export function CitaDetailModal({
                         <DialogHeader className="space-y-3 text-left">
                             <div className="flex flex-wrap items-start justify-between gap-2">
                                 <DialogTitle className="text-xl font-semibold tracking-tight">
-                                    {displayPacienteCita(cita.paciente)}
+                                    <PacienteHcLink
+                                        pacienteId={cita.paciente_id}
+                                        className="text-xl font-semibold tracking-tight"
+                                    >
+                                        {displayPacienteCita(cita.paciente)}
+                                    </PacienteHcLink>
                                 </DialogTitle>
                                 <Badge
                                     variant="outline"

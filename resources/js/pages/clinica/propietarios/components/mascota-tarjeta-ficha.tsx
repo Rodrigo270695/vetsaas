@@ -1,6 +1,7 @@
 import { Cake, Fingerprint, Palette, PawPrint, Scale } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { StatBadge } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -245,8 +246,10 @@ export function MascotaTarjetaFicha({
 
             <div className="flex flex-1 flex-col gap-3 p-4 pt-3">
                 <div className="space-y-1">
-                    <h3 className="text-lg font-semibold leading-tight tracking-tight text-foreground">
-                        {p.nombre}
+                    <h3 className="text-lg font-semibold leading-tight tracking-tight">
+                        <PacienteHcLink pacienteId={p.id} className="text-lg font-semibold leading-tight">
+                            {p.nombre}
+                        </PacienteHcLink>
                     </h3>
                     {subline ? (
                         <p className="text-sm text-muted-foreground line-clamp-2">{subline}</p>

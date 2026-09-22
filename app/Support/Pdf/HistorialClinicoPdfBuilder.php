@@ -8,6 +8,7 @@ use App\Models\Paciente;
 use App\Models\VacunaAplicada;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class HistorialClinicoPdfBuilder
 {
@@ -34,16 +35,22 @@ class HistorialClinicoPdfBuilder
         if ($includeConsultas) {
             $hc = HistoriaClinica::query()->where('paciente_id', $paciente->id)->first();
             if ($hc !== null) {
+                $consultaWith = [
+                    'veterinario:id,name',
+                    'examenes',
+                    'terapiaLineas',
+                    'recetas:id,consulta_id,estado',
+                    'pedidosLaboratorio:id,consulta_id,estado',
+                    'cirugias:id,consulta_id,estado,nombre_procedimiento',
+                    'internamientos:id,consulta_id,estado,motivo_ingreso',
+                ];
+                if (Schema::hasTable('consulta_planes_tratamiento')) {
+                    $consultaWith[] = 'planTratamiento.lineas';
+                    $consultaWith[] = 'planTratamiento.seguimientos.creadoPor:id,name';
+                }
+
                 $consultas = $hc->consultas()
-                    ->with([
-                        'veterinario:id,name',
-                        'examenes',
-                        'terapiaLineas',
-                        'recetas:id,consulta_id,estado',
-                        'pedidosLaboratorio:id,consulta_id,estado',
-                        'cirugias:id,consulta_id,estado,nombre_procedimiento',
-                        'internamientos:id,consulta_id,estado,motivo_ingreso',
-                    ])
+                    ->with($consultaWith)
                     ->orderByDesc('atendido_at')
                     ->limit($limit)
                     ->get();
@@ -121,6 +128,13 @@ class HistorialClinicoPdfBuilder
             $terapiaTxt = $planLegacy;
         }
 
+        $planTxt = null;
+        $seguimientoTxt = null;
+        if ($consulta->relationLoaded('planTratamiento')) {
+            $planTxt = $this->planMedicacionTexto($consulta);
+            $seguimientoTxt = $this->planSeguimientoTexto($consulta);
+        }
+
         $soap = array_values(array_filter([
             $this->soapBlock(__('historial_clinico.label_reason'), $consulta->motivo),
             $this->soapBlock(__('historial_clinico.soap_subjective'), $consulta->subjetivo),
@@ -128,6 +142,8 @@ class HistorialClinicoPdfBuilder
             $this->soapBlock(__('historial_clinico.label_exams'), $examenesTxt !== '' ? $examenesTxt : null),
             $this->soapBlock(__('historial_clinico.soap_assessment'), $consulta->analisis),
             $this->soapBlock(__('historial_clinico.soap_plan'), $terapiaTxt !== '' ? $terapiaTxt : null),
+            $this->soapBlock(__('historial_clinico.plan_medicacion'), $planTxt),
+            $this->soapBlock(__('historial_clinico.plan_seguimiento'), $seguimientoTxt),
             $this->soapBlock(__('historial_clinico.label_additional_notes'), $consulta->anotaciones),
         ]));
 
@@ -237,6 +253,86 @@ class HistorialClinicoPdfBuilder
     /**
      * @return array{label: string, text: string}|null
      */
+    private function planMedicacionTexto(Consulta $consulta): ?string
+    {
+        $plan = $consulta->planTratamiento;
+        if ($plan === null) {
+            return null;
+        }
+
+        $parts = [$this->planEstadoLabel((string) $plan->estado)];
+        $rango = array_values(array_filter([
+            $plan->fecha_inicio?->format('d/m/Y'),
+            $plan->fecha_fin?->format('d/m/Y'),
+        ]));
+        if ($rango !== []) {
+            $parts[] = implode(' – ', $rango);
+        }
+
+        $indicaciones = trim((string) ($plan->indicaciones ?? ''));
+        if ($indicaciones !== '') {
+            $parts[] = $indicaciones;
+        }
+
+        if ($plan->relationLoaded('lineas')) {
+            foreach ($plan->lineas as $ln) {
+                $medicamento = trim((string) ($ln->medicamento ?? ''));
+                if ($medicamento === '') {
+                    continue;
+                }
+
+                $dosis = trim(trim((string) ($ln->dosis ?? '')).' '.trim((string) ($ln->unidad ?? '')));
+                $extra = array_values(array_filter([
+                    $dosis !== '' ? $dosis : null,
+                    trim((string) ($ln->via ?? '')) !== '' ? trim((string) $ln->via) : null,
+                    trim((string) ($ln->frecuencia ?? '')) !== '' ? trim((string) $ln->frecuencia) : null,
+                ]));
+                $linea = $extra === [] ? $medicamento : $medicamento.' — '.implode(' · ', $extra);
+                $notas = trim((string) ($ln->notas ?? ''));
+                $parts[] = $notas !== '' ? $linea.' ('.$notas.')' : $linea;
+            }
+        }
+
+        $text = trim(implode("\n", $parts));
+
+        return $text !== '' ? $text : null;
+    }
+
+    private function planSeguimientoTexto(Consulta $consulta): ?string
+    {
+        $plan = $consulta->planTratamiento;
+        if ($plan === null || ! $plan->relationLoaded('seguimientos')) {
+            return null;
+        }
+
+        $lines = [];
+        foreach ($plan->seguimientos as $seg) {
+            $nota = trim((string) $seg->nota);
+            if ($nota === '') {
+                continue;
+            }
+
+            $cuando = $seg->registrado_at?->timezone($this->timezone)->format('d/m/Y H:i');
+            $autor = trim((string) ($seg->creadoPor?->name ?? ''));
+            $meta = implode(' · ', array_values(array_filter([$cuando, $autor !== '' ? $autor : null])));
+            $lines[] = $meta !== '' ? $meta."\n".$nota : $nota;
+        }
+
+        $text = trim(implode("\n\n", $lines));
+
+        return $text !== '' ? $text : null;
+    }
+
+    private function planEstadoLabel(string $estado): string
+    {
+        return match ($estado) {
+            'activo' => __('historial_clinico.plan_estado_activo'),
+            'completado' => __('historial_clinico.plan_estado_completado'),
+            'suspendido' => __('historial_clinico.plan_estado_suspendido'),
+            default => $estado,
+        };
+    }
+
     private function soapBlock(string $label, ?string $text): ?array
     {
         if ($text === null || trim($text) === '') {

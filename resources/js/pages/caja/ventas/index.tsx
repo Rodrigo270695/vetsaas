@@ -4,6 +4,7 @@ import { Download, Eye, FileCheck2, MessageCircle, Plus, ReceiptText } from 'luc
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Can } from '@/components/can';
 import {
@@ -262,7 +263,9 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                     <div className="flex flex-col gap-0.5">
                         <span className="font-medium">{row.cliente}</span>
                         {row.paciente ? (
-                            <span className="text-xs text-muted-foreground">{row.paciente}</span>
+                            <PacienteHcLink pacienteId={row.paciente_id} className="text-xs font-medium">
+                                {row.paciente}
+                            </PacienteHcLink>
                         ) : null}
                     </div>
                 ),

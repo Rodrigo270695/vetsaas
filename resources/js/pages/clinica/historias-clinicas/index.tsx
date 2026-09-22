@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import {
     DataPagination,
     DataTable,
@@ -426,12 +427,15 @@ export default function Index({
                 header: t('columns.paciente'),
                 sortable: true,
                 cell: (row) => (
-                    <span className="font-medium text-foreground">
+                    <PacienteHcLink
+                        pacienteId={row.historia_clinica.paciente?.id}
+                        className="font-medium"
+                    >
                         {displayPacienteNombre(
                             row.historia_clinica.paciente,
                             t('row.paciente_no_disponible'),
                         )}
-                    </span>
+                    </PacienteHcLink>
                 ),
             },
             {

@@ -3,6 +3,7 @@ import { BedDouble, ClipboardList, Loader2, Scissors, Stethoscope, Syringe } fro
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,6 +26,7 @@ export type PrecuentaPendiente = {
     origen_label: string;
     propietario_id: string | null;
     propietario_nombre: string | null;
+    paciente_id: string | null;
     paciente_nombre: string | null;
     total: string;
     moneda: string;
@@ -320,8 +322,13 @@ export function PrecuentasPendientesModal({ open, onOpenChange, listUrl, disable
                                                             {formatWhen(row.confirmado_at, i18n.language)}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-1 truncate text-sm font-medium text-foreground">
-                                                        {row.paciente_nombre ?? '—'}
+                                                    <p className="mt-1 truncate text-sm">
+                                                        <PacienteHcLink
+                                                            pacienteId={row.paciente_id}
+                                                            className="truncate text-sm font-medium"
+                                                        >
+                                                            {row.paciente_nombre ?? '—'}
+                                                        </PacienteHcLink>
                                                     </p>
                                                     <p className="truncate text-xs text-muted-foreground">
                                                         {row.propietario_nombre ?? '—'}

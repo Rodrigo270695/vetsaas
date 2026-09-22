@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState  } from 'react';
 import type {FormEvent} from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -266,9 +267,9 @@ export function GroomingEstadoModal({
             <div className="grid gap-4">
                 {turno ? (
                     <p className="text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">
+                        <PacienteHcLink pacienteId={turno.paciente?.id} className="font-medium">
                             {turno.paciente?.nombre ?? '—'}
-                        </span>
+                        </PacienteHcLink>
                         {' · '}
                         {turno.servicio_label ?? turno.servicio}
                     </p>

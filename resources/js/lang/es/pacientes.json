@@ -285,6 +285,16 @@
         "det_objetivo": "Hallazgos clínicos",
         "det_analisis": "Diagnóstico",
         "det_plan_soap": "Plan terapéutico",
+        "det_plan_medicacion": "Plan de medicación",
+        "det_plan_seguimiento": "Seguimiento",
+        "plan_sin_lineas": "Aún no hay medicamentos en el plan.",
+        "plan_inicio": "Inicio {{fecha}}",
+        "plan_fin": "Fin {{fecha}}",
+        "plan_estado": {
+            "activo": "Activo",
+            "completado": "Completado",
+            "suspendido": "Suspendido"
+        },
         "det_examenes": "Exámenes complementarios",
         "det_anotaciones": "Anotaciones adicionales",
         "det_motivo": "Motivos de la consulta",

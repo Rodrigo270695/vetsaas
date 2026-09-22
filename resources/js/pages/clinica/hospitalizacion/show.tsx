@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,7 +106,9 @@ export default function Show({ internamiento, usuarios_opciones, cobro }: Props)
                         <div className="flex flex-wrap items-center gap-2">
                             <BedDouble className="size-6 text-primary" strokeWidth={2} />
                             <h1 className="text-xl font-semibold tracking-tight">
-                                {internamiento.paciente.nombre}
+                                <PacienteHcLink pacienteId={internamiento.paciente.id} className="font-semibold">
+                                    {internamiento.paciente.nombre}
+                                </PacienteHcLink>
                             </h1>
                             <Badge variant="outline" className="font-normal">
                                 {t(`estado.${internamiento.estado}`, { defaultValue: internamiento.estado })}

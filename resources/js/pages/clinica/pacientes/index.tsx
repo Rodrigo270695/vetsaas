@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import {
     Download,
     Filter,
@@ -13,6 +13,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
+import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import {
     BulkAction,
     BulkActionBar,
@@ -332,20 +333,9 @@ export default function Index({
                 sortable: true,
                 cell: (p) => (
                     <div className="flex flex-col">
-                        {canViewHistorial ? (
-                            <Link
-                                href={clinica.pacientes.show.url({
-                                    paciente: p.id,
-                                })}
-                                className="font-medium text-primary underline-offset-4 hover:underline"
-                            >
-                                {p.nombre}
-                            </Link>
-                        ) : (
-                            <span className="font-medium text-foreground">
-                                {p.nombre}
-                            </span>
-                        )}
+                        <PacienteHcLink pacienteId={p.id} className="font-medium">
+                            {p.nombre}
+                        </PacienteHcLink>
                         {(p.especie || p.raza) && (
                             <span className="line-clamp-1 text-xs text-muted-foreground">
                                 {[p.especie, p.raza]

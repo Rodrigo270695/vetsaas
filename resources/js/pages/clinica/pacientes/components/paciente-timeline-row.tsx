@@ -51,6 +51,8 @@ import type {
     TimelineConsultaVinculos,
     TimelineItem,
     TimelineLabLinea,
+    TimelinePlanLinea,
+    TimelinePlanMedicacion,
 } from '../show';
 
 type TimelineRowProps = {
@@ -102,7 +104,8 @@ function consultaDetalleTieneContenido(d: TimelineConsultaDetalle): boolean {
                 d.motivo ||
                 d.anotaciones ||
                 d.medico_tratante ||
-                (d.examenes && d.examenes.length > 0),
+                (d.examenes && d.examenes.length > 0) ||
+                d.plan_medicacion != null,
         ) || vinculosConsultaTieneContenido(d.vinculos)
     );
 }
@@ -209,6 +212,66 @@ function SoapBlock({ label, text }: { label: string; text: string | null }) {
         <div className="rounded-lg border border-border/50 bg-background/60 p-2.5">
             <p className="text-[0.6rem] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
             <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-foreground">{text}</p>
+        </div>
+    );
+}
+
+function lineaPlanTexto(ln: TimelinePlanLinea): string {
+    const dosis = [ln.dosis, ln.unidad].filter(Boolean).join(' ');
+    const extra = [dosis, ln.via, ln.frecuencia, ln.cantidad ? `× ${ln.cantidad}` : null]
+        .filter(Boolean)
+        .join(' · ');
+
+    return extra !== '' ? `${ln.medicamento} — ${extra}` : ln.medicamento;
+}
+
+function PlanMedicacionResumen({ plan }: { plan: TimelinePlanMedicacion }) {
+    const { t } = useTranslation('pacientes');
+
+    return (
+        <div className="space-y-2 rounded-lg border border-border/50 bg-background/60 p-2.5 sm:col-span-2">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wider text-muted-foreground">
+                {t('historial.det_plan_medicacion')}
+            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                    {t(`historial.plan_estado.${plan.estado}`, { defaultValue: plan.estado })}
+                </span>
+                {plan.fecha_inicio ? <span>{t('historial.plan_inicio', { fecha: plan.fecha_inicio })}</span> : null}
+                {plan.fecha_fin ? <span>{t('historial.plan_fin', { fecha: plan.fecha_fin })}</span> : null}
+            </div>
+            {plan.indicaciones ? (
+                <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">{plan.indicaciones}</p>
+            ) : null}
+            {plan.lineas.length > 0 ? (
+                <ul className="space-y-1.5">
+                    {plan.lineas.map((ln) => (
+                        <li key={ln.id} className="text-xs leading-relaxed text-foreground">
+                            <p>{lineaPlanTexto(ln)}</p>
+                            {ln.notas ? <p className="text-muted-foreground">{ln.notas}</p> : null}
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="text-xs text-muted-foreground">{t('historial.plan_sin_lineas')}</p>
+            )}
+            {plan.seguimientos.length > 0 ? (
+                <div className="space-y-1.5 border-t border-border/50 pt-2">
+                    <p className="text-[0.6rem] font-bold uppercase tracking-wider text-muted-foreground">
+                        {t('historial.det_plan_seguimiento')}
+                    </p>
+                    <ul className="space-y-2">
+                        {plan.seguimientos.map((seg) => (
+                            <li key={seg.id}>
+                                <p className="text-[0.65rem] text-muted-foreground">
+                                    {[seg.registrado_at, seg.autor].filter(Boolean).join(' · ')}
+                                </p>
+                                <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">{seg.nota}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -930,6 +993,9 @@ export function PacienteTimelineRow({
                                             label={t('historial.det_medico')}
                                             text={item.detalle.medico_tratante ?? null}
                                         />
+                                        {item.detalle.plan_medicacion ? (
+                                            <PlanMedicacionResumen plan={item.detalle.plan_medicacion} />
+                                        ) : null}
                                     </div>
                                     {vinculosConsultaTieneContenido(item.detalle.vinculos) ? (
                                         <VinculosBlock

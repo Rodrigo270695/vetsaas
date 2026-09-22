@@ -1539,6 +1539,7 @@ final class DashboardStatsService
                 'estado' => $cita->estado,
                 'motivo' => $cita->motivo,
                 'paciente_nombre' => $cita->paciente?->nombre,
+                'paciente_id' => $cita->paciente_id,
                 'veterinario_nombre' => $cita->veterinario?->name,
                 'sede_nombre' => $cita->sede?->nombre,
             ])

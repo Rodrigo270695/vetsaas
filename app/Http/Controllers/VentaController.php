@@ -134,6 +134,7 @@ class VentaController extends Controller
                 'cliente' => $nombreCliente,
                 'cliente_telefono' => $p?->telefono,
                 'paciente' => $v->paciente?->nombre,
+                'paciente_id' => $v->paciente_id,
                 'cajero' => $v->creadoPor?->name ?? '—',
                 'sede' => $sedeNombres[$v->sede_id] ?? '—',
                 'pdf_url' => $v->felDocument?->url_pdf,
@@ -868,6 +869,7 @@ class VentaController extends Controller
                 'cliente' => $cliente,
                 'cliente_doc' => $propietario?->numero_documento,
                 'paciente' => $venta->paciente?->nombre,
+                'paciente_id' => $venta->paciente_id,
                 'cajero' => $venta->creadoPor?->name ?? '—',
                 'sede' => $sedeNombre ?? '—',
                 'lineas' => $venta->lineas->map(fn ($ln): array => [

@@ -63,6 +63,33 @@ export type TimelineConsultaVinculos = {
     documentos_autorizacion?: readonly TimelineLabLinea[];
 };
 
+export type TimelinePlanLinea = {
+    id: string;
+    medicamento: string;
+    dosis: string | null;
+    unidad: string | null;
+    via: string | null;
+    frecuencia: string | null;
+    cantidad: string | null;
+    notas: string | null;
+};
+
+export type TimelinePlanSeguimiento = {
+    id: string;
+    registrado_at: string | null;
+    nota: string;
+    autor: string | null;
+};
+
+export type TimelinePlanMedicacion = {
+    fecha_inicio: string | null;
+    fecha_fin: string | null;
+    estado: string;
+    indicaciones: string | null;
+    lineas: readonly TimelinePlanLinea[];
+    seguimientos: readonly TimelinePlanSeguimiento[];
+};
+
 export type TimelineConsultaDetalle = {
     peso_kg: string | null;
     temperatura_c: string | null;
@@ -76,6 +103,7 @@ export type TimelineConsultaDetalle = {
     motivo?: string | null;
     anotaciones?: string | null;
     medico_tratante?: string | null;
+    plan_medicacion?: TimelinePlanMedicacion | null;
     vinculos: TimelineConsultaVinculos;
 };
 

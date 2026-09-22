@@ -911,6 +911,11 @@ class PacienteController extends Controller
                 if ($autorizacionListo) {
                     $consultaRelations[] = 'documentosAutorizacion';
                 }
+                $planListo = Schema::hasTable('consulta_planes_tratamiento');
+                if ($planListo) {
+                    $consultaRelations[] = 'planTratamiento.lineas';
+                    $consultaRelations[] = 'planTratamiento.seguimientos.creadoPor:id,name';
+                }
 
                 $consultas = $hc->consultas()
                     ->with($consultaRelations)
@@ -972,6 +977,7 @@ class PacienteController extends Controller
                             'medico_tratante' => trim((string) ($c->medico_tratante ?? '')) !== ''
                                 ? trim((string) $c->medico_tratante)
                                 : null,
+                            'plan_medicacion' => $planListo ? $this->timelinePlanPayload($c, $tz) : null,
                             'vinculos' => [
                                 'recetas' => $this->timelineRecetasVinculo($user, $c->recetas, $tz),
                                 'laboratorio' => $this->timelineLaboratorioVinculo($user, $c->pedidosLaboratorio, $tz),
@@ -1554,6 +1560,65 @@ class PacienteController extends Controller
         return [
             $especie !== '' ? $especie : null,
             $raza !== '' ? $raza : null,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     fecha_inicio: ?string,
+     *     fecha_fin: ?string,
+     *     estado: string,
+     *     indicaciones: ?string,
+     *     lineas: list<array<string, mixed>>,
+     *     seguimientos: list<array<string, mixed>>
+     * }|null
+     */
+    private function timelinePlanPayload(Consulta $c, string $tz): ?array
+    {
+        if (! $c->relationLoaded('planTratamiento') || $c->planTratamiento === null) {
+            return null;
+        }
+
+        $plan = $c->planTratamiento;
+        $lineas = $plan->relationLoaded('lineas') ? $plan->lineas : collect();
+        $seguimientos = $plan->relationLoaded('seguimientos') ? $plan->seguimientos : collect();
+
+        return [
+            'fecha_inicio' => $plan->fecha_inicio?->format('d/m/Y'),
+            'fecha_fin' => $plan->fecha_fin?->format('d/m/Y'),
+            'estado' => (string) $plan->estado,
+            'indicaciones' => $this->timelineTextPreview($plan->indicaciones, 800),
+            'lineas' => $lineas
+                ->map(function ($ln): array {
+                    $medicamento = trim((string) ($ln->medicamento ?? ''));
+                    $cantidad = $ln->cantidad !== null ? trim((string) $ln->cantidad) : '';
+
+                    return [
+                        'id' => (string) $ln->id,
+                        'medicamento' => $medicamento,
+                        'dosis' => $this->timelineTextPreview($ln->dosis ?? null, 80),
+                        'unidad' => $this->timelineTextPreview($ln->unidad ?? null, 40),
+                        'via' => $this->timelineTextPreview($ln->via ?? null, 40),
+                        'frecuencia' => $this->timelineTextPreview($ln->frecuencia ?? null, 80),
+                        'cantidad' => $cantidad !== '' ? $cantidad : null,
+                        'notas' => $this->timelineTextPreview($ln->notas ?? null, 300),
+                    ];
+                })
+                ->filter(fn (array $ln): bool => $ln['medicamento'] !== '')
+                ->values()
+                ->all(),
+            'seguimientos' => $seguimientos
+                ->map(function ($seg) use ($tz): array {
+                    return [
+                        'id' => (string) $seg->id,
+                        'registrado_at' => $seg->registrado_at?->timezone($tz)->format('d/m/Y H:i'),
+                        'nota' => trim((string) $seg->nota),
+                        'autor' => trim((string) ($seg->creadoPor?->name ?? '')) ?: null,
+                    ];
+                })
+                ->filter(fn (array $seg): bool => $seg['nota'] !== '')
+                ->values()
+                ->all(),
         ];
     }
 
