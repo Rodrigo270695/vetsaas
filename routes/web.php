@@ -540,6 +540,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->delete('vacunaciones/{vacuna_aplicada}', [VacunacionController::class, 'destroy'])
                 ->name('vacunaciones.destroy');
 
+            Route::middleware('permission:sala-espera.view|sala-espera.enviar|citas.view|citas.create')
+                ->get('sala-espera/usuarios', [SalaEsperaController::class, 'usuarios'])
+                ->name('sala-espera.usuarios');
             Route::middleware('permission:sala-espera.consulta|sala-espera.grooming')
                 ->get('sala-espera/resumen', [SalaEsperaController::class, 'resumen'])
                 ->name('sala-espera.resumen');
@@ -552,6 +555,11 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:sala-espera.enviar')
                 ->post('sala-espera/enviar', [SalaEsperaController::class, 'enviar'])
                 ->name('sala-espera.enviar');
+            Route::middleware('permission:sala-espera.view|sala-espera.enviar|sala-espera.consulta|sala-espera.grooming')
+                ->post('sala-espera/{tipo}/{id}/tratante', [SalaEsperaController::class, 'asignar'])
+                ->where('tipo', 'consulta|grooming|cita')
+                ->whereUuid('id')
+                ->name('sala-espera.tratante');
             Route::middleware('permission:sala-espera.view|sala-espera.consulta|sala-espera.grooming')
                 ->post('sala-espera/{tipo}/{id}/llamar', [SalaEsperaController::class, 'llamar'])
                 ->where('tipo', 'consulta|grooming|cita')

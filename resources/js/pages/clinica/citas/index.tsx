@@ -115,6 +115,7 @@ export default function Index({
     citas: paginated,
     citas_agenda,
     pacientes_opciones,
+    usuarios_opciones,
     sedes_opciones,
     filters,
     cita_filtro_ui,
@@ -858,6 +859,7 @@ export default function Index({
                     modal.type === 'create' ? (modal.prefill ?? null) : null
                 }
                 pacientesOpciones={pacientes_opciones}
+                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
             />
 

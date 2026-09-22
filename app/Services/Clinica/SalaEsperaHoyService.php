@@ -10,6 +10,7 @@ use App\Models\Paciente;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy\TenantModuleAccess;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -31,17 +32,17 @@ final class SalaEsperaHoyService
      *     can_grooming: bool
      * }
      */
-    public function board(User $user, ?Tenant $tenant): array
+    public function board(User $user, ?Tenant $tenant, bool $soloMios = true): array
     {
         $canConsulta = $user->can('sala-espera.consulta') && TenantModuleAccess::isEnabled($tenant, 'citas');
         $canGrooming = $user->can('sala-espera.grooming') && TenantModuleAccess::isEnabled($tenant, 'grooming');
 
         return [
             'consulta' => $canConsulta
-                ? $this->forQueue($user, $tenant, self::TIPO_CONSULTA)
+                ? $this->forQueue($user, $tenant, self::TIPO_CONSULTA, $soloMios)
                 : $this->emptyQueue($user, self::TIPO_CONSULTA),
             'grooming' => $canGrooming
-                ? $this->forQueue($user, $tenant, self::TIPO_GROOMING)
+                ? $this->forQueue($user, $tenant, self::TIPO_GROOMING, $soloMios)
                 : $this->emptyQueue($user, self::TIPO_GROOMING),
             'can_enviar' => $user->can('sala-espera.enviar'),
             'can_marcar' => $user->can('sala-espera.marcar-atendido'),
@@ -109,7 +110,7 @@ final class SalaEsperaHoyService
      *     visible: bool
      * }
      */
-    public function forQueue(User $user, ?Tenant $tenant, string $tipo): array
+    public function forQueue(User $user, ?Tenant $tenant, string $tipo, bool $soloMios = true): array
     {
         $tipo = $this->normalizeTipo($tipo);
         $tz = (string) config('app.timezone');
@@ -129,7 +130,7 @@ final class SalaEsperaHoyService
             $this->assertCanVerConsulta($user, $tenant);
             if (Schema::hasTable('citas')) {
                 $query = Cita::query()
-                    ->with($pacienteWith)
+                    ->with([...$pacienteWith, 'veterinario:id,name'])
                     ->whereBetween('inicio_at', [$inicio, $fin])
                     ->whereIn('estado', [
                         ...Cita::ESTADOS_EN_ESPERA,
@@ -139,6 +140,7 @@ final class SalaEsperaHoyService
                     ->limit(50);
 
                 $this->constrainSalaActiva($query, 'citas');
+                $this->constrainTratante($query, 'veterinario_id', $user, $soloMios);
 
                 foreach ($query->get() as $cita) {
                     $this->ensureNumero($cita, $now);
@@ -160,7 +162,7 @@ final class SalaEsperaHoyService
             $this->assertCanVerGrooming($user, $tenant);
             if (Schema::hasTable('grooming_turnos')) {
                 $query = GroomingTurno::query()
-                    ->with($pacienteWith)
+                    ->with([...$pacienteWith, 'responsable:id,name'])
                     ->whereBetween('inicio_at', [$inicio, $fin])
                     ->whereIn('estado', [
                         ...GroomingTurno::ESTADOS_EN_ESPERA,
@@ -170,6 +172,7 @@ final class SalaEsperaHoyService
                     ->limit(50);
 
                 $this->constrainSalaActiva($query, 'grooming_turnos');
+                $this->constrainTratante($query, 'responsable_id', $user, $soloMios);
 
                 foreach ($query->get() as $turno) {
                     $this->ensureNumero($turno, $now);
@@ -204,7 +207,7 @@ final class SalaEsperaHoyService
     /**
      * @return array{created: bool, item: array<string, mixed>}
      */
-    public function enviar(User $user, ?Tenant $tenant, Paciente $paciente, string $tipo): array
+    public function enviar(User $user, ?Tenant $tenant, Paciente $paciente, string $tipo, ?string $tratanteId = null): array
     {
         abort_unless($user->can('sala-espera.enviar'), 403);
         $tipo = $this->normalizeTipo($tipo);
@@ -212,7 +215,7 @@ final class SalaEsperaHoyService
         $now = Carbon::now($tz);
         $paciente->loadMissing('propietario');
 
-        return DB::transaction(function () use ($user, $tenant, $paciente, $tipo, $tz, $now): array {
+        return DB::transaction(function () use ($user, $tenant, $paciente, $tipo, $tz, $now, $tratanteId): array {
             $this->lockNumeroDia($now);
 
             if ($tipo === self::TIPO_CONSULTA) {
@@ -220,7 +223,9 @@ final class SalaEsperaHoyService
                 $existing = $this->citaEnColaHoy($paciente, $now);
                 if ($existing !== null) {
                     $this->marcarEnviado($existing, $now);
+                    $this->aplicarTratante($existing, 'veterinario_id', $tratanteId, $user);
                     $existing->setRelation('paciente', $paciente);
+                    $existing->loadMissing('veterinario:id,name');
 
                     return [
                         'created' => false,
@@ -230,6 +235,7 @@ final class SalaEsperaHoyService
 
                 $payload = [
                     'paciente_id' => $paciente->id,
+                    'veterinario_id' => $tratanteId,
                     'inicio_at' => $now->copy()->startOfMinute(),
                     'duracion_minutos' => 15,
                     'estado' => Cita::ESTADO_PROGRAMADA,
@@ -245,6 +251,7 @@ final class SalaEsperaHoyService
 
                 $cita = Cita::query()->create($payload);
                 $cita->setRelation('paciente', $paciente);
+                $cita->load('veterinario:id,name');
 
                 return [
                     'created' => true,
@@ -256,7 +263,9 @@ final class SalaEsperaHoyService
             $existing = $this->groomingEnColaHoy($paciente, $now);
             if ($existing !== null) {
                 $this->marcarEnviado($existing, $now);
+                $this->aplicarTratante($existing, 'responsable_id', $tratanteId, $user);
                 $existing->setRelation('paciente', $paciente);
+                $existing->loadMissing('responsable:id,name');
 
                 return [
                     'created' => false,
@@ -266,6 +275,7 @@ final class SalaEsperaHoyService
 
             $payload = [
                 'paciente_id' => $paciente->id,
+                'responsable_id' => $tratanteId,
                 'inicio_at' => $now->copy()->startOfMinute(),
                 'duracion_minutos' => 30,
                 'estado' => GroomingTurno::ESTADO_PROGRAMADA,
@@ -281,6 +291,7 @@ final class SalaEsperaHoyService
 
             $turno = GroomingTurno::query()->create($payload);
             $turno->setRelation('paciente', $paciente);
+            $turno->load('responsable:id,name');
 
             return [
                 'created' => true,
@@ -303,6 +314,7 @@ final class SalaEsperaHoyService
                 ->with([
                     'paciente:id,nombre,especie,foto_path,propietario_id',
                     'paciente.propietario:id,nombres,apellidos,razon_social',
+                    'veterinario:id,name',
                 ])
                 ->whereKey($id)
                 ->firstOrFail();
@@ -315,6 +327,7 @@ final class SalaEsperaHoyService
             ->with([
                 'paciente:id,nombre,especie,foto_path,propietario_id',
                 'paciente.propietario:id,nombres,apellidos,razon_social',
+                'responsable:id,name',
             ])
             ->whereKey($id)
             ->firstOrFail();
@@ -412,6 +425,7 @@ final class SalaEsperaHoyService
         $motivo = $tipo === self::TIPO_CONSULTA
             ? (string) ($record->motivo ?? '')
             : (string) ($record->servicio_label ?? $record->servicio ?? '');
+        $tratante = $record instanceof Cita ? $record->veterinario : $record->responsable;
 
         return [
             'id' => (string) $record->id,
@@ -429,7 +443,83 @@ final class SalaEsperaHoyService
             'enviado_at' => $enviado->timezone($tz)->toIso8601String(),
             'href' => $href,
             'hc_href' => $paciente?->id ? '/clinica/pacientes/'.$paciente->id : $href,
+            'tratante_id' => $tratante?->id ? (string) $tratante->id : null,
+            'tratante_nombre' => $tratante?->name ? (string) $tratante->name : null,
         ];
+    }
+
+    /**
+     * @param  Builder<Cita>|Builder<GroomingTurno>  $query
+     */
+    private function constrainTratante($query, string $column, User $user, bool $soloMios): void
+    {
+        if (! $soloMios) {
+            return;
+        }
+
+        $query->where(function ($inner) use ($column, $user): void {
+            $inner->where($column, $user->id)->orWhereNull($column);
+        });
+    }
+
+    private function aplicarTratante(Cita|GroomingTurno $record, string $column, ?string $tratanteId, User $user): void
+    {
+        if ((string) ($record->getAttribute($column) ?? '') === (string) ($tratanteId ?? '')) {
+            return;
+        }
+
+        $record->forceFill([
+            $column => $tratanteId,
+            'updated_by_id' => $user->id,
+        ])->save();
+    }
+
+    public function asignarTratante(User $user, string $tipo, string $id, ?string $tratanteId): array
+    {
+        $tipo = $this->normalizeTipo($tipo);
+        $tz = (string) config('app.timezone');
+
+        if ($tipo === self::TIPO_CONSULTA) {
+            abort_unless($user->can('sala-espera.consulta') || $user->can('sala-espera.view') || $user->can('sala-espera.enviar'), 403);
+            $record = Cita::query()->whereKey($id)->firstOrFail();
+            $this->aplicarTratante($record, 'veterinario_id', $tratanteId, $user);
+            $record->load([
+                'paciente:id,nombre,especie,foto_path,propietario_id',
+                'paciente.propietario:id,nombres,apellidos,razon_social',
+                'veterinario:id,name',
+            ]);
+
+            return $this->serializeRecord($record, self::TIPO_CONSULTA, '/clinica/citas', $tz);
+        }
+
+        abort_unless($user->can('sala-espera.grooming') || $user->can('sala-espera.view') || $user->can('sala-espera.enviar'), 403);
+        $record = GroomingTurno::query()->whereKey($id)->firstOrFail();
+        $this->aplicarTratante($record, 'responsable_id', $tratanteId, $user);
+        $record->load([
+            'paciente:id,nombre,especie,foto_path,propietario_id',
+            'paciente.propietario:id,nombres,apellidos,razon_social',
+            'responsable:id,name',
+        ]);
+
+        return $this->serializeRecord($record, self::TIPO_GROOMING, '/servicios/grooming', $tz);
+    }
+
+    /**
+     * @return list<array{id: string, name: string}>
+     */
+    public function usuariosActivos(Tenant $tenant): array
+    {
+        return User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(static fn (User $usuario): array => [
+                'id' => (string) $usuario->id,
+                'name' => (string) $usuario->name,
+            ])
+            ->values()
+            ->all();
     }
 
     /**
@@ -527,7 +617,7 @@ final class SalaEsperaHoyService
     /**
      * Solo lo que recepción mandó a sala (no la agenda normal).
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<Cita>|\Illuminate\Database\Eloquent\Builder<GroomingTurno>  $query
+     * @param  Builder<Cita>|Builder<GroomingTurno>  $query
      */
     private function constrainSalaActiva($query, string $table): void
     {
@@ -545,7 +635,7 @@ final class SalaEsperaHoyService
     /**
      * Pendiente de sala o cita/turno del día aún no enviada (para reutilizar al pulsar Sala).
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<Cita>|\Illuminate\Database\Eloquent\Builder<GroomingTurno>  $query
+     * @param  Builder<Cita>|Builder<GroomingTurno>  $query
      */
     private function constrainColaPendiente($query, string $table): void
     {

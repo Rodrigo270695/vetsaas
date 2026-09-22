@@ -33,7 +33,7 @@ final class SalaEsperaNotifier
             Log::warning('Sala espera broadcast failed', ['error' => $e->getMessage()]);
         }
 
-        if ($action !== 'enviar') {
+        if (! in_array($action, ['enviar', 'asignar'], true)) {
             return;
         }
 
@@ -45,16 +45,32 @@ final class SalaEsperaNotifier
      */
     public function notify(Tenant $tenant, User $actor, string $tipo, array $item): void
     {
-        $permission = $tipo === SalaEsperaHoyService::TIPO_GROOMING
-            ? 'sala-espera.grooming'
-            : 'sala-espera.consulta';
+        $tratanteId = isset($item['tratante_id']) && is_string($item['tratante_id']) && $item['tratante_id'] !== ''
+            ? $item['tratante_id']
+            : null;
 
-        $users = User::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('is_active', true)
-            ->permission($permission)
-            ->whereKeyNot($actor->id)
-            ->get();
+        if ($tratanteId !== null) {
+            if ($tratanteId === (string) $actor->id) {
+                return;
+            }
+
+            $users = User::query()
+                ->whereKey($tratanteId)
+                ->where('tenant_id', $tenant->id)
+                ->where('is_active', true)
+                ->get();
+        } else {
+            $permission = $tipo === SalaEsperaHoyService::TIPO_GROOMING
+                ? 'sala-espera.grooming'
+                : 'sala-espera.consulta';
+
+            $users = User::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('is_active', true)
+                ->permission($permission)
+                ->whereKeyNot($actor->id)
+                ->get();
+        }
 
         if ($users->isEmpty()) {
             return;

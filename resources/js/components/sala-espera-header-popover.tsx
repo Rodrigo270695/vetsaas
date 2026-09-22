@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { Bath, CalendarDays, Check, Stethoscope, Timer } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -70,7 +70,8 @@ export { SALA_ESPERA_CHANGED_EVENT } from '@/hooks/use-sala-espera-realtime';
 
 export function SalaEsperaHeaderIcons() {
     const { t } = useTranslation('common');
-    const { tenant, broadcast } = usePage().props;
+    const { tenant, broadcast, auth } = usePage().props;
+    const myId = auth.user?.id ? String(auth.user.id) : '';
     const { can } = usePermission();
     const canVista = can('sala-espera.view');
     const citasOn = useTenantModuleEnabled('citas');
@@ -124,11 +125,40 @@ export function SalaEsperaHeaderIcons() {
         };
         window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
 
+        const onAssigned = (event: Event) => {
+            const detail = (event as CustomEvent<{
+                action?: string;
+                actor_id?: string | null;
+                tipo?: string;
+                item?: { tratante_id?: string | null; paciente?: string };
+            }>).detail;
+            if (!detail || (detail.action !== 'enviar' && detail.action !== 'asignar')) {
+                return;
+            }
+            if (detail.actor_id && myId && String(detail.actor_id) === myId) {
+                return;
+            }
+            const tratanteId = detail.item?.tratante_id ? String(detail.item.tratante_id) : '';
+            if (tratanteId !== '' && tratanteId !== myId) {
+                return;
+            }
+            notifyOs(
+                detail.tipo === 'grooming'
+                    ? t('sala_espera.title_grooming')
+                    : t('sala_espera.title_consulta'),
+                detail.item?.paciente
+                    ? String(detail.item.paciente)
+                    : t('sala_espera.push_body', { count: 1 }),
+            );
+        };
+        window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onAssigned);
+
         return () => {
             window.clearInterval(id);
             window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
+            window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onAssigned);
         };
-    }, [canSala, loadResumen, realtimeOn]);
+    }, [canSala, loadResumen, myId, realtimeOn, t]);
 
     if (tenant == null) {
         return null;
@@ -183,7 +213,6 @@ function SalaEsperaTipoPopover({ tipo }: { tipo: 'consulta' | 'grooming' }) {
     const [data, setData] = useState<SalaPayload>(EMPTY);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
-    const prevCount = useRef<number | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -211,22 +240,13 @@ function SalaEsperaTipoPopover({ tipo }: { tipo: 'consulta' | 'grooming' }) {
                 can_marcar: json.can_marcar === true,
             };
 
-            if (prevCount.current !== null && next.count > prevCount.current) {
-                notifyOs(
-                    isGrooming
-                        ? t('sala_espera.title_grooming')
-                        : t('sala_espera.title_consulta'),
-                    t('sala_espera.push_body', { count: next.count }),
-                );
-            }
-            prevCount.current = next.count;
             setData(next);
         } catch {
             setError(true);
         } finally {
             setLoading(false);
         }
-    }, [isGrooming, t, tipo]);
+    }, [tipo]);
 
     useEffect(() => {
         void load();

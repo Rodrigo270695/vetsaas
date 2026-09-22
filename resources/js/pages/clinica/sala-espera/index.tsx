@@ -26,6 +26,13 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 
@@ -45,6 +52,8 @@ type SalaItem = {
     enviado_at?: string | null;
     href: string;
     hc_href: string;
+    tratante_id?: string | null;
+    tratante_nombre?: string | null;
 };
 
 type SalaQueue = {
@@ -77,8 +86,15 @@ type SearchHit = {
     href: string;
 };
 
+type UsuarioSala = {
+    id: string;
+    name: string;
+};
+
 type Props = {
     board: Board;
+    usuarios?: readonly UsuarioSala[];
+    alcance?: 'mios' | 'todos';
 };
 
 function csrfToken(): string {
@@ -199,7 +215,7 @@ function llamarTurno(item: SalaItem, colaLabel: string): void {
     window.speechSynthesis.speak(utter);
 }
 
-export default function SalaEsperaIndex({ board }: Props) {
+export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios' }: Props) {
     const { t, i18n } = useTranslation('common');
     const { auth, broadcast } = usePage().props;
     const myId = auth.user?.id ? String(auth.user.id) : '';
@@ -345,6 +361,35 @@ export default function SalaEsperaIndex({ board }: Props) {
         }
     }, [dropItem, reloadBoard]);
 
+    const assign = useCallback(async (item: SalaItem, tratanteId: string | null) => {
+        const res = await fetch(`/clinica/sala-espera/${item.tipo}/${item.id}/tratante`, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ tratante_id: tratanteId }),
+        });
+        if (res.ok) {
+            window.dispatchEvent(new Event(SALA_ESPERA_CHANGED_EVENT));
+        }
+    }, []);
+
+    const setAlcance = (next: 'mios' | 'todos') => {
+        router.get(
+            '/clinica/sala-espera',
+            next === 'todos' ? { alcance: 'todos' } : {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['board', 'alcance', 'usuarios'],
+            },
+        );
+    };
+
     const confirmQuitar = useCallback(async () => {
         if (!quitar) {
             return;
@@ -406,10 +451,14 @@ export default function SalaEsperaIndex({ board }: Props) {
             if (!item?.id || !item.tipo) {
                 return;
             }
+            const tratanteId = item.tratante_id ? String(item.tratante_id) : '';
             setLlamados((prev) => ({
                 ...prev,
                 [`${item.tipo}-${item.id}`]: true,
             }));
+            if (tratanteId !== '' && myId && tratanteId !== myId) {
+                return;
+            }
             llamarTurno(
                 {
                     id: item.id,
@@ -426,6 +475,8 @@ export default function SalaEsperaIndex({ board }: Props) {
                     minutos_espera: item.minutos_espera ?? 0,
                     href: item.href ?? '',
                     hc_href: item.hc_href ?? '',
+                    tratante_id: item.tratante_id ?? null,
+                    tratante_nombre: item.tratante_nombre ?? null,
                 },
                 item.tipo === 'grooming'
                     ? t('sala_espera.grooming')
@@ -479,6 +530,28 @@ export default function SalaEsperaIndex({ board }: Props) {
                             {' · '}
                             {t('sala_espera.turnos_dia')}
                         </p>
+                        <div className="mt-3 inline-flex rounded-lg bg-white/70 p-0.5 ring-1 ring-border/60 dark:bg-background/40">
+                            <button
+                                type="button"
+                                className={cn(
+                                    'cursor-pointer rounded-md px-3 py-1 text-xs font-medium',
+                                    alcance !== 'todos' ? 'bg-sky-600 text-white' : 'text-muted-foreground',
+                                )}
+                                onClick={() => setAlcance('mios')}
+                            >
+                                {t('sala_espera.alcance_mios')}
+                            </button>
+                            <button
+                                type="button"
+                                className={cn(
+                                    'cursor-pointer rounded-md px-3 py-1 text-xs font-medium',
+                                    alcance === 'todos' ? 'bg-sky-600 text-white' : 'text-muted-foreground',
+                                )}
+                                onClick={() => setAlcance('todos')}
+                            >
+                                {t('sala_espera.alcance_todos')}
+                            </button>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3 rounded-2xl bg-muted/40 px-4 py-2 ring-1 ring-border/60">
                         <Clock3 className="size-5 text-sky-600" />
@@ -562,6 +635,7 @@ export default function SalaEsperaIndex({ board }: Props) {
                                                     pacienteId={hit.id}
                                                     canConsulta={board.can_consulta}
                                                     canGrooming={board.can_grooming}
+                                                    usuarios={usuarios}
                                                 />
                                             </div>
                                         ))
@@ -597,6 +671,8 @@ export default function SalaEsperaIndex({ board }: Props) {
                                     });
                                 }
                             }}
+                            usuarios={usuarios}
+                            onAsignar={(item, tratanteId) => void assign(item, tratanteId)}
                         />
                     ) : null}
                     {board.can_grooming ? (
@@ -623,6 +699,8 @@ export default function SalaEsperaIndex({ board }: Props) {
                                     });
                                 }
                             }}
+                            usuarios={usuarios}
+                            onAsignar={(item, tratanteId) => void assign(item, tratanteId)}
                         />
                     ) : null}
                 </div>
@@ -676,6 +754,8 @@ function ColaPanel({
     onMarcar,
     onQuitar,
     onHc,
+    usuarios,
+    onAsignar,
 }: {
     title: string;
     emptyLabel: string;
@@ -690,6 +770,8 @@ function ColaPanel({
     onMarcar: (item: SalaItem) => void;
     onQuitar: (item: SalaItem) => void;
     onHc: (item: SalaItem) => void;
+    usuarios: readonly UsuarioSala[];
+    onAsignar: (item: SalaItem, tratanteId: string | null) => void;
 }) {
     const { t } = useTranslation('common');
     const groups: { key: string; title: string; items: SalaItem[] }[] = [
@@ -809,6 +891,8 @@ function ColaPanel({
                                             onMarcar={() => onMarcar(item)}
                                             onQuitar={() => onQuitar(item)}
                                             onHc={() => onHc(item)}
+                                            usuarios={usuarios}
+                                            onAsignar={(tratanteId) => onAsignar(item, tratanteId)}
                                         />
                                     ))}
                                 </div>
@@ -832,6 +916,8 @@ function TurnoCard({
     onMarcar,
     onQuitar,
     onHc,
+    usuarios,
+    onAsignar,
 }: {
     item: SalaItem;
     accent: 'sky' | 'violet';
@@ -843,6 +929,8 @@ function TurnoCard({
     onMarcar: () => void;
     onQuitar: () => void;
     onHc: () => void;
+    usuarios: readonly UsuarioSala[];
+    onAsignar: (tratanteId: string | null) => void;
 }) {
     const { t } = useTranslation('common');
     const waited = waitSeconds(item.enviado_at, now, item.minutos_espera);
@@ -919,6 +1007,29 @@ function TurnoCard({
                             })}
                         </span>
                     </p>
+                    <div className="mt-2 max-w-xs">
+                        <Select
+                            value={item.tratante_id ? item.tratante_id : '__none__'}
+                            onValueChange={(value) => onAsignar(value === '__none__' ? null : value)}
+                        >
+                            <SelectTrigger className="h-8 w-full text-xs">
+                                <SelectValue placeholder={t('sala_espera.tratante_placeholder')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="__none__">{t('sala_espera.tratante_placeholder')}</SelectItem>
+                                {item.tratante_id && !usuarios.some((usuario) => usuario.id === item.tratante_id) ? (
+                                    <SelectItem value={item.tratante_id}>
+                                        {item.tratante_nombre || item.tratante_id}
+                                    </SelectItem>
+                                ) : null}
+                                {usuarios.map((usuario) => (
+                                    <SelectItem key={usuario.id} value={usuario.id}>
+                                        {usuario.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                         <Button
                             type="button"

@@ -20,7 +20,7 @@ import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
 import { cn } from '@/lib/utils';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
-import type { CitaFormPrefill, CitaRow, PacienteCitaOpcion, SedeCitaOpcion } from '../types';
+import type { CitaFormPrefill, CitaRow, PacienteCitaOpcion, SedeCitaOpcion, UsuarioCitaOpcion } from '../types';
 import { formatDateOnlyLabel } from '../../historias-clinicas/format-atendido';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -99,6 +99,7 @@ export type CitaFormModalProps = {
     cita: CitaRow | null;
     prefill?: CitaFormPrefill | null;
     pacientesOpciones: readonly PacienteCitaOpcion[];
+    usuariosOpciones?: readonly UsuarioCitaOpcion[];
     sedesOpciones: readonly SedeCitaOpcion[];
 };
 
@@ -148,6 +149,7 @@ export function CitaFormModal({
     cita,
     prefill,
     pacientesOpciones,
+    usuariosOpciones = [],
     sedesOpciones,
 }: CitaFormModalProps) {
     const { t, i18n } = useTranslation(['citas', 'common', 'offline']);
@@ -159,6 +161,39 @@ export function CitaFormModal({
         useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
     const [hora, setHora] = useState('09:00');
+    const [usuarios, setUsuarios] = useState<readonly UsuarioCitaOpcion[]>(usuariosOpciones);
+
+    useEffect(() => {
+        if (usuariosOpciones.length > 0) {
+            setUsuarios(usuariosOpciones);
+        }
+    }, [usuariosOpciones]);
+
+    useEffect(() => {
+        if (!open || usuarios.length > 0) {
+            return;
+        }
+
+        void fetch('/clinica/sala-espera/usuarios', {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        })
+            .then(async (res) => {
+                if (!res.ok) {
+                    return;
+                }
+                const json = (await res.json()) as { data?: UsuarioCitaOpcion[] };
+                if (Array.isArray(json.data)) {
+                    setUsuarios(json.data);
+                }
+            })
+            .catch(() => {
+                // La cita se puede guardar sin profesional.
+            });
+    }, [open, usuarios.length]);
 
     const isEdit = cita !== null;
     const lockPaciente =
@@ -448,6 +483,34 @@ export function CitaFormModal({
                     />
                 </FormField>
                 <p className="text-xs text-muted-foreground">{t('form.duracion_hint')}</p>
+
+                <FormField
+                    id="cf-veterinario"
+                    label={t('form.veterinario')}
+                    error={errors.veterinario_id as string | undefined}
+                >
+                    <Select
+                        value={data.veterinario_id ?? '__none__'}
+                        onValueChange={(v) => setData('veterinario_id', v === '__none__' ? null : v)}
+                        disabled={processing}
+                    >
+                        <SelectTrigger
+                            id="cf-veterinario"
+                            className={controlClass}
+                            aria-invalid={Boolean(errors.veterinario_id)}
+                        >
+                            <SelectValue placeholder={t('form.veterinario_placeholder')} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                            <SelectItem value="__none__">{t('form.veterinario_placeholder')}</SelectItem>
+                            {usuarios.map((usuario) => (
+                                <SelectItem key={usuario.id} value={usuario.id}>
+                                    {usuario.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </FormField>
 
                 {isEdit ? (
                     <FormField
