@@ -350,6 +350,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes/catalogo-especie-raza', [PacienteController::class, 'catalogoEspecieRaza'])
                 ->name('pacientes.catalogo-especie-raza');
+            Route::middleware('permission:pacientes.view|citas.view|grooming.view|hotel.view|servicios-agenda.view|recetas.view|cirugias.view|vacunaciones.view|historias-clinicas.view|hospitalizacion.view|laboratorio.view')
+                ->get('pacientes/opciones', [PacienteController::class, 'opciones'])
+                ->name('pacientes.opciones');
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes', [PacienteController::class, 'index'])
                 ->name('pacientes.index');

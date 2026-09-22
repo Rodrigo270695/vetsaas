@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteCombobox } from '@/components/clinica/paciente-combobox';
 import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
@@ -57,18 +58,6 @@ function parseIsoToDatetimeLocal(iso: string): string {
     }
 
     return toDatetimeLocalValue(d);
-}
-
-function displayPropietario(p: PacienteHotelOpcion['propietario']): string {
-    if (!p) {
-        return '';
-    }
-
-    if (p.razon_social) {
-        return p.razon_social;
-    }
-
-    return [p.nombres, p.apellidos].filter(Boolean).join(' ');
 }
 
 export type HotelFormModalProps = {
@@ -248,11 +237,6 @@ export function HotelFormModal({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, estancia?.id, defaultResponsableId, estancia, sedesOpciones, catalogoPersonalizado, hotelTipos, prefill?.fecha, prefill?.hora]);
 
-    const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
-        value: p.id,
-        label: `${p.nombre} · ${displayPropietario(p.propietario) || '—'}`,
-    }));
-
     const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
         const base: Record<string, unknown> = {
             paciente_id: raw.paciente_id,
@@ -348,9 +332,9 @@ export function HotelFormModal({
                     required
                     error={errors.paciente_id as string | undefined}
                 >
-                    <Combobox
+                    <PacienteCombobox
                         id="hf-paciente"
-                        options={pacienteComboboxOptions}
+                        pacientes={pacientesOpciones}
                         value={data.paciente_id === '' ? null : data.paciente_id}
                         onChange={(v) => setData('paciente_id', v ?? '')}
                         placeholder={t('form.paciente_placeholder')}

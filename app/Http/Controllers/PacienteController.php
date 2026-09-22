@@ -31,6 +31,7 @@ use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Clinica\PacienteImportService;
 use App\Services\PetPass\AlmaPetHandoffClient;
+use App\Support\Clinica\PacienteSearch;
 use App\Support\Clinica\PublicClinicalHistoryPayload;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
@@ -637,6 +638,15 @@ class PacienteController extends Controller
             : "{$count} pacientes eliminados correctamente.";
 
         return back()->with('success', $msg);
+    }
+
+    public function opciones(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->string('q', ''));
+
+        return response()->json([
+            'data' => PacienteSearch::opcionesActivas($q),
+        ]);
     }
 
     public function export(Request $request): StreamedResponse

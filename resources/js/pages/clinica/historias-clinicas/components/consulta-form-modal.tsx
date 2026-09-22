@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { AlertTriangle, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteCombobox } from '@/components/clinica/paciente-combobox';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
@@ -271,15 +272,6 @@ export function ConsultaFormModal({
         clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, consulta?.id, pacienteIdPrefillNueva, motivoPrefillNueva, citaIdPrefillNueva, medicoTratanteDefault]);
-
-    const pacienteComboboxOptions = useMemo<readonly ComboboxOption[]>(
-        () =>
-            pacientesOpciones.map((o) => ({
-                value: o.id,
-                label: labelPaciente(o),
-            })),
-        [pacientesOpciones],
-    );
 
     const servicioOptions = useMemo<readonly ComboboxOption[]>(
         () => servicios.map((s) => ({ value: s.id, label: s.nombre })),
@@ -661,9 +653,9 @@ export function ConsultaFormModal({
                             error={errors.paciente_id}
                             className="min-w-0"
                         >
-                            <Combobox
+                            <PacienteCombobox
                                 id="hc-paciente"
-                                options={pacienteComboboxOptions}
+                                pacientes={pacientesOpciones}
                                 value={data.paciente_id || null}
                                 onChange={(v) => {
                                     setOwnerTouched(true);

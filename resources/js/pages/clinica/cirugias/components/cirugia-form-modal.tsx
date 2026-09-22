@@ -3,10 +3,9 @@ import { Loader2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteCombobox } from '@/components/clinica/paciente-combobox';
 import { FormField, FormModal, FormSection, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
-import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -54,18 +53,6 @@ function parseIsoToDatetimeLocal(iso: string): string {
     }
 
     return toDatetimeLocalValue(d);
-}
-
-function displayPropietario(p: PacienteCirugiaOpcion['propietario']): string {
-    if (!p) {
-        return '';
-    }
-
-    if (p.razon_social) {
-        return p.razon_social;
-    }
-
-    return [p.nombres, p.apellidos].filter(Boolean).join(' ');
 }
 
 type FormShape = {
@@ -181,15 +168,6 @@ export function CirugiaFormModal({
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, cirugia?.id, defaultVetId, cirugia, sedesOpciones]);
-
-    const pacienteComboboxOptions = useMemo<ComboboxOption[]>(
-        () =>
-            pacientesOpciones.map((p) => ({
-                value: p.id,
-                label: `${p.nombre} · ${displayPropietario(p.propietario) || '—'}`,
-            })),
-        [pacientesOpciones],
-    );
 
     const consultasBase = useMemo(() => {
         const list = [...consultasOpciones];
@@ -378,9 +356,9 @@ export function CirugiaFormModal({
                         error={err('paciente_id')}
                         className="sm:col-span-2"
                     >
-                        <Combobox
+                        <PacienteCombobox
                             id="cirugia-paciente"
-                            options={pacienteComboboxOptions}
+                            pacientes={pacientesOpciones}
                             value={data.paciente_id === '' ? null : data.paciente_id}
                             onChange={(v) => setData('paciente_id', v ?? '')}
                             placeholder={t('form.paciente_placeholder')}

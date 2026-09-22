@@ -3,10 +3,9 @@ import { CalendarDays, Clock, Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PacienteCombobox } from '@/components/clinica/paciente-combobox';
 import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
-import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -92,18 +91,6 @@ function parseIsoToDatetimeLocal(iso: string): string {
     }
 
     return toDatetimeLocalValue(d);
-}
-
-function displayPropietario(p: PacienteCitaOpcion['propietario']): string {
-    if (!p) {
-        return '';
-    }
-
-    if (p.razon_social) {
-        return p.razon_social;
-    }
-
-    return [p.nombres, p.apellidos].filter(Boolean).join(' ');
 }
 
 export type CitaFormModalProps = {
@@ -265,11 +252,6 @@ export function CitaFormModal({
     const requiresFutureInicio =
         !isEdit || data.estado === 'programada' || data.estado === 'confirmada';
 
-    const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
-        value: p.id,
-        label: `${p.nombre} · ${displayPropietario(p.propietario) || '—'}`,
-    }));
-
     const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
         const dm = raw.duracion_minutos.trim();
         const dmVal = dm === '' ? NaN : Number.parseInt(dm, 10);
@@ -355,9 +337,9 @@ export function CitaFormModal({
                     required
                     error={errors.paciente_id as string | undefined}
                 >
-                    <Combobox
+                    <PacienteCombobox
                         id="cf-paciente"
-                        options={pacienteComboboxOptions}
+                        pacientes={pacientesOpciones}
                         value={data.paciente_id === '' ? null : data.paciente_id}
                         onChange={(v) => setData('paciente_id', v ?? '')}
                         placeholder={t('form.paciente_placeholder')}
