@@ -1,3 +1,4 @@
+import { TZDate } from '@date-fns/tz';
 import { useForm, usePage } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -12,21 +13,33 @@ import { useOfflineSync } from '@/hooks/use-offline-sync';
 import type { InternamientoEvolucionRow } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
+const ZONA_PERU = 'America/Lima';
 
-function toDatetimeLocalValue(d: Date): string {
+function zonaPeru(timeZone: string | undefined): string {
+    const zona = (timeZone ?? '').trim();
+
+    if (zona === '' || zona.toUpperCase() === 'UTC' || zona === 'Etc/UTC') {
+        return ZONA_PERU;
+    }
+
+    return zona;
+}
+
+function toDatetimeLocalValue(instant: Date | number, timeZone: string): string {
+    const d = new TZDate(instant, timeZone);
     const pad = (n: number) => String(n).padStart(2, '0');
 
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function parseIsoToDatetimeLocal(iso: string): string {
-    const d = new Date(iso);
+function parseIsoToDatetimeLocal(iso: string, timeZone: string): string {
+    const d = new TZDate(iso, timeZone);
 
     if (Number.isNaN(d.getTime())) {
-        return toDatetimeLocalValue(new Date());
+        return toDatetimeLocalValue(Date.now(), timeZone);
     }
 
-    return toDatetimeLocalValue(d);
+    return toDatetimeLocalValue(d, timeZone);
 }
 
 type FormShape = {
@@ -64,9 +77,9 @@ function sugerirPam(pas: string, pad: string): string {
     return String(Math.round((sistolica + 2 * diastolica) / 3));
 }
 
-function emptyForm(defaultVetId: string | null): FormShape {
+function emptyForm(defaultVetId: string | null, timeZone: string): FormShape {
     return {
-        registrado_at: toDatetimeLocalValue(new Date()),
+        registrado_at: toDatetimeLocalValue(Date.now(), timeZone),
         evolucion: '',
         tratamiento: '',
         peso_kg: '',
@@ -82,9 +95,9 @@ function emptyForm(defaultVetId: string | null): FormShape {
     };
 }
 
-function fromEvolucion(e: InternamientoEvolucionRow, defaultVetId: string | null): FormShape {
+function fromEvolucion(e: InternamientoEvolucionRow, defaultVetId: string | null, timeZone: string): FormShape {
     return {
-        registrado_at: parseIsoToDatetimeLocal(e.registrado_at),
+        registrado_at: parseIsoToDatetimeLocal(e.registrado_at, timeZone),
         evolucion: e.evolucion ?? '',
         tratamiento: e.tratamiento ?? '',
         peso_kg: numOrEmpty(e.peso_kg),
@@ -139,14 +152,16 @@ export function EvolucionFormModal({
 }: EvolucionFormModalProps) {
     const { t } = useTranslation(['hospitalizacion', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
-    const authUser = usePage().props.auth?.user as { id?: string } | undefined;
+    const page = usePage();
+    const authUser = page.props.auth?.user as { id?: string } | undefined;
     const defaultVetId = authUser?.id ?? null;
+    const zona = zonaPeru(page.props.timezone);
 
     const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults, reset } =
-        useForm<FormShape>(emptyForm(defaultVetId));
+        useForm<FormShape>(emptyForm(defaultVetId, zona));
 
     const isEdit = evolucion !== null;
-    const initialRef = useRef<FormShape>(emptyForm(null));
+    const initialRef = useRef<FormShape>(emptyForm(null, zona));
     const pamManualRef = useRef(false);
 
     useEffect(() => {
@@ -180,7 +195,7 @@ export function EvolucionFormModal({
 
         clearErrors();
         pamManualRef.current = evolucion !== null && evolucion.pam != null;
-        const next = evolucion !== null ? fromEvolucion(evolucion, defaultVetId) : emptyForm(defaultVetId);
+        const next = evolucion !== null ? fromEvolucion(evolucion, defaultVetId, zona) : emptyForm(defaultVetId, zona);
         initialRef.current = structuredClone(next);
         setData(next);
         setDefaults();

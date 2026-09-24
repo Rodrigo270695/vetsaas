@@ -1,13 +1,37 @@
+import { TZDate } from '@date-fns/tz';
+import { format } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import {
-    dateKeyInAppTimezone,
-    formatFullDateLabelInAppTimezone,
-    formatTimeOnlyInAppTimezone,
-} from '../../historias-clinicas/format-atendido';
+import { dateKeyInAppTimezone, formatTimeOnlyInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type { InternamientoEvolucionRow } from '../types';
+
+const ZONA_PERU = 'America/Lima';
+
+function zonaPeru(timeZone: string | undefined): string {
+    const zona = (timeZone ?? '').trim();
+
+    if (zona === '' || zona.toUpperCase() === 'UTC' || zona === 'Etc/UTC') {
+        return ZONA_PERU;
+    }
+
+    return zona;
+}
+
+function fechaCabecera(iso: string, timeZone: string): string {
+    try {
+        const d = new TZDate(iso, timeZone);
+
+        if (Number.isNaN(d.getTime())) {
+            return '—';
+        }
+
+        return format(d, 'dd/MM/yyyy');
+    } catch {
+        return '—';
+    }
+}
 
 type ParamKey =
     | 'temperatura_c'
@@ -48,18 +72,9 @@ function valorCelda(row: InternamientoEvolucionRow, key: ParamKey): string {
     return String(value);
 }
 
-function capitalizar(texto: string): string {
-    if (texto.length === 0) {
-        return texto;
-    }
-
-    return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
-
 type Props = {
     evoluciones: readonly InternamientoEvolucionRow[];
-    locale: string;
-    timeZone: string;
+    timeZone?: string;
     canUpdate: boolean;
     onEdit: (evolucion: InternamientoEvolucionRow) => void;
     onDelete: (evolucion: InternamientoEvolucionRow) => void;
@@ -67,19 +82,19 @@ type Props = {
 
 export function ConstantesFisiologicas({
     evoluciones,
-    locale,
     timeZone,
     canUpdate,
     onEdit,
     onDelete,
 }: Props) {
     const { t } = useTranslation(['hospitalizacion', 'common']);
+    const zona = zonaPeru(timeZone);
 
     const dias = useMemo((): DaySheet[] => {
         const groups = new Map<string, InternamientoEvolucionRow[]>();
 
         for (const item of evoluciones) {
-            const dayKey = dateKeyInAppTimezone(item.registrado_at, timeZone) || '—';
+            const dayKey = dateKeyInAppTimezone(item.registrado_at, zona) || '—';
             const list = groups.get(dayKey) ?? [];
             list.push(item);
             groups.set(dayKey, list);
@@ -91,31 +106,30 @@ export function ConstantesFisiologicas({
                 const ordenadas = [...columnas].sort((a, b) =>
                     a.registrado_at.localeCompare(b.registrado_at),
                 );
-                const label = capitalizar(
-                    formatFullDateLabelInAppTimezone(ordenadas[0].registrado_at, locale, timeZone),
-                );
 
-                return { dayKey, label, columnas: ordenadas };
+                return {
+                    dayKey,
+                    label: fechaCabecera(ordenadas[0].registrado_at, zona),
+                    columnas: ordenadas,
+                };
             });
-    }, [evoluciones, locale, timeZone]);
+    }, [evoluciones, zona]);
 
-    if (dias.length === 0) {
-        return (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-                {t('show.constantes_empty')}
-            </p>
-        );
-    }
+    const hojas = dias.length > 0 ? dias : [{ dayKey: 'vacio', label: '', columnas: [] }];
 
     return (
         <div className="flex flex-col gap-6">
-            {dias.map((dia) => (
+            {hojas.map((dia) => (
                 <section key={dia.dayKey} className="overflow-hidden rounded-xl border border-border/70">
-                    <header className="border-b border-border/60 bg-muted/40 px-4 py-2.5">
-                        <h3 className="text-sm font-semibold capitalize text-foreground">{dia.label}</h3>
-                    </header>
+                    {dia.label ? (
+                        <header className="border-b border-border/60 bg-muted/40 px-4 py-2.5">
+                            <h3 className="text-sm font-semibold text-foreground">{dia.label}</h3>
+                        </header>
+                    ) : null}
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[36rem] border-collapse text-sm">
+                        <table
+                            className={`w-full border-collapse text-sm ${dia.columnas.length > 0 ? 'min-w-xl' : ''}`}
+                        >
                             <thead>
                                 <tr className="border-b border-border/60 bg-muted/20">
                                     <th className="sticky left-0 z-10 bg-muted/20 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
@@ -130,7 +144,7 @@ export function ConstantesFisiologicas({
                                                 <span>
                                                     {formatTimeOnlyInAppTimezone(
                                                         columna.registrado_at,
-                                                        timeZone,
+                                                        zona,
                                                     )}
                                                 </span>
                                                 {canUpdate ? (
