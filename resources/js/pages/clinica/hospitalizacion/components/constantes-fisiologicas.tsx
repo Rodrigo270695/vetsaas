@@ -116,98 +116,116 @@ export function ConstantesFisiologicas({
             });
     }, [evoluciones, zona]);
 
+    const esquina = 'sticky left-0 z-10 bg-card';
+
     return (
-        <div className="overflow-hidden rounded-xl border border-border/70">
-            <div className="overflow-x-auto">
-                <table className={cn('w-full border-collapse text-sm', dias.length > 0 && 'min-w-xl')}>
-                    <thead>
-                        <tr className="border-b border-border/60 bg-muted/40">
-                            <th
-                                rowSpan={dias.length > 0 ? 2 : 1}
-                                className="sticky left-0 z-10 min-w-40 bg-muted/40 px-3 py-2 text-left text-xs font-medium text-muted-foreground"
-                            >
-                                {t('show.constantes_parametro')}
-                            </th>
+        <div className="overflow-x-auto">
+            <table className="border-separate border-spacing-0 text-sm">
+                <thead>
+                    {dias.length > 0 ? (
+                        <tr>
+                            <th className={cn(esquina, 'border-b border-border/50')} />
                             {dias.map((dia) => (
                                 <th
                                     key={dia.dayKey}
                                     colSpan={dia.columnas.length}
-                                    className="border-l border-border/60 px-3 py-2 text-center text-xs font-semibold tracking-wide text-foreground"
+                                    className="border-b border-l border-border/50 px-3 pt-1 pb-2 text-center"
                                 >
-                                    {dia.label}
+                                    <span className="inline-flex rounded-md bg-muted px-2.5 py-1 text-xs font-semibold tracking-wide text-foreground tabular-nums">
+                                        {dia.label}
+                                    </span>
                                 </th>
                             ))}
                         </tr>
-                        {dias.length > 0 ? (
-                            <tr className="border-b border-border/60 bg-muted/20">
-                                {dias.map((dia) =>
-                                    dia.columnas.map((columna, indice) => (
-                                        <th
-                                            key={columna.id}
-                                            className={cn(
-                                                'px-2 py-2 text-center align-top',
-                                                indice === 0 && 'border-l border-border/60',
-                                            )}
-                                        >
-                                            <div className="flex flex-col items-center gap-1.5">
-                                                <span className="text-xs font-semibold tabular-nums text-foreground">
-                                                    {formatTimeOnlyInAppTimezone(columna.registrado_at, zona)}
-                                                </span>
-                                                {canUpdate ? (
-                                                    <div className="inline-flex items-center rounded-lg border border-border/70 bg-background p-0.5 shadow-xs">
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="size-7 cursor-pointer rounded-md text-primary transition-all duration-200 hover:bg-primary/12 hover:text-primary active:scale-95"
-                                                            aria-label={t('common:actions.edit')}
-                                                            onClick={() => onEdit(columna)}
-                                                        >
-                                                            <Pencil className="size-3.5" strokeWidth={2.25} />
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="size-7 cursor-pointer rounded-md text-destructive transition-all duration-200 hover:bg-destructive/12 hover:text-destructive active:scale-95"
-                                                            aria-label={t('common:actions.delete')}
-                                                            onClick={() => onDelete(columna)}
-                                                        >
-                                                            <Trash2 className="size-3.5" strokeWidth={2.25} />
-                                                        </Button>
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                        </th>
-                                    )),
-                                )}
-                            </tr>
-                        ) : null}
-                    </thead>
-                    <tbody>
-                        {PARAMETROS.map((parametro) => (
-                            <tr key={parametro.key} className="border-b border-border/40 last:border-b-0">
-                                <th className="sticky left-0 z-10 bg-card px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">
-                                    {t(parametro.labelKey)}
+                    ) : null}
+                    <tr>
+                        <th
+                            className={cn(
+                                esquina,
+                                'min-w-44 border-b border-border/70 px-1 py-2 pr-8 text-left text-[11px] font-medium tracking-wide text-muted-foreground uppercase',
+                            )}
+                        >
+                            {t('show.constantes_parametro')}
+                        </th>
+                        {dias.map((dia) =>
+                            dia.columnas.map((columna, indice) => (
+                                <th
+                                    key={columna.id}
+                                    className={cn(
+                                        'min-w-36 border-b border-border/70 px-3 py-2 whitespace-nowrap',
+                                        indice === 0 && 'border-l border-border/50',
+                                    )}
+                                >
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <span className="text-sm font-semibold text-foreground tabular-nums">
+                                            {formatTimeOnlyInAppTimezone(columna.registrado_at, zona)}
+                                        </span>
+                                        {canUpdate ? (
+                                            <span className="inline-flex items-center">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-6 cursor-pointer rounded-full text-primary transition-colors duration-150 hover:bg-primary/12"
+                                                    aria-label={t('common:actions.edit')}
+                                                    onClick={() => onEdit(columna)}
+                                                >
+                                                    <Pencil className="size-3.5" strokeWidth={2.25} />
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-6 cursor-pointer rounded-full text-destructive transition-colors duration-150 hover:bg-destructive/12"
+                                                    aria-label={t('common:actions.delete')}
+                                                    onClick={() => onDelete(columna)}
+                                                >
+                                                    <Trash2 className="size-3.5" strokeWidth={2.25} />
+                                                </Button>
+                                            </span>
+                                        ) : null}
+                                    </div>
                                 </th>
-                                {dias.map((dia) =>
-                                    dia.columnas.map((columna, indice) => (
+                            )),
+                        )}
+                    </tr>
+                </thead>
+                <tbody>
+                    {PARAMETROS.map((parametro) => (
+                        <tr key={parametro.key} className="group">
+                            <th
+                                className={cn(
+                                    esquina,
+                                    'border-b border-border/40 px-1 py-2.5 pr-8 text-left text-[13px] font-medium text-muted-foreground group-last:border-b-0 group-hover:bg-muted/40 group-hover:text-foreground',
+                                )}
+                            >
+                                {t(parametro.labelKey)}
+                            </th>
+                            {dias.map((dia) =>
+                                dia.columnas.map((columna, indice) => {
+                                    const valor = valorCelda(columna, parametro.key);
+                                    const vacio = valor === '—';
+
+                                    return (
                                         <td
                                             key={`${columna.id}-${parametro.key}`}
                                             className={cn(
-                                                'px-3 py-2.5 text-center tabular-nums text-foreground',
-                                                indice === 0 && 'border-l border-border/60',
+                                                'border-b border-border/40 px-3 py-2.5 text-center whitespace-nowrap group-last:border-b-0 group-hover:bg-muted/30',
+                                                indice === 0 && 'border-l border-border/50',
+                                                vacio
+                                                    ? 'text-muted-foreground/35'
+                                                    : 'font-semibold text-foreground tabular-nums',
                                             )}
                                         >
-                                            {valorCelda(columna, parametro.key)}
+                                            {valor}
                                         </td>
-                                    )),
-                                )}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                                    );
+                                }),
+                            )}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }
