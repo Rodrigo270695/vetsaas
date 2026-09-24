@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePermission } from '@/hooks/use-permission';
 import { dashboard } from '@/routes';
 import { ConstantesFisiologicas } from './components/constantes-fisiologicas';
@@ -78,22 +78,22 @@ export default function Show({ internamiento }: Props) {
                         </p>
                         <p className="text-sm font-medium text-foreground">{internamiento.motivo_ingreso}</p>
                     </div>
-                    {canUpdate ? (
-                        <Button
-                            type="button"
-                            className="cursor-pointer gap-2 shadow-sm transition-transform duration-200 active:scale-[0.98]"
-                            onClick={() => setEvoModal({ type: 'create' })}
-                        >
-                            <ClipboardPlus className="size-4" strokeWidth={2.5} />
-                            {t('show.constantes_add')}
-                        </Button>
-                    ) : null}
                 </div>
 
                 <Card>
-                    <CardHeader className="pb-3">
+                    <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-3">
                         <CardTitle className="text-base">{t('show.section_constantes')}</CardTitle>
-                        <CardDescription>{t('show.constantes_hint')}</CardDescription>
+                        {canUpdate ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="cursor-pointer gap-2 shadow-sm transition-transform duration-200 active:scale-[0.98]"
+                                onClick={() => setEvoModal({ type: 'create' })}
+                            >
+                                <ClipboardPlus className="size-4" strokeWidth={2.5} />
+                                {t('show.constantes_add')}
+                            </Button>
+                        ) : null}
                     </CardHeader>
                     <CardContent>
                         <ConstantesFisiologicas
