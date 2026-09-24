@@ -37,6 +37,7 @@ use App\Http\Controllers\GroomingInsumoController;
 use App\Http\Controllers\GroomingServicioController;
 use App\Http\Controllers\GroomingTurnoController;
 use App\Http\Controllers\HospitalizacionController;
+use App\Http\Controllers\HospitalizacionSeguimientoController;
 use App\Http\Controllers\HotelCargoController;
 use App\Http\Controllers\HotelEstanciaController;
 use App\Http\Controllers\HotelTipoEstanciaController;
@@ -694,6 +695,36 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:hospitalizacion.update')
                 ->delete('hospitalizacion/{internamiento}/signos/{signo}', [HospitalizacionController::class, 'destroySigno'])
                 ->name('hospitalizacion.signos.destroy');
+            Route::middleware('permission:hospitalizacion.update')
+                ->post('hospitalizacion/{internamiento}/notas', [HospitalizacionSeguimientoController::class, 'storeNota'])
+                ->name('hospitalizacion.notas.store');
+            Route::middleware('permission:hospitalizacion.update')
+                ->match(['put', 'patch'], 'hospitalizacion/{internamiento}/notas/{nota}', [HospitalizacionSeguimientoController::class, 'updateNota'])
+                ->name('hospitalizacion.notas.update');
+            Route::middleware('permission:hospitalizacion.update')
+                ->delete('hospitalizacion/{internamiento}/notas/{nota}', [HospitalizacionSeguimientoController::class, 'destroyNota'])
+                ->name('hospitalizacion.notas.destroy');
+            Route::middleware('permission:hospitalizacion.update')
+                ->post('hospitalizacion/{internamiento}/fluidos', [HospitalizacionSeguimientoController::class, 'storeFluido'])
+                ->name('hospitalizacion.fluidos.store');
+            Route::middleware('permission:hospitalizacion.update')
+                ->match(['put', 'patch'], 'hospitalizacion/{internamiento}/fluidos/{fluido}', [HospitalizacionSeguimientoController::class, 'updateFluido'])
+                ->name('hospitalizacion.fluidos.update');
+            Route::middleware('permission:hospitalizacion.update')
+                ->delete('hospitalizacion/{internamiento}/fluidos/{fluido}', [HospitalizacionSeguimientoController::class, 'destroyFluido'])
+                ->name('hospitalizacion.fluidos.destroy');
+            Route::middleware('permission:hospitalizacion.update')
+                ->post('hospitalizacion/{internamiento}/tratamientos', [HospitalizacionSeguimientoController::class, 'storeTratamiento'])
+                ->name('hospitalizacion.tratamientos.store');
+            Route::middleware('permission:hospitalizacion.update')
+                ->match(['put', 'patch'], 'hospitalizacion/{internamiento}/tratamientos/{tratamiento}', [HospitalizacionSeguimientoController::class, 'updateTratamiento'])
+                ->name('hospitalizacion.tratamientos.update');
+            Route::middleware('permission:hospitalizacion.update')
+                ->delete('hospitalizacion/{internamiento}/tratamientos/{tratamiento}', [HospitalizacionSeguimientoController::class, 'destroyTratamiento'])
+                ->name('hospitalizacion.tratamientos.destroy');
+            Route::middleware('permission:hospitalizacion.update')
+                ->post('hospitalizacion/{internamiento}/alta', [HospitalizacionSeguimientoController::class, 'alta'])
+                ->name('hospitalizacion.alta');
 
             Route::middleware('permission:consulta-cargos.view|hospitalizacion.view')
                 ->get('hospitalizacion/{internamiento}/cargos', [InternamientoCargoController::class, 'show'])

@@ -362,7 +362,8 @@ class RecetaController extends Controller
             $this->syncLineas($receta, $lineas);
         });
 
-        if (str_contains(url()->previous(), '/clinica/pacientes/')) {
+        if (str_contains(url()->previous(), '/clinica/pacientes/')
+            || str_contains(url()->previous(), '/clinica/hospitalizacion/')) {
             return back()->with('success', __('recetas.flash.created'));
         }
 

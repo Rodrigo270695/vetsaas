@@ -235,5 +235,78 @@
         },
         "delete_title": "Delete these signs?",
         "delete_description": "This clinical-signs reading will be removed."
+    },
+    "notas": {
+        "title": "Notes",
+        "add": "Add note",
+        "title_create": "New note",
+        "title_edit": "Edit note",
+        "cuerpo": "Note",
+        "cuerpo_placeholder": "Write the observation for this time…",
+        "registrado_at": "Date and time",
+        "empty": "No notes yet.",
+        "delete_title": "Delete this note?",
+        "delete_description": "The note will no longer appear on this admission."
+    },
+    "fluidos": {
+        "title": "Fluid therapy",
+        "add": "Record fluids",
+        "title_create": "New fluid therapy",
+        "title_edit": "Edit fluid therapy",
+        "registrado_at": "Date and time",
+        "tipo": "Type",
+        "solucion": "Solution",
+        "solucion_placeholder": "Lactated Ringer's",
+        "via": "Route",
+        "volumen": "Volume (ml)",
+        "velocidad": "Rate (ml/h)",
+        "goteo": "Drip (gtt/min)",
+        "duracion": "Duration (h)",
+        "aditivos": "Additives",
+        "aditivos_placeholder": "Lidocaine 2 mg/kg",
+        "empty": "No fluid therapy yet.",
+        "opcion_vacia": "Not recorded",
+        "tipo_opcion": {
+            "cristaloide": "Crystalloid",
+            "coloide": "Colloid",
+            "mantenimiento": "Maintenance",
+            "otro": "Other"
+        },
+        "via_opcion": {
+            "iv_periferica": "Peripheral IV",
+            "iv_central": "Central IV",
+            "subcutanea": "Subcutaneous",
+            "intraosea": "Intraosseous",
+            "oral": "Oral"
+        },
+        "delete_title": "Delete this fluid therapy?",
+        "delete_description": "This record will no longer appear on the admission."
+    },
+    "tratamientos": {
+        "title": "Treatment",
+        "add": "Add treatment",
+        "title_create": "New treatment",
+        "title_edit": "Edit treatment",
+        "servicio": "Clinical service",
+        "servicio_placeholder": "Search the fee schedule…",
+        "servicio_empty": "No services match that name.",
+        "detalle": "Detail",
+        "detalle_placeholder": "Indication for this dose…",
+        "registrado_at": "Date and time",
+        "empty": "No treatments yet.",
+        "delete_title": "Delete this treatment?",
+        "delete_description": "The service will no longer appear on the admission."
+    },
+    "receta_card": {
+        "title": "Prescription",
+        "add": "Add prescription",
+        "empty": "No prescriptions on this admission yet."
+    },
+    "alta": {
+        "action": "Discharge",
+        "title": "Discharge this patient?",
+        "description": "The admission will be marked discharged at the current date and time.",
+        "confirm": "Discharge",
+        "ya": "Already discharged"
     }
 }

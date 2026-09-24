@@ -235,5 +235,78 @@
         },
         "delete_title": "¿Eliminar estos signos?",
         "delete_description": "Se eliminará esta toma de signos clínicos."
+    },
+    "notas": {
+        "title": "Notas",
+        "add": "Añadir nota",
+        "title_create": "Nueva nota",
+        "title_edit": "Editar nota",
+        "cuerpo": "Nota",
+        "cuerpo_placeholder": "Escribe la observación de esta hora…",
+        "registrado_at": "Fecha y hora",
+        "empty": "Aún no hay notas.",
+        "delete_title": "¿Eliminar esta nota?",
+        "delete_description": "La nota dejará de verse en el internamiento."
+    },
+    "fluidos": {
+        "title": "Fluidoterapia",
+        "add": "Registrar fluidoterapia",
+        "title_create": "Nueva fluidoterapia",
+        "title_edit": "Editar fluidoterapia",
+        "registrado_at": "Fecha y hora",
+        "tipo": "Tipo",
+        "solucion": "Solución",
+        "solucion_placeholder": "Lactato de Ringer",
+        "via": "Vía",
+        "volumen": "Volumen (ml)",
+        "velocidad": "Velocidad (ml/h)",
+        "goteo": "Goteo (gtt/min)",
+        "duracion": "Duración (h)",
+        "aditivos": "Aditivos",
+        "aditivos_placeholder": "Lidocaína 2 mg/kg",
+        "empty": "Aún no hay fluidoterapia.",
+        "opcion_vacia": "Sin registrar",
+        "tipo_opcion": {
+            "cristaloide": "Cristaloide",
+            "coloide": "Coloide",
+            "mantenimiento": "Mantenimiento",
+            "otro": "Otro"
+        },
+        "via_opcion": {
+            "iv_periferica": "IV periférica",
+            "iv_central": "IV central",
+            "subcutanea": "Subcutánea",
+            "intraosea": "Intraósea",
+            "oral": "Oral"
+        },
+        "delete_title": "¿Eliminar esta fluidoterapia?",
+        "delete_description": "Este registro dejará de verse en el internamiento."
+    },
+    "tratamientos": {
+        "title": "Tratamiento",
+        "add": "Añadir tratamiento",
+        "title_create": "Nuevo tratamiento",
+        "title_edit": "Editar tratamiento",
+        "servicio": "Servicio clínico",
+        "servicio_placeholder": "Buscar en la tarifa…",
+        "servicio_empty": "No hay servicios con ese nombre.",
+        "detalle": "Detalle",
+        "detalle_placeholder": "Indicación de esta aplicación…",
+        "registrado_at": "Fecha y hora",
+        "empty": "Aún no hay tratamientos.",
+        "delete_title": "¿Eliminar este tratamiento?",
+        "delete_description": "El servicio dejará de verse en el internamiento."
+    },
+    "receta_card": {
+        "title": "Receta",
+        "add": "Añadir receta",
+        "empty": "Aún no hay recetas en este internamiento."
+    },
+    "alta": {
+        "action": "Dar de alta",
+        "title": "¿Dar de alta a este paciente?",
+        "description": "El internamiento pasará a alta con la fecha y hora de ahora.",
+        "confirm": "Dar de alta",
+        "ya": "Alta registrada"
     }
 }

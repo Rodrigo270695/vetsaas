@@ -88,11 +88,67 @@ export type InternamientoSignoRow = {
     notas: string | null;
 };
 
+export type AutorRegistro = {
+    id: string;
+    name: string;
+} | null;
+
+export type InternamientoNotaRow = {
+    id: string;
+    internamiento_id: string;
+    registrado_at: string;
+    cuerpo: string;
+    creado_por?: AutorRegistro;
+};
+
+export type InternamientoFluidoRow = {
+    id: string;
+    internamiento_id: string;
+    registrado_at: string;
+    tipo: string | null;
+    solucion: string | null;
+    via: string | null;
+    volumen_ml: string | null;
+    velocidad_ml_h: string | null;
+    goteo_gtt_min: string | null;
+    duracion_horas: string | null;
+    aditivos: string | null;
+    creado_por?: AutorRegistro;
+};
+
+export type InternamientoTratamientoRow = {
+    id: string;
+    internamiento_id: string;
+    servicio_clinico_id: string | null;
+    registrado_at: string;
+    detalle: string | null;
+    servicio_clinico?: { id: string; nombre: string; precio_lista: string; moneda: string } | null;
+    creado_por?: AutorRegistro;
+};
+
+export type ServicioTratamientoOpcion = {
+    id: string;
+    nombre: string;
+    precio_lista: string;
+    moneda: string;
+};
+
+export type RecetaInternamientoRow = {
+    id: string;
+    emitida_at: string;
+    estado: string;
+    observaciones: string | null;
+    creado_por?: AutorRegistro;
+};
+
 export type InternamientoShow = InternamientoRow & {
     diagnostico_ingreso: string | null;
     notas: string | null;
     evoluciones: readonly InternamientoEvolucionRow[];
     signos_clinicos?: readonly InternamientoSignoRow[];
+    notas_bitacora?: readonly InternamientoNotaRow[];
+    fluidos?: readonly InternamientoFluidoRow[];
+    tratamientos?: readonly InternamientoTratamientoRow[];
     paciente: InternamientoRow['paciente'] & {
         propietario?: {
             id: string;

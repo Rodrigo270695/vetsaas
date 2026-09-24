@@ -117,6 +117,21 @@ class Internamiento extends Model
         return $this->hasMany(InternamientoSignoClinico::class, 'internamiento_id');
     }
 
+    public function notasBitacora(): HasMany
+    {
+        return $this->hasMany(InternamientoNota::class, 'internamiento_id');
+    }
+
+    public function fluidos(): HasMany
+    {
+        return $this->hasMany(InternamientoFluido::class, 'internamiento_id');
+    }
+
+    public function tratamientos(): HasMany
+    {
+        return $this->hasMany(InternamientoTratamiento::class, 'internamiento_id');
+    }
+
     public function cargo(): HasOne
     {
         return $this->hasOne(ConsultaCargo::class, 'internamiento_id')

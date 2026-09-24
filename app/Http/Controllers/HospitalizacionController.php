@@ -14,13 +14,18 @@ use App\Models\Internamiento;
 use App\Models\InternamientoEvolucion;
 use App\Models\InternamientoSignoClinico;
 use App\Models\Paciente;
+use App\Models\Receta;
 use App\Models\Sede;
+use App\Models\ServicioClinico;
 use App\Models\User;
+use App\Support\Tenancy\TenantManager;
+use App\Support\Tenancy\TenantModuleAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -233,6 +238,12 @@ class HospitalizacionController extends Controller
             'sede:id,nombre,codigo',
             'evoluciones' => fn ($q) => $q->orderByDesc('registrado_at')->with('veterinario:id,name'),
             'signosClinicos' => fn ($q) => $q->orderBy('registrado_at'),
+            'notasBitacora' => fn ($q) => $q->orderBy('registrado_at')->with('creadoPor:id,name'),
+            'fluidos' => fn ($q) => $q->orderBy('registrado_at')->with('creadoPor:id,name'),
+            'tratamientos' => fn ($q) => $q->orderBy('registrado_at')->with([
+                'creadoPor:id,name',
+                'servicioClinico:id,nombre,precio_lista,moneda',
+            ]),
         ];
 
         if ($canAudit) {
@@ -274,9 +285,81 @@ class HospitalizacionController extends Controller
             ->limit(200)
             ->get(['id', 'name']);
 
+        $serviciosTratamiento = [];
+        if (Schema::hasTable('servicios_clinicos')) {
+            $serviciosTratamiento = ServicioClinico::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->limit(400)
+                ->get(['id', 'nombre', 'precio_lista', 'moneda'])
+                ->map(static fn (ServicioClinico $servicio): array => [
+                    'id' => $servicio->id,
+                    'nombre' => $servicio->nombre,
+                    'precio_lista' => (string) $servicio->precio_lista,
+                    'moneda' => $servicio->moneda,
+                ])
+                ->all();
+        }
+
+        $tenantModel = app(TenantManager::class)->current()?->tenant;
+        $puedeReceta = ($user?->can('recetas.create') ?? false)
+            && TenantModuleAccess::isEnabled($tenantModel, 'recetas');
+
+        $sedesReceta = [];
+        $consultasReceta = [];
+        $recetasPaciente = [];
+        if ($puedeReceta) {
+            $sedesReceta = Sede::query()
+                ->where('tenant_id', $tenantId)
+                ->where('activa', true)
+                ->orderBy('nombre')
+                ->limit(100)
+                ->get(['id', 'nombre', 'codigo']);
+
+            $consultasReceta = Consulta::query()
+                ->whereHas('historiaClinica', fn ($q) => $q->where('paciente_id', $internamiento->paciente_id))
+                ->with(['historiaClinica:id,paciente_id', 'historiaClinica.paciente:id,nombre'])
+                ->orderByDesc('atendido_at')
+                ->limit(80)
+                ->get(['id', 'atendido_at', 'historia_clinica_id'])
+                ->map(static function (Consulta $consulta): array {
+                    $historia = $consulta->historiaClinica;
+
+                    return [
+                        'id' => $consulta->id,
+                        'atendido_at' => $consulta->atendido_at?->toIso8601String() ?? '',
+                        'historia_clinica_id' => $consulta->historia_clinica_id,
+                        'historia_clinica' => $historia === null ? null : [
+                            'id' => $historia->id,
+                            'paciente_id' => $historia->paciente_id,
+                            'paciente' => $historia->paciente === null ? null : [
+                                'id' => $historia->paciente->id,
+                                'nombre' => $historia->paciente->nombre,
+                            ],
+                        ],
+                    ];
+                })
+                ->all();
+        }
+
+        if (Schema::hasTable('recetas')) {
+            $recetasPaciente = Receta::query()
+                ->where('paciente_id', $internamiento->paciente_id)
+                ->where('emitida_at', '>=', $internamiento->ingreso_at)
+                ->with('creadoPor:id,name')
+                ->orderBy('emitida_at')
+                ->limit(20)
+                ->get(['id', 'emitida_at', 'estado', 'observaciones', 'created_by_id']);
+        }
+
         return Inertia::render('clinica/hospitalizacion/show', [
             'internamiento' => $internamiento,
             'usuarios_opciones' => $usuariosOpciones,
+            'servicios_tratamiento' => $serviciosTratamiento,
+            'puede_receta' => $puedeReceta,
+            'sedes_receta' => $sedesReceta,
+            'consultas_receta' => $consultasReceta,
+            'recetas_paciente' => $recetasPaciente,
             'cobro' => [
                 'consulta_id' => $internamiento->consulta_id,
                 'cargo' => $cargoInternamiento ?? $cargoConsulta,
