@@ -2,16 +2,14 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Consulta;
 use App\Models\Internamiento;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateInternamientoRequest extends FormRequest
 {
-    use AssignsAuthenticatedVeterinario;
-
     public function authorize(): bool
     {
         return $this->user()?->can('hospitalizacion.update') ?? false;
@@ -39,13 +37,11 @@ class UpdateInternamientoRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
-
-        $this->stripVeterinarioFromUpdate();
     }
 
-    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
-        $validator->after(function (\Illuminate\Validation\Validator $v): void {
+        $validator->after(function (Validator $v): void {
             $cid = $this->input('consulta_id');
             if ($cid === null || $cid === '') {
                 return;
@@ -79,6 +75,13 @@ class UpdateInternamientoRequest extends FormRequest
                 ),
             ],
             'consulta_id' => ['nullable', 'uuid', 'exists:consultas,id'],
+            'veterinario_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('users', 'id')->where(
+                    fn ($q) => $q->where('tenant_id', $tenantId),
+                ),
+            ],
             'sede_id' => [
                 'nullable',
                 'uuid',

@@ -410,7 +410,7 @@ class PacienteController extends Controller
         }
 
         $usuariosOpciones = [];
-        if ($canCrearGrooming) {
+        if ($canCrearGrooming || $canCrearHospital) {
             $usuariosOpciones = User::query()
                 ->where('tenant_id', $tenantId)
                 ->orderBy('name')

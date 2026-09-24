@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\Consulta;
-use App\Models\HistoriaClinica;
 use App\Models\ConsultaCargo;
+use App\Models\HistoriaClinica;
 use App\Models\Internamiento;
 use App\Models\Paciente;
 use App\Models\Propietario;
@@ -10,14 +10,13 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\Facades\Tenant as TenantContext;
 use Database\Seeders\PermissionsSeeder;
-use Database\Seeders\TenantRolesSeeder;
-use Tests\Support\TenantRbac;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\TenantMigrateTestGuards;
+use Tests\Support\TenantRbac;
 
 /**
  * CRUD de hospitalización (internamientos).
@@ -199,6 +198,11 @@ test('detalle permite registrar evolución con signos vitales', function (): voi
         'temperatura_c' => 38.5,
         'fc_lpm' => 90,
         'fr_rpm' => 24,
+        'deshidratacion_pct' => 5,
+        'tllc_segundos' => 2,
+        'pas' => 120,
+        'pad' => 80,
+        'pam' => 93,
     ])->assertRedirect();
 
     $this->get('http://'.$this->host.'/clinica/hospitalizacion/'.$internamiento->id)

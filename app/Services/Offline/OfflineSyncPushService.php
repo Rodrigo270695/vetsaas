@@ -996,6 +996,7 @@ final class OfflineSyncPushService
             $evolucion = DB::transaction(function () use ($validated, $internamientoId, $uid): InternamientoEvolucion {
                 return InternamientoEvolucion::query()->create([
                     ...$validated,
+                    'evolucion' => is_string($validated['evolucion'] ?? null) ? $validated['evolucion'] : '',
                     'internamiento_id' => $internamientoId,
                     'created_by_id' => $uid,
                     'updated_by_id' => $uid,

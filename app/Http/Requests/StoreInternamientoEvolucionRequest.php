@@ -18,7 +18,7 @@ class StoreInternamientoEvolucionRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $out = [];
-        foreach (['veterinario_id', 'peso_kg', 'temperatura_c', 'fc_lpm', 'fr_rpm'] as $key) {
+        foreach (['veterinario_id', 'peso_kg', 'temperatura_c', 'fc_lpm', 'fr_rpm', 'deshidratacion_pct', 'tllc_segundos', 'pas', 'pad', 'pam'] as $key) {
             $v = $this->input($key);
             if ($v === '' || $v === null) {
                 $out[$key] = null;
@@ -55,7 +55,12 @@ class StoreInternamientoEvolucionRequest extends FormRequest
             'temperatura_c' => ['nullable', 'numeric', 'min:20', 'max:45'],
             'fc_lpm' => ['nullable', 'integer', 'min:0', 'max:500'],
             'fr_rpm' => ['nullable', 'integer', 'min:0', 'max:200'],
-            'evolucion' => ['required', 'string', 'max:20000'],
+            'deshidratacion_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'tllc_segundos' => ['nullable', 'numeric', 'min:0', 'max:30'],
+            'pas' => ['nullable', 'integer', 'min:0', 'max:400'],
+            'pad' => ['nullable', 'integer', 'min:0', 'max:300'],
+            'pam' => ['nullable', 'integer', 'min:0', 'max:400'],
+            'evolucion' => ['nullable', 'string', 'max:20000'],
             'tratamiento' => ['nullable', 'string', 'max:20000'],
         ];
     }

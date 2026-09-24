@@ -2,16 +2,14 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Consulta;
 use App\Models\Internamiento;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreInternamientoRequest extends FormRequest
 {
-    use AssignsAuthenticatedVeterinario;
-
     public function authorize(): bool
     {
         return $this->user()?->can('hospitalizacion.create') ?? false;
@@ -40,12 +38,14 @@ class StoreInternamientoRequest extends FormRequest
             $this->merge($out);
         }
 
-        $this->mergeAuthenticatedVeterinario();
+        if ($this->input('veterinario_id') === null && $this->user()?->id !== null) {
+            $this->merge(['veterinario_id' => $this->user()->id]);
+        }
     }
 
-    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
-        $validator->after(function (\Illuminate\Validation\Validator $v): void {
+        $validator->after(function (Validator $v): void {
             $cid = $this->input('consulta_id');
             if ($cid === null || $cid === '') {
                 return;

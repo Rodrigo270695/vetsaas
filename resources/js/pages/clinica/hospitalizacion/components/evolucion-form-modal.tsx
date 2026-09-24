@@ -37,8 +37,32 @@ type FormShape = {
     temperatura_c: string;
     fc_lpm: string;
     fr_rpm: string;
+    deshidratacion_pct: string;
+    tllc_segundos: string;
+    pas: string;
+    pad: string;
+    pam: string;
     veterinario_id: string | null;
 };
+
+function numOrEmpty(value: number | string | null | undefined): string {
+    if (value == null || value === '') {
+        return '';
+    }
+
+    return String(value);
+}
+
+function sugerirPam(pas: string, pad: string): string {
+    const sistolica = Number.parseInt(pas, 10);
+    const diastolica = Number.parseInt(pad, 10);
+
+    if (Number.isNaN(sistolica) || Number.isNaN(diastolica)) {
+        return '';
+    }
+
+    return String(Math.round((sistolica + 2 * diastolica) / 3));
+}
 
 function emptyForm(defaultVetId: string | null): FormShape {
     return {
@@ -49,6 +73,11 @@ function emptyForm(defaultVetId: string | null): FormShape {
         temperatura_c: '',
         fc_lpm: '',
         fr_rpm: '',
+        deshidratacion_pct: '',
+        tllc_segundos: '',
+        pas: '',
+        pad: '',
+        pam: '',
         veterinario_id: defaultVetId,
     };
 }
@@ -56,14 +85,43 @@ function emptyForm(defaultVetId: string | null): FormShape {
 function fromEvolucion(e: InternamientoEvolucionRow, defaultVetId: string | null): FormShape {
     return {
         registrado_at: parseIsoToDatetimeLocal(e.registrado_at),
-        evolucion: e.evolucion,
+        evolucion: e.evolucion ?? '',
         tratamiento: e.tratamiento ?? '',
-        peso_kg: e.peso_kg != null && e.peso_kg !== '' ? String(e.peso_kg) : '',
-        temperatura_c: e.temperatura_c != null && e.temperatura_c !== '' ? String(e.temperatura_c) : '',
-        fc_lpm: e.fc_lpm != null ? String(e.fc_lpm) : '',
-        fr_rpm: e.fr_rpm != null ? String(e.fr_rpm) : '',
+        peso_kg: numOrEmpty(e.peso_kg),
+        temperatura_c: numOrEmpty(e.temperatura_c),
+        fc_lpm: numOrEmpty(e.fc_lpm),
+        fr_rpm: numOrEmpty(e.fr_rpm),
+        deshidratacion_pct: numOrEmpty(e.deshidratacion_pct),
+        tllc_segundos: numOrEmpty(e.tllc_segundos),
+        pas: numOrEmpty(e.pas),
+        pad: numOrEmpty(e.pad),
+        pam: numOrEmpty(e.pam),
         veterinario_id: e.veterinario_id ?? defaultVetId,
     };
+}
+
+function decimalOrNull(value: string): number | null {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return null;
+    }
+
+    const parsed = Number.parseFloat(trimmed);
+
+    return Number.isNaN(parsed) ? null : parsed;
+}
+
+function intOrNull(value: string): number | null {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return null;
+    }
+
+    const parsed = Number.parseInt(trimmed, 10);
+
+    return Number.isNaN(parsed) ? null : parsed;
 }
 
 export type EvolucionFormModalProps = {
@@ -89,21 +147,25 @@ export function EvolucionFormModal({
 
     const isEdit = evolucion !== null;
     const initialRef = useRef<FormShape>(emptyForm(null));
+    const pamManualRef = useRef(false);
 
     useEffect(() => {
         transform((raw) => {
             const r = raw;
-            const peso = r.peso_kg.trim();
-            const temp = r.temperatura_c.trim();
 
             return {
                 registrado_at: r.registrado_at,
-                evolucion: r.evolucion.trim(),
+                evolucion: r.evolucion.trim() === '' ? null : r.evolucion.trim(),
                 tratamiento: r.tratamiento.trim() === '' ? null : r.tratamiento.trim(),
-                peso_kg: peso === '' ? null : Number.parseFloat(peso),
-                temperatura_c: temp === '' ? null : Number.parseFloat(temp),
-                fc_lpm: r.fc_lpm.trim() === '' ? null : Number.parseInt(r.fc_lpm, 10),
-                fr_rpm: r.fr_rpm.trim() === '' ? null : Number.parseInt(r.fr_rpm, 10),
+                peso_kg: decimalOrNull(r.peso_kg),
+                temperatura_c: decimalOrNull(r.temperatura_c),
+                fc_lpm: intOrNull(r.fc_lpm),
+                fr_rpm: intOrNull(r.fr_rpm),
+                deshidratacion_pct: decimalOrNull(r.deshidratacion_pct),
+                tllc_segundos: decimalOrNull(r.tllc_segundos),
+                pas: intOrNull(r.pas),
+                pad: intOrNull(r.pad),
+                pam: intOrNull(r.pam),
                 veterinario_id:
                     r.veterinario_id != null && r.veterinario_id !== '' ? r.veterinario_id : null,
             };
@@ -117,6 +179,7 @@ export function EvolucionFormModal({
         }
 
         clearErrors();
+        pamManualRef.current = evolucion !== null && evolucion.pam != null;
         const next = evolucion !== null ? fromEvolucion(evolucion, defaultVetId) : emptyForm(defaultVetId);
         initialRef.current = structuredClone(next);
         setData(next);
@@ -152,17 +215,20 @@ export function EvolucionFormModal({
         }
 
         void (async () => {
-            const peso = data.peso_kg.trim();
-            const temp = data.temperatura_c.trim();
             const payload: Record<string, unknown> = {
                 internamiento_id: internamientoId,
                 registrado_at: data.registrado_at,
-                evolucion: data.evolucion.trim(),
+                evolucion: data.evolucion.trim() === '' ? null : data.evolucion.trim(),
                 tratamiento: data.tratamiento.trim() === '' ? null : data.tratamiento.trim(),
-                peso_kg: peso === '' ? null : Number.parseFloat(peso),
-                temperatura_c: temp === '' ? null : Number.parseFloat(temp),
-                fc_lpm: data.fc_lpm.trim() === '' ? null : Number.parseInt(data.fc_lpm, 10),
-                fr_rpm: data.fr_rpm.trim() === '' ? null : Number.parseInt(data.fr_rpm, 10),
+                peso_kg: decimalOrNull(data.peso_kg),
+                temperatura_c: decimalOrNull(data.temperatura_c),
+                fc_lpm: intOrNull(data.fc_lpm),
+                fr_rpm: intOrNull(data.fr_rpm),
+                deshidratacion_pct: decimalOrNull(data.deshidratacion_pct),
+                tllc_segundos: decimalOrNull(data.tllc_segundos),
+                pas: intOrNull(data.pas),
+                pad: intOrNull(data.pad),
+                pam: intOrNull(data.pam),
                 veterinario_id:
                     data.veterinario_id != null && data.veterinario_id !== ''
                         ? data.veterinario_id
@@ -197,7 +263,31 @@ export function EvolucionFormModal({
         return typeof v === 'string' ? v : undefined;
     };
 
-    const canSubmit = data.evolucion.trim().length > 0 && data.registrado_at.trim().length > 0 && !processing;
+    const tieneAlgunaConstante = [
+        data.peso_kg,
+        data.temperatura_c,
+        data.fc_lpm,
+        data.fr_rpm,
+        data.deshidratacion_pct,
+        data.tllc_segundos,
+        data.pas,
+        data.pad,
+        data.pam,
+        data.evolucion,
+        data.tratamiento,
+    ].some((value) => value.trim() !== '');
+
+    const canSubmit = tieneAlgunaConstante && data.registrado_at.trim().length > 0 && !processing;
+
+    const setPresion = (key: 'pas' | 'pad', value: string) => {
+        const next = { ...data, [key]: value };
+        const pam = sugerirPam(next.pas, next.pad);
+
+        setData({
+            ...next,
+            pam: pamManualRef.current ? data.pam : pam,
+        });
+    };
 
     return (
         <FormModal
@@ -234,50 +324,8 @@ export function EvolucionFormModal({
                         disabled={processing}
                     />
                 </FormField>
-                <FormField
-                    id="evo-texto"
-                    label={t('evolucion.evolucion')}
-                    required
-                    error={err('evolucion')}
-                    className="sm:col-span-2"
-                >
-                    <Textarea
-                        id="evo-texto"
-                        className="min-h-24 w-full"
-                        value={data.evolucion}
-                        onChange={(e) => setData('evolucion', e.target.value)}
-                        placeholder={t('evolucion.evolucion_placeholder')}
-                        disabled={processing}
-                    />
-                </FormField>
-                <FormField
-                    id="evo-trat"
-                    label={t('evolucion.tratamiento')}
-                    error={err('tratamiento')}
-                    className="sm:col-span-2"
-                >
-                    <Textarea
-                        id="evo-trat"
-                        className="min-h-20 w-full"
-                        value={data.tratamiento}
-                        onChange={(e) => setData('tratamiento', e.target.value)}
-                        placeholder={t('evolucion.tratamiento_placeholder')}
-                        disabled={processing}
-                    />
-                </FormField>
             </FormSection>
-            <FormSection title={t('evolucion.vitales')} columns={4}>
-                <FormField id="evo-peso" label={t('evolucion.peso_kg')} error={err('peso_kg')}>
-                    <Input
-                        id="evo-peso"
-                        inputMode="decimal"
-                        className={controlClass}
-                        value={data.peso_kg}
-                        onChange={(e) => setData('peso_kg', e.target.value)}
-                        placeholder={t('evolucion.vital_placeholder')}
-                        disabled={processing}
-                    />
-                </FormField>
+            <FormSection title={t('evolucion.vitales')} columns={2}>
                 <FormField id="evo-temp" label={t('evolucion.temperatura_c')} error={err('temperatura_c')}>
                     <Input
                         id="evo-temp"
@@ -285,7 +333,7 @@ export function EvolucionFormModal({
                         className={controlClass}
                         value={data.temperatura_c}
                         onChange={(e) => setData('temperatura_c', e.target.value)}
-                        placeholder={t('evolucion.vital_placeholder')}
+                        placeholder="°C"
                         disabled={processing}
                     />
                 </FormField>
@@ -296,7 +344,7 @@ export function EvolucionFormModal({
                         className={controlClass}
                         value={data.fc_lpm}
                         onChange={(e) => setData('fc_lpm', e.target.value)}
-                        placeholder={t('evolucion.vital_placeholder')}
+                        placeholder="LPM"
                         disabled={processing}
                     />
                 </FormField>
@@ -307,7 +355,91 @@ export function EvolucionFormModal({
                         className={controlClass}
                         value={data.fr_rpm}
                         onChange={(e) => setData('fr_rpm', e.target.value)}
-                        placeholder={t('evolucion.vital_placeholder')}
+                        placeholder="RPM"
+                        disabled={processing}
+                    />
+                </FormField>
+                <FormField id="evo-peso" label={t('evolucion.peso_kg')} error={err('peso_kg')}>
+                    <Input
+                        id="evo-peso"
+                        inputMode="decimal"
+                        className={controlClass}
+                        value={data.peso_kg}
+                        onChange={(e) => setData('peso_kg', e.target.value)}
+                        placeholder="Kg"
+                        disabled={processing}
+                    />
+                </FormField>
+                <FormField id="evo-deshid" label={t('evolucion.deshidratacion')} error={err('deshidratacion_pct')}>
+                    <Input
+                        id="evo-deshid"
+                        inputMode="decimal"
+                        className={controlClass}
+                        value={data.deshidratacion_pct}
+                        onChange={(e) => setData('deshidratacion_pct', e.target.value)}
+                        placeholder="%"
+                        disabled={processing}
+                    />
+                </FormField>
+                <FormField id="evo-tllc" label={t('evolucion.tllc')} error={err('tllc_segundos')}>
+                    <Input
+                        id="evo-tllc"
+                        inputMode="decimal"
+                        className={controlClass}
+                        value={data.tllc_segundos}
+                        onChange={(e) => setData('tllc_segundos', e.target.value)}
+                        placeholder={t('evolucion.tllc_placeholder')}
+                        disabled={processing}
+                    />
+                </FormField>
+                <FormField id="evo-pas" label={t('evolucion.pas')} error={err('pas')}>
+                    <Input
+                        id="evo-pas"
+                        inputMode="numeric"
+                        className={controlClass}
+                        value={data.pas}
+                        onChange={(e) => setPresion('pas', e.target.value)}
+                        placeholder="mmHg"
+                        disabled={processing}
+                    />
+                </FormField>
+                <FormField id="evo-pad" label={t('evolucion.pad')} error={err('pad')}>
+                    <Input
+                        id="evo-pad"
+                        inputMode="numeric"
+                        className={controlClass}
+                        value={data.pad}
+                        onChange={(e) => setPresion('pad', e.target.value)}
+                        placeholder="mmHg"
+                        disabled={processing}
+                    />
+                </FormField>
+                <FormField id="evo-pam" label={t('evolucion.pam')} hint={t('evolucion.pam_hint')} error={err('pam')}>
+                    <Input
+                        id="evo-pam"
+                        inputMode="numeric"
+                        className={controlClass}
+                        value={data.pam}
+                        onChange={(e) => {
+                            pamManualRef.current = e.target.value.trim() !== '';
+                            setData('pam', e.target.value);
+                        }}
+                        placeholder="mmHg"
+                        disabled={processing}
+                    />
+                </FormField>
+                <FormField
+                    id="evo-texto"
+                    label={t('evolucion.evolucion')}
+                    error={err('evolucion')}
+                    className="sm:col-span-2"
+                >
+                    <Textarea
+                        id="evo-texto"
+                        className="min-h-16 w-full"
+                        value={data.evolucion}
+                        onChange={(e) => setData('evolucion', e.target.value)}
+                        placeholder={t('evolucion.evolucion_placeholder')}
                         disabled={processing}
                     />
                 </FormField>

@@ -1,28 +1,15 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    BedDouble,
-    ClipboardPlus,
-    MoreHorizontal,
-    Pencil,
-    Receipt,
-    Trash2,
-} from 'lucide-react';
+import { ArrowLeft, BedDouble, ClipboardPlus, Receipt } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { usePermission } from '@/hooks/use-permission';
 import { dashboard } from '@/routes';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
+import { ConstantesFisiologicas } from './components/constantes-fisiologicas';
 import { EvolucionDeleteDialog } from './components/evolucion-delete-dialog';
 import { EvolucionFormModal } from './components/evolucion-form-modal';
 import type {
@@ -60,29 +47,7 @@ function displayPropietario(
     return [p.nombres, p.apellidos].filter(Boolean).join(' ') || '—';
 }
 
-function vitalesResumen(e: InternamientoEvolucionRow): string {
-    const parts: string[] = [];
-
-    if (e.peso_kg != null && e.peso_kg !== '') {
-        parts.push(`${e.peso_kg} kg`);
-    }
-
-    if (e.temperatura_c != null && e.temperatura_c !== '') {
-        parts.push(`${e.temperatura_c} °C`);
-    }
-
-    if (e.fc_lpm != null) {
-        parts.push(`FC ${e.fc_lpm}`);
-    }
-
-    if (e.fr_rpm != null) {
-        parts.push(`FR ${e.fr_rpm}`);
-    }
-
-    return parts.length > 0 ? parts.join(' · ') : '—';
-}
-
-export default function Show({ internamiento, usuarios_opciones, cobro }: Props) {
+export default function Show({ internamiento, cobro }: Props) {
     const { t } = useTranslation(['hospitalizacion', 'consulta-cargos', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
@@ -127,13 +92,29 @@ export default function Show({ internamiento, usuarios_opciones, cobro }: Props)
                             onClick={() => setEvoModal({ type: 'create' })}
                         >
                             <ClipboardPlus className="size-4" strokeWidth={2.5} />
-                            {t('show.evoluciones_add')}
+                            {t('show.constantes_add')}
                         </Button>
                     ) : null}
                 </div>
 
-                <div className="grid gap-5 lg:grid-cols-3">
-                    <div className="flex flex-col gap-5 lg:col-span-1">
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base">{t('show.section_constantes')}</CardTitle>
+                        <CardDescription>{t('show.constantes_hint')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ConstantesFisiologicas
+                            evoluciones={internamiento.evoluciones}
+                            locale={appLocale ?? 'es'}
+                            timeZone={appTz ?? 'UTC'}
+                            canUpdate={canUpdate}
+                            onEdit={(evolucion) => setEvoModal({ type: 'edit', evolucion })}
+                            onDelete={(evolucion) => setEvoModal({ type: 'delete', evolucion })}
+                        />
+                    </CardContent>
+                </Card>
+
+                <div className="grid gap-5 lg:grid-cols-2">
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-base">{t('show.section_resumen')}</CardTitle>
@@ -240,93 +221,6 @@ export default function Show({ internamiento, usuarios_opciones, cobro }: Props)
                                 ) : null}
                             </CardContent>
                         </Card>
-                    </div>
-
-                    <Card className="lg:col-span-2">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-base">{t('show.section_evoluciones')}</CardTitle>
-                            <span className="text-xs text-muted-foreground">
-                                {internamiento.evoluciones.length}
-                            </span>
-                        </CardHeader>
-                        <CardContent>
-                            {internamiento.evoluciones.length === 0 ? (
-                                <p className="py-8 text-center text-sm text-muted-foreground">
-                                    {t('show.evoluciones_empty')}
-                                </p>
-                            ) : (
-                                <ul className="m-0 flex list-none flex-col gap-3 p-0">
-                                    {internamiento.evoluciones.map((e) => (
-                                        <li
-                                            key={e.id}
-                                            className="rounded-lg border border-border/60 bg-card px-3 py-3 shadow-sm"
-                                        >
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="min-w-0 flex-1 space-y-1">
-                                                    <p className="text-xs font-medium text-muted-foreground">
-                                                        {formatAtendidoInAppTimezone(
-                                                            e.registrado_at,
-                                                            appLocale,
-                                                            appTz,
-                                                        )}
-                                                        {e.veterinario ? ` · ${e.veterinario.name}` : ''}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {vitalesResumen(e)}
-                                                    </p>
-                                                    <p className="whitespace-pre-wrap text-sm text-foreground">
-                                                        {e.evolucion}
-                                                    </p>
-                                                    {e.tratamiento ? (
-                                                        <p className="whitespace-pre-wrap text-xs text-muted-foreground">
-                                                            <span className="font-medium">
-                                                                {t('evolucion.tratamiento')}:{' '}
-                                                            </span>
-                                                            {e.tratamiento}
-                                                        </p>
-                                                    ) : null}
-                                                </div>
-                                                {canUpdate ? (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="size-8 shrink-0"
-                                                            >
-                                                                <MoreHorizontal className="size-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem
-                                                                className="cursor-pointer gap-2"
-                                                                onClick={() =>
-                                                                    setEvoModal({ type: 'edit', evolucion: e })
-                                                                }
-                                                            >
-                                                                <Pencil className="size-4" />
-                                                                {t('common:actions.edit')}
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                className="cursor-pointer gap-2 text-destructive"
-                                                                onClick={() =>
-                                                                    setEvoModal({ type: 'delete', evolucion: e })
-                                                                }
-                                                            >
-                                                                <Trash2 className="size-4" />
-                                                                {t('common:actions.delete')}
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                ) : null}
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </CardContent>
-                    </Card>
                 </div>
             </div>
 

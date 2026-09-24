@@ -753,6 +753,7 @@ export default function PacienteShow({
                 pacientesOpciones={pacientes_opciones as readonly PacienteHospitalizacionOpcion[]}
                 sedesOpciones={sedes_opciones as readonly SedeHospitalizacionOpcion[]}
                 consultasOpciones={consultas_opciones as readonly ConsultaHospitalizacionOpcion[]}
+                usuariosOpciones={usuarios_opciones}
             />
 
             {grooming_nuevo ? (

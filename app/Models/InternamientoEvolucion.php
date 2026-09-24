@@ -7,16 +7,22 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
  * @property string $internamiento_id
- * @property \Illuminate\Support\Carbon $registrado_at
+ * @property Carbon $registrado_at
  * @property ?string $veterinario_id
  * @property ?string $peso_kg
  * @property ?string $temperatura_c
  * @property ?int $fc_lpm
  * @property ?int $fr_rpm
+ * @property ?string $deshidratacion_pct
+ * @property ?string $tllc_segundos
+ * @property ?int $pas
+ * @property ?int $pad
+ * @property ?int $pam
  * @property string $evolucion
  * @property ?string $tratamiento
  */
@@ -36,6 +42,11 @@ class InternamientoEvolucion extends Model
         'temperatura_c',
         'fc_lpm',
         'fr_rpm',
+        'deshidratacion_pct',
+        'tllc_segundos',
+        'pas',
+        'pad',
+        'pam',
         'evolucion',
         'tratamiento',
         'created_by_id',
@@ -49,6 +60,11 @@ class InternamientoEvolucion extends Model
             'temperatura_c' => 'decimal:1',
             'fc_lpm' => 'integer',
             'fr_rpm' => 'integer',
+            'deshidratacion_pct' => 'decimal:2',
+            'tllc_segundos' => 'decimal:1',
+            'pas' => 'integer',
+            'pad' => 'integer',
+            'pam' => 'integer',
         ];
     }
 

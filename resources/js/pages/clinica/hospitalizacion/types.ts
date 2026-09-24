@@ -61,6 +61,11 @@ export type InternamientoEvolucionRow = {
     temperatura_c: string | null;
     fc_lpm: number | null;
     fr_rpm: number | null;
+    deshidratacion_pct: string | null;
+    tllc_segundos: string | null;
+    pas: number | null;
+    pad: number | null;
+    pam: number | null;
     evolucion: string;
     tratamiento: string | null;
     veterinario: { id: string; name: string } | null;

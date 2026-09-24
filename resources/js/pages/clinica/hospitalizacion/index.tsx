@@ -511,6 +511,7 @@ export default function Index({
                 pacientesOpciones={pacientes_opciones}
                 sedesOpciones={sedes_opciones}
                 consultasOpciones={consultas_opciones}
+                usuariosOpciones={usuarios_opciones}
             />
 
             <InternamientoDeleteDialog

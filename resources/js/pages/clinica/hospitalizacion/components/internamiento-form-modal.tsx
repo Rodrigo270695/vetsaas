@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { PacienteCombobox } from '@/components/clinica/paciente-combobox';
 import { FormField, FormModal, FormSection, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
+import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -24,6 +26,7 @@ import type {
     InternamientoRow,
     PacienteHospitalizacionOpcion,
     SedeHospitalizacionOpcion,
+    UsuarioHospitalizacionOpcion,
 } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -96,7 +99,7 @@ function fromInternamiento(row: InternamientoRow, defaultVetId: string | null): 
         ubicacion: row.ubicacion ?? '',
         diagnostico_ingreso: row.diagnostico_ingreso ?? '',
         notas: row.notas ?? '',
-        veterinario_id: row.veterinario_id ?? defaultVetId,
+        veterinario_id: row.veterinario_id ?? row.creado_por?.id ?? defaultVetId,
         sede_id: row.sede_id,
     };
 }
@@ -112,6 +115,7 @@ export type InternamientoFormModalProps = {
     pacientesOpciones: readonly PacienteHospitalizacionOpcion[];
     sedesOpciones: readonly SedeHospitalizacionOpcion[];
     consultasOpciones: readonly ConsultaHospitalizacionOpcion[];
+    usuariosOpciones?: readonly UsuarioHospitalizacionOpcion[];
     prefillPacienteId?: string | null;
 };
 
@@ -122,11 +126,12 @@ export function InternamientoFormModal({
     pacientesOpciones,
     sedesOpciones,
     consultasOpciones,
+    usuariosOpciones = [],
     prefillPacienteId = null,
 }: InternamientoFormModalProps) {
     const { t } = useTranslation(['hospitalizacion', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
-    const authUser = usePage().props.auth?.user as { id?: string } | undefined;
+    const authUser = usePage().props.auth?.user as { id?: string; name?: string } | undefined;
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const defaultVetId = authUser?.id ?? null;
 
@@ -328,6 +333,29 @@ export function InternamientoFormModal({
             });
         })();
     };
+
+    const medicoOptions = useMemo((): ComboboxOption[] => {
+        const list = usuariosOpciones.map((usuario) => ({
+            value: usuario.id,
+            label: usuario.name,
+        }));
+
+        if (
+            data.veterinario_id &&
+            !list.some((option) => option.value === data.veterinario_id)
+        ) {
+            const nombre =
+                internamiento?.veterinario?.name ??
+                internamiento?.creado_por?.name ??
+                (authUser?.id === data.veterinario_id ? authUser.name : undefined);
+
+            if (nombre) {
+                list.unshift({ value: data.veterinario_id, label: nombre });
+            }
+        }
+
+        return list;
+    }, [usuariosOpciones, data.veterinario_id, internamiento, authUser?.id, authUser?.name]);
 
     const estadoOptions = isEdit ? ESTADOS_EDITAR : ESTADOS_CREAR;
 
@@ -549,6 +577,26 @@ export function InternamientoFormModal({
                     description={t('form.section_context_hint')}
                     columns={1}
                 >
+                    <FormField
+                        id="int-medico"
+                        label={t('form.medico_tratante')}
+                        hint={t('form.medico_tratante_hint')}
+                        error={err('veterinario_id')}
+                    >
+                        <Combobox
+                            id="int-medico"
+                            options={medicoOptions}
+                            value={data.veterinario_id}
+                            onChange={(value) => setData('veterinario_id', value)}
+                            placeholder={t('form.medico_tratante_placeholder')}
+                            searchPlaceholder={t('form.medico_tratante_search')}
+                            emptyMessage={t('form.medico_tratante_empty')}
+                            disabled={processing}
+                            clearable={false}
+                            className={`${controlClass} cursor-pointer`}
+                            aria-invalid={Boolean(errors.veterinario_id)}
+                        />
+                    </FormField>
                     <SedeFormField
                         id="int-sede"
                         label={t('form.sede')}

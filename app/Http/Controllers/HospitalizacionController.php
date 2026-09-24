@@ -296,6 +296,7 @@ class HospitalizacionController extends Controller
     ): RedirectResponse {
         $data = $request->validated();
         $data['internamiento_id'] = $internamiento->id;
+        $data['evolucion'] = is_string($data['evolucion'] ?? null) ? $data['evolucion'] : '';
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
 
@@ -314,6 +315,9 @@ class HospitalizacionController extends Controller
         abort_unless($evolucion->internamiento_id === $internamiento->id, 404);
 
         $data = $request->validated();
+        if (array_key_exists('evolucion', $data) && ! is_string($data['evolucion'])) {
+            $data['evolucion'] = '';
+        }
         $data['updated_by_id'] = Auth::id();
 
         $evolucion->fill($data);
