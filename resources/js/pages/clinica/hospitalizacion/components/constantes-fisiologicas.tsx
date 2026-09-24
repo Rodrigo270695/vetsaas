@@ -102,7 +102,7 @@ export function ConstantesFisiologicas({
         }
 
         return [...groups.entries()]
-            .sort(([a], [b]) => b.localeCompare(a))
+            .sort(([a], [b]) => a.localeCompare(b))
             .map(([dayKey, columnas]) => {
                 const ordenadas = [...columnas].sort((a, b) =>
                     a.registrado_at.localeCompare(b.registrado_at),
