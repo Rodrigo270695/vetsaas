@@ -4,6 +4,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { dateKeyInAppTimezone, formatTimeOnlyInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type { InternamientoEvolucionRow } from '../types';
 
@@ -115,88 +116,98 @@ export function ConstantesFisiologicas({
             });
     }, [evoluciones, zona]);
 
-    const hojas = dias.length > 0 ? dias : [{ dayKey: 'vacio', label: '', columnas: [] }];
-
     return (
-        <div className="flex flex-col gap-6">
-            {hojas.map((dia) => (
-                <section key={dia.dayKey} className="overflow-hidden rounded-xl border border-border/70">
-                    {dia.label ? (
-                        <header className="border-b border-border/60 bg-muted/40 px-4 py-2.5">
-                            <h3 className="text-sm font-semibold text-foreground">{dia.label}</h3>
-                        </header>
-                    ) : null}
-                    <div className="overflow-x-auto">
-                        <table
-                            className={`w-full border-collapse text-sm ${dia.columnas.length > 0 ? 'min-w-xl' : ''}`}
-                        >
-                            <thead>
-                                <tr className="border-b border-border/60 bg-muted/20">
-                                    <th className="sticky left-0 z-10 bg-muted/20 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                                        {t('show.constantes_parametro')}
-                                    </th>
-                                    {dia.columnas.map((columna) => (
+        <div className="overflow-hidden rounded-xl border border-border/70">
+            <div className="overflow-x-auto">
+                <table className={cn('w-full border-collapse text-sm', dias.length > 0 && 'min-w-xl')}>
+                    <thead>
+                        <tr className="border-b border-border/60 bg-muted/40">
+                            <th
+                                rowSpan={dias.length > 0 ? 2 : 1}
+                                className="sticky left-0 z-10 min-w-40 bg-muted/40 px-3 py-2 text-left text-xs font-medium text-muted-foreground"
+                            >
+                                {t('show.constantes_parametro')}
+                            </th>
+                            {dias.map((dia) => (
+                                <th
+                                    key={dia.dayKey}
+                                    colSpan={dia.columnas.length}
+                                    className="border-l border-border/60 px-3 py-2 text-center text-xs font-semibold tracking-wide text-foreground"
+                                >
+                                    {dia.label}
+                                </th>
+                            ))}
+                        </tr>
+                        {dias.length > 0 ? (
+                            <tr className="border-b border-border/60 bg-muted/20">
+                                {dias.map((dia) =>
+                                    dia.columnas.map((columna, indice) => (
                                         <th
                                             key={columna.id}
-                                            className="px-2 py-2 text-center text-xs font-semibold text-foreground"
+                                            className={cn(
+                                                'px-2 py-2 text-center align-top',
+                                                indice === 0 && 'border-l border-border/60',
+                                            )}
                                         >
-                                            <div className="flex items-center justify-center gap-1">
-                                                <span>
-                                                    {formatTimeOnlyInAppTimezone(
-                                                        columna.registrado_at,
-                                                        zona,
-                                                    )}
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <span className="text-xs font-semibold tabular-nums text-foreground">
+                                                    {formatTimeOnlyInAppTimezone(columna.registrado_at, zona)}
                                                 </span>
                                                 {canUpdate ? (
-                                                    <>
+                                                    <div className="inline-flex items-center rounded-lg border border-border/70 bg-background p-0.5 shadow-xs">
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="size-6 cursor-pointer"
+                                                            className="size-7 cursor-pointer rounded-md text-primary transition-all duration-200 hover:bg-primary/12 hover:text-primary active:scale-95"
                                                             aria-label={t('common:actions.edit')}
                                                             onClick={() => onEdit(columna)}
                                                         >
-                                                            <Pencil className="size-3" />
+                                                            <Pencil className="size-3.5" strokeWidth={2.25} />
                                                         </Button>
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="size-6 cursor-pointer text-destructive"
+                                                            className="size-7 cursor-pointer rounded-md text-destructive transition-all duration-200 hover:bg-destructive/12 hover:text-destructive active:scale-95"
                                                             aria-label={t('common:actions.delete')}
                                                             onClick={() => onDelete(columna)}
                                                         >
-                                                            <Trash2 className="size-3" />
+                                                            <Trash2 className="size-3.5" strokeWidth={2.25} />
                                                         </Button>
-                                                    </>
+                                                    </div>
                                                 ) : null}
                                             </div>
                                         </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {PARAMETROS.map((parametro) => (
-                                    <tr key={parametro.key} className="border-b border-border/40 last:border-b-0">
-                                        <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                                            {t(parametro.labelKey)}
-                                        </th>
-                                        {dia.columnas.map((columna) => (
-                                            <td
-                                                key={`${columna.id}-${parametro.key}`}
-                                                className="px-3 py-2 text-center tabular-nums text-foreground"
-                                            >
-                                                {valorCelda(columna, parametro.key)}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            ))}
+                                    )),
+                                )}
+                            </tr>
+                        ) : null}
+                    </thead>
+                    <tbody>
+                        {PARAMETROS.map((parametro) => (
+                            <tr key={parametro.key} className="border-b border-border/40 last:border-b-0">
+                                <th className="sticky left-0 z-10 bg-card px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">
+                                    {t(parametro.labelKey)}
+                                </th>
+                                {dias.map((dia) =>
+                                    dia.columnas.map((columna, indice) => (
+                                        <td
+                                            key={`${columna.id}-${parametro.key}`}
+                                            className={cn(
+                                                'px-3 py-2.5 text-center tabular-nums text-foreground',
+                                                indice === 0 && 'border-l border-border/60',
+                                            )}
+                                        >
+                                            {valorCelda(columna, parametro.key)}
+                                        </td>
+                                    )),
+                                )}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

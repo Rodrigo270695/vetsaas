@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePermission } from '@/hooks/use-permission';
 import { dashboard } from '@/routes';
 import { ConstantesFisiologicas } from './components/constantes-fisiologicas';
@@ -78,6 +78,16 @@ export default function Show({ internamiento }: Props) {
                         </p>
                         <p className="text-sm font-medium text-foreground">{internamiento.motivo_ingreso}</p>
                     </div>
+                    {canUpdate ? (
+                        <Button
+                            type="button"
+                            className="cursor-pointer gap-2 shadow-sm transition-transform duration-200 active:scale-[0.98]"
+                            onClick={() => setEvoModal({ type: 'create' })}
+                        >
+                            <ClipboardPlus className="size-4" strokeWidth={2.5} />
+                            {t('show.constantes_add')}
+                        </Button>
+                    ) : null}
                 </div>
 
                 <Card>
@@ -94,18 +104,6 @@ export default function Show({ internamiento }: Props) {
                             onDelete={(evolucion) => setEvoModal({ type: 'delete', evolucion })}
                         />
                     </CardContent>
-                    {canUpdate ? (
-                        <CardFooter className="justify-end border-t border-border/60">
-                            <Button
-                                type="button"
-                                className="cursor-pointer gap-2"
-                                onClick={() => setEvoModal({ type: 'create' })}
-                            >
-                                <ClipboardPlus className="size-4" strokeWidth={2.5} />
-                                {t('show.constantes_add')}
-                            </Button>
-                        </CardFooter>
-                    ) : null}
                 </Card>
             </div>
 

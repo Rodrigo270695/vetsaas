@@ -77,6 +77,38 @@ function sugerirPam(pas: string, pad: string): string {
     return String(Math.round((sistolica + 2 * diastolica) / 3));
 }
 
+function soloEntero(value: string): string {
+    return value.replace(/\D/g, '');
+}
+
+function soloDecimal(value: string): string {
+    const normalizado = value.replace(',', '.');
+    let salida = '';
+    let tienePunto = false;
+
+    for (const char of normalizado) {
+        if (char >= '0' && char <= '9') {
+            salida += char;
+            continue;
+        }
+
+        if (char === '.' && !tienePunto) {
+            tienePunto = true;
+            salida += '.';
+        }
+    }
+
+    return salida;
+}
+
+function esDigito(data: string | null, decimal: boolean): boolean {
+    if (data == null || data === '') {
+        return true;
+    }
+
+    return decimal ? /^[\d.,]+$/.test(data) : /^\d+$/.test(data);
+}
+
 function emptyForm(defaultVetId: string | null, timeZone: string): FormShape {
     return {
         registrado_at: toDatetimeLocalValue(Date.now(), timeZone),
@@ -294,6 +326,14 @@ export function EvolucionFormModal({
 
     const canSubmit = tieneAlgunaConstante && data.registrado_at.trim().length > 0 && !processing;
 
+    const filtrarAntes = (decimal: boolean) => (event: FormEvent<HTMLInputElement>) => {
+        const data = (event.nativeEvent as InputEvent).data;
+
+        if (!esDigito(data, decimal)) {
+            event.preventDefault();
+        }
+    };
+
     const setPresion = (key: 'pas' | 'pad', value: string) => {
         const next = { ...data, [key]: value };
         const pam = sugerirPam(next.pas, next.pad);
@@ -347,7 +387,8 @@ export function EvolucionFormModal({
                         inputMode="decimal"
                         className={controlClass}
                         value={data.temperatura_c}
-                        onChange={(e) => setData('temperatura_c', e.target.value)}
+                        onBeforeInput={filtrarAntes(true)}
+                        onChange={(e) => setData('temperatura_c', soloDecimal(e.target.value))}
                         placeholder="°C"
                         disabled={processing}
                     />
@@ -358,7 +399,8 @@ export function EvolucionFormModal({
                         inputMode="numeric"
                         className={controlClass}
                         value={data.fc_lpm}
-                        onChange={(e) => setData('fc_lpm', e.target.value)}
+                        onBeforeInput={filtrarAntes(false)}
+                        onChange={(e) => setData('fc_lpm', soloEntero(e.target.value))}
                         placeholder="LPM"
                         disabled={processing}
                     />
@@ -369,7 +411,8 @@ export function EvolucionFormModal({
                         inputMode="numeric"
                         className={controlClass}
                         value={data.fr_rpm}
-                        onChange={(e) => setData('fr_rpm', e.target.value)}
+                        onBeforeInput={filtrarAntes(false)}
+                        onChange={(e) => setData('fr_rpm', soloEntero(e.target.value))}
                         placeholder="RPM"
                         disabled={processing}
                     />
@@ -380,7 +423,8 @@ export function EvolucionFormModal({
                         inputMode="decimal"
                         className={controlClass}
                         value={data.peso_kg}
-                        onChange={(e) => setData('peso_kg', e.target.value)}
+                        onBeforeInput={filtrarAntes(true)}
+                        onChange={(e) => setData('peso_kg', soloDecimal(e.target.value))}
                         placeholder="Kg"
                         disabled={processing}
                     />
@@ -391,7 +435,8 @@ export function EvolucionFormModal({
                         inputMode="decimal"
                         className={controlClass}
                         value={data.deshidratacion_pct}
-                        onChange={(e) => setData('deshidratacion_pct', e.target.value)}
+                        onBeforeInput={filtrarAntes(true)}
+                        onChange={(e) => setData('deshidratacion_pct', soloDecimal(e.target.value))}
                         placeholder="%"
                         disabled={processing}
                     />
@@ -402,7 +447,8 @@ export function EvolucionFormModal({
                         inputMode="decimal"
                         className={controlClass}
                         value={data.tllc_segundos}
-                        onChange={(e) => setData('tllc_segundos', e.target.value)}
+                        onBeforeInput={filtrarAntes(true)}
+                        onChange={(e) => setData('tllc_segundos', soloDecimal(e.target.value))}
                         placeholder={t('evolucion.tllc_placeholder')}
                         disabled={processing}
                     />
@@ -413,7 +459,8 @@ export function EvolucionFormModal({
                         inputMode="numeric"
                         className={controlClass}
                         value={data.pas}
-                        onChange={(e) => setPresion('pas', e.target.value)}
+                        onBeforeInput={filtrarAntes(false)}
+                        onChange={(e) => setPresion('pas', soloEntero(e.target.value))}
                         placeholder="mmHg"
                         disabled={processing}
                     />
@@ -424,7 +471,8 @@ export function EvolucionFormModal({
                         inputMode="numeric"
                         className={controlClass}
                         value={data.pad}
-                        onChange={(e) => setPresion('pad', e.target.value)}
+                        onBeforeInput={filtrarAntes(false)}
+                        onChange={(e) => setPresion('pad', soloEntero(e.target.value))}
                         placeholder="mmHg"
                         disabled={processing}
                     />
@@ -435,9 +483,11 @@ export function EvolucionFormModal({
                         inputMode="numeric"
                         className={controlClass}
                         value={data.pam}
+                        onBeforeInput={filtrarAntes(false)}
                         onChange={(e) => {
-                            pamManualRef.current = e.target.value.trim() !== '';
-                            setData('pam', e.target.value);
+                            const valor = soloEntero(e.target.value);
+                            pamManualRef.current = valor.trim() !== '';
+                            setData('pam', valor);
                         }}
                         placeholder="mmHg"
                         disabled={processing}
