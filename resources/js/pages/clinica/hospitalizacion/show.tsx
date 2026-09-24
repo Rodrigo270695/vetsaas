@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowLeft, BedDouble, ClipboardPlus } from 'lucide-react';
+import { ArrowLeft, BedDouble, ClipboardPlus, Stethoscope } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
@@ -11,7 +11,10 @@ import { dashboard } from '@/routes';
 import { ConstantesFisiologicas } from './components/constantes-fisiologicas';
 import { EvolucionDeleteDialog } from './components/evolucion-delete-dialog';
 import { EvolucionFormModal } from './components/evolucion-form-modal';
-import type { InternamientoEvolucionRow, InternamientoShow, UsuarioHospitalizacionOpcion } from './types';
+import { SignoDeleteDialog } from './components/signo-delete-dialog';
+import { SignoFormModal } from './components/signo-form-modal';
+import { SignosClinicos } from './components/signos-clinicos';
+import type { InternamientoEvolucionRow, InternamientoShow, InternamientoSignoRow, UsuarioHospitalizacionOpcion } from './types';
 
 const LIST_URL = '/clinica/hospitalizacion';
 
@@ -25,6 +28,12 @@ type EvoModal =
     | { type: 'create' }
     | { type: 'edit'; evolucion: InternamientoEvolucionRow }
     | { type: 'delete'; evolucion: InternamientoEvolucionRow };
+
+type SignoModal =
+    | { type: 'idle' }
+    | { type: 'create' }
+    | { type: 'edit'; signo: InternamientoSignoRow }
+    | { type: 'delete'; signo: InternamientoSignoRow };
 
 function displayPropietario(
     p: InternamientoShow['paciente']['propietario'],
@@ -47,7 +56,9 @@ export default function Show({ internamiento }: Props) {
     const canUpdate = can('hospitalizacion.update');
 
     const [evoModal, setEvoModal] = useState<EvoModal>({ type: 'idle' });
+    const [signoModal, setSignoModal] = useState<SignoModal>({ type: 'idle' });
     const closeEvo = useCallback(() => setEvoModal({ type: 'idle' }), []);
+    const closeSigno = useCallback(() => setSignoModal({ type: 'idle' }), []);
 
     return (
         <>
@@ -105,6 +116,32 @@ export default function Show({ internamiento }: Props) {
                         />
                     </CardContent>
                 </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-3">
+                        <CardTitle className="text-base">{t('show.section_signos')}</CardTitle>
+                        {canUpdate ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="cursor-pointer gap-2 shadow-sm transition-transform duration-200 active:scale-[0.98]"
+                                onClick={() => setSignoModal({ type: 'create' })}
+                            >
+                                <Stethoscope className="size-4" strokeWidth={2.5} />
+                                {t('show.signos_add')}
+                            </Button>
+                        ) : null}
+                    </CardHeader>
+                    <CardContent>
+                        <SignosClinicos
+                            signos={internamiento.signos_clinicos ?? []}
+                            timeZone={appTz}
+                            canUpdate={canUpdate}
+                            onEdit={(signo) => setSignoModal({ type: 'edit', signo })}
+                            onDelete={(signo) => setSignoModal({ type: 'delete', signo })}
+                        />
+                    </CardContent>
+                </Card>
             </div>
 
             <EvolucionFormModal
@@ -127,6 +164,28 @@ export default function Show({ internamiento }: Props) {
                 }}
                 internamientoId={internamiento.id}
                 evolucion={evoModal.type === 'delete' ? evoModal.evolucion : null}
+            />
+
+            <SignoFormModal
+                open={signoModal.type === 'create' || signoModal.type === 'edit'}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeSigno();
+                    }
+                }}
+                internamientoId={internamiento.id}
+                signo={signoModal.type === 'edit' ? signoModal.signo : null}
+            />
+
+            <SignoDeleteDialog
+                open={signoModal.type === 'delete'}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeSigno();
+                    }
+                }}
+                internamientoId={internamiento.id}
+                signo={signoModal.type === 'delete' ? signoModal.signo : null}
             />
         </>
     );

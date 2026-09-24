@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
@@ -16,8 +17,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?string $consulta_id
  * @property ?string $veterinario_id
  * @property ?string $sede_id
- * @property \Illuminate\Support\Carbon $ingreso_at
- * @property ?\Illuminate\Support\Carbon $alta_at
+ * @property Carbon $ingreso_at
+ * @property ?Carbon $alta_at
  * @property string $estado
  * @property string $motivo_ingreso
  * @property ?string $ubicacion
@@ -109,6 +110,11 @@ class Internamiento extends Model
     public function evoluciones(): HasMany
     {
         return $this->hasMany(InternamientoEvolucion::class, 'internamiento_id');
+    }
+
+    public function signosClinicos(): HasMany
+    {
+        return $this->hasMany(InternamientoSignoClinico::class, 'internamiento_id');
     }
 
     public function cargo(): HasOne

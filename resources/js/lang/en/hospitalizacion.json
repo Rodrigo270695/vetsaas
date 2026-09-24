@@ -103,6 +103,9 @@
         "constantes_empty": "No readings yet. Record the first one.",
         "constantes_add": "Record constants",
         "constantes_parametro": "Parameter / Time",
+        "section_signos": "Clinical signs",
+        "signos_add": "Record signs",
+        "signos_parametro": "Sign / Time",
         "section_cobro": "Billing",
         "evoluciones_empty": "No progress notes yet.",
         "evoluciones_add": "Record constants",
@@ -154,5 +157,83 @@
         "vital_placeholder": "Optional",
         "delete_title": "Delete this progress note?",
         "delete_description": "It will be removed from the admission history."
+    },
+    "signos": {
+        "title_create": "Record clinical signs",
+        "title_edit": "Edit clinical signs",
+        "registrado_at": "Date and time",
+        "grupo": "Signs for this reading",
+        "mucosas": "Mucous membranes",
+        "mucosas_hint": "Membrane color, or free text if none of the options fit.",
+        "mucosas_libre": "Free text",
+        "mucosas_libre_placeholder": "Write another classification if needed",
+        "glucemia": "Blood glucose (mg/dL)",
+        "glucemia_placeholder": "Value in mg/dL",
+        "orina": "Urine (ml)",
+        "orina_placeholder": "Volume in ml",
+        "vomito": "Vomiting",
+        "diarrea": "Diarrhea",
+        "heces": "Stool",
+        "bristol": "Bristol",
+        "alimento": "Food",
+        "agua": "Water",
+        "notas": "Notes",
+        "notas_placeholder": "Note for this reading, if needed…",
+        "opcion_vacia": "Not recorded",
+        "ausente": "×",
+        "mucosas_opcion": {
+            "rosadas": "Pink",
+            "rosadas_palidas": "Pale pink",
+            "palidas": "Pale",
+            "cianoticas": "Cyanotic",
+            "ictericas": "Icteric",
+            "congestionadas": "Congested",
+            "hemorragicas": "Hemorrhagic",
+            "secas": "Dry"
+        },
+        "vomito_opcion": {
+            "no": "No",
+            "si": "Yes",
+            "alimentario": "Food",
+            "bilioso": "Bilious",
+            "hematico": "Bloody",
+            "espuma": "Foamy"
+        },
+        "diarrea_opcion": {
+            "no": "No",
+            "si": "Yes",
+            "moco": "With mucus",
+            "hemorragica": "Bloody",
+            "mixta": "Mixed"
+        },
+        "heces_opcion": {
+            "no": "No",
+            "si": "Yes",
+            "escasa": "Scant",
+            "normal": "Normal",
+            "abundante": "Abundant"
+        },
+        "alimento_opcion": {
+            "no": "No",
+            "poco": "Little",
+            "normal": "Normal",
+            "sonda": "By tube"
+        },
+        "agua_opcion": {
+            "no": "No",
+            "poco": "Little",
+            "normal": "Normal"
+        },
+        "bristol_opcion": {
+            "1": "1 · Hard pellets",
+            "2": "2 · Lumpy",
+            "3": "3 · Cracked",
+            "4": "4 · Smooth and soft",
+            "5": "5 · Soft pieces",
+            "6": "6 · Mushy",
+            "7": "7 · Liquid"
+        },
+        "delete_title": "Delete these signs?",
+        "delete_description": "This clinical-signs reading will be removed."
     }
 }

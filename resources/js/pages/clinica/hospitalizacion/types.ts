@@ -72,10 +72,27 @@ export type InternamientoEvolucionRow = {
     creado_por?: AuditUser | null;
 };
 
+export type InternamientoSignoRow = {
+    id: string;
+    internamiento_id: string;
+    registrado_at: string;
+    mucosas: string | null;
+    glucemia_mg_dl: string | null;
+    orina_ml: string | null;
+    vomito: string | null;
+    diarrea: string | null;
+    heces: string | null;
+    bristol: number | null;
+    alimento: string | null;
+    agua: string | null;
+    notas: string | null;
+};
+
 export type InternamientoShow = InternamientoRow & {
     diagnostico_ingreso: string | null;
     notas: string | null;
     evoluciones: readonly InternamientoEvolucionRow[];
+    signos_clinicos?: readonly InternamientoSignoRow[];
     paciente: InternamientoRow['paciente'] & {
         propietario?: {
             id: string;

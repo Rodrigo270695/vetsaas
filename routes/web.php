@@ -685,6 +685,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:hospitalizacion.update')
                 ->delete('hospitalizacion/{internamiento}/evoluciones/{evolucion}', [HospitalizacionController::class, 'destroyEvolucion'])
                 ->name('hospitalizacion.evoluciones.destroy');
+            Route::middleware('permission:hospitalizacion.update')
+                ->post('hospitalizacion/{internamiento}/signos', [HospitalizacionController::class, 'storeSigno'])
+                ->name('hospitalizacion.signos.store');
+            Route::middleware('permission:hospitalizacion.update')
+                ->match(['put', 'patch'], 'hospitalizacion/{internamiento}/signos/{signo}', [HospitalizacionController::class, 'updateSigno'])
+                ->name('hospitalizacion.signos.update');
+            Route::middleware('permission:hospitalizacion.update')
+                ->delete('hospitalizacion/{internamiento}/signos/{signo}', [HospitalizacionController::class, 'destroySigno'])
+                ->name('hospitalizacion.signos.destroy');
 
             Route::middleware('permission:consulta-cargos.view|hospitalizacion.view')
                 ->get('hospitalizacion/{internamiento}/cargos', [InternamientoCargoController::class, 'show'])

@@ -103,6 +103,9 @@
         "constantes_empty": "Aún no hay constantes. Registra la primera toma.",
         "constantes_add": "Registrar constantes",
         "constantes_parametro": "Parámetro / Hora",
+        "section_signos": "Signos clínicos",
+        "signos_add": "Registrar signos",
+        "signos_parametro": "Signo / Hora",
         "section_cobro": "Cobro",
         "evoluciones_empty": "Aún no hay registros de evolución.",
         "evoluciones_add": "Registrar constantes",
@@ -154,5 +157,83 @@
         "vital_placeholder": "Opcional",
         "delete_title": "¿Eliminar esta evolución?",
         "delete_description": "Se eliminará del historial del internamiento."
+    },
+    "signos": {
+        "title_create": "Registrar signos clínicos",
+        "title_edit": "Editar signos clínicos",
+        "registrado_at": "Fecha y hora",
+        "grupo": "Signos de esta toma",
+        "mucosas": "Mucosas",
+        "mucosas_hint": "Color de las mucosas, o un texto si no encaja en la lista.",
+        "mucosas_libre": "Texto libre",
+        "mucosas_libre_placeholder": "Si hace falta, escribe otra clasificación",
+        "glucemia": "Glucemia (mg/dL)",
+        "glucemia_placeholder": "Valor en mg/dL",
+        "orina": "Orina (ml)",
+        "orina_placeholder": "Volumen en ml",
+        "vomito": "Vómito",
+        "diarrea": "Diarrea",
+        "heces": "Heces",
+        "bristol": "Bristol",
+        "alimento": "Alimento",
+        "agua": "Agua",
+        "notas": "Notas",
+        "notas_placeholder": "Observación de esta toma, si hace falta…",
+        "opcion_vacia": "Sin registrar",
+        "ausente": "×",
+        "mucosas_opcion": {
+            "rosadas": "Rosadas",
+            "rosadas_palidas": "Rosadas pálidas",
+            "palidas": "Pálidas",
+            "cianoticas": "Cianóticas",
+            "ictericas": "Ictéricas",
+            "congestionadas": "Congestionadas",
+            "hemorragicas": "Hemorrágicas",
+            "secas": "Secas"
+        },
+        "vomito_opcion": {
+            "no": "No",
+            "si": "Sí",
+            "alimentario": "Alimentario",
+            "bilioso": "Bilioso",
+            "hematico": "Hemático",
+            "espuma": "Espumoso"
+        },
+        "diarrea_opcion": {
+            "no": "No",
+            "si": "Sí",
+            "moco": "Con moco",
+            "hemorragica": "Hemorrágica",
+            "mixta": "Mixta"
+        },
+        "heces_opcion": {
+            "no": "No",
+            "si": "Sí",
+            "escasa": "Escasa",
+            "normal": "Normal",
+            "abundante": "Abundante"
+        },
+        "alimento_opcion": {
+            "no": "No",
+            "poco": "Poco",
+            "normal": "Normal",
+            "sonda": "Por sonda"
+        },
+        "agua_opcion": {
+            "no": "No",
+            "poco": "Poco",
+            "normal": "Normal"
+        },
+        "bristol_opcion": {
+            "1": "1 · Bolitas duras",
+            "2": "2 · Grumosa",
+            "3": "3 · Con grietas",
+            "4": "4 · Lisa y blanda",
+            "5": "5 · Trozos blandos",
+            "6": "6 · Pastosa",
+            "7": "7 · Líquida"
+        },
+        "delete_title": "¿Eliminar estos signos?",
+        "delete_description": "Se eliminará esta toma de signos clínicos."
     }
 }

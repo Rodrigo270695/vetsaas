@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreInternamientoEvolucionRequest;
 use App\Http\Requests\StoreInternamientoRequest;
+use App\Http\Requests\StoreInternamientoSignoRequest;
 use App\Http\Requests\UpdateInternamientoEvolucionRequest;
 use App\Http\Requests\UpdateInternamientoRequest;
+use App\Http\Requests\UpdateInternamientoSignoRequest;
 use App\Models\Consulta;
 use App\Models\ConsultaCargo;
 use App\Models\Internamiento;
 use App\Models\InternamientoEvolucion;
+use App\Models\InternamientoSignoClinico;
 use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\User;
@@ -229,6 +232,7 @@ class HospitalizacionController extends Controller
             'veterinario:id,name',
             'sede:id,nombre,codigo',
             'evoluciones' => fn ($q) => $q->orderByDesc('registrado_at')->with('veterinario:id,name'),
+            'signosClinicos' => fn ($q) => $q->orderBy('registrado_at'),
         ];
 
         if ($canAudit) {
@@ -341,6 +345,55 @@ class HospitalizacionController extends Controller
         return redirect()
             ->route('clinica.hospitalizacion.show', $internamiento)
             ->with('success', __('hospitalizacion.flash.evolucion_deleted'));
+    }
+
+    public function storeSigno(
+        StoreInternamientoSignoRequest $request,
+        Internamiento $internamiento,
+    ): RedirectResponse {
+        $data = $request->validated();
+        $data['internamiento_id'] = $internamiento->id;
+        $data['created_by_id'] = Auth::id();
+        $data['updated_by_id'] = Auth::id();
+
+        InternamientoSignoClinico::query()->create($data);
+
+        return redirect()
+            ->route('clinica.hospitalizacion.show', $internamiento)
+            ->with('success', __('hospitalizacion.flash.signo_created'));
+    }
+
+    public function updateSigno(
+        UpdateInternamientoSignoRequest $request,
+        Internamiento $internamiento,
+        InternamientoSignoClinico $signo,
+    ): RedirectResponse {
+        abort_unless($signo->internamiento_id === $internamiento->id, 404);
+
+        $data = $request->validated();
+        $data['updated_by_id'] = Auth::id();
+
+        $signo->fill($data);
+        $signo->save();
+
+        return redirect()
+            ->route('clinica.hospitalizacion.show', $internamiento)
+            ->with('success', __('hospitalizacion.flash.signo_updated'));
+    }
+
+    public function destroySigno(
+        Request $request,
+        Internamiento $internamiento,
+        InternamientoSignoClinico $signo,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('hospitalizacion.update') ?? false, 403);
+        abort_unless($signo->internamiento_id === $internamiento->id, 404);
+
+        $signo->delete();
+
+        return redirect()
+            ->route('clinica.hospitalizacion.show', $internamiento)
+            ->with('success', __('hospitalizacion.flash.signo_deleted'));
     }
 
     public function store(StoreInternamientoRequest $request): RedirectResponse

@@ -8,9 +8,13 @@ return [
         'evolucion_created' => 'Progress note saved successfully.',
         'evolucion_updated' => 'Progress note updated successfully.',
         'evolucion_deleted' => 'Progress note deleted successfully.',
+        'signo_created' => 'Clinical signs saved successfully.',
+        'signo_updated' => 'Clinical signs updated successfully.',
+        'signo_deleted' => 'Clinical signs deleted successfully.',
     ],
     'validation' => [
         'consulta_invalida' => 'The visit does not belong to the selected patient.',
         'alta_at_requerida' => 'Enter the discharge date when marking the patient as discharged.',
+        'signo_vacio' => 'Record at least one clinical sign.',
     ],
 ];
