@@ -463,6 +463,10 @@ class ConsultaHistoriaController extends Controller
             }
         });
 
+        if (str_contains(url()->previous(), '/clinica/pacientes/')) {
+            return back()->with('success', __('historias-clinicas.flash.created'));
+        }
+
         return redirect()
             ->route('clinica.historias-clinicas')
             ->with('success', __('historias-clinicas.flash.created'));

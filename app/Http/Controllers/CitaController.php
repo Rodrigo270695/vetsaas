@@ -297,11 +297,13 @@ class CitaController extends Controller
             );
         }
 
-        $redirect = redirect()
-            ->route('clinica.citas.index', $request->only([
-                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'mes',
-            ]))
-            ->with('success', __('citas.flash.created'));
+        $redirect = str_contains(url()->previous(), '/clinica/pacientes/')
+            ? back()->with('success', __('citas.flash.created'))
+            : redirect()
+                ->route('clinica.citas.index', $request->only([
+                    'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'mes',
+                ]))
+                ->with('success', __('citas.flash.created'));
 
         $whatsappFlash = $this->enqueueCitaWhatsApp($cita, 'creada');
         if ($whatsappFlash !== null) {

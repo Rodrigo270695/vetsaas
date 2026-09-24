@@ -109,6 +109,7 @@ export type CirugiaFormModalProps = {
     pacientesOpciones: readonly PacienteCirugiaOpcion[];
     sedesOpciones: readonly SedeCirugiaOpcion[];
     consultasOpciones: readonly ConsultaCirugiaOpcion[];
+    prefillPacienteId?: string | null;
 };
 
 export function CirugiaFormModal({
@@ -118,6 +119,7 @@ export function CirugiaFormModal({
     pacientesOpciones,
     sedesOpciones,
     consultasOpciones,
+    prefillPacienteId = null,
 }: CirugiaFormModalProps) {
     const { t } = useTranslation(['cirugia', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
@@ -129,7 +131,7 @@ export function CirugiaFormModal({
         useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
     const isEdit = cirugia !== null;
-    const lockPaciente = isEdit;
+    const lockPaciente = isEdit || Boolean(prefillPacienteId);
 
     const initialSnapshotRef = useRef<FormShape>(emptyForm(null, []));
 
@@ -162,12 +164,15 @@ export function CirugiaFormModal({
         const next =
             cirugia !== null
                 ? fromCirugia(cirugia, defaultVetId)
-                : emptyForm(defaultVetId, sedesOpciones);
+                : {
+                      ...emptyForm(defaultVetId, sedesOpciones),
+                      paciente_id: prefillPacienteId ?? '',
+                  };
         initialSnapshotRef.current = structuredClone(next);
         setData(next);
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, cirugia?.id, defaultVetId, cirugia, sedesOpciones]);
+    }, [open, cirugia?.id, defaultVetId, cirugia, sedesOpciones, prefillPacienteId]);
 
     const consultasBase = useMemo(() => {
         const list = [...consultasOpciones];

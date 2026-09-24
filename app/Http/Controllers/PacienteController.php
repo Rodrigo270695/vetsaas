@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Exports\PacientesImportTemplateXlsx;
 use App\Exports\PacientesXlsxExport;
+use App\Grooming\GroomingCatalogoMode;
+use App\Grooming\GroomingCatalogoServicio;
+use App\Hotel\HotelCatalogoMode;
+use App\Hotel\HotelCatalogoTipoEstancia;
 use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
@@ -16,9 +20,11 @@ use App\Models\DocumentoAutorizacionEnvio;
 use App\Models\DocumentoAutorizacionPlantilla;
 use App\Models\Farmaco;
 use App\Models\FelSerie;
+use App\Models\GroomingServicio;
 use App\Models\GroomingTurno;
 use App\Models\HistoriaClinica;
 use App\Models\HotelEstancia;
+use App\Models\HotelTipoEstancia;
 use App\Models\Internamiento;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
@@ -27,6 +33,7 @@ use App\Models\Propietario;
 use App\Models\Receta;
 use App\Models\Sede;
 use App\Models\ServicioClinico;
+use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Clinica\PacienteImportService;
@@ -304,9 +311,25 @@ class PacienteController extends Controller
             ],
         ]];
 
+        $tenantModel = app(TenantManager::class)->current()?->tenant;
+        $canCrearReceta = ($user?->can('recetas.create') ?? false)
+            && TenantModuleAccess::isEnabled($tenantModel, 'recetas');
+        $canCrearCirugia = ($user?->can('cirugias.create') ?? false)
+            && TenantModuleAccess::isEnabled($tenantModel, 'cirugias');
+        $canCrearHospital = ($user?->can('hospitalizacion.create') ?? false)
+            && TenantModuleAccess::isEnabled($tenantModel, 'hospitalizacion');
+        $canCrearGrooming = ($user?->can('grooming.create') ?? false)
+            && TenantModuleAccess::isEnabled($tenantModel, 'grooming');
+        $canCrearHotel = ($user?->can('hotel.create') ?? false)
+            && TenantModuleAccess::isEnabled($tenantModel, 'hotel');
+
         $sedesOpciones = [];
         $serviciosVacunaOpciones = [];
-        if ($canVerVacunas || $canEditarVacuna || $canCrearVacuna || $canCrearCita) {
+        if (
+            $canVerVacunas || $canEditarVacuna || $canCrearVacuna || $canCrearCita
+            || $canCrearReceta || $canCrearCirugia || $canCrearHospital
+            || $canCrearGrooming || $canCrearHotel
+        ) {
             $sedesOpciones = Sede::query()
                 ->where('tenant_id', $tenantId)
                 ->where('activa', true)
@@ -342,7 +365,7 @@ class PacienteController extends Controller
 
         $serviciosClinicosOpciones = [];
         $farmacosOpciones = [];
-        if ($canVerConsultas || $canEditarConsulta) {
+        if ($canVerConsultas || $canEditarConsulta || $canCrearConsulta) {
             $serviciosClinicosOpciones = ServicioClinico::query()
                 ->where('activo', true)
                 ->orderBy('nombre')
@@ -355,6 +378,107 @@ class PacienteController extends Controller
                 ->get(['id', 'nombre']);
         }
 
+        $consultasOpciones = [];
+        if ($canCrearReceta || $canCrearCirugia || $canCrearHospital) {
+            $consultasOpciones = Consulta::query()
+                ->whereHas('historiaClinica', fn ($q) => $q->where('paciente_id', $paciente->id))
+                ->with([
+                    'historiaClinica:id,paciente_id',
+                    'historiaClinica.paciente:id,nombre',
+                ])
+                ->orderByDesc('atendido_at')
+                ->limit(80)
+                ->get(['id', 'atendido_at', 'historia_clinica_id'])
+                ->map(static function (Consulta $c): array {
+                    $hc = $c->historiaClinica;
+
+                    return [
+                        'id' => $c->id,
+                        'atendido_at' => $c->atendido_at?->toIso8601String() ?? '',
+                        'historia_clinica_id' => $c->historia_clinica_id,
+                        'historia_clinica' => $hc === null ? null : [
+                            'id' => $hc->id,
+                            'paciente_id' => $hc->paciente_id,
+                            'paciente' => $hc->paciente === null ? null : [
+                                'id' => $hc->paciente->id,
+                                'nombre' => $hc->paciente->nombre,
+                            ],
+                        ],
+                    ];
+                })
+                ->all();
+        }
+
+        $usuariosOpciones = [];
+        if ($canCrearGrooming) {
+            $usuariosOpciones = User::query()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('name')
+                ->limit(200)
+                ->get(['id', 'name']);
+        }
+
+        $groomingNuevo = null;
+        if ($canCrearGrooming) {
+            $catalogoPersonalizado = GroomingCatalogoMode::usaCatalogoPersonalizado();
+            $groomingServicios = $catalogoPersonalizado && Schema::hasTable('grooming_servicios')
+                ? GroomingServicio::query()
+                    ->orderBy('orden')
+                    ->orderBy('nombre')
+                    ->get(['id', 'nombre', 'categoria', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden'])
+                    ->map(static fn (GroomingServicio $s): array => [
+                        'id' => $s->id,
+                        'nombre' => $s->nombre,
+                        'categoria' => $s->categoria,
+                        'precio_lista' => (string) $s->precio_lista,
+                        'moneda' => $s->moneda,
+                        'duracion_minutos' => (int) $s->duracion_minutos,
+                        'activo' => (bool) $s->activo,
+                        'orden' => (int) $s->orden,
+                    ])
+                    ->all()
+                : [];
+
+            $groomingNuevo = [
+                'catalogo_personalizado' => $catalogoPersonalizado,
+                'servicios' => $groomingServicios,
+                'grupos' => $catalogoPersonalizado ? [] : GroomingCatalogoServicio::grupos(),
+                'duraciones' => $catalogoPersonalizado
+                    ? collect($groomingServicios)->mapWithKeys(
+                        static fn (array $s): array => [$s['id'] => $s['duracion_minutos']],
+                    )->all()
+                    : GroomingCatalogoServicio::duracionesSugeridas(),
+            ];
+        }
+
+        $hotelNuevo = null;
+        if ($canCrearHotel) {
+            $catalogoPersonalizado = HotelCatalogoMode::usaCatalogoPersonalizado();
+            $hotelTipos = $catalogoPersonalizado && Schema::hasTable('hotel_tipos_estancia')
+                ? HotelTipoEstancia::query()
+                    ->orderBy('orden')
+                    ->orderBy('nombre')
+                    ->get(['id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'activo', 'orden'])
+                    ->map(static fn (HotelTipoEstancia $tipo): array => [
+                        'id' => $tipo->id,
+                        'nombre' => $tipo->nombre,
+                        'categoria' => $tipo->categoria,
+                        'codigo_legacy' => $tipo->codigo_legacy,
+                        'precio_lista' => (string) $tipo->precio_lista,
+                        'moneda' => $tipo->moneda,
+                        'activo' => (bool) $tipo->activo,
+                        'orden' => (int) $tipo->orden,
+                    ])
+                    ->all()
+                : [];
+
+            $hotelNuevo = [
+                'catalogo_personalizado' => $catalogoPersonalizado,
+                'tipos' => $hotelTipos,
+                'grupos' => $catalogoPersonalizado ? [] : HotelCatalogoTipoEstancia::grupos(),
+            ];
+        }
+
         return Inertia::render('clinica/pacientes/show', [
             'paciente' => $paciente,
             'timeline' => $timeline,
@@ -365,6 +489,10 @@ class PacienteController extends Controller
             'servicios_vacuna_opciones' => $serviciosVacunaOpciones,
             'servicios_clinicos_opciones' => $serviciosClinicosOpciones,
             'farmacos_opciones' => $farmacosOpciones,
+            'consultas_opciones' => $consultasOpciones,
+            'usuarios_opciones' => $usuariosOpciones,
+            'grooming_nuevo' => $groomingNuevo,
+            'hotel_nuevo' => $hotelNuevo,
             'medico_tratante_default' => $user?->name ?? '',
             'links' => [
                 'nueva_consulta' => route('clinica.historias-clinicas', ['nuevo_para_paciente' => $paciente->id]),

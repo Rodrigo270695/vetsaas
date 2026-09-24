@@ -329,15 +329,17 @@ class GroomingTurnoController extends Controller
         $wa = $this->tryNotifyAgenda($turno, $sender, 'programado');
         app(ServicioAgendaReminderScanner::class)->enqueueGroomingIfDue($turno);
 
-        $redirect = redirect()
-            ->route(
-                $request->boolean('from_agenda') ? 'servicios.agenda' : 'servicios.grooming',
-                $request->boolean('from_agenda')
-                    ? $request->only(['search', 'mes'])
-                    : $request->only([
-                        'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
-                    ]),
-            );
+        $redirect = str_contains(url()->previous(), '/clinica/pacientes/')
+            ? redirect()->back()
+            : redirect()
+                ->route(
+                    $request->boolean('from_agenda') ? 'servicios.agenda' : 'servicios.grooming',
+                    $request->boolean('from_agenda')
+                        ? $request->only(['search', 'mes'])
+                        : $request->only([
+                            'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
+                        ]),
+                );
 
         if ($conAdelanto) {
             if ($wa === 'ok') {

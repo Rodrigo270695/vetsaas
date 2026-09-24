@@ -362,6 +362,10 @@ class RecetaController extends Controller
             $this->syncLineas($receta, $lineas);
         });
 
+        if (str_contains(url()->previous(), '/clinica/pacientes/')) {
+            return back()->with('success', __('recetas.flash.created'));
+        }
+
         return redirect()
             ->route('clinica.recetas.index', $this->listIndexQuery($request, [
                 'search', 'per_page', 'sort', 'direction', 'receta_desde', 'receta_hasta', 'estado',

@@ -1,31 +1,45 @@
 import { Link } from '@inertiajs/react';
 import {
     ArrowLeft,
+    BedDouble,
     Cake,
     CalendarPlus,
     Cat,
+    ChevronDown,
     Dog,
     ExternalLink,
     FileDown,
     FlaskConical,
+    Hotel,
     MessageCircle,
     PawPrint,
+    Pill,
     Plus,
     Scale,
+    Scissors,
     ShieldCheck,
+    Stethoscope,
     Syringe,
     UserRound,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { usePermission } from '@/hooks/use-permission';
+import { useTenantModuleEnabled } from '@/hooks/use-tenant-modules';
 import { calcularEdadMascota } from '@/lib/edad-desde-fecha-nacimiento';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import clinica from '@/routes/clinica';
-import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
-import { useTenantModuleEnabled } from '@/hooks/use-tenant-modules';
 
 type Props = {
     paciente: Paciente;
@@ -56,14 +70,23 @@ type Props = {
     };
     hasTimeline: boolean;
     onShareHistory?: () => void;
-    onOpenLaboratorio?: () => void;
-    onOpenCita?: () => void;
-    onOpenAplicacion?: () => void;
+    onNuevo?: (accion: HistorialNuevoAccion) => void;
     /** Vista pública para el titular: sin CTAs de administración. */
     variant?: 'admin' | 'public';
     clinicName?: string;
     expiresAt?: string | null;
 };
+
+export type HistorialNuevoAccion =
+    | 'consulta'
+    | 'cita'
+    | 'vacuna'
+    | 'receta'
+    | 'hospitalizacion'
+    | 'cirugia'
+    | 'grooming'
+    | 'hotel'
+    | 'archivo';
 
 function sexoLabel(t: (k: string) => string, sexo: string | null): string | null {
     if (!sexo) {
@@ -138,17 +161,119 @@ export function PacienteHistorialHero({
     timelineStats,
     hasTimeline,
     onShareHistory,
-    onOpenLaboratorio,
-    onOpenCita,
-    onOpenAplicacion,
+    onNuevo,
     variant = 'admin',
     clinicName,
     expiresAt,
 }: Props) {
     const { t } = useTranslation(['pacientes']);
+    const { can } = usePermission();
     const isPublic = variant === 'public';
     const citasModule = useTenantModuleEnabled('citas');
     const groomingModule = useTenantModuleEnabled('grooming');
+    const hotelModule = useTenantModuleEnabled('hotel');
+    const consultasModule = useTenantModuleEnabled('historias_clinicas');
+    const vacunasModule = useTenantModuleEnabled('vacunaciones');
+    const recetasModule = useTenantModuleEnabled('recetas');
+    const cirugiasModule = useTenantModuleEnabled('cirugias');
+    const hospitalModule = useTenantModuleEnabled('hospitalizacion');
+    const laboratorioModule = useTenantModuleEnabled('laboratorio');
+    const [nuevoOpen, setNuevoOpen] = useState(false);
+
+    const nuevoAcciones = useMemo(() => {
+        const items: { id: HistorialNuevoAccion; label: string; icon: LucideIcon }[] = [];
+
+        if (consultasModule && permisos.consultas_crear) {
+            items.push({
+                id: 'consulta',
+                label: t('historial.nuevo_consulta'),
+                icon: Stethoscope,
+            });
+        }
+
+        if (citasModule && permisos.citas_crear) {
+            items.push({
+                id: 'cita',
+                label: t('historial.nuevo_cita'),
+                icon: CalendarPlus,
+            });
+        }
+
+        if (vacunasModule && permisos.vacunas_crear) {
+            items.push({
+                id: 'vacuna',
+                label: t('historial.nuevo_vacuna'),
+                icon: Syringe,
+            });
+        }
+
+        if (recetasModule && can('recetas.create')) {
+            items.push({
+                id: 'receta',
+                label: t('historial.nuevo_receta'),
+                icon: Pill,
+            });
+        }
+
+        if (hospitalModule && can('hospitalizacion.create')) {
+            items.push({
+                id: 'hospitalizacion',
+                label: t('historial.nuevo_hospitalizacion'),
+                icon: BedDouble,
+            });
+        }
+
+        if (cirugiasModule && can('cirugias.create')) {
+            items.push({
+                id: 'cirugia',
+                label: t('historial.nuevo_cirugia'),
+                icon: Scissors,
+            });
+        }
+
+        if (groomingModule && can('grooming.create')) {
+            items.push({
+                id: 'grooming',
+                label: t('historial.nuevo_grooming'),
+                icon: PawPrint,
+            });
+        }
+
+        if (hotelModule && can('hotel.create')) {
+            items.push({
+                id: 'hotel',
+                label: t('historial.nuevo_hotel'),
+                icon: Hotel,
+            });
+        }
+
+        if (laboratorioModule && permisos.laboratorio_crear && links.laboratorio_rapido) {
+            items.push({
+                id: 'archivo',
+                label: t('historial.nuevo_archivo'),
+                icon: FlaskConical,
+            });
+        }
+
+        return items;
+    }, [
+        can,
+        citasModule,
+        consultasModule,
+        cirugiasModule,
+        groomingModule,
+        hospitalModule,
+        hotelModule,
+        laboratorioModule,
+        links.laboratorio_rapido,
+        permisos.citas_crear,
+        permisos.consultas_crear,
+        permisos.laboratorio_crear,
+        permisos.vacunas_crear,
+        recetasModule,
+        t,
+        vacunasModule,
+    ]);
     const [petpassBusy, setPetpassBusy] = useState(false);
     const subline = [paciente.especie, paciente.raza].filter(Boolean).join(' · ');
     const sexo = sexoLabel(t, paciente.sexo);
@@ -366,65 +491,45 @@ export function PacienteHistorialHero({
 
             <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6">
                 <div className="flex flex-wrap gap-2">
-                    {!isPublic && permisos.consultas_crear && links.nueva_consulta ? (
-                        <Button type="button" size="sm" className="gap-2 shadow-sm" asChild>
-                            <a href={links.nueva_consulta}>
-                                <Plus className="size-4" strokeWidth={2.25} />
-                                {t('historial.action_nueva_consulta')}
-                            </a>
-                        </Button>
-                    ) : null}
-                    {!isPublic &&
-                    permisos.vacunas_crear &&
-                    (onOpenAplicacion || links.nueva_aplicacion) ? (
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            className="gap-2 border border-emerald-500/25 bg-emerald-500/10 text-emerald-900 hover:bg-emerald-500/20 dark:text-emerald-100"
-                            onClick={
-                                onOpenAplicacion
-                                    ? () => onOpenAplicacion()
-                                    : undefined
-                            }
-                            asChild={!onOpenAplicacion}
-                        >
-                            {onOpenAplicacion ? (
-                                <>
-                                    <Syringe className="size-4" strokeWidth={2.25} />
-                                    {t('historial.action_nueva_aplicacion')}
-                                </>
-                            ) : (
-                                <a href={links.nueva_aplicacion}>
-                                    <Syringe className="size-4" strokeWidth={2.25} />
-                                    {t('historial.action_nueva_aplicacion')}
-                                </a>
-                            )}
-                        </Button>
-                    ) : null}
-                    {!isPublic && permisos.laboratorio_crear && links.laboratorio_rapido ? (
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="gap-2 border-sky-500/30 text-sky-800 hover:bg-sky-500/10 dark:text-sky-200"
-                            onClick={() => onOpenLaboratorio?.()}
-                        >
-                            <FlaskConical className="size-4" strokeWidth={2.25} />
-                            {t('historial.action_laboratorio')}
-                        </Button>
-                    ) : null}
-                    {!isPublic && permisos.citas_crear ? (
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="gap-2 border-violet-500/30 text-violet-800 hover:bg-violet-500/10 dark:text-violet-200"
-                            onClick={() => onOpenCita?.()}
-                        >
-                            <CalendarPlus className="size-4" strokeWidth={2.25} />
-                            {t('historial.action_agendar_cita')}
-                        </Button>
+                    {!isPublic && nuevoAcciones.length > 0 ? (
+                        <DropdownMenu open={nuevoOpen} onOpenChange={setNuevoOpen}>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="group gap-2 shadow-sm transition-all duration-300 ease-out hover:shadow-md active:scale-[0.96] data-[state=open]:shadow-md"
+                                >
+                                    <Plus
+                                        className="size-4 transition-transform duration-300 ease-out group-data-[state=open]:rotate-45"
+                                        strokeWidth={2.25}
+                                    />
+                                    {t('historial.action_nuevo')}
+                                    <ChevronDown
+                                        className="size-3.5 opacity-80 transition-transform duration-300 ease-out group-data-[state=open]:rotate-180"
+                                        strokeWidth={2.25}
+                                    />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="start"
+                                className="w-56 origin-top duration-300 ease-out"
+                            >
+                                {nuevoAcciones.map((accion) => {
+                                    const Icon = accion.icon;
+
+                                    return (
+                                        <DropdownMenuItem
+                                            key={accion.id}
+                                            className="cursor-pointer gap-2"
+                                            onSelect={() => onNuevo?.(accion.id)}
+                                        >
+                                            <Icon className="size-4" strokeWidth={2.25} />
+                                            {accion.label}
+                                        </DropdownMenuItem>
+                                    );
+                                })}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     ) : null}
                     {!isPublic && permisos.sala_espera_enviar ? (
                         <SalaEsperaEnviarButton

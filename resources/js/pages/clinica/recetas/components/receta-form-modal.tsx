@@ -165,6 +165,8 @@ export type RecetaFormModalProps = {
     pacientesOpciones: readonly PacienteRecetaOpcion[];
     sedesOpciones: readonly SedeRecetaOpcion[];
     consultasOpciones: readonly ConsultaRecetaOpcion[];
+    /** Al crear desde la HC, deja la mascota fija. */
+    prefillPacienteId?: string | null;
 };
 
 /**
@@ -177,6 +179,7 @@ export function RecetaFormModal({
     pacientesOpciones,
     sedesOpciones,
     consultasOpciones,
+    prefillPacienteId = null,
 }: RecetaFormModalProps) {
     const { t } = useTranslation(['recetas', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
@@ -190,7 +193,7 @@ export function RecetaFormModal({
         useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
     const isEdit = receta !== null;
-    const lockPaciente = isEdit;
+    const lockPaciente = isEdit || Boolean(prefillPacienteId);
 
     const initialSnapshotRef = useRef<FormShape>(emptyForm(null, []));
 
@@ -235,12 +238,15 @@ export function RecetaFormModal({
         const next =
             receta !== null
                 ? fromReceta(receta, defaultVetId)
-                : emptyForm(defaultVetId, sedesOpciones);
+                : {
+                      ...emptyForm(defaultVetId, sedesOpciones),
+                      paciente_id: prefillPacienteId ?? '',
+                  };
         initialSnapshotRef.current = structuredClone(next);
         setData(next);
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, receta?.id, defaultVetId, receta, sedesOpciones]);
+    }, [open, receta?.id, defaultVetId, receta, sedesOpciones, prefillPacienteId]);
 
     const consultasBase = useMemo(() => {
         const list = [...consultasOpciones];

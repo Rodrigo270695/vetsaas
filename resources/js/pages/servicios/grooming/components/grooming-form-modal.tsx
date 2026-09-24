@@ -61,8 +61,8 @@ export type GroomingFormModalProps = {
     pacientesOpciones: readonly PacienteGroomingOpcion[];
     usuariosOpciones: readonly UsuarioGroomingOpcion[];
     sedesOpciones: readonly SedeGroomingOpcion[];
-    /** Prefill al crear desde la agenda (fecha YYYY-MM-DD, hora HH:mm). */
-    prefill?: { fecha?: string; hora?: string } | null;
+    /** Prefill al crear desde la agenda o la HC. */
+    prefill?: { fecha?: string; hora?: string; paciente_id?: string } | null;
     /** Tras guardar, volver a la agenda de servicios. */
     fromAgenda?: boolean;
 };
@@ -91,7 +91,7 @@ function emptyForm(
     sedes: readonly SedeGroomingOpcion[],
     catalogoPersonalizado: boolean,
     servicios: readonly GroomingServicioRow[],
-    prefill?: { fecha?: string; hora?: string } | null,
+    prefill?: { fecha?: string; hora?: string; paciente_id?: string } | null,
 ): FormShape {
     const slugDefault = 'bano_higienico';
     const firstServicio = servicios.find((s) => s.activo) ?? servicios[0];
@@ -104,7 +104,7 @@ function emptyForm(
     }
 
     return {
-        paciente_id: '',
+        paciente_id: prefill?.paciente_id ?? '',
         inicio_at: inicioAt,
         duracion_minutos: catalogoPersonalizado
             ? String(firstServicio?.duracion_minutos ?? 60)
@@ -182,7 +182,7 @@ export function GroomingFormModal({
     }, [serviciosActivos]);
 
     const isEdit = turno !== null;
-    const lockPaciente = isEdit;
+    const lockPaciente = isEdit || Boolean(prefill?.paciente_id);
 
     const servicioHint = useMemo(() => {
         if (!data.servicio) {
@@ -268,7 +268,7 @@ export function GroomingFormModal({
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, turno?.id, defaultResponsableId, turno, sedesOpciones, catalogoPersonalizado, serviciosOpciones, prefill?.fecha, prefill?.hora]);
+    }, [open, turno?.id, defaultResponsableId, turno, sedesOpciones, catalogoPersonalizado, serviciosOpciones, prefill?.fecha, prefill?.hora, prefill?.paciente_id]);
 
     const responsableOptions = useMemo(() => {
         const list = [...usuariosOpciones];

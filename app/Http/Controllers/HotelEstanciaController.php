@@ -16,6 +16,7 @@ use App\Models\Sede;
 use App\Models\User;
 use App\Services\Hotel\HotelWhatsAppNotifier;
 use App\Services\Notifications\ServicioAgendaReminderScanner;
+use App\Support\ConsultaCargo\ConsultaCargoCobroEstado;
 use App\Support\Hotel\HotelEstanciaTipoRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -111,7 +112,7 @@ class HotelEstanciaController extends Controller
                 'cargo:id,hotel_estancia_id,estado,venta_id',
             ]);
 
-        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::withCobradosCount($query);
+        ConsultaCargoCobroEstado::withCobradosCount($query);
 
         if ($canAudit) {
             $query->with([
@@ -123,10 +124,10 @@ class HotelEstanciaController extends Controller
         $query->whereBetween('hotel_estancias.ingreso_at', [$inicioRango, $finRango]);
 
         $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
-        if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
-            $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
+        if (! in_array($cobroFiltro, ConsultaCargoCobroEstado::FILTERS, true)) {
+            $cobroFiltro = ConsultaCargoCobroEstado::FILTER_TODOS;
         }
-        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::applyListFilter(
+        ConsultaCargoCobroEstado::applyListFilter(
             $query,
             $cobroFiltro,
             'cargos',
@@ -261,6 +262,10 @@ class HotelEstanciaController extends Controller
         $estancia = HotelEstancia::query()->create($data);
         $notifier->notify($estancia, HotelEstancia::ESTADO_PROGRAMADA);
         app(ServicioAgendaReminderScanner::class)->enqueueHotelIfDue($estancia);
+
+        if (str_contains(url()->previous(), '/clinica/pacientes/')) {
+            return back()->with('success', __('hotel.flash.created'));
+        }
 
         return redirect()
             ->route(

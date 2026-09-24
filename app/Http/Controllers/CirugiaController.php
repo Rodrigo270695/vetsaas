@@ -215,6 +215,10 @@ class CirugiaController extends Controller
 
         Cirugia::query()->create($data);
 
+        if (str_contains(url()->previous(), '/clinica/pacientes/')) {
+            return back()->with('success', __('cirugia.flash.created'));
+        }
+
         return redirect()
             ->route('clinica.cirugias.index', $this->listIndexQuery($request, [
                 'search', 'per_page', 'sort', 'direction', 'programada_desde', 'programada_hasta', 'estado',

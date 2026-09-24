@@ -69,7 +69,7 @@ export type HotelFormModalProps = {
     tipoGrupos: readonly HotelTipoGrupo[];
     pacientesOpciones: readonly PacienteHotelOpcion[];
     sedesOpciones: readonly SedeHotelOpcion[];
-    prefill?: { fecha?: string; hora?: string } | null;
+    prefill?: { fecha?: string; hora?: string; paciente_id?: string } | null;
     fromAgenda?: boolean;
 };
 
@@ -91,7 +91,7 @@ function emptyForm(
     sedes: readonly SedeHotelOpcion[],
     catalogoPersonalizado: boolean,
     hotelTipos: readonly HotelTipoRow[],
-    prefill?: { fecha?: string; hora?: string } | null,
+    prefill?: { fecha?: string; hora?: string; paciente_id?: string } | null,
 ): FormShape {
     const firstTipo = hotelTipos.find((t) => t.activo) ?? hotelTipos[0];
     let ingresoAt = toDatetimeLocalValue(new Date());
@@ -103,7 +103,7 @@ function emptyForm(
     }
 
     return {
-        paciente_id: '',
+        paciente_id: prefill?.paciente_id ?? '',
         ingreso_at: ingresoAt,
         egreso_at: '',
         tipo_estancia: catalogoPersonalizado ? '' : 'habitacion_estandar',
@@ -164,7 +164,7 @@ export function HotelFormModal({
     );
 
     const isEdit = estancia !== null;
-    const lockPaciente = isEdit;
+    const lockPaciente = isEdit || Boolean(prefill?.paciente_id);
 
     const tipoHint = useMemo(() => {
         if (!data.tipo_estancia) {
@@ -235,7 +235,7 @@ export function HotelFormModal({
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, estancia?.id, defaultResponsableId, estancia, sedesOpciones, catalogoPersonalizado, hotelTipos, prefill?.fecha, prefill?.hora]);
+    }, [open, estancia?.id, defaultResponsableId, estancia, sedesOpciones, catalogoPersonalizado, hotelTipos, prefill?.fecha, prefill?.hora, prefill?.paciente_id]);
 
     const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
         const base: Record<string, unknown> = {

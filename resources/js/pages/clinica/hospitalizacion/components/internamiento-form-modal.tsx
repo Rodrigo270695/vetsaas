@@ -112,6 +112,7 @@ export type InternamientoFormModalProps = {
     pacientesOpciones: readonly PacienteHospitalizacionOpcion[];
     sedesOpciones: readonly SedeHospitalizacionOpcion[];
     consultasOpciones: readonly ConsultaHospitalizacionOpcion[];
+    prefillPacienteId?: string | null;
 };
 
 export function InternamientoFormModal({
@@ -121,6 +122,7 @@ export function InternamientoFormModal({
     pacientesOpciones,
     sedesOpciones,
     consultasOpciones,
+    prefillPacienteId = null,
 }: InternamientoFormModalProps) {
     const { t } = useTranslation(['hospitalizacion', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
@@ -132,7 +134,7 @@ export function InternamientoFormModal({
         useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
     const isEdit = internamiento !== null;
-    const lockPaciente = isEdit;
+    const lockPaciente = isEdit || Boolean(prefillPacienteId);
     const requiereAltaAt = data.estado === 'alta';
 
     const initialSnapshotRef = useRef<FormShape>(emptyForm(null, []));
@@ -168,12 +170,15 @@ export function InternamientoFormModal({
         const next =
             internamiento !== null
                 ? fromInternamiento(internamiento, defaultVetId)
-                : emptyForm(defaultVetId, sedesOpciones);
+                : {
+                      ...emptyForm(defaultVetId, sedesOpciones),
+                      paciente_id: prefillPacienteId ?? '',
+                  };
         initialSnapshotRef.current = structuredClone(next);
         setData(next);
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, internamiento?.id, defaultVetId, internamiento, sedesOpciones]);
+    }, [open, internamiento?.id, defaultVetId, internamiento, sedesOpciones, prefillPacienteId]);
 
     useEffect(() => {
         if (data.estado === 'alta') {

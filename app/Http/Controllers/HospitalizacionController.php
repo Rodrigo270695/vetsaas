@@ -349,6 +349,10 @@ class HospitalizacionController extends Controller
 
         Internamiento::query()->create($data);
 
+        if (str_contains(url()->previous(), '/clinica/pacientes/')) {
+            return back()->with('success', __('hospitalizacion.flash.created'));
+        }
+
         return redirect()
             ->route('clinica.hospitalizacion.index', $this->listIndexQuery($request, [
                 'search', 'per_page', 'sort', 'direction', 'ingreso_desde', 'ingreso_hasta', 'estado',

@@ -665,6 +665,7 @@ export function ConsultaFormModal({
                                 searchPlaceholder={t('form.paciente_search')}
                                 emptyMessage={t('form.paciente_empty')}
                                 clearable={false}
+                                disabled={Boolean(pacienteIdPrefillNueva) || processing}
                                 className={`${controlClass} cursor-pointer`}
                                 aria-invalid={ownerTouched && !data.paciente_id}
                                 disabled={fieldDisabled}
