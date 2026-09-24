@@ -88,6 +88,7 @@ use Throwable;
  * @property ?string $email_from_nombre
  * @property string $moneda
  * @property string $igv_porcentaje
+ * @property string|float|null $recargo_tarjeta_porcentaje
  * @property string $igv_afectacion gravado|exonerado|inafecto (SUNAT por clínica)
  * @property bool $precio_incluye_igv
  * @property bool $emite_comprobantes_sunat La clínica desea emitir comprobantes SUNAT (sujeto al plan y a Nubefact).
@@ -183,6 +184,7 @@ class ClinicSetting extends Model
         'email_from_nombre',
         'moneda',
         'igv_porcentaje',
+        'recargo_tarjeta_porcentaje',
         'igv_afectacion',
         'precio_incluye_igv',
         'ticket_ancho_mm',
@@ -255,6 +257,7 @@ class ClinicSetting extends Model
             'horas_min_cancelacion' => 'integer',
             'chat_retention_days' => 'integer',
             'igv_porcentaje' => 'decimal:2',
+            'recargo_tarjeta_porcentaje' => 'decimal:2',
             'firma_digital_documentos' => 'array',
         ];
     }

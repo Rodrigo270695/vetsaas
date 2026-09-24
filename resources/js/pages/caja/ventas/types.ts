@@ -92,6 +92,8 @@ export type ClinicaVentaConfig = {
     /** gravado | exonerado | inafecto — si no viene, se asume gravado */
     igv_afectacion?: 'gravado' | 'exonerado' | 'inafecto';
     precio_incluye_igv: boolean;
+    /** Último recargo de tarjeta de la clínica. Si no viene, el POS usa 5 %. */
+    recargo_tarjeta_porcentaje?: string;
     emite_comprobantes_sunat: boolean;
     plan_permite_boletas: boolean;
     plan_permite_facturas: boolean;

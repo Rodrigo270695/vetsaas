@@ -133,6 +133,7 @@ return [
             'movimiento_notas' => 'Reversal for voided sale :numero',
         ],
         'movimiento_notas' => 'Outbound sale :numero',
+        'recargo_tarjeta_linea' => 'Card surcharge (:pct%)',
         'ticket' => [
             'no_disponible' => 'The receipt will be available once the sale is paid and, when applicable, after the SUNAT voucher is issued.',
             'document_title' => 'Sale receipt',

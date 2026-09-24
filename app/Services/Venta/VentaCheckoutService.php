@@ -22,6 +22,7 @@ use App\Services\Inventario\InventarioLoteService;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\PlanCapabilities;
 use App\Support\Venta\DescuentoManualLinea;
+use App\Support\Venta\RecargoTarjeta;
 use App\Support\Venta\VentaPagosResolver;
 use App\Support\Venta\VentaTotales;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -277,7 +278,7 @@ final class VentaCheckoutService
             && FelSerie::esTipoSunat($tipoComprobante)
             && $this->planPermiteTipoComprobante($tenant, $tipoComprobante);
 
-        $venta = DB::transaction(function () use ($validated, $user, $igvPct, $igvTipo, $precioIncluyeIgv, $moneda, $felPendiente, $tipoComprobante): Venta {
+        $venta = DB::transaction(function () use ($validated, $user, $clinic, $igvPct, $igvTipo, $precioIncluyeIgv, $moneda, $felPendiente, $tipoComprobante): Venta {
             $sesion = CajaSesion::query()
                 ->whereKey($validated['caja_sesion_id'])
                 ->lockForUpdate()
@@ -495,6 +496,31 @@ final class VentaCheckoutService
             $total = $totales['total'];
 
             $pagosLineas = VentaPagosResolver::fromValidated($validated, (float) $total);
+            $recargoPct = RecargoTarjeta::porcentajeDesdeRequest(
+                $validated['recargo_tarjeta_porcentaje'] ?? null,
+                $clinic,
+            );
+            $conRecargo = RecargoTarjeta::anexar(
+                $lineasCalc,
+                $pagosLineas,
+                $recargoPct,
+                $igvPct,
+                $precioIncluyeIgv,
+                $igvTipo,
+            );
+            if ($conRecargo['aplicado']) {
+                $lineasCalc = $conRecargo['lineas'];
+                $pagosLineas = $conRecargo['pagos'];
+                $totales = VentaTotales::fromLineas($lineasCalc, $igvPct, $precioIncluyeIgv);
+                $subtotalVenta = $totales['subtotal'];
+                $igvMonto = $totales['igv'];
+                $total = $totales['total'];
+            }
+            if (array_key_exists('recargo_tarjeta_porcentaje', $validated)
+                && $validated['recargo_tarjeta_porcentaje'] !== null
+                && $validated['recargo_tarjeta_porcentaje'] !== '') {
+                RecargoTarjeta::recordar($clinic, $recargoPct);
+            }
             $metodo = $pagosLineas === []
                 ? 'adelanto'
                 : VentaPagosResolver::metodoResumen($pagosLineas);

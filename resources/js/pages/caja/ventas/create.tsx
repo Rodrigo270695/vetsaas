@@ -79,6 +79,15 @@ function parseStock(stockSede: string | undefined): number {
     return Math.round(n * 1000) / 1000;
 }
 
+function porcentajeRecargoInicial(raw: string | undefined): string {
+    const n = Number(raw ?? '5');
+    if (!Number.isFinite(n)) {
+        return '5';
+    }
+
+    return String(Math.round(Math.min(100, Math.max(0, n)) * 100) / 100);
+}
+
 function readXsrfToken(): string {
     const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
 
@@ -171,6 +180,10 @@ export default function Create({
     const [precuentasOpen, setPrecuentasOpen] = useState(false);
     /** Opt-in: modo multi-método. Por defecto el clic reemplaza el método (radio). */
     const [pagoMixtoModo, setPagoMixtoModo] = useState(false);
+    const [recargoPct, setRecargoPct] = useState(() =>
+        porcentajeRecargoInicial(clinica.recargo_tarjeta_porcentaje),
+    );
+    const recargoGuardadoRef = useRef(porcentajeRecargoInicial(clinica.recargo_tarjeta_porcentaje));
 
     const form = useForm({
         caja_sesion_id: mi_sesion?.id ?? '',
@@ -357,6 +370,44 @@ export default function Create({
             discount: Number(promoPreview.discount_amount),
         };
     }, [promoPreview, totalesBase, cart.length]);
+
+    const pagaConTarjeta = form.data.pagos.some((p) => p.metodo === 'tarjeta');
+    const recargoTarjeta = useMemo(() => {
+        if (!pagaConTarjeta) {
+            return { pct: 0, monto: 0, total: totales.total };
+        }
+
+        const pct = Math.min(100, Math.max(0, Number(String(recargoPct).replace(',', '.')) || 0));
+        const pctR = Math.round(pct * 100) / 100;
+        let baseTarjeta = totales.total;
+        if (form.data.pagos.length > 1) {
+            const raw = form.data.pagos.find((p) => p.metodo === 'tarjeta')?.monto ?? '';
+            baseTarjeta = Number(String(raw).replace(',', '.')) || 0;
+        }
+        const monto = Math.round(baseTarjeta * (pctR / 100) * 100) / 100;
+
+        return {
+            pct: pctR,
+            monto,
+            total: Math.round((totales.total + monto) * 100) / 100,
+        };
+    }, [form.data.pagos, pagaConTarjeta, recargoPct, totales.total]);
+
+    const guardarRecargoTarjeta = useCallback((valor: string) => {
+        const pct = Math.min(100, Math.max(0, Number(String(valor).replace(',', '.')) || 0));
+        const texto = String(Math.round(pct * 100) / 100);
+        if (texto === recargoGuardadoRef.current) {
+            return;
+        }
+
+        void jsonPost('/caja/ventas/recargo-tarjeta', { recargo_tarjeta_porcentaje: Number(texto) })
+            .then(() => {
+                recargoGuardadoRef.current = texto;
+            })
+            .catch(() => {
+                /* La venta igual envía el porcentaje al registrarse. */
+            });
+    }, []);
 
     useEffect(() => {
         if (!form.data.propietario_id || cart.length === 0 || !navigator.onLine) {
@@ -726,6 +777,9 @@ export default function Create({
             notas: d.notas || null,
             tipo_comprobante_sunat:
                 d.tipo_comprobante_sunat === 0 ? null : d.tipo_comprobante_sunat,
+            recargo_tarjeta_porcentaje: d.pagos.some((p) => p.metodo === 'tarjeta')
+                ? recargoTarjeta.pct
+                : null,
             lineas: cart.map((l) => ({
                 producto_id: l.producto_id,
                 concepto: l.producto_id ? null : l.nombre,
@@ -740,7 +794,7 @@ export default function Create({
                 descuento_monto: l.descuento_monto,
             })),
         };
-    }, [cart, form.data, mi_sesion, totales.total]);
+    }, [cart, form.data, mi_sesion, recargoTarjeta.pct, totales.total]);
 
     const submit = useCallback(() => {
         if (!puede_vender || !mi_sesion || cart.length === 0) {
@@ -1688,6 +1742,42 @@ export default function Create({
                                     ) : null}
                                 </div>
 
+                                {pagaConTarjeta ? (
+                                    <div className="space-y-1 rounded-lg border border-border/50 bg-muted/10 p-2">
+                                        <Label htmlFor="recargo_tarjeta" className="text-[11px] text-muted-foreground">
+                                            {t('caja:ventas.create.recargo_tarjeta')}
+                                        </Label>
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative w-24">
+                                                <Input
+                                                    id="recargo_tarjeta"
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    min={0}
+                                                    max={100}
+                                                    step={0.01}
+                                                    className="h-8 pr-6 text-right text-sm tabular-nums"
+                                                    value={recargoPct}
+                                                    onChange={(e) => setRecargoPct(e.target.value)}
+                                                    onBlur={() => guardarRecargoTarjeta(recargoPct)}
+                                                    disabled={!puede_vender}
+                                                />
+                                                <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                                                    %
+                                                </span>
+                                            </div>
+                                            {recargoTarjeta.monto > 0 ? (
+                                                <span className="text-xs font-medium tabular-nums">
+                                                    + {formatMoney(recargoTarjeta.monto)}
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                        <p className="text-[10px] leading-snug text-muted-foreground">
+                                            {t('caja:ventas.create.recargo_tarjeta_hint')}
+                                        </p>
+                                    </div>
+                                ) : null}
+
                                 {esMixto ? (
                                     <div className="space-y-1.5 rounded-lg border border-border/50 bg-muted/10 p-2">
                                         {form.data.pagos.map((pago) => {
@@ -1952,12 +2042,24 @@ export default function Create({
                                             })}
                                         </p>
                                     ) : null}
+                                    {recargoTarjeta.monto > 0 ? (
+                                        <div className="flex justify-between gap-2 text-[11px]">
+                                            <span className="text-muted-foreground">
+                                                {t('caja:ventas.create.res_recargo_tarjeta', {
+                                                    pct: String(recargoTarjeta.pct),
+                                                })}
+                                            </span>
+                                            <span className="tabular-nums">
+                                                + {formatMoney(recargoTarjeta.monto)}
+                                            </span>
+                                        </div>
+                                    ) : null}
                                     <div className="flex items-baseline justify-between gap-2 border-t border-primary/15 pt-1.5">
                                         <span className="text-xs font-semibold">
                                             {t('caja:ventas.create.res_total')}
                                         </span>
                                         <span className="text-lg font-bold tabular-nums text-primary">
-                                            {formatMoney(totales.total)}
+                                            {formatMoney(recargoTarjeta.total)}
                                         </span>
                                     </div>
                                     {esSoloEfectivo && form.data.pagos[0]?.monto_recibido ? (
@@ -2023,7 +2125,7 @@ export default function Create({
                                     ) : (
                                         <>
                                             <ShoppingCart className="size-4" aria-hidden />
-                                            {t('caja:ventas.create.confirmar')} · {formatMoney(totales.total)}
+                                            {t('caja:ventas.create.confirmar')} · {formatMoney(recargoTarjeta.total)}
                                         </>
                                     )}
                                 </Button>

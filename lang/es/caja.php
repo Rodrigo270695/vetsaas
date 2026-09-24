@@ -139,6 +139,7 @@ return [
             'movimiento_notas' => 'Reversión por anulación de venta :numero',
         ],
         'movimiento_notas' => 'Salida por venta :numero',
+        'recargo_tarjeta_linea' => 'Recargo tarjeta (:pct%)',
         'ticket' => [
             'no_disponible' => 'El ticket estará disponible cuando la venta esté pagada y, si aplica, tras emitir el comprobante SUNAT.',
             'document_title' => 'Ticket de venta',

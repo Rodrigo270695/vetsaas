@@ -1028,6 +1028,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('ventas', [VentaController::class, 'store'])
             ->name('ventas.store');
         Route::middleware('permission:ventas.create')
+            ->post('ventas/recargo-tarjeta', [VentaController::class, 'guardarRecargoTarjeta'])
+            ->name('ventas.recargo-tarjeta');
+        Route::middleware('permission:ventas.create')
             ->post('ventas/propietarios-rapido', [VentaController::class, 'storePropietarioRapido'])
             ->name('ventas.propietarios-rapido');
         Route::middleware('permission:ventas.create')

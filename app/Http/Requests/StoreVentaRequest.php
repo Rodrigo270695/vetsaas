@@ -71,6 +71,7 @@ class StoreVentaRequest extends FormRequest
             'pagos.*.monto_recibido' => ['nullable', 'numeric', 'min:0'],
             'notas' => ['nullable', 'string', 'max:2000'],
             'promotion_code' => ['nullable', 'string', 'max:30'],
+            'recargo_tarjeta_porcentaje' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'tipo_comprobante_sunat' => ['nullable', 'integer', Rule::in([
                 FelSerie::TIPO_FACTURA,
                 FelSerie::TIPO_BOLETA,

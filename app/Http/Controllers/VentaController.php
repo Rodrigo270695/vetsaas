@@ -48,6 +48,7 @@ use App\Support\PlanCapabilities;
 use App\Support\Servicios\ServicioTarifaSearch;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Support\Venta\PrecuentasPendientesLister;
+use App\Support\Venta\RecargoTarjeta;
 use App\Support\Venta\VentaDesdeCargoPrefill;
 use App\Support\WhatsApp\WhatsAppChatId;
 use App\Tenancy\TenantManager;
@@ -1073,6 +1074,27 @@ class VentaController extends Controller
             ->with('success', __('caja.ventas.flash.registrada', ['numero' => $venta->numero]));
     }
 
+    public function guardarRecargoTarjeta(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->can('ventas.create') ?? false, 403);
+
+        $data = $request->validate([
+            'recargo_tarjeta_porcentaje' => ['required', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $clinic = ClinicSetting::current();
+        RecargoTarjeta::recordar($clinic, (float) $data['recargo_tarjeta_porcentaje']);
+
+        return response()->json([
+            'recargo_tarjeta_porcentaje' => number_format(
+                RecargoTarjeta::guardado($clinic->fresh() ?? $clinic),
+                2,
+                '.',
+                '',
+            ),
+        ]);
+    }
+
     /**
      * @param  Collection<int, array{id: string, label: string, doc: ?string}>  $propietarios
      * @return array<string, mixed>
@@ -1314,6 +1336,7 @@ class VentaController extends Controller
                 'igv_porcentaje' => number_format($clinic->igvPorcentajeEfectivo(), 2, '.', ''),
                 'igv_afectacion' => $clinic->igvAfectacion(),
                 'precio_incluye_igv' => (bool) $clinic->precio_incluye_igv,
+                'recargo_tarjeta_porcentaje' => number_format(RecargoTarjeta::guardado($clinic), 2, '.', ''),
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
                 'plan_permite_boletas' => PlanCapabilities::boletasElectronicas($tenantModel),
                 'plan_permite_facturas' => PlanCapabilities::facturasElectronicas($tenantModel),
