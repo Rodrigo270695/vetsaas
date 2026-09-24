@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     Download,
     Filter,
@@ -605,6 +605,17 @@ export default function Index({
                             rowKey={(p) => p.id}
                             sort={sort}
                             onSortChange={setSort}
+                            onRowClick={
+                                canViewHistorial
+                                    ? (p) => {
+                                          router.visit(
+                                              clinica.pacientes.show.url({
+                                                  paciente: p.id,
+                                              }),
+                                          );
+                                      }
+                                    : undefined
+                            }
                             isLoading={isLoading}
                             selection={canBulkDelete ? selection : undefined}
                             ariaLiveMessage={t(
