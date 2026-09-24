@@ -18,8 +18,8 @@ use App\Models\Receta;
 use App\Models\Sede;
 use App\Models\ServicioClinico;
 use App\Models\User;
-use App\Support\Tenancy\TenantManager;
 use App\Support\Tenancy\TenantModuleAccess;
+use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -237,14 +237,26 @@ class HospitalizacionController extends Controller
             'veterinario:id,name',
             'sede:id,nombre,codigo',
             'evoluciones' => fn ($q) => $q->orderByDesc('registrado_at')->with('veterinario:id,name'),
-            'signosClinicos' => fn ($q) => $q->orderBy('registrado_at'),
-            'notasBitacora' => fn ($q) => $q->orderBy('registrado_at')->with('creadoPor:id,name'),
-            'fluidos' => fn ($q) => $q->orderBy('registrado_at')->with('creadoPor:id,name'),
-            'tratamientos' => fn ($q) => $q->orderBy('registrado_at')->with([
+        ];
+
+        if (Schema::hasTable('internamiento_signos_clinicos')) {
+            $with['signosClinicos'] = fn ($q) => $q->orderBy('registrado_at');
+        }
+
+        if (Schema::hasTable('internamiento_notas')) {
+            $with['notasBitacora'] = fn ($q) => $q->orderBy('registrado_at')->with('creadoPor:id,name');
+        }
+
+        if (Schema::hasTable('internamiento_fluidos')) {
+            $with['fluidos'] = fn ($q) => $q->orderBy('registrado_at')->with('creadoPor:id,name');
+        }
+
+        if (Schema::hasTable('internamiento_tratamientos')) {
+            $with['tratamientos'] = fn ($q) => $q->orderBy('registrado_at')->with([
                 'creadoPor:id,name',
                 'servicioClinico:id,nombre,precio_lista,moneda',
-            ]),
-        ];
+            ]);
+        }
 
         if ($canAudit) {
             $with['evoluciones'] = fn ($q) => $q->orderByDesc('registrado_at')->with([
