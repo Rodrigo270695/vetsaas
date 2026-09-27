@@ -7,6 +7,7 @@ namespace App\Services\Clinica;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Models\Receta;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -192,7 +193,7 @@ final class RecetaPdfService
         };
     }
 
-    private function edadTexto(?Carbon $nacimiento, Carbon $al): string
+    private function edadTexto(?CarbonInterface $nacimiento, CarbonInterface $al): string
     {
         if ($nacimiento === null) {
             return '';
