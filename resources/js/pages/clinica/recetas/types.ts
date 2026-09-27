@@ -71,6 +71,9 @@ export type RecetaRow = {
     emitida_at: string;
     estado: string;
     observaciones: string | null;
+    examenes_complementarios?: string | null;
+    consulta_control_at?: string | null;
+    signos_alarma?: string | null;
     created_at: string;
     lineas_count: number;
     paciente: {

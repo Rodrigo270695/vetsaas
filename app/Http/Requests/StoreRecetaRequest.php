@@ -30,9 +30,11 @@ class StoreRecetaRequest extends FormRequest
                 $out[$key] = null;
             }
         }
-        $obs = $this->input('observaciones');
-        if (is_string($obs) && trim($obs) === '') {
-            $out['observaciones'] = null;
+        foreach (['observaciones', 'examenes_complementarios', 'signos_alarma', 'consulta_control_at'] as $key) {
+            $value = $this->input($key);
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                $out[$key] = null;
+            }
         }
         $lineas = $this->input('lineas');
         if (is_array($lineas)) {
@@ -116,6 +118,9 @@ class StoreRecetaRequest extends FormRequest
             'emitida_at' => ['required', 'date'],
             'estado' => ['sometimes', 'string', Rule::in(Receta::ESTADOS_CREACION)],
             'observaciones' => ['nullable', 'string', 'max:20000'],
+            'examenes_complementarios' => ['nullable', 'string', 'max:5000'],
+            'consulta_control_at' => ['nullable', 'date'],
+            'signos_alarma' => ['nullable', 'string', 'max:5000'],
             'lineas' => ['required', 'array', 'min:1'],
             'lineas.*.producto_id' => [
                 'nullable',

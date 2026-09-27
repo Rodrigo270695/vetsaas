@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Illuminate\Support\Carbon $emitida_at
  * @property string $estado
  * @property ?string $observaciones
+ * @property ?string $examenes_complementarios
+ * @property ?\Illuminate\Support\Carbon $consulta_control_at
+ * @property ?string $signos_alarma
  * @property ?string $created_by_id
  * @property ?string $updated_by_id
  */
@@ -56,6 +59,9 @@ class Receta extends Model
         'emitida_at',
         'estado',
         'observaciones',
+        'examenes_complementarios',
+        'consulta_control_at',
+        'signos_alarma',
         'created_by_id',
         'updated_by_id',
     ];
@@ -64,6 +70,7 @@ class Receta extends Model
     {
         return [
             'emitida_at' => 'datetime',
+            'consulta_control_at' => 'date',
         ];
     }
 

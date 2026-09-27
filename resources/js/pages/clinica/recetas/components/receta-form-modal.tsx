@@ -31,7 +31,7 @@ import type {
 import { RecetaProductoPicker } from './receta-producto-picker';
 import type { RecetaProductoOption } from './receta-producto-picker';
 
-const controlClass = 'h-10 w-full min-w-0';
+const controlClass = 'h-9 w-full min-w-0 text-sm';
 
 const ESTADOS_CREAR = ['borrador', 'emitida'] as const;
 
@@ -76,6 +76,9 @@ type FormShape = {
     emitida_at: string;
     estado: string;
     observaciones: string;
+    examenes_complementarios: string;
+    consulta_control_at: string;
+    signos_alarma: string;
     veterinario_id: string | null;
     sede_id: string | null;
     lineas: LineFormRow[];
@@ -102,6 +105,9 @@ function emptyForm(
         emitida_at: toDatetimeLocalValue(new Date()),
         estado: 'borrador',
         observaciones: '',
+        examenes_complementarios: '',
+        consulta_control_at: '',
+        signos_alarma: '',
         veterinario_id: defaultVetId,
         sede_id: resolveDefaultSedeId(sedes),
         lineas: [emptyLine()],
@@ -124,6 +130,9 @@ function fromReceta(r: RecetaRow, defaultVetId: string | null): FormShape {
         emitida_at: parseIsoToDatetimeLocal(r.emitida_at),
         estado: r.estado,
         observaciones: r.observaciones ?? '',
+        examenes_complementarios: r.examenes_complementarios ?? '',
+        consulta_control_at: (r.consulta_control_at ?? '').slice(0, 10),
+        signos_alarma: r.signos_alarma ?? '',
         veterinario_id: r.veterinario_id ?? defaultVetId,
         sede_id: r.sede_id,
         lineas: lineas.length > 0 ? lineas : [emptyLine()],
@@ -147,6 +156,9 @@ function formsEqual(a: FormShape, b: FormShape): boolean {
         a.emitida_at !== b.emitida_at ||
         a.estado !== b.estado ||
         a.observaciones !== b.observaciones ||
+        a.examenes_complementarios !== b.examenes_complementarios ||
+        a.consulta_control_at !== b.consulta_control_at ||
+        a.signos_alarma !== b.signos_alarma ||
         a.veterinario_id !== b.veterinario_id ||
         a.sede_id !== b.sede_id
     ) {
@@ -395,6 +407,11 @@ export function RecetaFormModal({
             emitida_at: raw.emitida_at,
             estado: raw.estado,
             observaciones: raw.observaciones.trim() === '' ? null : raw.observaciones.trim(),
+            examenes_complementarios:
+                raw.examenes_complementarios.trim() === '' ? null : raw.examenes_complementarios.trim(),
+            consulta_control_at:
+                raw.consulta_control_at.trim() === '' ? null : raw.consulta_control_at.trim(),
+            signos_alarma: raw.signos_alarma.trim() === '' ? null : raw.signos_alarma.trim(),
             veterinario_id:
                 raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
             sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
@@ -509,13 +526,8 @@ export function RecetaFormModal({
                 </div>
             }
         >
-            <div className="flex flex-col gap-5">
-                <FormSection
-                    index={0}
-                    title={t('form.section_general')}
-                    description={t('form.section_general_hint')}
-                    columns={2}
-                >
+            <div className="flex flex-col gap-4">
+                <FormSection index={0} title={t('form.section_general')} columns={2}>
                     <FormField
                         id="rf-paciente"
                         label={t('form.paciente')}
@@ -539,7 +551,6 @@ export function RecetaFormModal({
                     <FormField
                         id="rf-consulta"
                         label={t('form.consulta')}
-                        hint={t('form.consulta_hint')}
                         error={errors.consulta_id as string | undefined}
                         className="sm:col-span-2"
                     >
@@ -603,30 +614,6 @@ export function RecetaFormModal({
                         </Select>
                     </FormField>
 
-                    <FormField
-                        id="rf-obs"
-                        label={t('form.observaciones')}
-                        error={errors.observaciones as string | undefined}
-                        className="sm:col-span-2"
-                    >
-                        <Textarea
-                            id="rf-obs"
-                            rows={2}
-                            className="resize-none text-sm"
-                            value={data.observaciones}
-                            onChange={(e) => setData('observaciones', e.target.value)}
-                            aria-invalid={Boolean(errors.observaciones)}
-                            disabled={processing}
-                        />
-                    </FormField>
-                </FormSection>
-
-                <FormSection
-                    index={1}
-                    title={t('form.section_context')}
-                    description={t('form.section_context_hint')}
-                    columns={2}
-                >
                     <SedeFormField
                         id="rf-sede"
                         label={t('form.sede')}
@@ -638,27 +625,93 @@ export function RecetaFormModal({
                         noneLabel={t('form.sede_placeholder')}
                         controlClassName={controlClass}
                     />
+
+                    <FormField
+                        id="rf-control"
+                        label={t('form.control')}
+                        error={errors.consulta_control_at as string | undefined}
+                    >
+                        <Input
+                            id="rf-control"
+                            type="date"
+                            className={controlClass}
+                            value={data.consulta_control_at}
+                            onChange={(e) => setData('consulta_control_at', e.target.value)}
+                            aria-invalid={Boolean(errors.consulta_control_at)}
+                            disabled={processing}
+                        />
+                    </FormField>
+
+                    <FormField
+                        id="rf-examenes"
+                        label={t('form.examenes')}
+                        error={errors.examenes_complementarios as string | undefined}
+                        className="sm:col-span-2"
+                    >
+                        <Textarea
+                            id="rf-examenes"
+                            rows={2}
+                            placeholder={t('form.examenes_placeholder')}
+                            className="min-h-16 resize-none text-sm"
+                            value={data.examenes_complementarios}
+                            onChange={(e) => setData('examenes_complementarios', e.target.value)}
+                            aria-invalid={Boolean(errors.examenes_complementarios)}
+                            disabled={processing}
+                        />
+                    </FormField>
+
+                    <FormField
+                        id="rf-signos"
+                        label={t('form.signos')}
+                        error={errors.signos_alarma as string | undefined}
+                    >
+                        <Textarea
+                            id="rf-signos"
+                            rows={2}
+                            placeholder={t('form.signos_placeholder')}
+                            className="min-h-16 resize-none text-sm"
+                            value={data.signos_alarma}
+                            onChange={(e) => setData('signos_alarma', e.target.value)}
+                            aria-invalid={Boolean(errors.signos_alarma)}
+                            disabled={processing}
+                        />
+                    </FormField>
+
+                    <FormField
+                        id="rf-obs"
+                        label={t('form.observaciones')}
+                        error={errors.observaciones as string | undefined}
+                    >
+                        <Textarea
+                            id="rf-obs"
+                            rows={2}
+                            className="min-h-16 resize-none text-sm"
+                            value={data.observaciones}
+                            onChange={(e) => setData('observaciones', e.target.value)}
+                            aria-invalid={Boolean(errors.observaciones)}
+                            disabled={processing}
+                        />
+                    </FormField>
                 </FormSection>
 
                 <FormSection
-                    index={2}
+                    index={1}
                     title={t('form.section_lineas')}
-                    description={t('form.section_lineas_hint')}
                     columns={1}
-                >
-                    <div className="flex justify-end">
+                    actions={
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="cursor-pointer gap-1.5"
+                            className="h-8 cursor-pointer gap-1.5"
                             onClick={addLine}
                             disabled={processing}
                         >
                             <Plus className="size-3.5" strokeWidth={2.5} />
                             {t('actions.add_line')}
                         </Button>
-                    </div>
+                    }
+                >
 
                     {err('lineas') ? (
                         <p className="text-sm text-destructive" role="alert">
@@ -666,35 +719,35 @@ export function RecetaFormModal({
                         </p>
                     ) : null}
 
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2.5">
                         {data.lineas.map((row, index) => (
                             <div
                                 key={row.rowKey}
-                                className="rounded-lg border border-border/60 bg-card/30 p-4 sm:p-5"
+                                className="rounded-md border border-border/70 bg-muted/20 px-3 py-2.5"
                             >
-                                <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/50 pb-3">
-                                    <span className="text-sm font-semibold text-foreground">
-                                        {t('form.section_lineas')} · #{index + 1}
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                        {t('form.linea_n', { n: index + 1 })}
                                     </span>
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="size-9 shrink-0 text-muted-foreground hover:text-destructive"
+                                        className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
                                         disabled={processing || data.lineas.length <= 1}
                                         onClick={() => removeLine(index)}
                                         aria-label={t('form.remove_line')}
                                     >
-                                        <Trash2 className="size-4" strokeWidth={2.25} />
+                                        <Trash2 className="size-3.5" strokeWidth={2.25} />
                                     </Button>
                                 </div>
 
-                                <div className="grid gap-4 sm:grid-cols-2 sm:gap-x-5">
+                                <div className="grid gap-2.5 sm:grid-cols-6">
                                     <FormField
                                         id={`rf-lin-${index}-prod`}
                                         label={t('producto_picker.placeholder')}
                                         error={err(`lineas.${index}.producto_id`)}
-                                        className="sm:col-span-2"
+                                        className="sm:col-span-6"
                                     >
                                         <RecetaProductoPicker
                                             id={`rf-lin-${index}-prod`}
@@ -711,6 +764,7 @@ export function RecetaFormModal({
                                         label={t('form.linea_nombre')}
                                         required
                                         error={err(`lineas.${index}.nombre_medicamento`)}
+                                        className="sm:col-span-4"
                                     >
                                         <Input
                                             id={`rf-lin-${index}-nom`}
@@ -728,6 +782,7 @@ export function RecetaFormModal({
                                         id={`rf-lin-${index}-dur`}
                                         label={t('form.linea_duracion')}
                                         error={err(`lineas.${index}.duracion_dias`)}
+                                        className="sm:col-span-2"
                                     >
                                         <Input
                                             id={`rf-lin-${index}-dur`}
@@ -748,11 +803,11 @@ export function RecetaFormModal({
                                         id={`rf-lin-${index}-pos`}
                                         label={t('form.linea_posologia')}
                                         error={err(`lineas.${index}.posologia`)}
+                                        className="sm:col-span-3"
                                     >
-                                        <Textarea
+                                        <Input
                                             id={`rf-lin-${index}-pos`}
-                                            rows={2}
-                                            className="resize-none text-sm"
+                                            className={controlClass}
                                             value={row.posologia}
                                             onChange={(e) => updateLine(index, { posologia: e.target.value })}
                                             aria-invalid={Boolean(err(`lineas.${index}.posologia`))}
@@ -764,11 +819,11 @@ export function RecetaFormModal({
                                         id={`rf-lin-${index}-ins`}
                                         label={t('form.linea_instrucciones')}
                                         error={err(`lineas.${index}.instrucciones`)}
+                                        className="sm:col-span-3"
                                     >
-                                        <Textarea
+                                        <Input
                                             id={`rf-lin-${index}-ins`}
-                                            rows={2}
-                                            className="resize-none text-sm"
+                                            className={controlClass}
                                             value={row.instrucciones}
                                             onChange={(e) =>
                                                 updateLine(index, { instrucciones: e.target.value })

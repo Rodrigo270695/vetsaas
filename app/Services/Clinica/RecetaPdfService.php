@@ -9,6 +9,7 @@ use App\Models\Receta;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 final class RecetaPdfService
@@ -30,6 +31,13 @@ final class RecetaPdfService
             'consulta.planTratamiento:id,consulta_id,fecha_fin',
         ]);
 
+        if (Schema::hasColumn('historias_clinicas', 'numero')) {
+            $receta->loadMissing([
+                'consulta.historiaClinica:id,paciente_id,numero',
+                'paciente.historiaClinica:id,paciente_id,numero',
+            ]);
+        }
+
         if ($receta->paciente === null) {
             throw new \RuntimeException('La receta no tiene paciente.');
         }
@@ -42,15 +50,20 @@ final class RecetaPdfService
         $paciente = $receta->paciente;
         $propietario = $paciente->propietario;
         $peso = $receta->consulta?->peso_kg ?: $paciente->peso_kg;
-        $examenes = '';
-        if ($receta->consulta !== null) {
+        $examenes = trim((string) ($receta->examenes_complementarios ?? ''));
+        if ($examenes === '' && $receta->consulta !== null) {
             $examenes = $receta->consulta->examenes
                 ->pluck('nombre')
                 ->map(static fn (mixed $nombre): string => trim((string) $nombre))
                 ->filter(static fn (string $nombre): bool => $nombre !== '')
                 ->implode(', ');
         }
-        $control = $receta->consulta?->planTratamiento?->fecha_fin;
+        $control = $receta->consulta_control_at ?? $receta->consulta?->planTratamiento?->fecha_fin;
+        $historiaNumero = (string) (
+            $receta->consulta?->historiaClinica?->numero
+            ?? $receta->paciente?->historiaClinica?->numero
+            ?? ''
+        );
         $branding = $this->clinicPdfBranding('receta');
 
         $pdf = Pdf::loadView('pdf.receta', array_merge(
@@ -74,6 +87,7 @@ final class RecetaPdfService
                 'reproductivo' => $this->reproductivoTexto($paciente->esterilizado),
                 'fechaNacimiento' => $paciente->fecha_nacimiento?->format('d-m-Y') ?? '',
                 'microchip' => trim((string) ($paciente->microchip ?? '')),
+                'historiaNumero' => $historiaNumero,
                 'edad' => $this->edadTexto($paciente->fecha_nacimiento, $atencion),
                 'peso' => $this->pesoTexto($peso),
                 'fechaAtencion' => $atencion->format('d-m-Y h:i:s A'),
@@ -81,7 +95,8 @@ final class RecetaPdfService
                 'motivo' => trim((string) ($receta->consulta?->motivo ?? '')),
                 'indicacionMedica' => $this->indicacionMedica($receta),
                 'examenes' => $examenes,
-                'consultaControl' => $control !== null ? $control->format('d/m/y') : '',
+                'consultaControl' => $this->fechaCorta($control),
+                'signosAlarma' => trim((string) ($receta->signos_alarma ?? '')),
             ],
         ));
         $pdf->setPaper('a4', 'portrait');
@@ -224,6 +239,19 @@ final class RecetaPdfService
         $days = (int) $diff->d;
 
         return trans_choice('recetas.pdf.edad_dias', $days, ['n' => $days]);
+    }
+
+    private function fechaCorta(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        if ($value instanceof CarbonInterface) {
+            return $value->format('d/m/y');
+        }
+
+        return Carbon::parse((string) $value)->format('d/m/y');
     }
 
     private function pesoTexto(mixed $raw): string

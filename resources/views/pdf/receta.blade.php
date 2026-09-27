@@ -14,6 +14,8 @@
     /** @var string $reproductivo */
     /** @var string $fechaNacimiento */
     /** @var string $microchip */
+    /** @var string $historiaNumero */
+    /** @var string $signosAlarma */
     /** @var string $edad */
     /** @var string $peso */
     /** @var string $fechaAtencion */
@@ -118,7 +120,7 @@
         <table class="fields group">
             <tr>
                 <td style="width: 62%;"><span class="k">{{ __('recetas.pdf.mascota') }}:</span> {{ $mascota }}</td>
-                <td><span class="k">{{ __('recetas.pdf.historia') }}:</span></td>
+                <td><span class="k">{{ __('recetas.pdf.historia') }}:</span> {{ $historiaNumero }}</td>
             </tr>
             <tr>
                 <td><span class="k">{{ __('recetas.pdf.especie') }}:</span> {{ $especie }}</td>
@@ -168,6 +170,9 @@
         @endif
 
         <div class="block-title">{{ __('recetas.pdf.alarmas') }}</div>
+        @if ($signosAlarma !== '')
+            <p class="block-body">{{ $signosAlarma }}</p>
+        @endif
     </div>
 
     @include('pdf.partials.vet-firma')
