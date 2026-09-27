@@ -14,6 +14,7 @@ import {
     useSalaEsperaRealtime,
 } from '@/hooks/use-sala-espera-realtime';
 import { useTenantModuleEnabled } from '@/hooks/use-tenant-modules';
+import { playSalaEsperaSound, primeSalaEsperaSound } from '@/lib/sala-espera-sound';
 import { cn } from '@/lib/utils';
 
 type SalaItem = {
@@ -60,7 +61,7 @@ function notifyOs(title: string, body: string): void {
     }
 
     try {
-        new Notification(title, { body, silent: false });
+        new Notification(title, { body, silent: true });
     } catch {
         // El SO bloquea notificaciones en este contexto.
     }
@@ -113,17 +114,25 @@ export function SalaEsperaHeaderIcons() {
     }, [canSala]);
 
     useEffect(() => {
-        void loadResumen();
-        if (!canSala) {
+        if (!canSala && !canVista) {
             return;
         }
-        const id = window.setInterval(() => {
-            void loadResumen();
-        }, realtimeOn ? 45_000 : 8_000);
-        const onChanged = () => {
-            void loadResumen();
+
+        const prime = () => {
+            primeSalaEsperaSound();
         };
-        window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
+        window.addEventListener('pointerdown', prime);
+
+        return () => {
+            window.removeEventListener('pointerdown', prime);
+        };
+    }, [canSala, canVista]);
+
+    useEffect(() => {
+        void loadResumen();
+        if (!canSala && !canVista) {
+            return;
+        }
 
         const onAssigned = (event: Event) => {
             const detail = (event as CustomEvent<{
@@ -135,13 +144,21 @@ export function SalaEsperaHeaderIcons() {
             if (!detail || (detail.action !== 'enviar' && detail.action !== 'asignar')) {
                 return;
             }
-            if (detail.actor_id && myId && String(detail.actor_id) === myId) {
-                return;
-            }
+
+            const isActor = Boolean(
+                detail.actor_id && myId && String(detail.actor_id) === myId,
+            );
             const tratanteId = detail.item?.tratante_id ? String(detail.item.tratante_id) : '';
-            if (tratanteId !== '' && tratanteId !== myId) {
+            const isTarget = tratanteId === '' ? canSala : tratanteId === myId;
+            if (!isActor && !isTarget) {
                 return;
             }
+
+            playSalaEsperaSound();
+            if (!isTarget || isActor) {
+                return;
+            }
+
             notifyOs(
                 detail.tipo === 'grooming'
                     ? t('sala_espera.title_grooming')
@@ -153,12 +170,26 @@ export function SalaEsperaHeaderIcons() {
         };
         window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onAssigned);
 
+        if (!canSala) {
+            return () => {
+                window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onAssigned);
+            };
+        }
+
+        const id = window.setInterval(() => {
+            void loadResumen();
+        }, realtimeOn ? 45_000 : 8_000);
+        const onChanged = () => {
+            void loadResumen();
+        };
+        window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
+
         return () => {
             window.clearInterval(id);
             window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onChanged);
             window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onAssigned);
         };
-    }, [canSala, loadResumen, myId, realtimeOn, t]);
+    }, [canSala, canVista, loadResumen, myId, realtimeOn, t]);
 
     if (tenant == null) {
         return null;
