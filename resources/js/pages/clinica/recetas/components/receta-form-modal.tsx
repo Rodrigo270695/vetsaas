@@ -232,6 +232,13 @@ export function RecetaFormModal({
                 emitida_at: r.emitida_at,
                 estado: r.estado,
                 observaciones: r.observaciones.trim() === '' ? null : r.observaciones.trim(),
+                examenes_complementarios:
+                    r.examenes_complementarios.trim() === ''
+                        ? null
+                        : r.examenes_complementarios.trim(),
+                consulta_control_at:
+                    r.consulta_control_at.trim() === '' ? null : r.consulta_control_at.trim(),
+                signos_alarma: r.signos_alarma.trim() === '' ? null : r.signos_alarma.trim(),
                 veterinario_id:
                     r.veterinario_id != null && r.veterinario_id !== '' ? r.veterinario_id : null,
                 sede_id: r.sede_id != null && r.sede_id !== '' ? r.sede_id : null,
