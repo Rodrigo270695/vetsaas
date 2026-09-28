@@ -93,7 +93,8 @@ final class RecetaPdfService
                 'fechaAtencion' => $atencion->format('d-m-Y h:i:s A'),
                 'atendidoPor' => trim((string) ($receta->veterinario?->name ?? '')),
                 'motivo' => trim((string) ($receta->consulta?->motivo ?? '')),
-                'indicacionMedica' => $this->indicacionMedica($receta),
+                'indicaciones' => $this->indicaciones($receta),
+                'observacionesReceta' => trim((string) ($receta->observaciones ?? '')),
                 'examenes' => $examenes,
                 'consultaControl' => $this->fechaCorta($control),
                 'signosAlarma' => trim((string) ($receta->signos_alarma ?? '')),
@@ -156,37 +157,37 @@ final class RecetaPdfService
         ];
     }
 
-    private function indicacionMedica(Receta $receta): string
+    /**
+     * @return list<array{nombre: string, detalle: string}>
+     */
+    private function indicaciones(Receta $receta): array
     {
-        $trozos = [];
+        $items = [];
         foreach ($receta->lineas as $ln) {
-            $partes = [trim((string) $ln->nombre_medicamento)];
+            $nombre = trim((string) $ln->nombre_medicamento);
+            $detalle = [];
             $posologia = trim((string) ($ln->posologia ?? ''));
             if ($posologia !== '') {
-                $partes[] = $posologia;
+                $detalle[] = $posologia;
             }
             if ($ln->duracion_dias !== null && (int) $ln->duracion_dias > 0) {
-                $partes[] = __('recetas.pdf.por_dias', ['n' => (int) $ln->duracion_dias]);
+                $detalle[] = __('recetas.pdf.por_dias', ['n' => (int) $ln->duracion_dias]);
             }
-            $texto = implode(' ', array_filter($partes, static fn (string $parte): bool => $parte !== ''));
             $instrucciones = trim((string) ($ln->instrucciones ?? ''));
             if ($instrucciones !== '') {
-                $texto .= ', '.$instrucciones;
+                $detalle[] = $instrucciones;
             }
-            if ($texto !== '') {
-                $trozos[] = $texto;
+            if ($nombre === '' && $detalle === []) {
+                continue;
             }
+
+            $items[] = [
+                'nombre' => $nombre,
+                'detalle' => implode(', ', $detalle),
+            ];
         }
 
-        $cuerpo = $trozos === []
-            ? ''
-            : __('recetas.pdf.tratamiento_prefix').implode(', ', $trozos).'.';
-        $obs = trim((string) ($receta->observaciones ?? ''));
-        if ($obs === '') {
-            return $cuerpo;
-        }
-
-        return $cuerpo === '' ? $obs : $cuerpo.' '.$obs;
+        return $items;
     }
 
     private function sexoTexto(?string $sexo): string

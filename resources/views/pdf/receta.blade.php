@@ -21,7 +21,8 @@
     /** @var string $fechaAtencion */
     /** @var string $atendidoPor */
     /** @var string $motivo */
-    /** @var string $indicacionMedica */
+    /** @var list<array{nombre: string, detalle: string}> $indicaciones */
+    /** @var string $observacionesReceta */
     /** @var string $examenes */
     /** @var string $consultaControl */
 @endphp
@@ -62,6 +63,10 @@
             margin: 10px 0 3px;
         }
         .block-body { margin: 0; line-height: 1.35; }
+        .rx-list { width: 100%; border-collapse: collapse; margin-top: 2px; }
+        .rx-n { width: 18px; vertical-align: top; font-weight: bold; padding: 0 4px 6px 0; line-height: 1.35; }
+        .rx-txt { vertical-align: top; padding: 0 0 6px 0; line-height: 1.35; }
+        .rx-obs { margin-top: 2px; }
         .stamp {
             position: fixed;
             top: 42%;
@@ -155,8 +160,25 @@
         <div class="receta-title">{{ __('recetas.pdf.receta') }}</div>
 
         <div class="block-title">{{ __('recetas.pdf.indicacion') }}</div>
-        @if ($indicacionMedica !== '')
-            <p class="block-body">{{ $indicacionMedica }}</p>
+        @if ($indicaciones !== [])
+            <table class="rx-list">
+                @foreach ($indicaciones as $indice => $item)
+                    <tr>
+                        <td class="rx-n">{{ $indice + 1 }}.</td>
+                        <td class="rx-txt">
+                            @if ($item['nombre'] !== '')
+                                <strong>{{ $item['nombre'] }}</strong>
+                            @endif
+                            @if ($item['detalle'] !== '')
+                                {{ ($item['nombre'] !== '' ? ' ' : '').$item['detalle'] }}
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </table>
+        @endif
+        @if ($observacionesReceta !== '')
+            <p class="block-body rx-obs">{{ $observacionesReceta }}</p>
         @endif
 
         <div class="block-title">{{ __('recetas.pdf.examenes') }}</div>
