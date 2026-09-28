@@ -189,6 +189,15 @@
         "alcance_mios": "Mis pacientes",
         "alcance_todos": "Toda la sala",
         "marcar": "Marcar atendido",
+        "estado": "Estado",
+        "historial": "Historial",
+        "estados": {
+            "citado": "Citado",
+            "en_espera": "En espera",
+            "en_atencion": "En atención",
+            "atendido": "Atendido",
+            "cancelado": "Cancelado"
+        },
         "llamar": "Llamar",
         "llamado": "Llamado",
         "ir_citas": "Ir a citas",
@@ -204,7 +213,7 @@
         "owner": "Tutor",
         "quitar": "Quitar",
         "quitar_title": "¿Quitar de la sala?",
-        "quitar_body": "{{name}} saldrá de la cola de espera.",
+        "quitar_body": "{{name}} quedará al final, en el historial, como cancelado.",
         "quitar_ok": "Quitar de sala"
     }
 }

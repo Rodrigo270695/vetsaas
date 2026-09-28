@@ -22,6 +22,31 @@ final class SalaEsperaHoyService
 
     public const TIPO_GROOMING = 'grooming';
 
+    public const ESTADO_CITADO = 'citado';
+
+    public const ESTADO_EN_ESPERA = 'en_espera';
+
+    public const ESTADO_EN_ATENCION_SALA = 'en_atencion';
+
+    public const ESTADO_ATENDIDO = 'atendido';
+
+    public const ESTADO_CANCELADO = 'cancelado';
+
+    /** @var list<string> */
+    public const ESTADOS_SALA = [
+        self::ESTADO_CITADO,
+        self::ESTADO_EN_ESPERA,
+        self::ESTADO_EN_ATENCION_SALA,
+        self::ESTADO_ATENDIDO,
+        self::ESTADO_CANCELADO,
+    ];
+
+    /** @var list<string> */
+    public const ESTADOS_HISTORIAL = [
+        self::ESTADO_ATENDIDO,
+        self::ESTADO_CANCELADO,
+    ];
+
     /**
      * @return array{
      *     consulta: array<string, mixed>,
@@ -32,17 +57,22 @@ final class SalaEsperaHoyService
      *     can_grooming: bool
      * }
      */
-    public function board(User $user, ?Tenant $tenant, bool $soloMios = true): array
-    {
+    public function board(
+        User $user,
+        ?Tenant $tenant,
+        bool $soloMios = true,
+        ?Carbon $desde = null,
+        ?Carbon $hasta = null,
+    ): array {
         $canConsulta = $user->can('sala-espera.consulta') && TenantModuleAccess::isEnabled($tenant, 'citas');
         $canGrooming = $user->can('sala-espera.grooming') && TenantModuleAccess::isEnabled($tenant, 'grooming');
 
         return [
             'consulta' => $canConsulta
-                ? $this->forQueue($user, $tenant, self::TIPO_CONSULTA, $soloMios)
+                ? $this->forQueue($user, $tenant, self::TIPO_CONSULTA, $soloMios, $desde, $hasta)
                 : $this->emptyQueue($user, self::TIPO_CONSULTA),
             'grooming' => $canGrooming
-                ? $this->forQueue($user, $tenant, self::TIPO_GROOMING, $soloMios)
+                ? $this->forQueue($user, $tenant, self::TIPO_GROOMING, $soloMios, $desde, $hasta)
                 : $this->emptyQueue($user, self::TIPO_GROOMING),
             'can_enviar' => $user->can('sala-espera.enviar'),
             'can_marcar' => $user->can('sala-espera.marcar-atendido'),
@@ -106,21 +136,32 @@ final class SalaEsperaHoyService
      *     espera: list<array<string, mixed>>,
      *     proximas: list<array<string, mixed>>,
      *     en_curso: list<array<string, mixed>>,
+     *     historial: list<array<string, mixed>>,
      *     can_marcar: bool,
      *     visible: bool
      * }
      */
-    public function forQueue(User $user, ?Tenant $tenant, string $tipo, bool $soloMios = true): array
-    {
+    public function forQueue(
+        User $user,
+        ?Tenant $tenant,
+        string $tipo,
+        bool $soloMios = true,
+        ?Carbon $desde = null,
+        ?Carbon $hasta = null,
+    ): array {
         $tipo = $this->normalizeTipo($tipo);
         $tz = (string) config('app.timezone');
         $now = Carbon::now($tz);
-        $inicio = $now->copy()->startOfDay();
-        $fin = $now->copy()->endOfDay();
+        $inicio = ($desde ?? $now)->copy()->timezone($tz)->startOfDay();
+        $fin = ($hasta ?? $desde ?? $now)->copy()->timezone($tz)->endOfDay();
+        if ($fin->lt($inicio)) {
+            [$inicio, $fin] = [$fin->copy()->startOfDay(), $inicio->copy()->endOfDay()];
+        }
 
         $espera = [];
         $proximas = [];
         $enCurso = [];
+        $historial = [];
         $pacienteWith = [
             'paciente:id,nombre,especie,foto_path,propietario_id',
             'paciente.propietario:id,nombres,apellidos,razon_social',
@@ -131,15 +172,11 @@ final class SalaEsperaHoyService
             if (Schema::hasTable('citas')) {
                 $query = Cita::query()
                     ->with([...$pacienteWith, 'veterinario:id,name'])
-                    ->whereBetween('inicio_at', [$inicio, $fin])
-                    ->whereIn('estado', [
-                        ...Cita::ESTADOS_EN_ESPERA,
-                        Cita::ESTADO_EN_ATENCION,
-                    ])
-                    ->orderBy('inicio_at')
-                    ->limit(50);
+                    ->whereBetween('sala_espera_enviado_at', [$inicio, $fin])
+                    ->orderBy('sala_espera_enviado_at')
+                    ->limit(120);
 
-                $this->constrainSalaActiva($query, 'citas');
+                $this->constrainEnviados($query, 'citas');
                 $this->constrainTratante($query, 'veterinario_id', $user, $soloMios);
 
                 foreach ($query->get() as $cita) {
@@ -149,13 +186,7 @@ final class SalaEsperaHoyService
                         ? $cita->inicio_at->timezone($tz)
                         : Carbon::parse((string) $cita->inicio_at, $tz);
 
-                    if ($cita->estado === Cita::ESTADO_EN_ATENCION) {
-                        $enCurso[] = $item;
-                    } elseif ($at->lte($now)) {
-                        $espera[] = $item;
-                    } else {
-                        $proximas[] = $item;
-                    }
+                    $this->ubicarEnCola($item, $this->estadoSala($cita), $at, $now, $espera, $proximas, $enCurso, $historial);
                 }
             }
         } else {
@@ -163,15 +194,11 @@ final class SalaEsperaHoyService
             if (Schema::hasTable('grooming_turnos')) {
                 $query = GroomingTurno::query()
                     ->with([...$pacienteWith, 'responsable:id,name'])
-                    ->whereBetween('inicio_at', [$inicio, $fin])
-                    ->whereIn('estado', [
-                        ...GroomingTurno::ESTADOS_EN_ESPERA,
-                        GroomingTurno::ESTADO_EN_PROCESO,
-                    ])
-                    ->orderBy('inicio_at')
-                    ->limit(50);
+                    ->whereBetween('sala_espera_enviado_at', [$inicio, $fin])
+                    ->orderBy('sala_espera_enviado_at')
+                    ->limit(120);
 
-                $this->constrainSalaActiva($query, 'grooming_turnos');
+                $this->constrainEnviados($query, 'grooming_turnos');
                 $this->constrainTratante($query, 'responsable_id', $user, $soloMios);
 
                 foreach ($query->get() as $turno) {
@@ -181,24 +208,19 @@ final class SalaEsperaHoyService
                         ? $turno->inicio_at->timezone($tz)
                         : Carbon::parse((string) $turno->inicio_at, $tz);
 
-                    if ($turno->estado === GroomingTurno::ESTADO_EN_PROCESO) {
-                        $enCurso[] = $item;
-                    } elseif ($at->lte($now)) {
-                        $espera[] = $item;
-                    } else {
-                        $proximas[] = $item;
-                    }
+                    $this->ubicarEnCola($item, $this->estadoSala($turno), $at, $now, $espera, $proximas, $enCurso, $historial);
                 }
             }
         }
 
         return [
             'tipo' => $tipo,
-            'fecha' => $now->toDateString(),
+            'fecha' => $inicio->toDateString(),
             'count' => count($espera),
             'espera' => $espera,
             'proximas' => $proximas,
             'en_curso' => $enCurso,
+            'historial' => $historial,
             'can_marcar' => $user->can('sala-espera.marcar-atendido'),
             'visible' => (count($espera) + count($proximas) + count($enCurso)) > 0,
         ];
@@ -241,6 +263,7 @@ final class SalaEsperaHoyService
                     'estado' => Cita::ESTADO_PROGRAMADA,
                     'motivo' => 'Sala de espera',
                     'sala_espera_enviado_at' => $now,
+                    'sala_espera_estado' => self::ESTADO_CITADO,
                     'created_by_id' => $user->id,
                     'updated_by_id' => $user->id,
                 ];
@@ -281,6 +304,7 @@ final class SalaEsperaHoyService
                 'estado' => GroomingTurno::ESTADO_PROGRAMADA,
                 'servicio' => 'bano_higienico',
                 'sala_espera_enviado_at' => $now,
+                'sala_espera_estado' => self::ESTADO_CITADO,
                 'created_by_id' => $user->id,
                 'updated_by_id' => $user->id,
             ];
@@ -337,35 +361,35 @@ final class SalaEsperaHoyService
 
     public function marcarAtendido(User $user, string $tipo, string $id): void
     {
-        abort_unless($user->can('sala-espera.marcar-atendido'), 403);
-        $tipo = $this->normalizeTipo($tipo);
-        $now = now();
-
-        if ($tipo === self::TIPO_CONSULTA) {
-            abort_unless(Schema::hasColumn('citas', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
-            $cita = Cita::query()->whereKey($id)->firstOrFail();
-            $cita->forceFill(['sala_espera_atendido_at' => $now])->save();
-
-            return;
-        }
-
-        abort_unless(Schema::hasColumn('grooming_turnos', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
-        $turno = GroomingTurno::query()->whereKey($id)->firstOrFail();
-        $turno->forceFill(['sala_espera_atendido_at' => $now])->save();
+        $this->cambiarEstado($user, $tipo, $id, self::ESTADO_ATENDIDO);
     }
 
     public function retirar(User $user, string $tipo, string $id): void
     {
+        $this->cambiarEstado($user, $tipo, $id, self::ESTADO_CANCELADO);
+    }
+
+    public function cambiarEstado(User $user, string $tipo, string $id, string $estado): void
+    {
         abort_unless($user->can('sala-espera.marcar-atendido'), 403);
+        abort_unless(in_array($estado, self::ESTADOS_SALA, true), 422);
         $tipo = $this->normalizeTipo($tipo);
         $now = now();
+        $historial = in_array($estado, self::ESTADOS_HISTORIAL, true);
 
         if ($tipo === self::TIPO_CONSULTA) {
             abort_unless(Schema::hasColumn('citas', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
             $cita = Cita::query()->whereKey($id)->firstOrFail();
-            $updates = ['sala_espera_atendido_at' => $now];
+            $updates = [
+                'sala_espera_atendido_at' => $historial ? ($cita->sala_espera_atendido_at ?? $now) : null,
+                'updated_by_id' => $user->id,
+            ];
+            if (Schema::hasColumn('citas', 'sala_espera_estado')) {
+                $updates['sala_espera_estado'] = $estado;
+            }
             if (
-                in_array((string) $cita->estado, Cita::ESTADOS_EN_ESPERA, true)
+                $estado === self::ESTADO_CANCELADO
+                && in_array((string) $cita->estado, Cita::ESTADOS_EN_ESPERA, true)
                 && (string) $cita->motivo === 'Sala de espera'
             ) {
                 $updates['estado'] = Cita::ESTADO_CANCELADA;
@@ -377,7 +401,14 @@ final class SalaEsperaHoyService
 
         abort_unless(Schema::hasColumn('grooming_turnos', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
         $turno = GroomingTurno::query()->whereKey($id)->firstOrFail();
-        $turno->forceFill(['sala_espera_atendido_at' => $now])->save();
+        $updates = [
+            'sala_espera_atendido_at' => $historial ? ($turno->sala_espera_atendido_at ?? $now) : null,
+            'updated_by_id' => $user->id,
+        ];
+        if (Schema::hasColumn('grooming_turnos', 'sala_espera_estado')) {
+            $updates['sala_espera_estado'] = $estado;
+        }
+        $turno->forceFill($updates)->save();
     }
 
     private function citaEnColaHoy(Paciente $paciente, Carbon $now): ?Cita
@@ -438,6 +469,7 @@ final class SalaEsperaHoyService
             'numero' => $record->sala_espera_numero !== null ? (int) $record->sala_espera_numero : null,
             'hora' => $at->timezone($tz)->format('H:i'),
             'estado' => (string) $record->estado,
+            'sala_estado' => $this->estadoSala($record),
             'motivo' => $motivo !== '' ? $motivo : null,
             'minutos_espera' => $minutos,
             'enviado_at' => $enviado->timezone($tz)->toIso8601String(),
@@ -545,6 +577,7 @@ final class SalaEsperaHoyService
             'espera' => [],
             'proximas' => [],
             'en_curso' => [],
+            'historial' => [],
             'can_marcar' => $user->can('sala-espera.marcar-atendido'),
             'visible' => false,
         ];
@@ -621,15 +654,82 @@ final class SalaEsperaHoyService
      */
     private function constrainSalaActiva($query, string $table): void
     {
+        $this->constrainEnviados($query, $table);
+
+        if (Schema::hasColumn($table, 'sala_espera_atendido_at')) {
+            $query->whereNull('sala_espera_atendido_at');
+        }
+    }
+
+    /**
+     * @param  Builder<Cita>|Builder<GroomingTurno>  $query
+     */
+    private function constrainEnviados($query, string $table): void
+    {
         if (Schema::hasColumn($table, 'sala_espera_enviado_at')) {
             $query->whereNotNull('sala_espera_enviado_at');
         } else {
             $query->whereRaw('1 = 0');
         }
+    }
 
-        if (Schema::hasColumn($table, 'sala_espera_atendido_at')) {
-            $query->whereNull('sala_espera_atendido_at');
+    private function estadoSala(Cita|GroomingTurno $record): string
+    {
+        $guardado = $record->getAttribute('sala_espera_estado');
+        if (is_string($guardado) && in_array($guardado, self::ESTADOS_SALA, true)) {
+            return $guardado;
         }
+
+        if ($record->sala_espera_atendido_at !== null) {
+            return (string) $record->estado === 'cancelada'
+                ? self::ESTADO_CANCELADO
+                : self::ESTADO_ATENDIDO;
+        }
+
+        $clinico = (string) $record->estado;
+        if (in_array($clinico, [Cita::ESTADO_EN_ATENCION, GroomingTurno::ESTADO_EN_PROCESO], true)) {
+            return self::ESTADO_EN_ATENCION_SALA;
+        }
+
+        return self::ESTADO_CITADO;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @param  list<array<string, mixed>>  $espera
+     * @param  list<array<string, mixed>>  $proximas
+     * @param  list<array<string, mixed>>  $enCurso
+     * @param  list<array<string, mixed>>  $historial
+     */
+    private function ubicarEnCola(
+        array $item,
+        string $estado,
+        Carbon $at,
+        Carbon $now,
+        array &$espera,
+        array &$proximas,
+        array &$enCurso,
+        array &$historial,
+    ): void {
+        if (in_array($estado, self::ESTADOS_HISTORIAL, true)) {
+            $historial[] = $item;
+
+            return;
+        }
+
+        if ($estado === self::ESTADO_EN_ATENCION_SALA) {
+            $enCurso[] = $item;
+
+            return;
+        }
+
+        if ($at->lte($now)) {
+            $espera[] = $item;
+
+            return;
+        }
+
+        $proximas[] = $item;
     }
 
     /**

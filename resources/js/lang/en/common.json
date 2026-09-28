@@ -189,6 +189,15 @@
         "alcance_mios": "My patients",
         "alcance_todos": "Whole room",
         "marcar": "Mark attended",
+        "estado": "Status",
+        "historial": "History",
+        "estados": {
+            "citado": "Scheduled",
+            "en_espera": "Waiting",
+            "en_atencion": "In care",
+            "atendido": "Attended",
+            "cancelado": "Cancelled"
+        },
         "llamar": "Call",
         "llamado": "Called",
         "ir_citas": "Go to appointments",
@@ -204,7 +213,7 @@
         "owner": "Owner",
         "quitar": "Remove",
         "quitar_title": "Remove from waiting room?",
-        "quitar_body": "{{name}} will leave the queue.",
+        "quitar_body": "{{name}} will move to the bottom, in the history, as cancelled.",
         "quitar_ok": "Remove"
     }
 }

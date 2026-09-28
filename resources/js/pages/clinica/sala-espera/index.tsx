@@ -1,7 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Bath,
-    Check,
     Clock3,
     FolderOpen,
     Megaphone,
@@ -17,6 +16,7 @@ import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
 import { SALA_ESPERA_CHANGED_EVENT } from '@/components/sala-espera-header-popover';
 import { SALA_ESPERA_LLAMAR_EVENT } from '@/hooks/use-sala-espera-realtime';
+import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import { ConsultaHistorialFloatingPanel } from '@/pages/clinica/historias-clinicas/components/consulta-historial-floating-panel';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,6 +48,7 @@ type SalaItem = {
     numero: number | null;
     hora: string;
     estado: string;
+    sala_estado?: string;
     motivo: string | null;
     minutos_espera: number;
     enviado_at?: string | null;
@@ -64,6 +65,7 @@ type SalaQueue = {
     espera: SalaItem[];
     proximas: SalaItem[];
     en_curso: SalaItem[];
+    historial?: SalaItem[];
     can_marcar: boolean;
     visible: boolean;
 };
@@ -96,7 +98,41 @@ type Props = {
     board: Board;
     usuarios?: readonly UsuarioSala[];
     alcance?: 'mios' | 'todos';
+    filters?: {
+        fecha_desde: string;
+        fecha_hasta: string;
+    };
+    filtro_ui?: {
+        default_desde: string;
+        default_hasta: string;
+    };
 };
+
+const ESTADOS_SALA = ['citado', 'en_espera', 'en_atencion', 'atendido', 'cancelado'] as const;
+
+type EstadoSala = (typeof ESTADOS_SALA)[number];
+
+const ESTADO_SALA_CLASS: Record<EstadoSala, string> = {
+    citado: 'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-700 dark:bg-sky-950/50 dark:text-sky-200',
+    en_espera: 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-100',
+    en_atencion: 'border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-700 dark:bg-violet-950/50 dark:text-violet-100',
+    atendido: 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100',
+    cancelado: 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-100',
+};
+
+const ESTADO_SALA_DOT: Record<EstadoSala, string> = {
+    citado: 'bg-sky-500',
+    en_espera: 'bg-amber-500',
+    en_atencion: 'bg-violet-500',
+    atendido: 'bg-emerald-500',
+    cancelado: 'bg-rose-500',
+};
+
+function estadoSalaDe(item: SalaItem): EstadoSala {
+    const value = item.sala_estado ?? '';
+
+    return (ESTADOS_SALA as readonly string[]).includes(value) ? (value as EstadoSala) : 'citado';
+}
 
 function csrfToken(): string {
     return (
@@ -166,6 +202,10 @@ function queueTotal(queue: SalaQueue): number {
     return queue.espera.length + queue.proximas.length + queue.en_curso.length;
 }
 
+function queueVisible(queue: SalaQueue): number {
+    return queueTotal(queue) + (queue.historial?.length ?? 0);
+}
+
 function PacienteAvatar({
     fotoUrl,
     nombre,
@@ -216,7 +256,13 @@ function llamarTurno(item: SalaItem, colaLabel: string): void {
     window.speechSynthesis.speak(utter);
 }
 
-export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios' }: Props) {
+export default function SalaEsperaIndex({
+    board,
+    usuarios = [],
+    alcance = 'mios',
+    filters,
+    filtro_ui,
+}: Props) {
     const { t, i18n } = useTranslation('common');
     const { auth, broadcast } = usePage().props;
     const myId = auth.user?.id ? String(auth.user.id) : '';
@@ -320,30 +366,9 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
         return () => window.clearTimeout(handle);
     }, [q]);
 
-    const dropItem = useCallback((item: SalaItem) => {
-        const drop = (queue: SalaQueue): SalaQueue => {
-            const without = (rows: SalaItem[]) =>
-                rows.filter((row) => !(row.id === item.id && row.tipo === item.tipo));
-
-            return {
-                ...queue,
-                espera: without(queue.espera),
-                proximas: without(queue.proximas),
-                en_curso: without(queue.en_curso),
-            };
-        };
-        if (item.tipo === 'grooming') {
-            setGrooming(drop);
-        } else {
-            setConsulta(drop);
-        }
-    }, []);
-
-    const mark = useCallback(async (item: SalaItem) => {
-        dropItem(item);
-
+    const cambiarEstado = useCallback(async (item: SalaItem, estado: EstadoSala) => {
         const res = await fetch(
-            `/clinica/sala-espera/${item.tipo}/${item.id}/atendido`,
+            `/clinica/sala-espera/${item.tipo}/${item.id}/estado`,
             {
                 method: 'POST',
                 headers: {
@@ -353,6 +378,7 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
                     'X-Requested-With': 'XMLHttpRequest',
                 },
                 credentials: 'same-origin',
+                body: JSON.stringify({ estado }),
             },
         );
         if (res.ok) {
@@ -360,7 +386,7 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
         } else {
             reloadBoard();
         }
-    }, [dropItem, reloadBoard]);
+    }, [reloadBoard]);
 
     const assign = useCallback(async (item: SalaItem, tratanteId: string | null) => {
         const res = await fetch(`/clinica/sala-espera/${item.tipo}/${item.id}/tratante`, {
@@ -379,16 +405,37 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
         }
     }, []);
 
+    const querySala = (patch: Record<string, string | undefined>) => {
+        const hoy = filtro_ui?.default_desde;
+        const desde = filters?.fecha_desde ?? hoy;
+        const hasta = filters?.fecha_hasta ?? hoy;
+        const params: Record<string, string> = {};
+        if (alcance === 'todos') {
+            params.alcance = 'todos';
+        }
+        if (desde) {
+            params.fecha_desde = desde;
+        }
+        if (hasta) {
+            params.fecha_hasta = hasta;
+        }
+        for (const [key, value] of Object.entries(patch)) {
+            if (value === undefined || value === '') {
+                delete params[key];
+            } else {
+                params[key] = value;
+            }
+        }
+
+        router.get('/clinica/sala-espera', params, {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['board', 'alcance', 'usuarios', 'filters', 'filtro_ui'],
+        });
+    };
+
     const setAlcance = (next: 'mios' | 'todos') => {
-        router.get(
-            '/clinica/sala-espera',
-            next === 'todos' ? { alcance: 'todos' } : {},
-            {
-                preserveScroll: true,
-                preserveState: true,
-                only: ['board', 'alcance', 'usuarios'],
-            },
-        );
+        querySala({ alcance: next === 'todos' ? 'todos' : undefined });
     };
 
     const confirmQuitar = useCallback(async () => {
@@ -397,7 +444,6 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
         }
         const item = quitar;
         setQuitar(null);
-        dropItem(item);
         const res = await fetch(
             `/clinica/sala-espera/${item.tipo}/${item.id}/retirar`,
             {
@@ -416,7 +462,7 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
         } else {
             reloadBoard();
         }
-    }, [dropItem, quitar, reloadBoard]);
+    }, [quitar, reloadBoard]);
 
     const callTurno = useCallback(
         async (item: SalaItem, colaLabel: string) => {
@@ -531,7 +577,8 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
                             {' · '}
                             {t('sala_espera.turnos_dia')}
                         </p>
-                        <div className="mt-3 inline-flex rounded-lg bg-white/70 p-0.5 ring-1 ring-border/60 dark:bg-background/40">
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <div className="inline-flex rounded-lg bg-white/70 p-0.5 ring-1 ring-border/60 dark:bg-background/40">
                             <button
                                 type="button"
                                 className={cn(
@@ -552,6 +599,18 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
                             >
                                 {t('sala_espera.alcance_todos')}
                             </button>
+                        </div>
+                        <AtencionDateRangeFilter
+                            desde={filters?.fecha_desde ?? filtro_ui?.default_desde ?? null}
+                            hasta={filters?.fecha_hasta ?? filtro_ui?.default_hasta ?? null}
+                            defaultDesde={filtro_ui?.default_desde ?? filters?.fecha_desde ?? ''}
+                            defaultHasta={filtro_ui?.default_hasta ?? filters?.fecha_hasta ?? ''}
+                            translationNs="citas"
+                            triggerClassName="h-9 bg-white/80 dark:bg-background/60"
+                            onApply={(desde, hasta) =>
+                                querySala({ fecha_desde: desde, fecha_hasta: hasta })
+                            }
+                        />
                         </div>
                     </div>
                     <div className="flex items-center gap-3 rounded-2xl bg-muted/40 px-4 py-2 ring-1 ring-border/60">
@@ -662,7 +721,7 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
                             onLlamar={(item) => {
                                 void callTurno(item, t('sala_espera.cita'));
                             }}
-                            onMarcar={mark}
+                            onEstado={(item, estado) => void cambiarEstado(item, estado)}
                             onQuitar={setQuitar}
                             onHc={(item) => {
                                 if (item.paciente_id) {
@@ -690,7 +749,7 @@ export default function SalaEsperaIndex({ board, usuarios = [], alcance = 'mios'
                             onLlamar={(item) => {
                                 void callTurno(item, t('sala_espera.grooming'));
                             }}
-                            onMarcar={mark}
+                            onEstado={(item, estado) => void cambiarEstado(item, estado)}
                             onQuitar={setQuitar}
                             onHc={(item) => {
                                 if (item.paciente_id) {
@@ -752,7 +811,7 @@ function ColaPanel({
     now,
     locale,
     onLlamar,
-    onMarcar,
+    onEstado,
     onQuitar,
     onHc,
     usuarios,
@@ -768,7 +827,7 @@ function ColaPanel({
     now: Date;
     locale: string;
     onLlamar: (item: SalaItem) => void;
-    onMarcar: (item: SalaItem) => void;
+    onEstado: (item: SalaItem, estado: EstadoSala) => void;
     onQuitar: (item: SalaItem) => void;
     onHc: (item: SalaItem) => void;
     usuarios: readonly UsuarioSala[];
@@ -787,8 +846,14 @@ function ColaPanel({
             title: t('sala_espera.en_curso'),
             items: queue.en_curso,
         },
+        {
+            key: 'historial',
+            title: t('sala_espera.historial'),
+            items: queue.historial ?? [],
+        },
     ];
-    const total = queueTotal(queue);
+    const activos = queueTotal(queue);
+    const total = queueVisible(queue);
     const isViolet = accent === 'violet';
 
     return (
@@ -821,7 +886,7 @@ function ColaPanel({
                         {title}
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                        {t('sala_espera.count_waiting', { count: total })}
+                        {t('sala_espera.count_waiting', { count: activos })}
                     </p>
                 </div>
                 <span
@@ -832,7 +897,7 @@ function ColaPanel({
                             : 'bg-sky-600/10 text-sky-800 dark:text-sky-200',
                     )}
                 >
-                    {total}
+                    {activos}
                 </span>
             </header>
             <div className="flex-1 space-y-5 overflow-y-auto p-3 md:p-4">
@@ -860,7 +925,9 @@ function ColaPanel({
                                     <span
                                         className={cn(
                                             'size-1.5 rounded-full',
-                                            group.key === 'en_curso'
+                                            group.key === 'historial'
+                                                ? 'bg-muted-foreground/50'
+                                                : group.key === 'en_curso'
                                                 ? 'bg-amber-500'
                                                 : group.key === 'proximas'
                                                   ? 'bg-muted-foreground/40'
@@ -889,7 +956,7 @@ function ColaPanel({
                                             now={now}
                                             locale={locale}
                                             onLlamar={() => onLlamar(item)}
-                                            onMarcar={() => onMarcar(item)}
+                                            onEstado={(estado) => onEstado(item, estado)}
                                             onQuitar={() => onQuitar(item)}
                                             onHc={() => onHc(item)}
                                             usuarios={usuarios}
@@ -914,7 +981,7 @@ function TurnoCard({
     now,
     locale,
     onLlamar,
-    onMarcar,
+    onEstado,
     onQuitar,
     onHc,
     usuarios,
@@ -927,7 +994,7 @@ function TurnoCard({
     now: Date;
     locale: string;
     onLlamar: () => void;
-    onMarcar: () => void;
+    onEstado: (estado: EstadoSala) => void;
     onQuitar: () => void;
     onHc: () => void;
     usuarios: readonly UsuarioSala[];
@@ -937,11 +1004,14 @@ function TurnoCard({
     const waited = waitSeconds(item.enviado_at, now, item.minutos_espera);
     const longWait = waited >= 20 * 60;
     const isViolet = accent === 'violet';
+    const estado = estadoSalaDe(item);
+    const enHistorial = estado === 'atendido' || estado === 'cancelado';
 
     return (
         <article
             className={cn(
                 'relative overflow-hidden rounded-2xl border bg-background p-3 shadow-sm transition-all duration-300 md:p-3.5',
+                enHistorial && 'opacity-80',
                 called
                     ? 'border-amber-400/70 ring-2 ring-amber-300/60 shadow-amber-500/10'
                     : 'border-border/70 hover:-translate-y-0.5 hover:border-border hover:shadow-md',
@@ -1053,17 +1123,40 @@ function TurnoCard({
                                 : t('sala_espera.llamar')}
                         </Button>
                         {canMarcar ? (
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-8 cursor-pointer gap-1.5 border-emerald-500/30 px-3 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
-                                onClick={onMarcar}
+                            <Select
+                                value={estado}
+                                onValueChange={(value) => onEstado(value as EstadoSala)}
                             >
-                                <Check className="size-3.5" />
-                                {t('sala_espera.marcar')}
-                            </Button>
-                        ) : null}
+                                <SelectTrigger
+                                    className={cn(
+                                        'h-8 w-[9.5rem] text-xs font-medium',
+                                        ESTADO_SALA_CLASS[estado],
+                                    )}
+                                    aria-label={t('sala_espera.estado')}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {ESTADOS_SALA.map((opcion) => (
+                                        <SelectItem key={opcion} value={opcion}>
+                                            <span className="inline-flex items-center gap-2">
+                                                <span className={cn('size-2 rounded-full', ESTADO_SALA_DOT[opcion])} />
+                                                {t(`sala_espera.estados.${opcion}`)}
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <span
+                                className={cn(
+                                    'inline-flex h-8 items-center rounded-md border px-2.5 text-xs font-medium',
+                                    ESTADO_SALA_CLASS[estado],
+                                )}
+                            >
+                                {t(`sala_espera.estados.${estado}`)}
+                            </span>
+                        )}
                         <Button
                             type="button"
                             size="sm"

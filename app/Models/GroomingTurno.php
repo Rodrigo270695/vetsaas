@@ -92,6 +92,7 @@ class GroomingTurno extends Model
         'sala_espera_atendido_at',
         'sala_espera_enviado_at',
         'sala_espera_numero',
+        'sala_espera_estado',
     ];
 
     protected function casts(): array
