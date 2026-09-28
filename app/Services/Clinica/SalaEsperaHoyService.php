@@ -11,6 +11,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy\TenantModuleAccess;
 use Illuminate\Database\Eloquent\Builder;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -374,7 +375,7 @@ final class SalaEsperaHoyService
         abort_unless($user->can('sala-espera.marcar-atendido'), 403);
         abort_unless(in_array($estado, self::ESTADOS_SALA, true), 422);
         $tipo = $this->normalizeTipo($tipo);
-        $now = now();
+        $now = Carbon::now();
         $tabla = $tipo === self::TIPO_CONSULTA ? 'citas' : 'grooming_turnos';
         abort_unless(
             Schema::hasColumn($tabla, 'sala_espera_estado'),
@@ -406,7 +407,7 @@ final class SalaEsperaHoyService
     /**
      * @return array<string, mixed>
      */
-    private function updatesDeEstado(Cita|GroomingTurno $record, string $estado, Carbon $now, User $user): array
+    private function updatesDeEstado(Cita|GroomingTurno $record, string $estado, CarbonInterface $now, User $user): array
     {
         $historial = in_array($estado, self::ESTADOS_HISTORIAL, true);
         $pausa = $estado === self::ESTADO_EN_ATENCION_SALA || $historial;
