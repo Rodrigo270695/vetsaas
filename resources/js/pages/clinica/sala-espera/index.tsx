@@ -1,8 +1,15 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { format } from 'date-fns';
+import { enUS, es as esLocale } from 'date-fns/locale';
 import {
+    Ban,
     Bath,
+    CalendarClock,
+    CalendarIcon,
+    CircleCheck,
     Clock3,
     FolderOpen,
+    Hourglass,
     Megaphone,
     Search,
     Stethoscope,
@@ -16,9 +23,15 @@ import { PacienteHcLink } from '@/components/clinica/paciente-hc-link';
 import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
 import { SALA_ESPERA_CHANGED_EVENT } from '@/components/sala-espera-header-popover';
 import { SALA_ESPERA_LLAMAR_EVENT } from '@/hooks/use-sala-espera-realtime';
-import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import { ConsultaHistorialFloatingPanel } from '@/pages/clinica/historias-clinicas/components/consulta-historial-floating-panel';
+import { ReportCheckboxSelect, type CheckboxSelectOption } from '@/pages/reportes/components/report-checkbox-select';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Dialog,
     DialogContent,
@@ -52,6 +65,7 @@ type SalaItem = {
     motivo: string | null;
     minutos_espera: number;
     enviado_at?: string | null;
+    espera_hasta?: string | null;
     href: string;
     hc_href: string;
     tratante_id?: string | null;
@@ -99,12 +113,10 @@ type Props = {
     usuarios?: readonly UsuarioSala[];
     alcance?: 'mios' | 'todos';
     filters?: {
-        fecha_desde: string;
-        fecha_hasta: string;
+        fecha: string;
     };
     filtro_ui?: {
-        default_desde: string;
-        default_hasta: string;
+        default_fecha: string;
     };
 };
 
@@ -127,6 +139,16 @@ const ESTADO_SALA_DOT: Record<EstadoSala, string> = {
     atendido: 'bg-emerald-500',
     cancelado: 'bg-rose-500',
 };
+
+const ESTADO_SALA_TEXT: Record<EstadoSala, string> = {
+    citado: 'text-sky-700 dark:text-sky-300',
+    en_espera: 'text-amber-700 dark:text-amber-300',
+    en_atencion: 'text-violet-700 dark:text-violet-300',
+    atendido: 'text-emerald-700 dark:text-emerald-300',
+    cancelado: 'text-rose-700 dark:text-rose-300',
+};
+
+const pausaVista = new Map<string, number>();
 
 function estadoSalaDe(item: SalaItem): EstadoSala {
     const value = item.sala_estado ?? '';
@@ -153,15 +175,60 @@ function pad2(n: number): string {
     return String(n).padStart(2, '0');
 }
 
-function formatWait(enviadoAt: string | null | undefined, now: Date, fallbackMin: number): string {
+function relojPausado(estado: EstadoSala): boolean {
+    return estado === 'en_atencion' || estado === 'atendido' || estado === 'cancelado';
+}
+
+function finDeDiaMs(iso: string): number | null {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+        return null;
+    }
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(y, m - 1, d, 23, 59, 59, 999);
+
+    return Number.isNaN(dt.getTime()) ? null : dt.getTime();
+}
+
+function esperaFinMs(item: SalaItem, now: Date, fecha: string, hoy: string): number {
+    const nowMs = now.getTime();
+    const key = `${item.tipo}-${item.id}`;
+    let end = nowMs;
+
+    if (item.espera_hasta) {
+        const ms = Date.parse(item.espera_hasta);
+        if (!Number.isNaN(ms)) {
+            end = ms;
+            pausaVista.delete(key);
+        }
+    } else if (relojPausado(estadoSalaDe(item))) {
+        if (!pausaVista.has(key)) {
+            pausaVista.set(key, nowMs);
+        }
+        end = pausaVista.get(key) ?? nowMs;
+    } else {
+        pausaVista.delete(key);
+    }
+
+    if (fecha && hoy && fecha < hoy) {
+        const tope = finDeDiaMs(fecha);
+        if (tope != null) {
+            end = Math.min(end, tope);
+        }
+    }
+
+    return end;
+}
+
+function formatWait(item: SalaItem, now: Date, fecha: string, hoy: string): string {
+    const enviadoAt = item.enviado_at;
     if (!enviadoAt) {
-        return `${fallbackMin}:00`;
+        return `${item.minutos_espera}:00`;
     }
     const start = Date.parse(enviadoAt);
     if (Number.isNaN(start)) {
-        return `${fallbackMin}:00`;
+        return `${item.minutos_espera}:00`;
     }
-    const totalSec = Math.max(0, Math.floor((now.getTime() - start) / 1000));
+    const totalSec = Math.max(0, Math.floor((esperaFinMs(item, now, fecha, hoy) - start) / 1000));
     const hours = Math.floor(totalSec / 3600);
     const minutes = Math.floor((totalSec % 3600) / 60);
     const seconds = totalSec % 60;
@@ -186,16 +253,82 @@ function formatIngreso(enviadoAt: string | null | undefined, fallbackHora: strin
     return fallbackHora;
 }
 
-function waitSeconds(enviadoAt: string | null | undefined, now: Date, fallbackMin: number): number {
-    if (!enviadoAt) {
-        return fallbackMin * 60;
+function waitSeconds(item: SalaItem, now: Date, fecha: string, hoy: string): number {
+    if (!item.enviado_at) {
+        return item.minutos_espera * 60;
     }
-    const start = Date.parse(enviadoAt);
+    const start = Date.parse(item.enviado_at);
     if (Number.isNaN(start)) {
-        return fallbackMin * 60;
+        return item.minutos_espera * 60;
     }
 
-    return Math.max(0, Math.floor((now.getTime() - start) / 1000));
+    return Math.max(0, Math.floor((esperaFinMs(item, now, fecha, hoy) - start) / 1000));
+}
+
+function parseIsoDay(iso: string): Date | undefined {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+        return undefined;
+    }
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+
+    return Number.isNaN(dt.getTime()) ? undefined : dt;
+}
+
+function filtrarCola(queue: SalaQueue, estados: readonly string[]): SalaQueue {
+    const ok = (item: SalaItem) => estados.includes(estadoSalaDe(item));
+
+    return {
+        ...queue,
+        espera: queue.espera.filter(ok),
+        proximas: queue.proximas.filter(ok),
+        en_curso: queue.en_curso.filter(ok),
+        historial: (queue.historial ?? []).filter(ok),
+    };
+}
+
+function SalaFechaFilter({
+    fecha,
+    onChange,
+}: {
+    fecha: string;
+    onChange: (fecha: string) => void;
+}) {
+    const { t, i18n } = useTranslation('common');
+    const [open, setOpen] = useState(false);
+    const locale = i18n.language?.startsWith('en') ? enUS : esLocale;
+    const selected = parseIsoDay(fecha);
+    const label = selected ? format(selected, 'dd/MM/yyyy', { locale }) : fecha;
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 cursor-pointer gap-2 bg-white/80 px-3 font-normal dark:bg-background/60"
+                    aria-label={t('sala_espera.fecha')}
+                >
+                    <CalendarIcon className="size-4 text-sky-600" />
+                    {label}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-auto p-0">
+                <Calendar
+                    mode="single"
+                    selected={selected}
+                    defaultMonth={selected}
+                    onSelect={(day) => {
+                        if (!day) {
+                            return;
+                        }
+                        onChange(format(day, 'yyyy-MM-dd'));
+                        setOpen(false);
+                    }}
+                />
+            </PopoverContent>
+        </Popover>
+    );
 }
 
 function queueTotal(queue: SalaQueue): number {
@@ -274,6 +407,7 @@ export default function SalaEsperaIndex({
     const [searching, setSearching] = useState(false);
     const [llamados, setLlamados] = useState<Record<string, boolean>>({});
     const [now, setNow] = useState(() => new Date());
+    const [estadosFiltro, setEstadosFiltro] = useState<string[]>([...ESTADOS_SALA]);
     const [quitar, setQuitar] = useState<SalaItem | null>(null);
     const [hcPaciente, setHcPaciente] = useState<{
         id: string;
@@ -405,19 +539,16 @@ export default function SalaEsperaIndex({
         }
     }, []);
 
+    const hoy = filtro_ui?.default_fecha ?? '';
+    const fecha = filters?.fecha ?? hoy;
+
     const querySala = (patch: Record<string, string | undefined>) => {
-        const hoy = filtro_ui?.default_desde;
-        const desde = filters?.fecha_desde ?? hoy;
-        const hasta = filters?.fecha_hasta ?? hoy;
         const params: Record<string, string> = {};
         if (alcance === 'todos') {
             params.alcance = 'todos';
         }
-        if (desde) {
-            params.fecha_desde = desde;
-        }
-        if (hasta) {
-            params.fecha_hasta = hasta;
+        if (fecha) {
+            params.fecha = fecha;
         }
         for (const [key, value] of Object.entries(patch)) {
             if (value === undefined || value === '') {
@@ -535,9 +666,29 @@ export default function SalaEsperaIndex({
         return () => window.removeEventListener(SALA_ESPERA_LLAMAR_EVENT, onLlamar);
     }, [myId, t]);
 
+    const estadoOptions = useMemo<CheckboxSelectOption[]>(
+        () => [
+            { value: 'citado', label: t('sala_espera.estados.citado'), icon: CalendarClock, tone: 'info' },
+            { value: 'en_espera', label: t('sala_espera.estados.en_espera'), icon: Hourglass, tone: 'warning' },
+            { value: 'en_atencion', label: t('sala_espera.estados.en_atencion'), icon: Stethoscope, tone: 'default' },
+            { value: 'atendido', label: t('sala_espera.estados.atendido'), icon: CircleCheck, tone: 'success' },
+            { value: 'cancelado', label: t('sala_espera.estados.cancelado'), icon: Ban, tone: 'danger' },
+        ],
+        [t],
+    );
+
+    const consultaVista = useMemo(
+        () => filtrarCola(consulta, estadosFiltro),
+        [consulta, estadosFiltro],
+    );
+    const groomingVista = useMemo(
+        () => filtrarCola(grooming, estadosFiltro),
+        [grooming, estadosFiltro],
+    );
+
     const waiting = useMemo(
-        () => queueTotal(consulta) + queueTotal(grooming),
-        [consulta, grooming],
+        () => queueTotal(consultaVista) + queueTotal(groomingVista),
+        [consultaVista, groomingVista],
     );
 
     return (
@@ -600,16 +751,17 @@ export default function SalaEsperaIndex({
                                 {t('sala_espera.alcance_todos')}
                             </button>
                         </div>
-                        <AtencionDateRangeFilter
-                            desde={filters?.fecha_desde ?? filtro_ui?.default_desde ?? null}
-                            hasta={filters?.fecha_hasta ?? filtro_ui?.default_hasta ?? null}
-                            defaultDesde={filtro_ui?.default_desde ?? filters?.fecha_desde ?? ''}
-                            defaultHasta={filtro_ui?.default_hasta ?? filters?.fecha_hasta ?? ''}
-                            translationNs="citas"
-                            triggerClassName="h-9 bg-white/80 dark:bg-background/60"
-                            onApply={(desde, hasta) =>
-                                querySala({ fecha_desde: desde, fecha_hasta: hasta })
-                            }
+                        <SalaFechaFilter
+                            fecha={fecha}
+                            onChange={(next) => querySala({ fecha: next })}
+                        />
+                        <ReportCheckboxSelect
+                            label={t('sala_espera.filtro_estado')}
+                            allLabel={t('sala_espera.filtro_todos')}
+                            options={estadoOptions}
+                            selected={estadosFiltro}
+                            onChange={setEstadosFiltro}
+                            className="h-9 min-w-40 bg-white/80 dark:bg-background/60"
                         />
                         </div>
                     </div>
@@ -713,7 +865,9 @@ export default function SalaEsperaIndex({
                             emptyLabel={t('sala_espera.empty_consulta')}
                             icon={Stethoscope}
                             accent="sky"
-                            queue={consulta}
+                            queue={consultaVista}
+                            fecha={fecha}
+                            hoy={hoy}
                             canMarcar={board.can_marcar}
                             llamados={llamados}
                             now={now}
@@ -741,7 +895,9 @@ export default function SalaEsperaIndex({
                             emptyLabel={t('sala_espera.empty_grooming')}
                             icon={Bath}
                             accent="violet"
-                            queue={grooming}
+                            queue={groomingVista}
+                            fecha={fecha}
+                            hoy={hoy}
                             canMarcar={board.can_marcar}
                             llamados={llamados}
                             now={now}
@@ -806,6 +962,8 @@ function ColaPanel({
     icon: Icon,
     accent,
     queue,
+    fecha,
+    hoy,
     canMarcar,
     llamados,
     now,
@@ -822,6 +980,8 @@ function ColaPanel({
     icon: typeof Stethoscope;
     accent: 'sky' | 'violet';
     queue: SalaQueue;
+    fecha: string;
+    hoy: string;
     canMarcar: boolean;
     llamados: Record<string, boolean>;
     now: Date;
@@ -946,7 +1106,8 @@ function ColaPanel({
                                         <TurnoCard
                                             key={`${item.tipo}-${item.id}`}
                                             item={item}
-                                            accent={accent}
+                                            fecha={fecha}
+                                            hoy={hoy}
                                             called={
                                                 llamados[
                                                     `${item.tipo}-${item.id}`
@@ -975,7 +1136,8 @@ function ColaPanel({
 
 function TurnoCard({
     item,
-    accent,
+    fecha,
+    hoy,
     called,
     canMarcar,
     now,
@@ -988,7 +1150,8 @@ function TurnoCard({
     onAsignar,
 }: {
     item: SalaItem;
-    accent: 'sky' | 'violet';
+    fecha: string;
+    hoy: string;
     called: boolean;
     canMarcar: boolean;
     now: Date;
@@ -1001,92 +1164,83 @@ function TurnoCard({
     onAsignar: (tratanteId: string | null) => void;
 }) {
     const { t } = useTranslation('common');
-    const waited = waitSeconds(item.enviado_at, now, item.minutos_espera);
-    const longWait = waited >= 20 * 60;
-    const isViolet = accent === 'violet';
     const estado = estadoSalaDe(item);
+    const paused = relojPausado(estado);
+    const waited = waitSeconds(item, now, fecha, hoy);
+    const longWait = !paused && waited >= 20 * 60;
     const enHistorial = estado === 'atendido' || estado === 'cancelado';
 
     return (
         <article
             className={cn(
-                'relative overflow-hidden rounded-2xl border bg-background p-3 shadow-sm transition-all duration-300 md:p-3.5',
+                'relative overflow-hidden rounded-xl border bg-background py-2 pr-2.5 pl-3.5 shadow-sm transition-all duration-300',
                 enHistorial && 'opacity-80',
                 called
                     ? 'border-amber-400/70 ring-2 ring-amber-300/60 shadow-amber-500/10'
-                    : 'border-border/70 hover:-translate-y-0.5 hover:border-border hover:shadow-md',
+                    : 'border-border/70 hover:border-border hover:shadow-md',
             )}
         >
             <span
                 className={cn(
                     'absolute inset-y-0 left-0 w-1.5',
-                    called
-                        ? 'animate-pulse bg-amber-400'
-                        : isViolet
-                          ? 'bg-violet-500'
-                          : 'bg-sky-500',
+                    ESTADO_SALA_DOT[estado],
+                    called && !paused && 'animate-pulse',
                 )}
             />
-            <div className="flex gap-3 pl-2">
-                <div className="flex w-17 shrink-0 flex-col items-center justify-center">
-                    <span className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+            <div className="flex items-center gap-2.5">
+                <div className="flex w-12 shrink-0 flex-col items-center justify-center">
+                    <span className="text-[9px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                         {t('sala_espera.turno')}
                     </span>
-                    <span
-                        className={cn(
-                            'text-4xl font-bold tabular-nums leading-none tracking-tight',
-                            isViolet ? 'text-violet-700 dark:text-violet-300' : 'text-sky-700 dark:text-sky-300',
-                        )}
-                    >
+                    <span className={cn('text-2xl font-bold tabular-nums leading-none tracking-tight', ESTADO_SALA_TEXT[estado])}>
                         {padTurno(item.numero)}
                     </span>
                 </div>
                 <PacienteAvatar
                     fotoUrl={item.foto_url}
                     nombre={item.paciente}
-                    size="lg"
+                    size="sm"
                 />
                 <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                             <PacienteHcLink
                                 pacienteId={item.paciente_id}
-                                className="block truncate text-lg font-semibold leading-tight"
+                                className="block truncate text-sm font-semibold leading-tight"
                             >
                                 {item.paciente}
                             </PacienteHcLink>
-                            <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-sm text-muted-foreground">
-                                <UserRound className="size-3.5 shrink-0" />
+                            <p className="flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
+                                <UserRound className="size-3 shrink-0" />
                                 <span className="truncate">{item.propietario}</span>
+                                {item.especie ? <span className="text-border">·</span> : null}
+                                {item.especie ? <span className="truncate">{item.especie}</span> : null}
+                                <span className="text-border">·</span>
+                                <Clock3 className="size-3 shrink-0" />
+                                <span className="shrink-0">
+                                    {formatIngreso(item.enviado_at, item.hora, locale)}
+                                </span>
                             </p>
                         </div>
                         <span
                             className={cn(
-                                'shrink-0 rounded-full px-2 py-0.5 font-mono text-xs font-semibold tabular-nums',
-                                longWait
-                                    ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
-                                    : 'bg-muted text-muted-foreground',
+                                'shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums',
+                                paused
+                                    ? 'bg-muted text-muted-foreground'
+                                    : longWait
+                                      ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
+                                      : 'bg-muted text-muted-foreground',
                             )}
                         >
-                            {formatWait(item.enviado_at, now, item.minutos_espera)}
+                            {formatWait(item, now, fecha, hoy)}
                         </span>
                     </div>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                        {item.especie ? <span>{item.especie}</span> : null}
-                        {item.especie ? <span className="text-border">·</span> : null}
-                        <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
-                            <Clock3 className="size-3 shrink-0 text-sky-600" />
-                            {t('sala_espera.ingreso', {
-                                time: formatIngreso(item.enviado_at, item.hora, locale),
-                            })}
-                        </span>
-                    </p>
-                    <div className="mt-2 max-w-xs">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <Select
                             value={item.tratante_id ? item.tratante_id : '__none__'}
                             onValueChange={(value) => onAsignar(value === '__none__' ? null : value)}
                         >
-                            <SelectTrigger className="h-8 w-full text-xs">
+                            <SelectTrigger className="h-7 w-36 text-xs">
                                 <SelectValue placeholder={t('sala_espera.tratante_placeholder')} />
                             </SelectTrigger>
                             <SelectContent>
@@ -1103,25 +1257,6 @@ function TurnoCard({
                                 ))}
                             </SelectContent>
                         </Select>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                        <Button
-                            type="button"
-                            size="sm"
-                            className={cn(
-                                'h-8 cursor-pointer gap-1.5 px-3',
-                                called
-                                    ? 'bg-amber-500 text-white hover:bg-amber-500/90'
-                                    : '',
-                            )}
-                            variant={called ? 'default' : 'default'}
-                            onClick={onLlamar}
-                        >
-                            <Megaphone className="size-3.5" />
-                            {called
-                                ? t('sala_espera.llamado')
-                                : t('sala_espera.llamar')}
-                        </Button>
                         {canMarcar ? (
                             <Select
                                 value={estado}
@@ -1129,7 +1264,7 @@ function TurnoCard({
                             >
                                 <SelectTrigger
                                     className={cn(
-                                        'h-8 w-[9.5rem] text-xs font-medium',
+                                        'h-7 w-34 text-xs font-medium',
                                         ESTADO_SALA_CLASS[estado],
                                     )}
                                     aria-label={t('sala_espera.estado')}
@@ -1150,7 +1285,7 @@ function TurnoCard({
                         ) : (
                             <span
                                 className={cn(
-                                    'inline-flex h-8 items-center rounded-md border px-2.5 text-xs font-medium',
+                                    'inline-flex h-7 items-center rounded-md border px-2 text-xs font-medium',
                                     ESTADO_SALA_CLASS[estado],
                                 )}
                             >
@@ -1160,8 +1295,20 @@ function TurnoCard({
                         <Button
                             type="button"
                             size="sm"
+                            className={cn(
+                                'h-7 cursor-pointer gap-1 px-2.5',
+                                called ? 'bg-amber-500 text-white hover:bg-amber-500/90' : '',
+                            )}
+                            onClick={onLlamar}
+                        >
+                            <Megaphone className="size-3.5" />
+                            {called ? t('sala_espera.llamado') : t('sala_espera.llamar')}
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
                             variant="ghost"
-                            className="h-8 cursor-pointer gap-1.5 px-2.5 text-muted-foreground"
+                            className="h-7 cursor-pointer gap-1 px-2 text-muted-foreground"
                             disabled={!item.paciente_id}
                             onClick={onHc}
                         >
@@ -1173,7 +1320,7 @@ function TurnoCard({
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="h-8 cursor-pointer gap-1.5 px-2.5 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                className="h-7 cursor-pointer gap-1 px-2 text-red-600 hover:bg-red-500/10 hover:text-red-700"
                                 onClick={onQuitar}
                             >
                                 <Trash2 className="size-3.5" />

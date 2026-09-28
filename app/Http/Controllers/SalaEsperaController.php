@@ -31,19 +31,17 @@ class SalaEsperaController extends Controller
         if ($request->inertia() || ! $request->expectsJson()) {
             abort_unless($user->can('sala-espera.view'), 403);
             $soloMios = $request->string('alcance')->toString() !== 'todos';
-            [$desde, $hasta, $hoy] = $this->rangoFechas($request);
+            [$dia, $hoy] = $this->diaFiltro($request);
 
             return Inertia::render('clinica/sala-espera/index', [
-                'board' => $salaEspera->board($user, $tenant, $soloMios, $desde, $hasta),
+                'board' => $salaEspera->board($user, $tenant, $soloMios, $dia->copy()->startOfDay(), $dia->copy()->endOfDay()),
                 'usuarios' => $tenant !== null ? $salaEspera->usuariosActivos($tenant) : [],
                 'alcance' => $soloMios ? 'mios' : 'todos',
                 'filters' => [
-                    'fecha_desde' => $desde->toDateString(),
-                    'fecha_hasta' => $hasta->toDateString(),
+                    'fecha' => $dia->toDateString(),
                 ],
                 'filtro_ui' => [
-                    'default_desde' => $hoy,
-                    'default_hasta' => $hoy,
+                    'default_fecha' => $hoy,
                 ],
             ]);
         }
@@ -252,20 +250,17 @@ class SalaEsperaController extends Controller
     }
 
     /**
-     * @return array{0: Carbon, 1: Carbon, 2: string}
+     * @return array{0: Carbon, 1: string}
      */
-    private function rangoFechas(Request $request): array
+    private function diaFiltro(Request $request): array
     {
         $tz = (string) config('app.timezone');
         $hoy = Carbon::now($tz)->toDateString();
-        $desde = $this->fechaValida($request->query('fecha_desde')) ?? $hoy;
-        $hasta = $this->fechaValida($request->query('fecha_hasta')) ?? $desde;
+        $fecha = $this->fechaValida($request->query('fecha'))
+            ?? $this->fechaValida($request->query('fecha_desde'))
+            ?? $hoy;
 
-        return [
-            Carbon::parse($desde, $tz)->startOfDay(),
-            Carbon::parse($hasta, $tz)->endOfDay(),
-            $hoy,
-        ];
+        return [Carbon::parse($fecha, $tz), $hoy];
     }
 
     private function fechaValida(mixed $value): ?string

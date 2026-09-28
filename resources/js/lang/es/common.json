@@ -190,6 +190,9 @@
         "alcance_todos": "Toda la sala",
         "marcar": "Marcar atendido",
         "estado": "Estado",
+        "fecha": "Fecha",
+        "filtro_estado": "Estado",
+        "filtro_todos": "Todos los estados",
         "historial": "Historial",
         "estados": {
             "citado": "Citado",

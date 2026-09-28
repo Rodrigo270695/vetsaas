@@ -375,18 +375,11 @@ final class SalaEsperaHoyService
         abort_unless(in_array($estado, self::ESTADOS_SALA, true), 422);
         $tipo = $this->normalizeTipo($tipo);
         $now = now();
-        $historial = in_array($estado, self::ESTADOS_HISTORIAL, true);
 
         if ($tipo === self::TIPO_CONSULTA) {
             abort_unless(Schema::hasColumn('citas', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
             $cita = Cita::query()->whereKey($id)->firstOrFail();
-            $updates = [
-                'sala_espera_atendido_at' => $historial ? ($cita->sala_espera_atendido_at ?? $now) : null,
-                'updated_by_id' => $user->id,
-            ];
-            if (Schema::hasColumn('citas', 'sala_espera_estado')) {
-                $updates['sala_espera_estado'] = $estado;
-            }
+            $updates = $this->updatesDeEstado($cita, $estado, $now, $user);
             if (
                 $estado === self::ESTADO_CANCELADO
                 && in_array((string) $cita->estado, Cita::ESTADOS_EN_ESPERA, true)
@@ -401,14 +394,36 @@ final class SalaEsperaHoyService
 
         abort_unless(Schema::hasColumn('grooming_turnos', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
         $turno = GroomingTurno::query()->whereKey($id)->firstOrFail();
+        $turno->forceFill($this->updatesDeEstado($turno, $estado, $now, $user))->save();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function updatesDeEstado(Cita|GroomingTurno $record, string $estado, Carbon $now, User $user): array
+    {
+        $historial = in_array($estado, self::ESTADOS_HISTORIAL, true);
+        $pausa = $estado === self::ESTADO_EN_ATENCION_SALA || $historial;
         $updates = [
-            'sala_espera_atendido_at' => $historial ? ($turno->sala_espera_atendido_at ?? $now) : null,
+            'sala_espera_atendido_at' => $historial ? ($record->sala_espera_atendido_at ?? $now) : null,
             'updated_by_id' => $user->id,
         ];
-        if (Schema::hasColumn('grooming_turnos', 'sala_espera_estado')) {
+
+        if (Schema::hasColumn($record->getTable(), 'sala_espera_estado')) {
             $updates['sala_espera_estado'] = $estado;
         }
-        $turno->forceFill($updates)->save();
+
+        if (Schema::hasColumn($record->getTable(), 'sala_espera_estado_at')) {
+            if ($pausa) {
+                if ($record->sala_espera_estado_at === null) {
+                    $updates['sala_espera_estado_at'] = $now;
+                }
+            } else {
+                $updates['sala_espera_estado_at'] = null;
+            }
+        }
+
+        return $updates;
     }
 
     private function citaEnColaHoy(Paciente $paciente, Carbon $now): ?Cita
@@ -473,6 +488,7 @@ final class SalaEsperaHoyService
             'motivo' => $motivo !== '' ? $motivo : null,
             'minutos_espera' => $minutos,
             'enviado_at' => $enviado->timezone($tz)->toIso8601String(),
+            'espera_hasta' => $this->esperaHasta($record, $tz),
             'href' => $href,
             'hc_href' => $paciente?->id ? '/clinica/pacientes/'.$paciente->id : $href,
             'tratante_id' => $tratante?->id ? (string) $tratante->id : null,
@@ -671,6 +687,25 @@ final class SalaEsperaHoyService
         } else {
             $query->whereRaw('1 = 0');
         }
+    }
+
+    private function esperaHasta(Cita|GroomingTurno $record, string $tz): ?string
+    {
+        $estado = $this->estadoSala($record);
+        $pausa = $estado === self::ESTADO_EN_ATENCION_SALA
+            || in_array($estado, self::ESTADOS_HISTORIAL, true);
+        if (! $pausa) {
+            return null;
+        }
+
+        $hasta = $record->sala_espera_estado_at ?? $record->sala_espera_atendido_at;
+        if ($hasta === null) {
+            return null;
+        }
+
+        $momento = $hasta instanceof Carbon ? $hasta : Carbon::parse((string) $hasta);
+
+        return $momento->timezone($tz)->toIso8601String();
     }
 
     private function estadoSala(Cita|GroomingTurno $record): string

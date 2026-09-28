@@ -190,6 +190,9 @@
         "alcance_todos": "Whole room",
         "marcar": "Mark attended",
         "estado": "Status",
+        "fecha": "Date",
+        "filtro_estado": "Status",
+        "filtro_todos": "All statuses",
         "historial": "History",
         "estados": {
             "citado": "Scheduled",

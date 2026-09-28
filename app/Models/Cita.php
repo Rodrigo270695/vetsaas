@@ -80,6 +80,7 @@ class Cita extends Model
         'sala_espera_enviado_at',
         'sala_espera_numero',
         'sala_espera_estado',
+        'sala_espera_estado_at',
         'created_by_id',
         'updated_by_id',
     ];
@@ -95,6 +96,7 @@ class Cita extends Model
             'sala_espera_atendido_at' => 'datetime',
             'sala_espera_enviado_at' => 'datetime',
             'sala_espera_numero' => 'integer',
+            'sala_espera_estado_at' => 'datetime',
         ];
     }
 
