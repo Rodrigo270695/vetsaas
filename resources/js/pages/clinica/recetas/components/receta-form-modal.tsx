@@ -533,10 +533,9 @@ export function RecetaFormModal({
                     <div className="flex flex-wrap justify-end gap-2">
                         <Button
                             type="button"
-                            variant="outline"
                             onClick={addLine}
                             disabled={processing}
-                            className="cursor-pointer gap-1.5"
+                            className="cursor-pointer gap-1.5 bg-brand-600 text-white shadow-sm hover:bg-brand-700"
                         >
                             <Plus className="size-4" strokeWidth={2.5} />
                             {t('actions.add_line')}
@@ -546,7 +545,7 @@ export function RecetaFormModal({
                             variant="outline"
                             onClick={() => handleClose(false)}
                             disabled={processing}
-                            className="cursor-pointer"
+                            className="cursor-pointer border-brand-300 bg-brand-50 text-brand-800 hover:bg-brand-100 hover:text-brand-900"
                         >
                             {t('common:actions.cancel')}
                         </Button>
@@ -857,16 +856,6 @@ export function RecetaFormModal({
                                 </div>
                             </div>
                         ))}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="h-9 w-full cursor-pointer gap-1.5"
-                            onClick={addLine}
-                            disabled={processing}
-                        >
-                            <Plus className="size-4" strokeWidth={2.5} />
-                            {t('actions.add_line')}
-                        </Button>
                     </div>
                 </FormSection>
             </div>
