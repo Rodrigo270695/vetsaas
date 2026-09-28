@@ -621,6 +621,10 @@ export default function SalaEsperaIndex({
         }
         const item = quitar;
         setQuitar(null);
+        const estado = estadoSalaDe(item);
+        if (estado === 'atendido' || estado === 'cancelado') {
+            return;
+        }
         const res = await fetch(
             `/clinica/sala-espera/${item.tipo}/${item.id}/retirar`,
             {
@@ -1361,7 +1365,7 @@ function TurnoCard({
                             <FolderOpen className="size-3.5" />
                             {t('sala_espera.hc')}
                         </Button>
-                        {canMarcar ? (
+                        {canMarcar && !enHistorial ? (
                             <Button
                                 type="button"
                                 size="sm"

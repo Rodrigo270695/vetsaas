@@ -367,6 +367,16 @@ final class SalaEsperaHoyService
 
     public function retirar(User $user, string $tipo, string $id): void
     {
+        $tipo = $this->normalizeTipo($tipo);
+        $record = $tipo === self::TIPO_CONSULTA
+            ? Cita::query()->whereKey($id)->firstOrFail()
+            : GroomingTurno::query()->whereKey($id)->firstOrFail();
+        abort_if(
+            in_array($this->estadoSala($record), self::ESTADOS_HISTORIAL, true),
+            422,
+            'Este turno ya está en el historial.',
+        );
+
         $this->cambiarEstado($user, $tipo, $id, self::ESTADO_CANCELADO);
     }
 
