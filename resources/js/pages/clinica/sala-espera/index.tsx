@@ -47,6 +47,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 
@@ -275,6 +276,32 @@ function parseIsoDay(iso: string): Date | undefined {
     return Number.isNaN(dt.getTime()) ? undefined : dt;
 }
 
+function moverItemEstado(queue: SalaQueue, item: SalaItem, estado: EstadoSala): SalaQueue {
+    const esEste = (row: SalaItem) => row.tipo === item.tipo && row.id === item.id;
+    const pausa = relojPausado(estado);
+    const next: SalaItem = {
+        ...item,
+        sala_estado: estado,
+        espera_hasta: pausa ? (item.espera_hasta ?? new Date().toISOString()) : null,
+    };
+    const espera = queue.espera.filter((row) => !esEste(row));
+    const proximas = queue.proximas.filter((row) => !esEste(row));
+    const enCurso = queue.en_curso.filter((row) => !esEste(row));
+    const historial = (queue.historial ?? []).filter((row) => !esEste(row));
+
+    if (estado === 'atendido' || estado === 'cancelado') {
+        historial.push(next);
+    } else if (estado === 'en_atencion') {
+        enCurso.push(next);
+    } else if (queue.proximas.some(esEste)) {
+        proximas.push(next);
+    } else {
+        espera.push(next);
+    }
+
+    return { ...queue, espera, proximas, en_curso: enCurso, historial };
+}
+
 function filtrarCola(queue: SalaQueue, estados: readonly string[]): SalaQueue {
     const ok = (item: SalaItem) => estados.includes(estadoSalaDe(item));
 
@@ -501,6 +528,13 @@ export default function SalaEsperaIndex({
     }, [q]);
 
     const cambiarEstado = useCallback(async (item: SalaItem, estado: EstadoSala) => {
+        const aplicar = (queue: SalaQueue) => moverItemEstado(queue, item, estado);
+        if (item.tipo === 'grooming') {
+            setGrooming(aplicar);
+        } else {
+            setConsulta(aplicar);
+        }
+
         const res = await fetch(
             `/clinica/sala-espera/${item.tipo}/${item.id}/estado`,
             {
@@ -517,10 +551,22 @@ export default function SalaEsperaIndex({
         );
         if (res.ok) {
             window.dispatchEvent(new Event(SALA_ESPERA_CHANGED_EVENT));
-        } else {
-            reloadBoard();
+
+            return;
         }
-    }, [reloadBoard]);
+
+        let message = t('sala_espera.estado_error');
+        try {
+            const json = (await res.json()) as { message?: string };
+            if (json.message) {
+                message = json.message;
+            }
+        } catch {
+            // La respuesta no trae JSON.
+        }
+        toastManager.error({ title: message });
+        reloadBoard();
+    }, [reloadBoard, t]);
 
     const assign = useCallback(async (item: SalaItem, tratanteId: string | null) => {
         const res = await fetch(`/clinica/sala-espera/${item.tipo}/${item.id}/tratante`, {

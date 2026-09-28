@@ -375,6 +375,12 @@ final class SalaEsperaHoyService
         abort_unless(in_array($estado, self::ESTADOS_SALA, true), 422);
         $tipo = $this->normalizeTipo($tipo);
         $now = now();
+        $tabla = $tipo === self::TIPO_CONSULTA ? 'citas' : 'grooming_turnos';
+        abort_unless(
+            Schema::hasColumn($tabla, 'sala_espera_estado'),
+            422,
+            'Falta aplicar la migración de estados de la sala de espera.',
+        );
 
         if ($tipo === self::TIPO_CONSULTA) {
             abort_unless(Schema::hasColumn('citas', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');

@@ -193,6 +193,7 @@
         "fecha": "Fecha",
         "filtro_estado": "Estado",
         "filtro_todos": "Todos los estados",
+        "estado_error": "No se pudo cambiar el estado.",
         "historial": "Historial",
         "estados": {
             "citado": "Citado",
