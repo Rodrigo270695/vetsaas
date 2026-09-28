@@ -326,9 +326,30 @@ export function RecetaFormModal({
         );
     };
 
+    const pendingLineFocus = useRef<number | null>(null);
+
     const addLine = () => {
+        pendingLineFocus.current = data.lineas.length;
         setData('lineas', [...data.lineas, emptyLine()]);
     };
+
+    useEffect(() => {
+        const index = pendingLineFocus.current;
+        if (index === null) {
+            return;
+        }
+
+        pendingLineFocus.current = null;
+        const frame = window.requestAnimationFrame(() => {
+            document.getElementById(`rf-lin-card-${index}`)?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
+            document.getElementById(`rf-lin-${index}-nom`)?.focus();
+        });
+
+        return () => window.cancelAnimationFrame(frame);
+    }, [data.lineas.length]);
 
     const removeLine = (index: number) => {
         if (data.lineas.length <= 1) {
@@ -509,7 +530,17 @@ export function RecetaFormModal({
                             </Button>
                         ) : null}
                     </div>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={addLine}
+                            disabled={processing}
+                            className="cursor-pointer gap-1.5"
+                        >
+                            <Plus className="size-4" strokeWidth={2.5} />
+                            {t('actions.add_line')}
+                        </Button>
                         <Button
                             type="button"
                             variant="outline"
@@ -701,24 +732,7 @@ export function RecetaFormModal({
                     </FormField>
                 </FormSection>
 
-                <FormSection
-                    index={1}
-                    title={t('form.section_lineas')}
-                    columns={1}
-                    actions={
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 cursor-pointer gap-1.5"
-                            onClick={addLine}
-                            disabled={processing}
-                        >
-                            <Plus className="size-3.5" strokeWidth={2.5} />
-                            {t('actions.add_line')}
-                        </Button>
-                    }
-                >
+                <FormSection index={1} title={t('form.section_lineas')} columns={1}>
 
                     {err('lineas') ? (
                         <p className="text-sm text-destructive" role="alert">
@@ -730,6 +744,7 @@ export function RecetaFormModal({
                         {data.lineas.map((row, index) => (
                             <div
                                 key={row.rowKey}
+                                id={`rf-lin-card-${index}`}
                                 className="rounded-md border border-border/70 bg-muted/20 px-3 py-2.5"
                             >
                                 <div className="mb-2 flex items-center justify-between gap-2">
@@ -842,6 +857,16 @@ export function RecetaFormModal({
                                 </div>
                             </div>
                         ))}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="h-9 w-full cursor-pointer gap-1.5"
+                            onClick={addLine}
+                            disabled={processing}
+                        >
+                            <Plus className="size-4" strokeWidth={2.5} />
+                            {t('actions.add_line')}
+                        </Button>
                     </div>
                 </FormSection>
             </div>
