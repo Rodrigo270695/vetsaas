@@ -545,7 +545,7 @@ export function RecetaFormModal({
                             variant="outline"
                             onClick={() => handleClose(false)}
                             disabled={processing}
-                            className="cursor-pointer border-brand-300 bg-brand-50 text-brand-800 hover:bg-brand-100 hover:text-brand-900"
+                            className="cursor-pointer"
                         >
                             {t('common:actions.cancel')}
                         </Button>
