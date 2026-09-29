@@ -3,7 +3,6 @@ import { format } from 'date-fns';
 import { enUS, es as esLocale } from 'date-fns/locale';
 import {
     Ban,
-    Bath,
     CalendarClock,
     CalendarIcon,
     CircleCheck,
@@ -47,6 +46,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    TIPO_ATENCION_SALA_CLASS,
+    TIPO_ATENCION_SALA_DOT,
+    tipoAtencionSalaDe,
+} from '@/lib/sala-espera-atencion';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
@@ -64,6 +68,7 @@ type SalaItem = {
     estado: string;
     sala_estado?: string;
     motivo: string | null;
+    tipo_atencion?: string | null;
     minutos_espera: number;
     enviado_at?: string | null;
     espera_hasta?: string | null;
@@ -300,6 +305,28 @@ function moverItemEstado(queue: SalaQueue, item: SalaItem, estado: EstadoSala): 
     }
 
     return { ...queue, espera, proximas, en_curso: enCurso, historial };
+}
+
+function unirColas(izquierda: SalaQueue, derecha: SalaQueue): SalaQueue {
+    const porTurno = (a: SalaItem, b: SalaItem) => {
+        const delta = (a.numero ?? 9999) - (b.numero ?? 9999);
+        if (delta !== 0) {
+            return delta;
+        }
+
+        return (a.enviado_at ?? '').localeCompare(b.enviado_at ?? '');
+    };
+    const juntar = (a: SalaItem[], b: SalaItem[]) => [...a, ...b].sort(porTurno);
+
+    return {
+        ...izquierda,
+        espera: juntar(izquierda.espera, derecha.espera),
+        proximas: juntar(izquierda.proximas, derecha.proximas),
+        en_curso: juntar(izquierda.en_curso, derecha.en_curso),
+        historial: juntar(izquierda.historial ?? [], derecha.historial ?? []),
+        can_marcar: izquierda.can_marcar || derecha.can_marcar,
+        visible: izquierda.visible || derecha.visible,
+    };
 }
 
 function filtrarCola(queue: SalaQueue, estados: readonly string[]): SalaQueue {
@@ -736,9 +763,14 @@ export default function SalaEsperaIndex({
         [grooming, estadosFiltro],
     );
 
-    const waiting = useMemo(
-        () => queueTotal(consultaVista) + queueTotal(groomingVista),
+    const salaVista = useMemo(
+        () => unirColas(consultaVista, groomingVista),
         [consultaVista, groomingVista],
+    );
+
+    const waiting = useMemo(
+        () => queueTotal(salaVista),
+        [salaVista],
     );
 
     return (
@@ -908,68 +940,41 @@ export default function SalaEsperaIndex({
                     ) : null}
                 </header>
 
-                <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-2">
-                    {board.can_consulta ? (
-                        <ColaPanel
-                            title={t('sala_espera.cita')}
-                            emptyLabel={t('sala_espera.empty_consulta')}
-                            icon={Stethoscope}
-                            accent="sky"
-                            queue={consultaVista}
-                            fecha={fecha}
-                            hoy={hoy}
-                            canMarcar={board.can_marcar}
-                            llamados={llamados}
-                            now={now}
-                            locale={i18n.language?.startsWith('en') ? 'en-US' : 'es-PE'}
-                            onLlamar={(item) => {
-                                void callTurno(item, t('sala_espera.cita'));
-                            }}
-                            onEstado={(item, estado) => void cambiarEstado(item, estado)}
-                            onQuitar={setQuitar}
-                            onHc={(item) => {
-                                if (item.paciente_id) {
-                                    setHcPaciente({
-                                        id: item.paciente_id,
-                                        nombre: item.paciente,
-                                    });
-                                }
-                            }}
-                            usuarios={usuarios}
-                            onAsignar={(item, tratanteId) => void assign(item, tratanteId)}
-                        />
-                    ) : null}
-                    {board.can_grooming ? (
-                        <ColaPanel
-                            title={t('sala_espera.grooming')}
-                            emptyLabel={t('sala_espera.empty_grooming')}
-                            icon={Bath}
-                            accent="violet"
-                            queue={groomingVista}
-                            fecha={fecha}
-                            hoy={hoy}
-                            canMarcar={board.can_marcar}
-                            llamados={llamados}
-                            now={now}
-                            locale={i18n.language?.startsWith('en') ? 'en-US' : 'es-PE'}
-                            onLlamar={(item) => {
-                                void callTurno(item, t('sala_espera.grooming'));
-                            }}
-                            onEstado={(item, estado) => void cambiarEstado(item, estado)}
-                            onQuitar={setQuitar}
-                            onHc={(item) => {
-                                if (item.paciente_id) {
-                                    setHcPaciente({
-                                        id: item.paciente_id,
-                                        nombre: item.paciente,
-                                    });
-                                }
-                            }}
-                            usuarios={usuarios}
-                            onAsignar={(item, tratanteId) => void assign(item, tratanteId)}
-                        />
-                    ) : null}
-                </div>
+                {board.can_consulta || board.can_grooming ? (
+                    <ColaPanel
+                        title={t('sala_espera.title')}
+                        emptyLabel={t('sala_espera.empty')}
+                        icon={Timer}
+                        accent="sky"
+                        queue={salaVista}
+                        fecha={fecha}
+                        hoy={hoy}
+                        canMarcar={board.can_marcar}
+                        llamados={llamados}
+                        now={now}
+                        locale={i18n.language?.startsWith('en') ? 'en-US' : 'es-PE'}
+                        onLlamar={(item) => {
+                            void callTurno(
+                                item,
+                                item.tipo === 'grooming'
+                                    ? t('sala_espera.grooming')
+                                    : t('sala_espera.cita'),
+                            );
+                        }}
+                        onEstado={(item, estado) => void cambiarEstado(item, estado)}
+                        onQuitar={setQuitar}
+                        onHc={(item) => {
+                            if (item.paciente_id) {
+                                setHcPaciente({
+                                    id: item.paciente_id,
+                                    nombre: item.paciente,
+                                });
+                            }
+                        }}
+                        usuarios={usuarios}
+                        onAsignar={(item, tratanteId) => void assign(item, tratanteId)}
+                    />
+                ) : null}
 
                 <Dialog open={quitar !== null} onOpenChange={(open) => !open && setQuitar(null)}>
                     <DialogContent className="max-w-md">
@@ -1215,6 +1220,7 @@ function TurnoCard({
 }) {
     const { t } = useTranslation('common');
     const estado = estadoSalaDe(item);
+    const tipoAtencion = tipoAtencionSalaDe(item.tipo_atencion);
     const paused = relojPausado(estado);
     const waited = waitSeconds(item, now, fecha, hoy);
     const longWait = !paused && waited >= 20 * 60;
@@ -1260,6 +1266,32 @@ function TurnoCard({
                             >
                                 {item.paciente}
                             </PacienteHcLink>
+                            <p className="mt-1 flex flex-wrap items-center gap-1">
+                                <span
+                                    className={cn(
+                                        'inline-flex h-5 items-center rounded-full border px-1.5 text-[10px] font-medium',
+                                        item.tipo === 'grooming'
+                                            ? 'border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-700 dark:bg-violet-950/40 dark:text-violet-100'
+                                            : 'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-100',
+                                    )}
+                                >
+                                    {item.tipo === 'grooming' ? t('sala_espera.grooming') : t('sala_espera.cita')}
+                                </span>
+                                {tipoAtencion ? (
+                                    <span
+                                        className={cn(
+                                            'inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[10px] font-medium',
+                                            TIPO_ATENCION_SALA_CLASS[tipoAtencion],
+                                        )}
+                                    >
+                                        <span className={cn('size-1.5 rounded-full', TIPO_ATENCION_SALA_DOT[tipoAtencion])} />
+                                        {t(`sala_espera.tipos_atencion.${tipoAtencion}`)}
+                                    </span>
+                                ) : null}
+                            </p>
+                            {item.motivo ? (
+                                <p className="mt-0.5 truncate text-xs text-foreground/80">{item.motivo}</p>
+                            ) : null}
                             <p className="flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
                                 <UserRound className="size-3 shrink-0" />
                                 <span className="truncate">{item.propietario}</span>

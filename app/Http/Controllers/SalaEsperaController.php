@@ -114,6 +114,8 @@ class SalaEsperaController extends Controller
             'paciente_id' => ['required', 'uuid', 'exists:pacientes,id'],
             'tipo' => ['required', 'in:consulta,grooming,cita'],
             'tratante_id' => ['nullable', 'uuid'],
+            'motivo' => ['nullable', 'string', 'max:500'],
+            'tipo_atencion' => ['nullable', 'string', Rule::in(SalaEsperaHoyService::TIPOS_ATENCION)],
         ]);
 
         $tratanteId = $request->exists('tratante_id')
@@ -125,7 +127,15 @@ class SalaEsperaController extends Controller
         $tenant = $tenants->current()?->tenant;
         abort_if($tenant === null, 404);
 
-        $result = $salaEspera->enviar($user, $tenant, $paciente, (string) $data['tipo'], $tratanteId);
+        $result = $salaEspera->enviar(
+            $user,
+            $tenant,
+            $paciente,
+            (string) $data['tipo'],
+            $tratanteId,
+            isset($data['motivo']) ? (string) $data['motivo'] : null,
+            isset($data['tipo_atencion']) ? (string) $data['tipo_atencion'] : null,
+        );
         $notifier->ping($tenant, $user, 'enviar', (string) $result['item']['tipo'], $result['item']);
 
         return response()->json($result);

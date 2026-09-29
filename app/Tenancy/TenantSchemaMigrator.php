@@ -338,6 +338,12 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('citas', 'sala_espera_estado_at')
                 && Schema::hasTable('grooming_turnos')
                 && Schema::hasColumn('grooming_turnos', 'sala_espera_estado_at'),
+            '2026_09_28_220000_t157_sala_espera_motivo_tipo' => Schema::hasTable('citas')
+                && Schema::hasColumn('citas', 'sala_espera_motivo')
+                && Schema::hasColumn('citas', 'sala_espera_tipo_atencion')
+                && Schema::hasTable('grooming_turnos')
+                && Schema::hasColumn('grooming_turnos', 'sala_espera_motivo')
+                && Schema::hasColumn('grooming_turnos', 'sala_espera_tipo_atencion'),
             '2026_07_22_190000_t121_add_arqueo_json_to_caja_sesiones' => Schema::hasTable('caja_sesiones')
                 && Schema::hasColumn('caja_sesiones', 'arqueo_json'),
             '2026_07_23_200000_t122_create_caja_egresos_table' => Schema::hasTable('caja_egresos'),

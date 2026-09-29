@@ -94,6 +94,8 @@ class GroomingTurno extends Model
         'sala_espera_numero',
         'sala_espera_estado',
         'sala_espera_estado_at',
+        'sala_espera_motivo',
+        'sala_espera_tipo_atencion',
     ];
 
     protected function casts(): array

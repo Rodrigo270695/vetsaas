@@ -33,6 +33,25 @@ final class SalaEsperaHoyService
 
     public const ESTADO_CANCELADO = 'cancelado';
 
+    public const ATENCION_NO_URGENTE = 'no_urgente';
+
+    public const ATENCION_REANIMACION = 'reanimacion';
+
+    public const ATENCION_EMERGENCIA = 'emergencia';
+
+    public const ATENCION_URGENCIA = 'urgencia';
+
+    public const ATENCION_PRIORITARIO = 'prioritario';
+
+    /** @var list<string> */
+    public const TIPOS_ATENCION = [
+        self::ATENCION_NO_URGENTE,
+        self::ATENCION_REANIMACION,
+        self::ATENCION_EMERGENCIA,
+        self::ATENCION_URGENCIA,
+        self::ATENCION_PRIORITARIO,
+    ];
+
     /** @var list<string> */
     public const ESTADOS_SALA = [
         self::ESTADO_CITADO,
@@ -230,15 +249,24 @@ final class SalaEsperaHoyService
     /**
      * @return array{created: bool, item: array<string, mixed>}
      */
-    public function enviar(User $user, ?Tenant $tenant, Paciente $paciente, string $tipo, ?string $tratanteId = null): array
-    {
+    public function enviar(
+        User $user,
+        ?Tenant $tenant,
+        Paciente $paciente,
+        string $tipo,
+        ?string $tratanteId = null,
+        ?string $motivo = null,
+        ?string $tipoAtencion = null,
+    ): array {
         abort_unless($user->can('sala-espera.enviar'), 403);
         $tipo = $this->normalizeTipo($tipo);
+        $motivo = $this->motivoSala($motivo);
+        $tipoAtencion = $this->tipoAtencionSala($tipoAtencion);
         $tz = (string) config('app.timezone');
         $now = Carbon::now($tz);
         $paciente->loadMissing('propietario');
 
-        return DB::transaction(function () use ($user, $tenant, $paciente, $tipo, $tz, $now, $tratanteId): array {
+        return DB::transaction(function () use ($user, $tenant, $paciente, $tipo, $tz, $now, $tratanteId, $motivo, $tipoAtencion): array {
             $this->lockNumeroDia($now);
 
             if ($tipo === self::TIPO_CONSULTA) {
@@ -247,6 +275,7 @@ final class SalaEsperaHoyService
                 if ($existing !== null) {
                     $this->marcarEnviado($existing, $now);
                     $this->aplicarTratante($existing, 'veterinario_id', $tratanteId, $user);
+                    $this->aplicarIngresoSala($existing, $motivo, $tipoAtencion);
                     $existing->setRelation('paciente', $paciente);
                     $existing->loadMissing('veterinario:id,name');
 
@@ -268,6 +297,7 @@ final class SalaEsperaHoyService
                     'created_by_id' => $user->id,
                     'updated_by_id' => $user->id,
                 ];
+                $this->sumarIngresoSala($payload, 'citas', $motivo, $tipoAtencion);
                 $numero = $this->siguienteNumeroDia($now);
                 if ($numero !== null) {
                     $payload['sala_espera_numero'] = $numero;
@@ -288,6 +318,7 @@ final class SalaEsperaHoyService
             if ($existing !== null) {
                 $this->marcarEnviado($existing, $now);
                 $this->aplicarTratante($existing, 'responsable_id', $tratanteId, $user);
+                $this->aplicarIngresoSala($existing, $motivo, $tipoAtencion);
                 $existing->setRelation('paciente', $paciente);
                 $existing->loadMissing('responsable:id,name');
 
@@ -309,6 +340,7 @@ final class SalaEsperaHoyService
                 'created_by_id' => $user->id,
                 'updated_by_id' => $user->id,
             ];
+            $this->sumarIngresoSala($payload, 'grooming_turnos', $motivo, $tipoAtencion);
             $numero = $this->siguienteNumeroDia($now);
             if ($numero !== null) {
                 $payload['sala_espera_numero'] = $numero;
@@ -485,9 +517,7 @@ final class SalaEsperaHoyService
         $minutos = (int) max(0, $enviado->timezone($tz)->diffInMinutes($now));
 
         $paciente = $record->paciente;
-        $motivo = $tipo === self::TIPO_CONSULTA
-            ? (string) ($record->motivo ?? '')
-            : (string) ($record->servicio_label ?? $record->servicio ?? '');
+        $motivo = $this->motivoVisible($record, $tipo);
         $tratante = $record instanceof Cita ? $record->veterinario : $record->responsable;
 
         return [
@@ -502,7 +532,8 @@ final class SalaEsperaHoyService
             'hora' => $at->timezone($tz)->format('H:i'),
             'estado' => (string) $record->estado,
             'sala_estado' => $this->estadoSala($record),
-            'motivo' => $motivo !== '' ? $motivo : null,
+            'motivo' => $motivo,
+            'tipo_atencion' => $this->tipoAtencionVisible($record),
             'minutos_espera' => $minutos,
             'enviado_at' => $enviado->timezone($tz)->toIso8601String(),
             'espera_hasta' => $this->esperaHasta($record, $tz),
@@ -668,6 +699,71 @@ final class SalaEsperaHoyService
 
         $key = crc32('sala_espera_numero|'.$now->toDateString());
         DB::select('select pg_advisory_xact_lock(?)', [$key]);
+    }
+
+    private function motivoSala(?string $motivo): ?string
+    {
+        $motivo = trim((string) $motivo);
+
+        return $motivo === '' ? null : mb_substr($motivo, 0, 500);
+    }
+
+    private function tipoAtencionSala(?string $tipo): string
+    {
+        $tipo = trim((string) $tipo);
+
+        return in_array($tipo, self::TIPOS_ATENCION, true) ? $tipo : self::ATENCION_NO_URGENTE;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function sumarIngresoSala(array &$payload, string $table, ?string $motivo, string $tipoAtencion): void
+    {
+        if (Schema::hasColumn($table, 'sala_espera_motivo')) {
+            $payload['sala_espera_motivo'] = $motivo;
+        }
+        if (Schema::hasColumn($table, 'sala_espera_tipo_atencion')) {
+            $payload['sala_espera_tipo_atencion'] = $tipoAtencion;
+        }
+    }
+
+    private function aplicarIngresoSala(Cita|GroomingTurno $record, ?string $motivo, string $tipoAtencion): void
+    {
+        $updates = [];
+        $table = $record->getTable();
+        if (Schema::hasColumn($table, 'sala_espera_motivo')) {
+            $updates['sala_espera_motivo'] = $motivo;
+        }
+        if (Schema::hasColumn($table, 'sala_espera_tipo_atencion')) {
+            $updates['sala_espera_tipo_atencion'] = $tipoAtencion;
+        }
+        if ($updates !== []) {
+            $record->forceFill($updates)->save();
+        }
+    }
+
+    private function motivoVisible(Cita|GroomingTurno $record, string $tipo): ?string
+    {
+        $sala = trim((string) ($record->getAttribute('sala_espera_motivo') ?? ''));
+        if ($sala !== '') {
+            return $sala;
+        }
+
+        if ($tipo === self::TIPO_CONSULTA) {
+            $clinico = trim((string) ($record->motivo ?? ''));
+
+            return $clinico !== '' && $clinico !== 'Sala de espera' ? $clinico : null;
+        }
+
+        return null;
+    }
+
+    private function tipoAtencionVisible(Cita|GroomingTurno $record): ?string
+    {
+        $tipo = (string) ($record->getAttribute('sala_espera_tipo_atencion') ?? '');
+
+        return in_array($tipo, self::TIPOS_ATENCION, true) ? $tipo : null;
     }
 
     private function normalizeTipo(string $tipo): string

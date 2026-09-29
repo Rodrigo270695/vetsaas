@@ -1,4 +1,4 @@
-import { Bath, Stethoscope, Timer } from 'lucide-react';
+import { Timer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -16,8 +17,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { SALA_ESPERA_CHANGED_EVENT } from '@/components/sala-espera-header-popover';
+import {
+    TIPO_ATENCION_SALA_CLASS,
+    TIPO_ATENCION_SALA_DOT,
+    TIPOS_ATENCION_SALA,
+    type TipoAtencionSala,
+} from '@/lib/sala-espera-atencion';
 import { toastManager } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 
 type UsuarioSala = {
     id: string;
@@ -51,6 +60,9 @@ export function SalaEsperaEnviarButton({
     const [busy, setBusy] = useState(false);
     const [usuarios, setUsuarios] = useState<UsuarioSala[]>(() => [...(usuariosProp ?? [])]);
     const [tratanteId, setTratanteId] = useState<string>(myId);
+    const [area, setArea] = useState<'consulta' | 'grooming'>(canConsulta ? 'consulta' : 'grooming');
+    const [tipoAtencion, setTipoAtencion] = useState<TipoAtencionSala>('no_urgente');
+    const [motivo, setMotivo] = useState('');
 
     useEffect(() => {
         if (usuariosProp) {
@@ -61,6 +73,9 @@ export function SalaEsperaEnviarButton({
     useEffect(() => {
         if (!open) {
             setTratanteId(myId);
+            setArea(canConsulta ? 'consulta' : 'grooming');
+            setTipoAtencion('no_urgente');
+            setMotivo('');
             return;
         }
         if (usuariosProp && usuariosProp.length > 0) {
@@ -83,13 +98,13 @@ export function SalaEsperaEnviarButton({
             .catch(() => {
                 // El envío sigue con el usuario actual.
             });
-    }, [myId, open, usuariosProp]);
+    }, [canConsulta, myId, open, usuariosProp]);
 
     if (!canConsulta && !canGrooming) {
         return null;
     }
 
-    const send = async (tipo: 'consulta' | 'grooming') => {
+    const send = async () => {
         setBusy(true);
         try {
             const res = await fetch('/clinica/sala-espera/enviar', {
@@ -103,8 +118,10 @@ export function SalaEsperaEnviarButton({
                 credentials: 'same-origin',
                 body: JSON.stringify({
                     paciente_id: pacienteId,
-                    tipo,
+                    tipo: area,
                     tratante_id: tratanteId === '' ? null : tratanteId,
+                    motivo: motivo.trim() === '' ? null : motivo.trim(),
+                    tipo_atencion: tipoAtencion,
                 }),
             });
             const json = (await res.json().catch(() => ({}))) as {
@@ -143,7 +160,7 @@ export function SalaEsperaEnviarButton({
                 {t('sala_espera.action_short')}
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-w-sm">
+                <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>{t('sala_espera.send_title')}</DialogTitle>
                     </DialogHeader>
@@ -169,37 +186,65 @@ export function SalaEsperaEnviarButton({
                             </Select>
                             <span className="text-xs text-muted-foreground">{t('sala_espera.tratante_hint')}</span>
                         </label>
-                        <div className="grid grid-cols-2 gap-2">
-                        {canConsulta ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="h-20 cursor-pointer flex-col gap-1 border-sky-500/30"
+                        <label className="grid gap-1.5 text-sm">
+                            <span className="font-medium">{t('sala_espera.area')}</span>
+                            <Select
+                                value={area}
+                                onValueChange={(value) => setArea(value as 'consulta' | 'grooming')}
                                 disabled={busy}
-                                onClick={() => void send('consulta')}
                             >
-                                <Stethoscope className="size-6 text-sky-600" />
-                                <span className="text-xs font-medium">
-                                    {t('sala_espera.cita')}
-                                </span>
-                            </Button>
-                        ) : null}
-                        {canGrooming ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="h-20 cursor-pointer flex-col gap-1 border-violet-500/30"
+                                <SelectTrigger className="h-10 w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {canConsulta ? (
+                                        <SelectItem value="consulta">{t('sala_espera.cita')}</SelectItem>
+                                    ) : null}
+                                    {canGrooming ? (
+                                        <SelectItem value="grooming">{t('sala_espera.grooming')}</SelectItem>
+                                    ) : null}
+                                </SelectContent>
+                            </Select>
+                        </label>
+                        <label className="grid gap-1.5 text-sm">
+                            <span className="font-medium">{t('sala_espera.tipo_atencion')}</span>
+                            <Select
+                                value={tipoAtencion}
+                                onValueChange={(value) => setTipoAtencion(value as TipoAtencionSala)}
                                 disabled={busy}
-                                onClick={() => void send('grooming')}
                             >
-                                <Bath className="size-6 text-violet-600" />
-                                <span className="text-xs font-medium">
-                                    {t('sala_espera.grooming')}
-                                </span>
-                            </Button>
-                        ) : null}
-                        </div>
+                                <SelectTrigger className={cn('h-10 w-full font-medium', TIPO_ATENCION_SALA_CLASS[tipoAtencion])}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {TIPOS_ATENCION_SALA.map((opcion) => (
+                                        <SelectItem key={opcion} value={opcion}>
+                                            <span className="inline-flex items-center gap-2">
+                                                <span className={cn('size-2.5 rounded-full', TIPO_ATENCION_SALA_DOT[opcion])} />
+                                                {t(`sala_espera.tipos_atencion.${opcion}`)}
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </label>
+                        <label className="grid gap-1.5 text-sm">
+                            <span className="font-medium">{t('sala_espera.motivo_label')}</span>
+                            <Textarea
+                                value={motivo}
+                                onChange={(event) => setMotivo(event.target.value)}
+                                placeholder={t('sala_espera.motivo_placeholder')}
+                                maxLength={500}
+                                rows={3}
+                                disabled={busy}
+                            />
+                        </label>
                     </div>
+                    <DialogFooter>
+                        <Button type="button" className="cursor-pointer" disabled={busy} onClick={() => void send()}>
+                            {t('sala_espera.send_confirm')}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </>
