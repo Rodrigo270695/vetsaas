@@ -126,6 +126,12 @@ export type TimelineConsultaDetalle = {
     analisis: string | null;
     plan: string | null;
     examenes?: readonly string[];
+    resultados?: readonly {
+        id: string;
+        original_name: string;
+        mime: string;
+        url: string | null;
+    }[];
     motivo?: string | null;
     anotaciones?: string | null;
     medico_tratante?: string | null;

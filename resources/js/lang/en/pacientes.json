@@ -306,6 +306,7 @@
             "suspendido": "Suspended"
         },
         "det_examenes": "Complementary exams",
+        "det_resultados": "Results",
         "det_anotaciones": "Additional notes",
         "det_motivo": "Reason for visit",
         "det_medico": "Attending clinician",

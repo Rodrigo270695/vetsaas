@@ -1022,6 +1022,7 @@ class PacienteController extends Controller
                     'veterinario:id,name',
                     'examenes',
                     'terapiaLineas',
+                    ...(Schema::hasTable('consulta_resultados') ? ['resultados'] : []),
                     'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
                     'pedidosLaboratorio' => fn ($q) => $q
                         ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
@@ -1100,6 +1101,18 @@ class PacienteController extends Controller
                                 ->filter(fn ($n) => trim((string) $n) !== '')
                                 ->values()
                                 ->all(),
+                            'resultados' => $c->relationLoaded('resultados')
+                                ? $c->resultados
+                                    ->sortBy('orden')
+                                    ->map(fn ($resultado): array => [
+                                        'id' => $resultado->id,
+                                        'original_name' => $resultado->original_name,
+                                        'mime' => $resultado->mime,
+                                        'url' => $resultado->url,
+                                    ])
+                                    ->values()
+                                    ->all()
+                                : [],
                             'motivo' => $this->timelineTextPreview($c->motivo, 800),
                             'anotaciones' => $this->timelineTextPreview($c->anotaciones ?? null, 800),
                             'medico_tratante' => trim((string) ($c->medico_tratante ?? '')) !== ''

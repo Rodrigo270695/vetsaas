@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { AlertTriangle, Loader2, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, FileImage, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PacienteCombobox } from '@/components/clinica/paciente-combobox';
@@ -49,6 +49,25 @@ type TerapiaRow = {
     dosis_volumen: string;
 };
 
+const RESULTADOS_MAX = 12;
+const RESULTADO_MAX_BYTES = 12 * 1024 * 1024;
+const RESULTADO_EXT = /\.(pdf|jpe?g|png|webp|gif)$/i;
+const RESULTADO_MIME = new Set([
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+]);
+
+function resultadoPermitido(file: File): boolean {
+    if (file.type !== '' && RESULTADO_MIME.has(file.type)) {
+        return true;
+    }
+
+    return RESULTADO_EXT.test(file.name);
+}
+
 type FormData = {
     paciente_id: string;
     cita_id: string;
@@ -66,6 +85,8 @@ type FormData = {
     fr_rpm: string;
     examenes: ExamenRow[];
     terapia_lineas: TerapiaRow[];
+    resultados: File[];
+    resultados_quitar: string[];
 };
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -117,6 +138,8 @@ const emptyForm: FormData = {
     fr_rpm: '',
     examenes: [],
     terapia_lineas: [],
+    resultados: [],
+    resultados_quitar: [],
 };
 
 function numOrNull(s: string): number | null {
@@ -155,6 +178,8 @@ export function ConsultaFormModal({
     const [ownerTouched, setOwnerTouched] = useState(false);
     const [cierreProcessing, setCierreProcessing] = useState(false);
     const [hcPanelOpen, setHcPanelOpen] = useState(false);
+    const [resultadoAviso, setResultadoAviso] = useState('');
+    const resultadosInputRef = useRef<HTMLInputElement>(null);
     const isEditRef = useRef(isEdit);
     isEditRef.current = isEdit;
 
@@ -192,6 +217,8 @@ export function ConsultaFormModal({
                         dosis_volumen:
                             l.dosis_volumen.trim() === '' ? null : l.dosis_volumen.trim(),
                     })),
+                resultados: raw.resultados,
+                resultados_quitar: raw.resultados_quitar,
             };
             const peso = raw.peso_kg.trim();
             next.peso_kg = peso === '' ? null : Number.parseFloat(peso);
@@ -252,6 +279,8 @@ export function ConsultaFormModal({
                     farmaco_nombre: l.farmaco_nombre,
                     dosis_volumen: l.dosis_volumen ?? '',
                 })),
+                resultados: [],
+                resultados_quitar: [],
             });
         } else {
             const pre = pacienteIdPrefillNueva ?? '';
@@ -269,6 +298,7 @@ export function ConsultaFormModal({
         }
         setDefaults();
         setOwnerTouched(false);
+        setResultadoAviso('');
         clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, consulta?.id, pacienteIdPrefillNueva, motivoPrefillNueva, citaIdPrefillNueva, medicoTratanteDefault]);
@@ -342,16 +372,26 @@ export function ConsultaFormModal({
             onOpenChange(false);
         };
 
+        const conArchivos = data.resultados.length > 0;
+        const submitOptions = {
+            preserveScroll: true,
+            forceFormData: conArchivos,
+            onSuccess,
+        };
+
         if (isEdit && consulta) {
-            put(clinica.historiasClinicas.consultas.update.url(consulta.id), {
-                preserveScroll: true,
-                onSuccess,
-            });
+            put(clinica.historiasClinicas.consultas.update.url(consulta.id), submitOptions);
 
             return;
         }
 
         void (async () => {
+            if (conArchivos) {
+                post(clinica.historiasClinicas.consultas.store.url(), submitOptions);
+
+                return;
+            }
+
             const queued = await enqueueIfOffline(
                 'clinica.consulta.create',
                 buildCreatePayload(data),
@@ -367,10 +407,7 @@ export function ConsultaFormModal({
                 return;
             }
 
-            post(clinica.historiasClinicas.consultas.store.url(), {
-                preserveScroll: true,
-                onSuccess,
-            });
+            post(clinica.historiasClinicas.consultas.store.url(), submitOptions);
         })();
     };
 
@@ -876,6 +913,145 @@ export function ConsultaFormModal({
                                 ))}
                             </ul>
                         )}
+                    </div>
+
+                    <div className="space-y-2 sm:col-span-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium">{t('form.resultados')}</p>
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="cursor-pointer gap-1.5"
+                                disabled={fieldDisabled}
+                                onClick={() => resultadosInputRef.current?.click()}
+                            >
+                                <Plus className="size-3.5" strokeWidth={2.5} />
+                                {t('form.resultados_add')}
+                            </Button>
+                            <input
+                                ref={resultadosInputRef}
+                                type="file"
+                                className="hidden"
+                                multiple
+                                accept="application/pdf,image/jpeg,image/png,image/webp,image/gif,.pdf,.jpg,.jpeg,.png,.webp,.gif"
+                                disabled={fieldDisabled}
+                                onChange={(event) => {
+                                    const list = event.target.files;
+                                    const guardados = (consulta?.resultados ?? []).filter(
+                                        (row) => !data.resultados_quitar.includes(row.id),
+                                    );
+                                    const next = [...data.resultados];
+                                    let aviso = '';
+                                    if (list) {
+                                        for (const file of Array.from(list)) {
+                                            if (guardados.length + next.length >= RESULTADOS_MAX) {
+                                                aviso = t('form.resultados_max');
+                                                break;
+                                            }
+                                            if (!resultadoPermitido(file)) {
+                                                aviso = t('form.resultados_tipo');
+                                                continue;
+                                            }
+                                            if (file.size > RESULTADO_MAX_BYTES) {
+                                                aviso = t('form.resultados_tamano');
+                                                continue;
+                                            }
+                                            next.push(file);
+                                        }
+                                    }
+                                    setData('resultados', next);
+                                    setResultadoAviso(aviso);
+                                    event.target.value = '';
+                                }}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground">{t('form.resultados_help')}</p>
+                        {(consulta?.resultados ?? []).filter((row) => !data.resultados_quitar.includes(row.id)).length === 0 &&
+                        data.resultados.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">{t('form.resultados_empty')}</p>
+                        ) : (
+                            <ul className="space-y-1.5">
+                                {(consulta?.resultados ?? [])
+                                    .filter((row) => !data.resultados_quitar.includes(row.id))
+                                    .map((row) => (
+                                        <li
+                                            key={row.id}
+                                            className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/15 px-2 py-1.5"
+                                        >
+                                            {row.mime === 'application/pdf' ? (
+                                                <FileText className="size-4 shrink-0 text-sky-700" />
+                                            ) : (
+                                                <FileImage className="size-4 shrink-0 text-sky-700" />
+                                            )}
+                                            {row.url ? (
+                                                <a
+                                                    href={row.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="min-w-0 flex-1 truncate text-sm font-medium text-sky-800 hover:underline dark:text-sky-200"
+                                                >
+                                                    {row.original_name}
+                                                </a>
+                                            ) : (
+                                                <span className="min-w-0 flex-1 truncate text-sm">{row.original_name}</span>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="size-8 shrink-0 cursor-pointer"
+                                                disabled={fieldDisabled}
+                                                onClick={() =>
+                                                    setData('resultados_quitar', [...data.resultados_quitar, row.id])
+                                                }
+                                            >
+                                                <Trash2 className="size-4 text-destructive" />
+                                            </Button>
+                                        </li>
+                                    ))}
+                                {data.resultados.map((file, index) => (
+                                    <li
+                                        key={`${file.name}-${file.size}-${index}`}
+                                        className="flex items-center gap-2 rounded-lg border border-dashed border-sky-400/50 bg-sky-500/5 px-2 py-1.5"
+                                    >
+                                        {file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') ? (
+                                            <FileText className="size-4 shrink-0 text-sky-700" />
+                                        ) : (
+                                            <FileImage className="size-4 shrink-0 text-sky-700" />
+                                        )}
+                                        <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="size-8 shrink-0 cursor-pointer"
+                                            disabled={fieldDisabled}
+                                            onClick={() =>
+                                                setData(
+                                                    'resultados',
+                                                    data.resultados.filter((_, i) => i !== index),
+                                                )
+                                            }
+                                        >
+                                            <Trash2 className="size-4 text-destructive" />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {resultadoAviso ? <p className="text-xs text-destructive">{resultadoAviso}</p> : null}
+                        {(() => {
+                            const serverError = Object.entries(errors).find(
+                                ([key, value]) =>
+                                    (key === 'resultados' || key.startsWith('resultados.')) &&
+                                    typeof value === 'string' &&
+                                    value !== '',
+                            );
+
+                            return serverError ? (
+                                <p className="text-xs text-destructive">{serverError[1]}</p>
+                            ) : null;
+                        })()}
                     </div>
 
                     <FormField

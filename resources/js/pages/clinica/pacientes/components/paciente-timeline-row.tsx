@@ -105,6 +105,7 @@ function consultaDetalleTieneContenido(d: TimelineConsultaDetalle): boolean {
                 d.anotaciones ||
                 d.medico_tratante ||
                 (d.examenes && d.examenes.length > 0) ||
+                (d.resultados && d.resultados.length > 0) ||
                 d.plan_medicacion != null,
         ) || vinculosConsultaTieneContenido(d.vinculos)
     );
@@ -983,6 +984,32 @@ export function PacienteTimelineRow({
                                                     : null
                                             }
                                         />
+                                        {item.detalle.resultados && item.detalle.resultados.length > 0 ? (
+                                            <div className="sm:col-span-2">
+                                                <p className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
+                                                    {t('historial.det_resultados')}
+                                                </p>
+                                                <ul className="mt-1 space-y-1">
+                                                    {item.detalle.resultados.map((resultado) => (
+                                                        <li key={resultado.id}>
+                                                            {resultado.url ? (
+                                                                <a
+                                                                    href={resultado.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex max-w-full items-center gap-1 text-xs font-medium text-sky-800 hover:underline dark:text-sky-200"
+                                                                >
+                                                                    <FileDown className="size-3 shrink-0" />
+                                                                    <span className="truncate">{resultado.original_name}</span>
+                                                                </a>
+                                                            ) : (
+                                                                <span className="truncate text-xs">{resultado.original_name}</span>
+                                                            )}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : null}
                                         <SoapBlock label={t('historial.det_analisis')} text={item.detalle.analisis} />
                                         <SoapBlock label={t('historial.det_plan_soap')} text={item.detalle.plan} />
                                         <SoapBlock

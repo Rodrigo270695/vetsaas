@@ -37,6 +37,10 @@ class UpdateConsultaHistoriaRequest extends FormRequest
             'terapia_lineas.*.farmaco_id' => ['nullable', 'uuid', Rule::exists('farmacos', 'id')],
             'terapia_lineas.*.farmaco_nombre' => ['required', 'string', 'max:200'],
             'terapia_lineas.*.dosis_volumen' => ['nullable', 'string', 'max:200'],
+            'resultados' => ['nullable', 'array', 'max:12'],
+            'resultados.*' => ['file', 'mimes:pdf,jpg,jpeg,png,webp,gif', 'max:12288'],
+            'resultados_quitar' => ['nullable', 'array', 'max:12'],
+            'resultados_quitar.*' => ['uuid'],
         ];
     }
 }

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * @property string $id
@@ -86,6 +87,14 @@ class Consulta extends Model
             $plan->seguimientos()->delete();
             $plan->delete();
         });
+
+        static::forceDeleting(function (Consulta $consulta): void {
+            if (! Schema::hasTable('consulta_resultados')) {
+                return;
+            }
+
+            $consulta->resultados()->get()->each->delete();
+        });
     }
 
     public function historiaClinica(): BelongsTo
@@ -126,6 +135,11 @@ class Consulta extends Model
     public function examenes(): HasMany
     {
         return $this->hasMany(ConsultaExamen::class, 'consulta_id')->orderBy('orden');
+    }
+
+    public function resultados(): HasMany
+    {
+        return $this->hasMany(ConsultaResultado::class, 'consulta_id')->orderBy('orden');
     }
 
     public function terapiaLineas(): HasMany

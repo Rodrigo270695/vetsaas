@@ -3,6 +3,9 @@
 return [
     'errors' => [
         'no_editable_cerrada' => 'Esta consulta está cerrada. Reábrela para poder editarla.',
+        'resultados_migracion' => 'Falta aplicar la migración de resultados de la consulta.',
+        'resultados_tipo' => 'Solo se permiten PDF o imágenes (JPG, PNG, WEBP o GIF).',
+        'resultados_max' => 'Puedes adjuntar hasta 12 resultados por consulta.',
     ],
     'flash' => [
         'created' => 'Consulta registrada correctamente.',

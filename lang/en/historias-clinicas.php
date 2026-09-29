@@ -3,6 +3,9 @@
 return [
     'errors' => [
         'no_editable_cerrada' => 'This visit is closed. Reopen it to edit.',
+        'resultados_migracion' => 'The visit results migration still needs to be applied.',
+        'resultados_tipo' => 'Only PDF or images (JPG, PNG, WEBP or GIF) are allowed.',
+        'resultados_max' => 'You can attach up to 12 results per visit.',
     ],
     'flash' => [
         'created' => 'Visit record saved successfully.',

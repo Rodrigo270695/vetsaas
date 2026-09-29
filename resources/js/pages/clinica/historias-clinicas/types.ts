@@ -101,6 +101,13 @@ export type ConsultaHistoriaRow = {
         nombre: string;
         orden: number;
     }[];
+    resultados?: readonly {
+        id: string;
+        original_name: string;
+        mime: string;
+        url: string | null;
+        orden: number;
+    }[];
     terapia_lineas?: readonly {
         id: string;
         farmaco_id: string | null;

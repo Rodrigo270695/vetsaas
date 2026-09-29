@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateConsultaHistoriaRequest;
 use App\Models\Cita;
 use App\Models\Consulta;
 use App\Models\ConsultaExamen;
+use App\Models\ConsultaResultado;
 use App\Models\ConsultaTerapiaLinea;
 use App\Models\Farmaco;
 use App\Models\HistoriaClinica;
@@ -20,11 +21,16 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ConsultaHistoriaController extends Controller
@@ -105,6 +111,7 @@ class ConsultaHistoriaController extends Controller
                 'cargo:id,consulta_id,estado,total,venta_id',
                 'examenes',
                 'terapiaLineas',
+                ...$this->withResultados(),
             ]);
 
         ConsultaCargoCobroEstado::withCobradosCount($query);
@@ -295,6 +302,7 @@ class ConsultaHistoriaController extends Controller
             'cargo:id,consulta_id,estado,total',
             'examenes',
             'terapiaLineas',
+            ...$this->withResultados(),
         ]);
 
         if ($canAudit) {
@@ -335,6 +343,7 @@ class ConsultaHistoriaController extends Controller
                 'cargo:id,consulta_id,estado,total',
                 'examenes',
                 'terapiaLineas',
+                ...$this->withResultados(),
             ]);
 
         if ($canAudit) {
@@ -407,8 +416,9 @@ class ConsultaHistoriaController extends Controller
             : null;
 
         $consultaCreada = null;
+        $this->assertCupoResultados(null, $request, []);
 
-        DB::transaction(function () use ($validated, $uid, $medicoTratante, &$consultaCreada): void {
+        DB::transaction(function () use ($validated, $uid, $medicoTratante, $request, &$consultaCreada): void {
             $historia = HistoriaClinica::query()->firstOrCreate(
                 ['paciente_id' => $validated['paciente_id']],
                 [
@@ -450,6 +460,7 @@ class ConsultaHistoriaController extends Controller
 
             $this->syncConsultaExamenes($consultaCreada, $validated['examenes'] ?? []);
             $this->syncConsultaTerapiaLineas($consultaCreada, $validated['terapia_lineas'] ?? []);
+            $this->guardarResultadosNuevos($consultaCreada, $request, is_string($uid) ? $uid : null);
 
             if (is_string($citaId) && $citaId !== '') {
                 Cita::query()
@@ -490,8 +501,13 @@ class ConsultaHistoriaController extends Controller
         $medicoTratante = $medicoTratante !== ''
             ? Str::limit($medicoTratante, 200, '')
             : null;
+        $quitar = array_values(array_filter(
+            $validated['resultados_quitar'] ?? [],
+            fn (mixed $id): bool => is_string($id) && $id !== '',
+        ));
+        $this->assertCupoResultados($consulta, $request, $quitar);
 
-        DB::transaction(function () use ($consulta, $validated, $uid, $medicoTratante): void {
+        DB::transaction(function () use ($consulta, $validated, $uid, $medicoTratante, $request, $quitar): void {
             $peso = $validated['peso_kg'] ?? null;
             $temp = $validated['temperatura_c'] ?? null;
             $fc = $validated['fc_lpm'] ?? null;
@@ -514,6 +530,8 @@ class ConsultaHistoriaController extends Controller
 
             $this->syncConsultaExamenes($consulta, $validated['examenes'] ?? []);
             $this->syncConsultaTerapiaLineas($consulta, $validated['terapia_lineas'] ?? []);
+            $this->quitarResultados($consulta, $quitar);
+            $this->guardarResultadosNuevos($consulta, $request, is_string($uid) ? $uid : null);
         });
 
         return redirect()
@@ -593,6 +611,160 @@ class ConsultaHistoriaController extends Controller
         }
 
         return redirect()->route('clinica.historias-clinicas');
+    }
+
+    public function resultado(Request $request, Consulta $consulta, ConsultaResultado $resultado): BinaryFileResponse
+    {
+        abort_unless($request->user()?->can('historias-clinicas.view') ?? false, 403);
+        abort_unless($resultado->consulta_id === $consulta->id, 404);
+
+        $tid = tenant_id();
+        $path = $resultado->archivo_path;
+        if (! is_string($tid) || $tid === '' || $path === '') {
+            abort(404);
+        }
+
+        $expectedPrefix = 'consultas/'.$tid.'/'.$consulta->id.'/';
+        if (! str_starts_with($path, $expectedPrefix) || ! Storage::disk('local')->exists($path)) {
+            abort(404);
+        }
+
+        if (! in_array($resultado->mime, ConsultaResultado::MIMES, true)) {
+            abort(404);
+        }
+
+        $downloadName = $resultado->original_name !== ''
+            ? $resultado->original_name
+            : ('resultado-'.Str::lower(Str::substr($resultado->id, 0, 8)));
+
+        return response()->file(Storage::disk('local')->path($path), [
+            'Content-Type' => $resultado->mime,
+            'Content-Disposition' => 'inline; filename="'.str_replace(['"', "\r", "\n"], '', $downloadName).'"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /**
+     * @param  list<string>  $quitar
+     */
+    private function assertCupoResultados(?Consulta $consulta, Request $request, array $quitar): void
+    {
+        $nuevos = count($this->archivosResultado($request));
+        if ($nuevos === 0 && $quitar === []) {
+            return;
+        }
+
+        if (! Schema::hasTable('consulta_resultados')) {
+            throw ValidationException::withMessages([
+                'resultados' => __('historias-clinicas.errors.resultados_migracion'),
+            ]);
+        }
+
+        $actuales = $consulta === null ? 0 : $consulta->resultados()->count();
+        $quitarValidos = $consulta === null || $quitar === []
+            ? 0
+            : $consulta->resultados()->whereIn('id', $quitar)->count();
+
+        if (($actuales - $quitarValidos + $nuevos) > 12) {
+            throw ValidationException::withMessages([
+                'resultados' => __('historias-clinicas.errors.resultados_max'),
+            ]);
+        }
+    }
+
+    /**
+     * @param  list<string>  $ids
+     */
+    private function quitarResultados(Consulta $consulta, array $ids): void
+    {
+        if ($ids === [] || ! Schema::hasTable('consulta_resultados')) {
+            return;
+        }
+
+        $consulta->resultados()->whereIn('id', $ids)->get()->each->delete();
+    }
+
+    private function guardarResultadosNuevos(Consulta $consulta, Request $request, ?string $uid): void
+    {
+        $files = $this->archivosResultado($request);
+        if ($files === []) {
+            return;
+        }
+
+        if (! Schema::hasTable('consulta_resultados')) {
+            throw ValidationException::withMessages([
+                'resultados' => __('historias-clinicas.errors.resultados_migracion'),
+            ]);
+        }
+
+        $tid = tenant_id();
+        if (! is_string($tid) || $tid === '') {
+            abort(403);
+        }
+
+        $orden = (int) $consulta->resultados()->max('orden');
+        foreach ($files as $file) {
+            $mime = (string) ($file->getMimeType() ?: '');
+            if (! in_array($mime, ConsultaResultado::MIMES, true)) {
+                throw ValidationException::withMessages([
+                    'resultados' => __('historias-clinicas.errors.resultados_tipo'),
+                ]);
+            }
+
+            $ext = strtolower((string) $file->getClientOriginalExtension());
+            $ext = preg_replace('/[^a-z0-9]/', '', $ext) ?: 'bin';
+            $safe = Str::lower(Str::random(24)).'.'.$ext;
+            $path = $file->storeAs('consultas/'.$tid.'/'.$consulta->id, $safe, 'local');
+            if (! is_string($path) || $path === '') {
+                throw ValidationException::withMessages([
+                    'resultados' => __('historias-clinicas.errors.resultados_tipo'),
+                ]);
+            }
+
+            $nombre = trim(str_replace(['"', "\r", "\n", '\\', '/'], '', $file->getClientOriginalName()));
+            $nombre = $nombre !== '' ? Str::limit($nombre, 255, '') : 'resultado.'.$ext;
+
+            ConsultaResultado::query()->create([
+                'consulta_id' => $consulta->id,
+                'archivo_path' => $path,
+                'original_name' => $nombre,
+                'mime' => $mime,
+                'bytes' => $file->getSize() !== false ? (int) $file->getSize() : null,
+                'orden' => ++$orden,
+                'created_by_id' => $uid,
+            ]);
+        }
+    }
+
+    /**
+     * @return list<UploadedFile>
+     */
+    private function archivosResultado(Request $request): array
+    {
+        $files = $request->file('resultados');
+        if ($files instanceof UploadedFile) {
+            $files = [$files];
+        }
+        if (! is_array($files)) {
+            return [];
+        }
+
+        $validos = [];
+        foreach ($files as $file) {
+            if ($file instanceof UploadedFile && $file->isValid()) {
+                $validos[] = $file;
+            }
+        }
+
+        return $validos;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function withResultados(): array
+    {
+        return Schema::hasTable('consulta_resultados') ? ['resultados'] : [];
     }
 
     /**
