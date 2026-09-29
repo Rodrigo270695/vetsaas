@@ -207,6 +207,7 @@
         "filtro_todos": "All statuses",
         "estado_error": "Could not change the status.",
         "historial": "History",
+        "historial_empty": "No history for this day.",
         "estados": {
             "citado": "Scheduled",
             "en_espera": "Waiting",

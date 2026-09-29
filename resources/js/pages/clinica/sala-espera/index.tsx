@@ -389,10 +389,6 @@ function queueTotal(queue: SalaQueue): number {
     return queue.espera.length + queue.proximas.length + queue.en_curso.length;
 }
 
-function queueVisible(queue: SalaQueue): number {
-    return queueTotal(queue) + (queue.historial?.length ?? 0);
-}
-
 function PacienteAvatar({
     fotoUrl,
     nombre,
@@ -942,7 +938,6 @@ export default function SalaEsperaIndex({
                     {board.can_consulta || board.can_grooming ? (
                     <ColaPanel
                         emptyLabel={t('sala_espera.empty')}
-                        icon={Timer}
                         accent="sky"
                         queue={salaVista}
                         fecha={fecha}
@@ -1012,7 +1007,6 @@ export default function SalaEsperaIndex({
 
 function ColaPanel({
     emptyLabel,
-    icon: Icon,
     accent,
     queue,
     fecha,
@@ -1029,7 +1023,6 @@ function ColaPanel({
     onAsignar,
 }: {
     emptyLabel: string;
-    icon: typeof Stethoscope;
     accent: 'sky' | 'violet';
     queue: SalaQueue;
     fecha: string;
@@ -1064,80 +1057,65 @@ function ColaPanel({
             items: queue.historial ?? [],
         },
     ];
-    const total = queueVisible(queue);
     const isViolet = accent === 'violet';
+    const enVivo = groups.filter((group) => group.key !== 'historial');
+    const historial = groups.find((group) => group.key === 'historial');
+    const renderGrupo = (group: { key: string; title: string; items: SalaItem[] }) => (
+        <div key={group.key} className="space-y-2.5">
+            <p className="flex items-center gap-2 px-0.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                <span
+                    className={cn(
+                        'size-1.5 rounded-full',
+                        group.key === 'historial'
+                            ? 'bg-muted-foreground/50'
+                            : group.key === 'en_curso'
+                              ? 'bg-amber-500'
+                              : group.key === 'proximas'
+                                ? 'bg-muted-foreground/40'
+                                : isViolet
+                                  ? 'bg-violet-500'
+                                  : 'bg-sky-500',
+                    )}
+                />
+                {group.title}
+                <span className="tabular-nums">{group.items.length}</span>
+            </p>
+            {group.items.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border/80 px-3 py-6 text-center text-sm text-muted-foreground">
+                    {group.key === 'historial' ? t('sala_espera.historial_empty') : emptyLabel}
+                </p>
+            ) : (
+                <div className="space-y-2.5">
+                    {group.items.map((item) => (
+                        <TurnoCard
+                            key={`${item.tipo}-${item.id}`}
+                            item={item}
+                            fecha={fecha}
+                            hoy={hoy}
+                            called={llamados[`${item.tipo}-${item.id}`] === true}
+                            canMarcar={canMarcar}
+                            now={now}
+                            locale={locale}
+                            onLlamar={() => onLlamar(item)}
+                            onEstado={(estado) => onEstado(item, estado)}
+                            onQuitar={() => onQuitar(item)}
+                            onHc={() => onHc(item)}
+                            usuarios={usuarios}
+                            onAsignar={(tratanteId) => onAsignar(item, tratanteId)}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <section className="relative mt-5 border-t border-sky-500/15 pt-4 dark:border-white/10">
-            <div className="space-y-5">
-                {total === 0 ? (
-                    <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/20 px-6 text-center">
-                        <span
-                            className={cn(
-                                'flex size-14 items-center justify-center rounded-2xl',
-                                isViolet
-                                    ? 'bg-violet-500/10 text-violet-500'
-                                    : 'bg-sky-500/10 text-sky-500',
-                            )}
-                        >
-                            <Icon className="size-7" />
-                        </span>
-                        <p className="text-sm font-medium text-muted-foreground">
-                            {emptyLabel}
-                        </p>
-                    </div>
-                ) : (
-                    groups.map((group) =>
-                        group.items.length === 0 ? null : (
-                            <div key={group.key} className="space-y-2.5">
-                                <p className="flex items-center gap-2 px-0.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                                    <span
-                                        className={cn(
-                                            'size-1.5 rounded-full',
-                                            group.key === 'historial'
-                                                ? 'bg-muted-foreground/50'
-                                                : group.key === 'en_curso'
-                                                ? 'bg-amber-500'
-                                                : group.key === 'proximas'
-                                                  ? 'bg-muted-foreground/40'
-                                                  : isViolet
-                                                    ? 'bg-violet-500'
-                                                    : 'bg-sky-500',
-                                        )}
-                                    />
-                                    {group.title}
-                                    <span className="tabular-nums">
-                                        {group.items.length}
-                                    </span>
-                                </p>
-                                <div className="space-y-2.5">
-                                    {group.items.map((item) => (
-                                        <TurnoCard
-                                            key={`${item.tipo}-${item.id}`}
-                                            item={item}
-                                            fecha={fecha}
-                                            hoy={hoy}
-                                            called={
-                                                llamados[
-                                                    `${item.tipo}-${item.id}`
-                                                ] === true
-                                            }
-                                            canMarcar={canMarcar}
-                                            now={now}
-                                            locale={locale}
-                                            onLlamar={() => onLlamar(item)}
-                                            onEstado={(estado) => onEstado(item, estado)}
-                                            onQuitar={() => onQuitar(item)}
-                                            onHc={() => onHc(item)}
-                                            usuarios={usuarios}
-                                            onAsignar={(tratanteId) => onAsignar(item, tratanteId)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ),
-                    )
-                )}
+            <div className="grid items-start gap-5 lg:grid-cols-2 lg:gap-0">
+                <div className="min-w-0 space-y-5 lg:border-r lg:border-border/70 lg:pr-5">
+                    {enVivo.map((group) => (group.key === 'espera' || group.items.length > 0 ? renderGrupo(group) : null))}
+                </div>
+                <div className="min-w-0 lg:pl-5">{historial ? renderGrupo(historial) : null}</div>
             </div>
         </section>
     );
@@ -1244,7 +1222,9 @@ function TurnoCard({
                                 ) : null}
                             </p>
                             {item.motivo ? (
-                                <p className="mt-0.5 truncate text-xs text-foreground/80">{item.motivo}</p>
+                                <p className="mt-1.5 rounded-md border-l-[3px] border-sky-500 bg-sky-500/15 px-2.5 py-1.5 text-[15px] font-semibold leading-snug tracking-tight text-sky-950 dark:border-sky-300 dark:bg-sky-400/20 dark:text-sky-50">
+                                    {item.motivo}
+                                </p>
                             ) : null}
                             <p className="flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
                                 <UserRound className="size-3 shrink-0" />

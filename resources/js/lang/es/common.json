@@ -207,6 +207,7 @@
         "filtro_todos": "Todos los estados",
         "estado_error": "No se pudo cambiar el estado.",
         "historial": "Historial",
+        "historial_empty": "Sin historial en este día.",
         "estados": {
             "citado": "Citado",
             "en_espera": "En espera",
