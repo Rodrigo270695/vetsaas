@@ -36,6 +36,7 @@
         "peso_kg": "Weight (kg)",
         "estado": "Status",
         "veterinario": "Doctor",
+        "documentos": "Documents",
         "creado_por": "Logged by",
         "acciones": "Actions"
     },

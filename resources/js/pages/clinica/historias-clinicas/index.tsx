@@ -1,6 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
+    FileImage,
     FileText,
     Filter,
     Lock,
@@ -479,6 +480,46 @@ export default function Index({
                         {row.medico_tratante?.trim() || row.veterinario?.name || '—'}
                     </span>
                 ),
+            },
+            {
+                key: 'documentos',
+                header: t('columns.documentos'),
+                cell: (row) => {
+                    const docs = row.resultados ?? [];
+                    if (docs.length === 0) {
+                        return <span className="text-sm text-muted-foreground">—</span>;
+                    }
+
+                    return (
+                        <ul className="flex max-w-48 flex-col gap-1">
+                            {docs.map((doc) => (
+                                <li key={doc.id}>
+                                    {doc.url ? (
+                                        <a
+                                            href={doc.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title={doc.original_name}
+                                            className="inline-flex max-w-full items-center gap-1 text-xs font-medium text-sky-800 hover:underline dark:text-sky-200"
+                                        >
+                                            {doc.mime === 'application/pdf' ? (
+                                                <FileText className="size-3.5 shrink-0" />
+                                            ) : (
+                                                <FileImage className="size-3.5 shrink-0" />
+                                            )}
+                                            <span className="truncate">{doc.original_name}</span>
+                                        </a>
+                                    ) : (
+                                        <span className="truncate text-xs text-muted-foreground">
+                                            {doc.original_name}
+                                        </span>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    );
+                },
+                className: 'max-w-52',
             },
         ];
 

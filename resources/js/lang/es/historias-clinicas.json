@@ -36,6 +36,7 @@
         "peso_kg": "Peso (kg)",
         "estado": "Estado",
         "veterinario": "Médico",
+        "documentos": "Documentos",
         "creado_por": "Registrado por",
         "acciones": "Acciones"
     },

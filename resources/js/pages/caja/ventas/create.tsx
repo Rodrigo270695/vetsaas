@@ -1218,7 +1218,7 @@ export default function Create({
                                 <TabsContent value="productos" className="mt-0 flex flex-col gap-2">
                                     <div className="relative">
                                         <Search
-                                            className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                                            className="pointer-events-none absolute top-1/2 left-2.5 z-10 size-4 -translate-y-1/2 text-muted-foreground"
                                             aria-hidden
                                         />
                                         <Input
@@ -1310,7 +1310,7 @@ export default function Create({
                                 <TabsContent value="servicios" className="mt-0 flex flex-col gap-2">
                                     <div className="relative">
                                         <Search
-                                            className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                                            className="pointer-events-none absolute top-1/2 left-2.5 z-10 size-4 -translate-y-1/2 text-muted-foreground"
                                             aria-hidden
                                         />
                                         <Input
