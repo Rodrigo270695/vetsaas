@@ -938,11 +938,9 @@ export default function SalaEsperaIndex({
                             ) : null}
                         </div>
                     ) : null}
-                </header>
 
-                {board.can_consulta || board.can_grooming ? (
+                    {board.can_consulta || board.can_grooming ? (
                     <ColaPanel
-                        title={t('sala_espera.title')}
                         emptyLabel={t('sala_espera.empty')}
                         icon={Timer}
                         accent="sky"
@@ -974,7 +972,8 @@ export default function SalaEsperaIndex({
                         usuarios={usuarios}
                         onAsignar={(item, tratanteId) => void assign(item, tratanteId)}
                     />
-                ) : null}
+                    ) : null}
+                </header>
 
                 <Dialog open={quitar !== null} onOpenChange={(open) => !open && setQuitar(null)}>
                     <DialogContent className="max-w-md">
@@ -1012,7 +1011,6 @@ export default function SalaEsperaIndex({
 }
 
 function ColaPanel({
-    title,
     emptyLabel,
     icon: Icon,
     accent,
@@ -1030,7 +1028,6 @@ function ColaPanel({
     usuarios,
     onAsignar,
 }: {
-    title: string;
     emptyLabel: string;
     icon: typeof Stethoscope;
     accent: 'sky' | 'violet';
@@ -1067,55 +1064,12 @@ function ColaPanel({
             items: queue.historial ?? [],
         },
     ];
-    const activos = queueTotal(queue);
     const total = queueVisible(queue);
     const isViolet = accent === 'violet';
 
     return (
-        <section
-            className={cn(
-                'flex min-h-96 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm',
-                isViolet ? 'border-violet-500/20' : 'border-sky-500/20',
-            )}
-        >
-            <header
-                className={cn(
-                    'flex items-center gap-3 border-b px-4 py-3.5',
-                    isViolet
-                        ? 'border-violet-500/15 bg-violet-500/5'
-                        : 'border-sky-500/15 bg-sky-500/5',
-                )}
-            >
-                <span
-                    className={cn(
-                        'flex size-10 items-center justify-center rounded-xl',
-                        isViolet
-                            ? 'bg-violet-600 text-white'
-                            : 'bg-sky-600 text-white',
-                    )}
-                >
-                    <Icon className="size-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                    <h2 className="text-base font-semibold tracking-tight">
-                        {title}
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                        {t('sala_espera.count_waiting', { count: activos })}
-                    </p>
-                </div>
-                <span
-                    className={cn(
-                        'rounded-full px-2.5 py-1 text-sm font-semibold tabular-nums',
-                        isViolet
-                            ? 'bg-violet-600/10 text-violet-800 dark:text-violet-200'
-                            : 'bg-sky-600/10 text-sky-800 dark:text-sky-200',
-                    )}
-                >
-                    {activos}
-                </span>
-            </header>
-            <div className="flex-1 space-y-5 overflow-y-auto p-3 md:p-4">
+        <section className="relative mt-5 border-t border-sky-500/15 pt-4 dark:border-white/10">
+            <div className="space-y-5">
                 {total === 0 ? (
                     <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/20 px-6 text-center">
                         <span
