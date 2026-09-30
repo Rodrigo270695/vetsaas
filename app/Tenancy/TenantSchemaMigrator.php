@@ -345,6 +345,9 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('grooming_turnos', 'sala_espera_motivo')
                 && Schema::hasColumn('grooming_turnos', 'sala_espera_tipo_atencion'),
             '2026_09_28_230000_t158_consulta_resultados' => Schema::hasTable('consulta_resultados'),
+            '2026_09_29_190000_t159_venta_recargo_tarjeta' => Schema::hasTable('ventas')
+                && Schema::hasColumn('ventas', 'recargo_tarjeta_monto')
+                && Schema::hasColumn('ventas', 'recargo_tarjeta_porcentaje'),
             '2026_07_22_190000_t121_add_arqueo_json_to_caja_sesiones' => Schema::hasTable('caja_sesiones')
                 && Schema::hasColumn('caja_sesiones', 'arqueo_json'),
             '2026_07_23_200000_t122_create_caja_egresos_table' => Schema::hasTable('caja_egresos'),

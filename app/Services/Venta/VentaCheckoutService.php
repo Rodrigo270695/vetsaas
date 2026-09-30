@@ -27,6 +27,7 @@ use App\Support\Venta\VentaPagosResolver;
 use App\Support\Venta\VentaTotales;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 final class VentaCheckoutService
@@ -500,22 +501,9 @@ final class VentaCheckoutService
                 $validated['recargo_tarjeta_porcentaje'] ?? null,
                 $clinic,
             );
-            $conRecargo = RecargoTarjeta::anexar(
-                $lineasCalc,
-                $pagosLineas,
-                $recargoPct,
-                $igvPct,
-                $precioIncluyeIgv,
-                $igvTipo,
-            );
-            if ($conRecargo['aplicado']) {
-                $lineasCalc = $conRecargo['lineas'];
-                $pagosLineas = $conRecargo['pagos'];
-                $totales = VentaTotales::fromLineas($lineasCalc, $igvPct, $precioIncluyeIgv);
-                $subtotalVenta = $totales['subtotal'];
-                $igvMonto = $totales['igv'];
-                $total = $totales['total'];
-            }
+            $conRecargo = RecargoTarjeta::aplicarAlPago($pagosLineas, $recargoPct);
+            $pagosLineas = $conRecargo['pagos'];
+            $recargoMonto = $conRecargo['monto'];
             if (array_key_exists('recargo_tarjeta_porcentaje', $validated)
                 && $validated['recargo_tarjeta_porcentaje'] !== null
                 && $validated['recargo_tarjeta_porcentaje'] !== '') {
@@ -538,7 +526,7 @@ final class VentaCheckoutService
             $correlativo = ((int) ($ultimaVentaAnio?->correlativo ?? 0)) + 1;
             $numero = sprintf('VTA-%d-%05d', $anio, $correlativo);
 
-            $venta = Venta::query()->create([
+            $ventaAttrs = [
                 'numero' => $numero,
                 'anio' => $anio,
                 'correlativo' => $correlativo,
@@ -565,7 +553,15 @@ final class VentaCheckoutService
                 'tipo_comprobante_sunat' => $tipoComprobante,
                 'fel_document_id' => null,
                 'created_by_id' => $user->getAuthIdentifier(),
-            ]);
+            ];
+            if (Schema::hasColumn('ventas', 'recargo_tarjeta_monto')) {
+                $ventaAttrs['recargo_tarjeta_monto'] = number_format($recargoMonto, 2, '.', '');
+                $ventaAttrs['recargo_tarjeta_porcentaje'] = $conRecargo['aplicado']
+                    ? number_format($recargoPct, 2, '.', '')
+                    : null;
+            }
+
+            $venta = Venta::query()->create($ventaAttrs);
 
             foreach ($pagosLineas as $orden => $pago) {
                 VentaPago::query()->create([

@@ -13,6 +13,7 @@ use App\Models\Venta;
 use App\Models\VentaLinea;
 use App\Support\Caja\CajaBilleteras;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Calcula el arqueo de una sesión: ventas, egresos, métodos de pago y comprobantes.
@@ -27,6 +28,23 @@ final class CajaSesionArqueoService
      */
     public function build(CajaSesion $sesion, ?string $efectivoContado = null, ?array $billeterasContadas = null): array
     {
+        $columnas = [
+            'id',
+            'numero',
+            'total',
+            'metodo_pago',
+            'tipo_comprobante_sunat',
+            'estado',
+            'anulado_at',
+            'propietario_id',
+            'paciente_id',
+            'created_at',
+            'fecha_pago',
+        ];
+        if (Schema::hasColumn('ventas', 'recargo_tarjeta_monto')) {
+            $columnas[] = 'recargo_tarjeta_monto';
+        }
+
         $ventas = Venta::query()
             ->with([
                 'propietario:id,nombres,apellidos,razon_social',
@@ -35,19 +53,7 @@ final class CajaSesionArqueoService
             ])
             ->where('caja_sesion_id', $sesion->getKey())
             ->orderBy('created_at')
-            ->get([
-                'id',
-                'numero',
-                'total',
-                'metodo_pago',
-                'tipo_comprobante_sunat',
-                'estado',
-                'anulado_at',
-                'propietario_id',
-                'paciente_id',
-                'created_at',
-                'fecha_pago',
-            ]);
+            ->get($columnas);
 
         // Vigentes = cobradas en el turno (pagado/parcial), no anuladas ni soft-deleted.
         $vigentes = $ventas->filter(static function (Venta $v): bool {
@@ -103,12 +109,12 @@ final class CajaSesionArqueoService
 
         $ventasTotal = '0.00';
         foreach ($vigentes as $venta) {
-            $ventasTotal = $this->add($ventasTotal, $this->money((string) $venta->total));
+            $ventasTotal = $this->add($ventasTotal, $this->cobrado($venta));
         }
 
         $anuladasTotal = '0.00';
         foreach ($anuladas as $venta) {
-            $anuladasTotal = $this->add($anuladasTotal, $this->money((string) $venta->total));
+            $anuladasTotal = $this->add($anuladasTotal, $this->cobrado($venta));
         }
 
         $efectivoVentas = $this->sumMetodo($metodos, 'efectivo');
@@ -222,6 +228,14 @@ final class CajaSesionArqueoService
         }
 
         return $rows;
+    }
+
+    private function cobrado(Venta $venta): string
+    {
+        $recargo = $venta->getAttribute('recargo_tarjeta_monto');
+        $extra = is_numeric($recargo) ? (string) $recargo : '0';
+
+        return $this->add($this->money((string) $venta->total), $this->money($extra));
     }
 
     /**

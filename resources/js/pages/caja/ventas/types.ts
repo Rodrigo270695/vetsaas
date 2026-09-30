@@ -200,6 +200,8 @@ export type VentaDetalle = {
     igv_monto: string;
     descuento_monto: string;
     total: string;
+    recargo_tarjeta_monto?: string | null;
+    recargo_tarjeta_porcentaje?: string | null;
     metodo_pago: string | null;
     monto_recibido: string | null;
     vuelto: string | null;

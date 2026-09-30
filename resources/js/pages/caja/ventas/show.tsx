@@ -640,6 +640,33 @@ export default function Show({
                                             {formatMonto(venta.total, venta.moneda, i18n.language)}
                                         </span>
                                     </div>
+                                    {Number(venta.recargo_tarjeta_monto ?? 0) > 0 ? (
+                                        <>
+                                            <div className="flex justify-between gap-3 text-muted-foreground">
+                                                <span>
+                                                    {t('caja:ventas.show.recargo_cobrado', {
+                                                        pct: String(venta.recargo_tarjeta_porcentaje ?? '').replace(/\.?0+$/, ''),
+                                                    })}
+                                                </span>
+                                                <span className="tabular-nums">
+                                                    + {formatMonto(venta.recargo_tarjeta_monto ?? null, venta.moneda, i18n.language)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between gap-3 font-semibold">
+                                                <span>{t('caja:ventas.show.cobrado')}</span>
+                                                <span className="tabular-nums">
+                                                    {formatMonto(
+                                                        (Number(venta.total) + Number(venta.recargo_tarjeta_monto)).toFixed(2),
+                                                        venta.moneda,
+                                                        i18n.language,
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] leading-snug text-muted-foreground">
+                                                {t('caja:ventas.show.recargo_comprobante_hint')}
+                                            </p>
+                                        </>
+                                    ) : null}
                                     {venta.metodo_pago === 'efectivo' && venta.monto_recibido ? (
                                         <>
                                             <div className="flex justify-between gap-3 text-muted-foreground">

@@ -842,6 +842,12 @@ class VentaController extends Controller
                 'igv_monto' => (string) $venta->igv_monto,
                 'descuento_monto' => (string) $venta->descuento_monto,
                 'total' => (string) $venta->total,
+                'recargo_tarjeta_monto' => $venta->recargo_tarjeta_monto !== null
+                    ? (string) $venta->recargo_tarjeta_monto
+                    : '0.00',
+                'recargo_tarjeta_porcentaje' => $venta->recargo_tarjeta_porcentaje !== null
+                    ? (string) $venta->recargo_tarjeta_porcentaje
+                    : null,
                 'metodo_pago' => $venta->metodo_pago,
                 'monto_recibido' => $venta->monto_recibido !== null ? (string) $venta->monto_recibido : null,
                 'vuelto' => $venta->vuelto !== null ? (string) $venta->vuelto : null,

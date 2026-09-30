@@ -26,6 +26,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $igv_monto
  * @property string $descuento_monto
  * @property string $total
+ * @property string|float|null $recargo_tarjeta_monto
+ * @property string|float|null $recargo_tarjeta_porcentaje
  * @property ?string $metodo_pago
  * @property ?string $monto_recibido
  * @property ?string $vuelto
@@ -81,6 +83,8 @@ class Venta extends Model
         'promotion_id',
         'promotion_name_snapshot',
         'total',
+        'recargo_tarjeta_monto',
+        'recargo_tarjeta_porcentaje',
         'metodo_pago',
         'monto_recibido',
         'vuelto',
@@ -105,6 +109,8 @@ class Venta extends Model
             'igv_monto' => 'decimal:2',
             'descuento_monto' => 'decimal:2',
             'total' => 'decimal:2',
+            'recargo_tarjeta_monto' => 'decimal:2',
+            'recargo_tarjeta_porcentaje' => 'decimal:2',
             'monto_recibido' => 'decimal:2',
             'vuelto' => 'decimal:2',
             'fecha_pago' => 'datetime',
