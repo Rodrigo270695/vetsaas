@@ -66,19 +66,8 @@ final class AntipulgaDictationService
         $system = <<<'PROMPT'
 Eres un asistente clínico veterinario. El texto es una conversación o un dictado de ANTIPULGAS, no de una consulta general.
 
-Extrae solo lo que se mencione. No inventes. Responde ÚNICAMENTE JSON válido con estas claves (null si no se dijo):
+Extrae solo lo que se mencione. No inventes. No extraigas anamnesis ni signos digestivos. Responde ÚNICAMENTE JSON válido con estas claves (null si no se dijo):
 {
-  "anamnesis": string|null,
-  "apetito": "disminuido"|"normal"|"aumentado"|null,
-  "ingesta_agua": "disminuido"|"normal"|"aumentado"|null,
-  "vomitos_frecuencia": "solo dígitos"|null,
-  "vomitos_descripcion": string|null,
-  "heces_frecuencia": "solo dígitos"|null,
-  "heces_descripcion": string|null,
-  "orina_frecuencia": "solo dígitos"|null,
-  "orina_color": string|null,
-  "orina_olor": string|null,
-  "ultimo_celo": "YYYY-MM-DD"|null,
   "peso_kg": string|null,
   "temperatura_c": string|null,
   "fc_lpm": string|null,
@@ -92,8 +81,8 @@ Extrae solo lo que se mencione. No inventes. Responde ÚNICAMENTE JSON válido c
   "comentarios": string|null
 }
 
-anamnesis: relato clínico breve en español (queja, evolución, lo que el dueño cuenta). No copies el diálogo literal.
 producto_nombre: el antipulgas aplicado si se nombra.
+comentarios: notas libres que no sean constantes ni el producto.
 PROMPT;
 
         $userContent = mb_strlen($transcript) > 12000
@@ -138,12 +127,6 @@ PROMPT;
      */
     private function normalize(array $raw): array
     {
-        $tri = static function (mixed $value): ?string {
-            $v = is_string($value) ? mb_strtolower(trim($value)) : '';
-
-            return in_array($v, ['disminuido', 'normal', 'aumentado'], true) ? $v : null;
-        };
-
         $text = static function (mixed $value, int $max = 4000): ?string {
             if (! is_string($value) && ! is_numeric($value)) {
                 return null;
@@ -157,23 +140,7 @@ PROMPT;
             return mb_strlen($v) > $max ? mb_substr($v, 0, $max) : $v;
         };
 
-        $date = $text($raw['ultimo_celo'] ?? null, 10);
-        if ($date !== null && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-            $date = null;
-        }
-
         return [
-            'anamnesis' => $text($raw['anamnesis'] ?? null, 8000),
-            'apetito' => $tri($raw['apetito'] ?? null),
-            'ingesta_agua' => $tri($raw['ingesta_agua'] ?? null),
-            'vomitos_frecuencia' => $text($raw['vomitos_frecuencia'] ?? null, 160),
-            'vomitos_descripcion' => $text($raw['vomitos_descripcion'] ?? null),
-            'heces_frecuencia' => $text($raw['heces_frecuencia'] ?? null, 160),
-            'heces_descripcion' => $text($raw['heces_descripcion'] ?? null),
-            'orina_frecuencia' => $text($raw['orina_frecuencia'] ?? null, 160),
-            'orina_color' => $text($raw['orina_color'] ?? null, 160),
-            'orina_olor' => $text($raw['orina_olor'] ?? null, 160),
-            'ultimo_celo' => $date,
             'peso_kg' => $text($raw['peso_kg'] ?? null, 12),
             'temperatura_c' => $text($raw['temperatura_c'] ?? null, 8),
             'fc_lpm' => $text($raw['fc_lpm'] ?? null, 6),

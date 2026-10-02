@@ -5,12 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -22,8 +16,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { ConsultaDictationBar } from '@/pages/clinica/historias-clinicas/components/consulta-dictation-bar';
-
-type Tri = 'disminuido' | 'normal' | 'aumentado' | '';
 
 type Aplicado = {
     producto_id: string | null;
@@ -42,17 +34,6 @@ type RecetaLinea = {
 };
 
 type Dictado = {
-    anamnesis?: string | null;
-    apetito?: Tri | null;
-    ingesta_agua?: Tri | null;
-    vomitos_frecuencia?: string | null;
-    vomitos_descripcion?: string | null;
-    heces_frecuencia?: string | null;
-    heces_descripcion?: string | null;
-    orina_frecuencia?: string | null;
-    orina_color?: string | null;
-    orina_olor?: string | null;
-    ultimo_celo?: string | null;
     peso_kg?: string | null;
     temperatura_c?: string | null;
     fc_lpm?: string | null;
@@ -67,17 +48,6 @@ type Dictado = {
 };
 
 type Registro = {
-    anamnesis: string | null;
-    apetito: Tri | null;
-    ingesta_agua: Tri | null;
-    vomitos_frecuencia: string | null;
-    vomitos_descripcion: string | null;
-    heces_frecuencia: string | null;
-    heces_descripcion: string | null;
-    orina_frecuencia: string | null;
-    orina_color: string | null;
-    orina_olor: string | null;
-    ultimo_celo: string | null;
     peso_kg: string | number | null;
     temperatura_c: string | number | null;
     fc_lpm: string | number | null;
@@ -136,7 +106,6 @@ export function AntipulgaForm({
     onVolver,
 }: Props) {
     const { t } = useTranslation('pacientes');
-    const [detalleOpen, setDetalleOpen] = useState(false);
     const [buscar, setBuscar] = useState('');
     const [sugerencias, setSugerencias] = useState<{ id: string; nombre: string; sku: string | null }[]>([]);
     const [buscarReceta, setBuscarReceta] = useState('');
@@ -144,17 +113,6 @@ export function AntipulgaForm({
 
     const form = useForm({
         atendido_at,
-        anamnesis: registro?.anamnesis ?? '',
-        apetito: (registro?.apetito ?? '') as Tri,
-        ingesta_agua: (registro?.ingesta_agua ?? '') as Tri,
-        vomitos_frecuencia: registro?.vomitos_frecuencia ?? '',
-        vomitos_descripcion: registro?.vomitos_descripcion ?? '',
-        heces_frecuencia: registro?.heces_frecuencia ?? '',
-        heces_descripcion: registro?.heces_descripcion ?? '',
-        orina_frecuencia: registro?.orina_frecuencia ?? '',
-        orina_color: registro?.orina_color ?? '',
-        orina_olor: registro?.orina_olor ?? '',
-        ultimo_celo: registro?.ultimo_celo ?? '',
         peso_kg: str(registro?.peso_kg),
         temperatura_c: str(registro?.temperatura_c),
         fc_lpm: str(registro?.fc_lpm),
@@ -228,17 +186,6 @@ export function AntipulgaForm({
             }
             next[key] = value as (typeof next)[K];
         };
-        fill('anamnesis', fields.anamnesis);
-        fill('apetito', fields.apetito ?? '');
-        fill('ingesta_agua', fields.ingesta_agua ?? '');
-        fill('vomitos_frecuencia', soloDigitos(fields.vomitos_frecuencia));
-        fill('vomitos_descripcion', fields.vomitos_descripcion);
-        fill('heces_frecuencia', soloDigitos(fields.heces_frecuencia));
-        fill('heces_descripcion', fields.heces_descripcion);
-        fill('orina_frecuencia', soloDigitos(fields.orina_frecuencia));
-        fill('orina_color', fields.orina_color);
-        fill('orina_olor', fields.orina_olor);
-        fill('ultimo_celo', fields.ultimo_celo);
         fill('peso_kg', fields.peso_kg);
         fill('temperatura_c', fields.temperatura_c);
         fill('fc_lpm', fields.fc_lpm);
@@ -273,26 +220,6 @@ export function AntipulgaForm({
         setBuscar('');
         setSugerencias([]);
     };
-
-    const tri = (name: 'apetito' | 'ingesta_agua', label: string) => (
-        <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">{label}</legend>
-            <div className="flex flex-wrap gap-3">
-                {(['disminuido', 'normal', 'aumentado'] as const).map((opcion) => (
-                    <label key={opcion} className="inline-flex items-center gap-2 text-sm">
-                        <input
-                            type="radio"
-                            name={name}
-                            checked={form.data[name] === opcion}
-                            disabled={!puede_editar}
-                            onChange={() => form.setData(name, opcion)}
-                        />
-                        {t(`antipulga.${opcion}`)}
-                    </label>
-                ))}
-            </div>
-        </fieldset>
-    );
 
     return (
         <div className="flex flex-col gap-3">
@@ -407,22 +334,6 @@ export function AntipulgaForm({
                                 .join(' ')}
                         </p>
                     ) : null}
-                    <section className="rounded-xl border bg-card p-4">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                            <h2 className="text-sm font-semibold">{t('antipulga.anamnesis')}</h2>
-                            <Button type="button" variant="outline" size="sm" onClick={() => setDetalleOpen(true)}>
-                                + {t('antipulga.anamnesis_detallada')}
-                            </Button>
-                        </div>
-                        <Textarea
-                            rows={4}
-                            placeholder={t('antipulga.anamnesis_ph')}
-                            value={form.data.anamnesis}
-                            disabled={!puede_editar}
-                            onChange={(event) => form.setData('anamnesis', event.target.value)}
-                        />
-                    </section>
-
                     <Collapsible defaultOpen className="rounded-xl border bg-card">
                         <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold">
                             {t('antipulga.constantes')}
@@ -722,119 +633,6 @@ export function AntipulgaForm({
                         </div>
                     ) : null}
                 </form>
-
-            <Dialog open={detalleOpen} onOpenChange={setDetalleOpen}>
-                <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>{t('antipulga.anamnesis_detallada')}</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        {tri('apetito', t('antipulga.apetito'))}
-                        {tri('ingesta_agua', t('antipulga.ingesta'))}
-                        <div className="space-y-1 sm:col-span-2">
-                            <p className="text-sm font-medium">{t('antipulga.vomitos')}</p>
-                        </div>
-                        <Campo
-                            label={t('antipulga.frecuencia')}
-                            value={form.data.vomitos_frecuencia}
-                            disabled={!puede_editar}
-                            numeric
-                            onChange={(value) => form.setData('vomitos_frecuencia', value)}
-                        />
-                        <Campo
-                            label={t('antipulga.descripcion')}
-                            value={form.data.vomitos_descripcion}
-                            disabled={!puede_editar}
-                            onChange={(value) => form.setData('vomitos_descripcion', value)}
-                        />
-                        <div className="space-y-1 sm:col-span-2">
-                            <p className="text-sm font-medium">{t('antipulga.heces')}</p>
-                        </div>
-                        <Campo
-                            label={t('antipulga.frecuencia')}
-                            value={form.data.heces_frecuencia}
-                            disabled={!puede_editar}
-                            numeric
-                            onChange={(value) => form.setData('heces_frecuencia', value)}
-                        />
-                        <Campo
-                            label={t('antipulga.descripcion')}
-                            value={form.data.heces_descripcion}
-                            disabled={!puede_editar}
-                            onChange={(value) => form.setData('heces_descripcion', value)}
-                        />
-                        <div className="space-y-1 sm:col-span-2">
-                            <p className="text-sm font-medium">{t('antipulga.orina')}</p>
-                        </div>
-                        <Campo
-                            label={t('antipulga.frecuencia')}
-                            value={form.data.orina_frecuencia}
-                            disabled={!puede_editar}
-                            numeric
-                            onChange={(value) => form.setData('orina_frecuencia', value)}
-                        />
-                        <Campo
-                            label={t('antipulga.color')}
-                            value={form.data.orina_color}
-                            disabled={!puede_editar}
-                            onChange={(value) => form.setData('orina_color', value)}
-                        />
-                        <Campo
-                            label={t('antipulga.olor')}
-                            value={form.data.orina_olor}
-                            disabled={!puede_editar}
-                            onChange={(value) => form.setData('orina_olor', value)}
-                        />
-                        <div className="space-y-1">
-                            <Label htmlFor="ultimo_celo">{t('antipulga.ultimo_celo')}</Label>
-                            <Input
-                                id="ultimo_celo"
-                                type="date"
-                                value={form.data.ultimo_celo}
-                                disabled={!puede_editar}
-                                onChange={(event) => form.setData('ultimo_celo', event.target.value)}
-                            />
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </div>
-    );
-}
-
-function soloDigitos(value: string | null | undefined): string | null {
-    if (value == null || value === '') {
-        return null;
-    }
-    const digits = String(value).replace(/\D/g, '');
-
-    return digits === '' ? null : digits;
-}
-
-function Campo({
-    label,
-    value,
-    disabled,
-    numeric = false,
-    onChange,
-}: {
-    label: string;
-    value: string;
-    disabled: boolean;
-    numeric?: boolean;
-    onChange: (value: string) => void;
-}) {
-    return (
-        <div className="space-y-1">
-            <Label>{label}</Label>
-            <Input
-                inputMode={numeric ? 'numeric' : undefined}
-                value={value}
-                disabled={disabled}
-                onChange={(event) =>
-                    onChange(numeric ? event.target.value.replace(/\D/g, '') : event.target.value)
-                }
-            />
         </div>
     );
 }
