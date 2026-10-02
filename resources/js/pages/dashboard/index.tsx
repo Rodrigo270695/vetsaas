@@ -31,17 +31,13 @@ import {
     type DashboardKpiItem,
 } from '@/components/dashboard/dashboard-kpi-grid';
 import { DashboardPaymentChart } from '@/components/dashboard/dashboard-payment-chart';
-import {
-    DashboardQuickActions,
-    type QuickActionItem,
-} from '@/components/dashboard/dashboard-quick-actions';
 import { DashboardClientesMensualesChart } from '@/components/dashboard/dashboard-clientes-mensuales-chart';
 import { DashboardMascotasEspecieChart } from '@/components/dashboard/dashboard-mascotas-especie-chart';
+import { DashboardAccesosRapidos } from '@/components/dashboard/dashboard-accesos-rapidos';
 import { DashboardOnboardingCard } from '@/components/dashboard/dashboard-onboarding-card';
 import { DashboardSalesChart } from '@/components/dashboard/dashboard-sales-chart';
 import { DashboardSectionTitle } from '@/components/dashboard/dashboard-section-title';
 import { DashboardVacunacionesChart } from '@/components/dashboard/dashboard-vacunaciones-chart';
-import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
@@ -112,7 +108,6 @@ export default function DashboardIndex({
     mascotas_por_especie,
 }: Props) {
     const { t, i18n } = useTranslation(['dashboard', 'common']);
-    const { can } = usePermission();
     const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
     const dateFnsLocale = i18n.language?.startsWith('en') ? enUS : es;
 
@@ -302,58 +297,6 @@ export default function DashboardIndex({
         };
     }, [capabilities, kpis, locale, moneda, t]);
 
-    const quickActions = useMemo((): QuickActionItem[] => {
-        const items: QuickActionItem[] = [];
-
-        if (can('citas.create')) {
-            items.push({
-                key: 'cita',
-                label: t('quick_actions.nueva_cita'),
-                href: '/clinica/citas',
-                icon: CalendarDays,
-                accent: 'brand',
-            });
-        }
-        if (can('ventas.create')) {
-            items.push({
-                key: 'venta',
-                label: t('quick_actions.nueva_venta'),
-                href: '/caja/ventas/nuevo',
-                icon: ReceiptText,
-                accent: 'emerald',
-            });
-        }
-        if (can('pacientes.view')) {
-            items.push({
-                key: 'pacientes',
-                label: t('quick_actions.pacientes'),
-                href: '/clinica/pacientes',
-                icon: Dog,
-                accent: 'sky',
-            });
-        }
-        if (can('historias-clinicas.view')) {
-            items.push({
-                key: 'historias',
-                label: t('quick_actions.historias'),
-                href: '/clinica/historias-clinicas',
-                icon: FileText,
-                accent: 'violet',
-            });
-        }
-        if (can('alertas-stock.view')) {
-            items.push({
-                key: 'alertas',
-                label: t('quick_actions.alertas'),
-                href: '/inventario/alertas',
-                icon: AlertTriangle,
-                accent: 'amber',
-            });
-        }
-
-        return items;
-    }, [can, t]);
-
     const hasWeeklyCharts =
         capabilities.ventas || capabilities.consultas || capabilities.citas;
     const hasGrowthCharts =
@@ -368,6 +311,8 @@ export default function DashboardIndex({
 
             <div className="flex min-w-0 flex-col gap-8 p-4 md:p-6">
                 <DashboardHero clinicLabel={clinic_label} />
+
+                <DashboardAccesosRapidos />
 
                 {onboarding?.show && <DashboardOnboardingCard data={onboarding} />}
 
@@ -571,17 +516,13 @@ export default function DashboardIndex({
                     </section>
                 )}
 
-                <section className="grid min-w-0 gap-4 lg:grid-cols-3">
-                    {capabilities.citas && (
-                        <DashboardAppointmentsList
-                            citas={proximas_citas}
-                            estadoLabel={estadoLabel}
-                            dateLocale={dateFnsLocale}
-                        />
-                    )}
-
-                    <DashboardQuickActions title={t('quick_actions.title')} items={quickActions} />
-                </section>
+                {capabilities.citas ? (
+                    <DashboardAppointmentsList
+                        citas={proximas_citas}
+                        estadoLabel={estadoLabel}
+                        dateLocale={dateFnsLocale}
+                    />
+                ) : null}
             </div>
         </>
     );

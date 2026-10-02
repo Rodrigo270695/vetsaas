@@ -28,6 +28,12 @@ declare module '@inertiajs/core' {
             auth_pet_photos: string[];
             clinic_branding: ClinicBranding | null;
             tenancy: TenancyShared;
+            tenant_plan: {
+                nombre: string;
+                codigo: string;
+                badge: string | null;
+                color_hex: string | null;
+            } | null;
             plan_limits: PlanLimitsSnapshot | null;
             subscription_renewal_alert: import('@/components/subscription-renewal-reminder-modal').SubscriptionRenewalAlert | null;
             bot_ia_addon: { activo: boolean; precio_mensual: string | null } | null;

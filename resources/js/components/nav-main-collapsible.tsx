@@ -94,17 +94,11 @@ function matchesContext(
     return true;
 }
 
-export function NavMainCollapsible({
-    label,
-    singles = [],
-    groups,
-}: NavMainCollapsibleProps) {
-    const { isCurrentUrl, isCurrentOrParentUrl, isNavItemActive, currentUrl } =
-        useCurrentUrl();
-    const { isMobile, setOpenMobile, state } = useSidebar();
-    const iconCollapsed = !isMobile && state === 'collapsed';
+export function useVisibleNavigation(singles: NavItem[], groups: NavGroup[]): {
+    visibleSingles: NavItem[];
+    visibleGroups: NavGroup[];
+} {
     const { can, permissions } = usePermission();
-    const { t } = useTranslation('nav');
     const page = usePage();
     const tenant = page.props.tenant;
     const botIaActive = page.props.bot_ia_addon?.activo === true;
@@ -193,6 +187,21 @@ export function NavMainCollapsible({
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groups, hasTenant, permissions, botIaActive, modoAsesoraActive, hasComunicacionesAccess]);
+
+    return { visibleSingles, visibleGroups };
+}
+
+export function NavMainCollapsible({
+    label,
+    singles = [],
+    groups,
+}: NavMainCollapsibleProps) {
+    const { isCurrentUrl, isCurrentOrParentUrl, isNavItemActive, currentUrl } =
+        useCurrentUrl();
+    const { isMobile, setOpenMobile, state } = useSidebar();
+    const iconCollapsed = !isMobile && state === 'collapsed';
+    const { t } = useTranslation('nav');
+    const { visibleSingles, visibleGroups } = useVisibleNavigation(singles, groups);
 
     const initialOpenMap = useMemo(() => {
         const map: Record<string, boolean> = {};

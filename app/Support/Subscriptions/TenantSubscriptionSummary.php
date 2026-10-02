@@ -16,6 +16,37 @@ use Illuminate\Support\Carbon;
 final class TenantSubscriptionSummary
 {
     /**
+     * @return array{nombre: string, codigo: string, badge: ?string, color_hex: ?string}|null
+     */
+    public static function badge(?Tenant $tenant): ?array
+    {
+        if ($tenant === null) {
+            return null;
+        }
+
+        $subscription = $tenant->subscriptions()
+            ->with('plan:id,codigo,nombre,badge,color_hex')
+            ->orderByDesc('created_at')
+            ->first();
+
+        $plan = $subscription?->plan;
+        if ($plan === null) {
+            return null;
+        }
+
+        return [
+            'nombre' => (string) $plan->nombre,
+            'codigo' => (string) $plan->codigo,
+            'badge' => $plan->badge !== null && trim((string) $plan->badge) !== ''
+                ? trim((string) $plan->badge)
+                : null,
+            'color_hex' => is_string($plan->color_hex) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $plan->color_hex) === 1
+                ? $plan->color_hex
+                : null,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public static function forTenant(?Tenant $tenant): ?array

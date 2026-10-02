@@ -189,6 +189,14 @@
         "empty": "No upcoming scheduled appointments.",
         "ver_todas": "View schedule"
     },
+    "accesos": {
+        "title": "Shortcuts",
+        "personalizar": "Customize",
+        "hint": "Choose which shortcuts appear on the home screen. Only destinations you can already open are listed.",
+        "guardar": "Save",
+        "vacio": "No shortcuts selected. Use Customize to add some.",
+        "grupo_inicio": "Home"
+    },
     "quick_actions": {
         "title": "Quick actions",
         "nueva_cita": "New appointment",

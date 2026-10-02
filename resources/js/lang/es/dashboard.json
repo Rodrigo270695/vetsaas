@@ -189,6 +189,14 @@
         "empty": "No hay citas programadas próximamente.",
         "ver_todas": "Ver agenda"
     },
+    "accesos": {
+        "title": "Accesos rápidos",
+        "personalizar": "Personalizar",
+        "hint": "Elige qué accesos quieres ver en el inicio. Solo aparecen los que ya puedes abrir.",
+        "guardar": "Guardar",
+        "vacio": "No elegiste accesos. Pulsa Personalizar para añadirlos.",
+        "grupo_inicio": "Inicio"
+    },
     "quick_actions": {
         "title": "Accesos rápidos",
         "nueva_cita": "Nueva cita",

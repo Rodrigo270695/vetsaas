@@ -78,6 +78,7 @@ class HandleInertiaRequests extends Middleware
                     'scheme' => TenantSubdomainUrl::scheme(),
                     'login_path' => TenantSubdomainUrl::loginPath(),
                 ],
+                'tenant_plan' => null,
                 'plan_limits' => null,
                 'subscription_renewal_alert' => null,
                 'auth' => [
@@ -209,6 +210,17 @@ class HandleInertiaRequests extends Middleware
                 'scheme' => TenantSubdomainUrl::scheme(),
                 'login_path' => TenantSubdomainUrl::loginPath(),
             ],
+            'tenant_plan' => $skipHeavySharedProps || $tenantContext === null
+                ? null
+                : static function () use ($tenantContext) {
+                    try {
+                        return TenantSubscriptionSummary::badge($tenantContext->tenant);
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return null;
+                    }
+                },
             'plan_limits' => $skipHeavySharedProps
                 ? null
                 : static function () {

@@ -1,5 +1,6 @@
 {
     "section": "Platform",
+    "plan_kicker": "Plan",
     "groups": {
         "clinica": "Clinical",
         "servicios": "Services",

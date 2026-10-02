@@ -77,6 +77,7 @@ import { usePlatformSupportChatUnread } from '@/contexts/platform-support-chat-u
 import { useTenantChatUnread } from '@/contexts/tenant-chat-unread-context';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
+import { SidebarPlanBadge } from '@/components/sidebar-plan-badge';
 import { NavMainCollapsible } from '@/components/nav-main-collapsible';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -99,7 +100,7 @@ import type { NavGroup, NavItem } from '@/types';
  * cuando el usuario alterna idioma desde el selector, y queremos que la
  * navegación se rerenderice en vivo sin recargar la página.
  */
-function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
+export function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
     const { t } = useTranslation('nav');
 
     return useMemo(
@@ -786,6 +787,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
+                <SidebarPlanBadge />
                 <NavMainCollapsible
                     label={t('section')}
                     singles={singles}
