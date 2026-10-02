@@ -505,6 +505,19 @@ class PacienteController extends Controller
                 ))
                     ? route('clinica.pacientes.desparasitaciones.create', $paciente)
                     : null,
+                'desparasitacion' => ($user instanceof User && Schema::hasTable('desparasitaciones') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? [
+                        'store_url' => route('clinica.pacientes.desparasitaciones.store', $paciente),
+                        'productos_url' => route('clinica.pacientes.desparasitaciones.productos', $paciente),
+                        'dictar_url' => route('clinica.pacientes.desparasitaciones.dictar', $paciente),
+                        'atendido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
+                    ]
+                    : null,
                 'nueva_aplicacion' => route('clinica.vacunaciones.index', ['prefill_paciente_id' => $paciente->id]),
                 'historial_pdf' => ($canVerConsultas || $canVerVacunas)
                     ? route('clinica.pacientes.historial-clinico-pdf', $paciente)

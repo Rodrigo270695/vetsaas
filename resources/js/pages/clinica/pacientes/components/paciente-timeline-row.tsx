@@ -74,6 +74,7 @@ type TimelineRowProps = {
     consultaOpeningId?: string | null;
     onOpenConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onOpenAplicacion?: (item: Extract<TimelineItem, { kind: 'aplicacion' }>) => void;
+    onOpenDesparasitacion?: (item: Extract<TimelineItem, { kind: 'desparasitacion' }>) => void;
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
     onDeleteConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
@@ -482,6 +483,7 @@ export function PacienteTimelineRow({
     consultaOpeningId = null,
     onOpenConsulta,
     onOpenAplicacion,
+    onOpenDesparasitacion,
     onShareConsulta,
     onUploadLaboratorio,
     onDeleteConsulta,
@@ -690,10 +692,14 @@ export function PacienteTimelineRow({
                                         : 'text-foreground',
                                 )}
                             >
-                                {item.kind === 'desparasitacion' && item.href ? (
-                                    <Link href={item.href} className="hover:underline">
+                                {item.kind === 'desparasitacion' && onOpenDesparasitacion ? (
+                                    <button
+                                        type="button"
+                                        className="text-left hover:underline"
+                                        onClick={() => onOpenDesparasitacion(item)}
+                                    >
                                         {item.titulo}
-                                    </Link>
+                                    </button>
                                 ) : item.titulo === '—' ? (
                                     t('historial.sin_motivo')
                                 ) : (
@@ -787,7 +793,21 @@ export function PacienteTimelineRow({
                             />
 
                             <div className="flex flex-wrap items-center justify-end gap-1.5">
-                                {item.kind !== 'consulta' &&
+                                {item.kind === 'desparasitacion' && onOpenDesparasitacion && !isPublic ? (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="group/btn h-8 gap-1.5 px-2.5 text-xs"
+                                        onClick={() => onOpenDesparasitacion(item)}
+                                    >
+                                        <ExternalLink
+                                            className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
+                                            strokeWidth={2.25}
+                                        />
+                                        {t('historial.ver_evento')}
+                                    </Button>
+                                ) : item.kind !== 'consulta' &&
                                 item.kind !== 'aplicacion' &&
                                 item.href &&
                                 !isPublic ? (

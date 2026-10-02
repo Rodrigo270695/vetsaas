@@ -48,24 +48,29 @@ final class DesparasitacionController extends Controller
         ]);
 
         return redirect()
-            ->route('clinica.pacientes.desparasitaciones.edit', [$paciente, $row])
+            ->route('clinica.pacientes.show', $paciente)
             ->with('success', 'Desparasitación registrada.');
     }
 
-    public function edit(Request $request, Paciente $paciente, Desparasitacion $desparasitacion): Response
+    public function edit(Request $request, Paciente $paciente, Desparasitacion $desparasitacion): Response|JsonResponse
     {
         $this->authorizeWrite($request, false);
         abort_unless($desparasitacion->paciente_id === $paciente->id, 404);
         $desparasitacion->load('veterinario:id,name');
 
         $tz = (string) config('app.timezone', 'America/Lima');
-
-        return Inertia::render('clinica/pacientes/desparasitacion', $this->pageProps(
+        $props = $this->pageProps(
             $request,
             $paciente,
             $desparasitacion,
             $desparasitacion->atendido_at->timezone($tz)->format('Y-m-d\TH:i'),
-        ));
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json($props);
+        }
+
+        return Inertia::render('clinica/pacientes/desparasitacion', $props);
     }
 
     public function update(Request $request, Paciente $paciente, Desparasitacion $desparasitacion): RedirectResponse
@@ -80,7 +85,7 @@ final class DesparasitacionController extends Controller
         $desparasitacion->save();
 
         return redirect()
-            ->route('clinica.pacientes.desparasitaciones.edit', [$paciente, $desparasitacion])
+            ->route('clinica.pacientes.show', $paciente)
             ->with('success', 'Desparasitación actualizada.');
     }
 

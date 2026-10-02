@@ -1,4 +1,4 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Bug, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,11 +13,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import AppLayout from '@/layouts/app-layout';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { ConsultaDictationBar } from '@/pages/clinica/historias-clinicas/components/consulta-dictation-bar';
-import type { BreadcrumbItem } from '@/types';
 
 type Tri = 'disminuido' | 'normal' | 'aumentado' | '';
 
@@ -95,7 +93,7 @@ type Props = {
     method: 'post' | 'put';
     productos_url: string;
     dictar_url: string;
-    volver_url: string;
+    onVolver: () => void;
 };
 
 function str(value: string | number | null | undefined): string {
@@ -117,7 +115,7 @@ function vacioAplicado(): Aplicado {
     };
 }
 
-export default function DesparasitacionPage({
+export function DesparasitacionForm({
     paciente,
     registro,
     atendido_at,
@@ -126,10 +124,9 @@ export default function DesparasitacionPage({
     method,
     productos_url,
     dictar_url,
-    volver_url,
+    onVolver,
 }: Props) {
     const { t } = useTranslation('pacientes');
-    const flash = usePage().props.flash as { success?: string } | null;
     const [detalleOpen, setDetalleOpen] = useState(false);
     const [buscar, setBuscar] = useState('');
     const [sugerencias, setSugerencias] = useState<{ id: string; nombre: string; sku: string | null }[]>([]);
@@ -171,12 +168,6 @@ export default function DesparasitacionPage({
     });
 
     useEffect(() => {
-        if (flash?.success) {
-            toastManager.add({ type: 'success', title: flash.success });
-        }
-    }, [flash?.success]);
-
-    useEffect(() => {
         const q = buscar.trim();
         if (q.length < 2) {
             setSugerencias([]);
@@ -196,12 +187,6 @@ export default function DesparasitacionPage({
 
         return () => window.clearTimeout(timer);
     }, [buscar, productos_url]);
-
-    const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Clínica', href: volver_url },
-        { title: paciente.nombre, href: volver_url },
-        { title: t('desparasitacion.title'), href: guardar_url },
-    ];
 
     const aplicarDictado = (fields: Dictado) => {
         const next = { ...form.data };
@@ -278,25 +263,21 @@ export default function DesparasitacionPage({
     );
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={t('desparasitacion.title')} />
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4 md:p-6">
+        <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h1 className="flex items-center gap-2 text-xl font-semibold">
+                        <h2 className="flex items-center gap-2 text-lg font-semibold">
                             <Bug className="size-5 text-lime-700" />
                             {t('desparasitacion.title')}
-                        </h1>
+                        </h2>
                         <p className="text-sm text-muted-foreground">
                             {t('desparasitacion.subtitle', { nombre: paciente.nombre })}
                             {registro?.veterinario ? ` · ${t('desparasitacion.veterinario')}: ${registro.veterinario}` : ''}
                         </p>
                     </div>
-                    <Button variant="outline" asChild>
-                        <Link href={volver_url}>
-                            <ArrowLeft className="size-4" />
-                            {t('desparasitacion.volver')}
-                        </Link>
+                    <Button type="button" variant="outline" onClick={onVolver}>
+                        <ArrowLeft className="size-4" />
+                        {t('desparasitacion.volver')}
                     </Button>
                 </div>
 
@@ -308,11 +289,22 @@ export default function DesparasitacionPage({
                     className="flex flex-col gap-4"
                     onSubmit={(event) => {
                         event.preventDefault();
+                        const options = {
+                            preserveScroll: true,
+                            preserveState: true,
+                            onSuccess: () => {
+                                toastManager.add({
+                                    type: 'success' as const,
+                                    title: t('desparasitacion.guardado'),
+                                });
+                                onVolver();
+                            },
+                        };
                         if (method === 'post') {
-                            form.post(guardar_url);
+                            form.post(guardar_url, options);
                             return;
                         }
-                        form.put(guardar_url);
+                        form.put(guardar_url, options);
                     }}
                 >
                     {form.hasErrors ? (
@@ -628,7 +620,6 @@ export default function DesparasitacionPage({
                         </div>
                     ) : null}
                 </form>
-            </div>
 
             <Dialog open={detalleOpen} onOpenChange={setDetalleOpen}>
                 <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
@@ -702,7 +693,7 @@ export default function DesparasitacionPage({
                     </div>
                 </DialogContent>
             </Dialog>
-        </AppLayout>
+        </div>
     );
 }
 
@@ -722,5 +713,125 @@ function Campo({
             <Label>{label}</Label>
             <Input value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
         </div>
+    );
+}
+
+export type DesparasitacionCreateLinks = {
+    store_url: string;
+    productos_url: string;
+    dictar_url: string;
+    atendido_at: string;
+};
+
+type DesparasitacionPayload = Omit<Props, 'onVolver'>;
+
+export function DesparasitacionEmbed({
+    paciente,
+    create,
+    editUrl,
+    onVolver,
+}: {
+    paciente: { id: string; nombre: string };
+    create: DesparasitacionCreateLinks | null;
+    editUrl: string | null;
+    onVolver: () => void;
+}) {
+    const { t } = useTranslation('pacientes');
+    const [payload, setPayload] = useState<DesparasitacionPayload | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!editUrl) {
+            return;
+        }
+
+        let cancel = false;
+        setError(null);
+        setPayload(null);
+        void fetch(editUrl, {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        })
+            .then(async (res) => {
+                if (!res.ok) {
+                    throw new Error('No se pudo abrir la desparasitación.');
+                }
+
+                return (await res.json()) as DesparasitacionPayload;
+            })
+            .then((body) => {
+                if (!cancel) {
+                    setPayload(body);
+                }
+            })
+            .catch((reason: unknown) => {
+                if (!cancel) {
+                    setError(reason instanceof Error ? reason.message : 'No se pudo abrir la desparasitación.');
+                }
+            });
+
+        return () => {
+            cancel = true;
+        };
+    }, [editUrl]);
+
+    if (editUrl) {
+        if (error) {
+            return (
+                <div className="flex flex-col items-start gap-3">
+                    <p className="text-sm text-destructive">{error}</p>
+                    <Button type="button" variant="outline" onClick={onVolver}>
+                        <ArrowLeft className="size-4" />
+                        {t('desparasitacion.volver')}
+                    </Button>
+                </div>
+            );
+        }
+
+        if (!payload) {
+            return (
+                <div className="flex justify-center py-12">
+                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                </div>
+            );
+        }
+
+        return <DesparasitacionForm {...payload} onVolver={onVolver} />;
+    }
+
+    if (!create) {
+        return null;
+    }
+
+    return (
+        <DesparasitacionForm
+            paciente={paciente}
+            registro={null}
+            atendido_at={create.atendido_at}
+            puede_editar
+            guardar_url={create.store_url}
+            method="post"
+            productos_url={create.productos_url}
+            dictar_url={create.dictar_url}
+            onVolver={onVolver}
+        />
+    );
+}
+
+type PageProps = Omit<Props, 'onVolver'> & { volver_url: string };
+
+export default function DesparasitacionPage({ volver_url, ...props }: PageProps) {
+    const { t } = useTranslation('pacientes');
+
+    return (
+        <>
+            <Head title={t('desparasitacion.title')} />
+            <div className="flex flex-1 flex-col p-4 sm:p-6">
+                <DesparasitacionForm {...props} onVolver={() => router.visit(volver_url)} />
+            </div>
+        </>
     );
 }

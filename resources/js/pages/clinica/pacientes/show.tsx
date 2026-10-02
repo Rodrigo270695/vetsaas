@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { CalendarDays, FolderOpen, History } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +52,7 @@ import { DocumentoAutorizacionSendDialog } from './components/documento-autoriza
 import { HistorialArchivoPreview } from './components/historial-archivo-preview';
 import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
+import { DesparasitacionEmbed } from './desparasitacion';
 import type { HistorialNuevoAccion } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
 import { ConsultaDeleteDialog } from '../historias-clinicas/components/consulta-delete-dialog';
@@ -249,6 +250,12 @@ type Props = {
         nueva_consulta: string;
         nueva_aplicacion: string;
         nueva_desparasitacion?: string | null;
+        desparasitacion?: {
+            store_url: string;
+            productos_url: string;
+            dictar_url: string;
+            atendido_at: string;
+        } | null;
         historial_pdf: string | null;
         historial_whatsapp: string | null;
         laboratorio_rapido: string | null;
@@ -313,6 +320,9 @@ export default function PacienteShow({
     const [hospitalOpen, setHospitalOpen] = useState(false);
     const [groomingOpen, setGroomingOpen] = useState(false);
     const [hotelOpen, setHotelOpen] = useState(false);
+    const [desparasitacionPanel, setDesparasitacionPanel] = useState<
+        null | { mode: 'create' } | { mode: 'edit'; url: string }
+    >(null);
     const [autorizacionConsultaId, setAutorizacionConsultaId] = useState<string | null>(null);
 
     const openLaboratorio = (consultaId: string | null = null) => {
@@ -483,9 +493,7 @@ export default function PacienteShow({
                         }
 
                         if (accion === 'desparasitacion') {
-                            if (links.nueva_desparasitacion) {
-                                router.visit(links.nueva_desparasitacion);
-                            }
+                            setDesparasitacionPanel({ mode: 'create' });
                             return;
                         }
 
@@ -548,6 +556,21 @@ export default function PacienteShow({
                     ) : null}
 
                 <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
+                    {desparasitacionPanel ? (
+                        <div className="p-4 sm:p-5">
+                            <DesparasitacionEmbed
+                                paciente={{ id: paciente.id, nombre: paciente.nombre }}
+                                create={
+                                    desparasitacionPanel.mode === 'create'
+                                        ? (links.desparasitacion ?? null)
+                                        : null
+                                }
+                                editUrl={desparasitacionPanel.mode === 'edit' ? desparasitacionPanel.url : null}
+                                onVolver={() => setDesparasitacionPanel(null)}
+                            />
+                        </div>
+                    ) : (
+                        <>
                     <header className="flex flex-col gap-3 border-b border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                         <div className="flex items-center gap-2.5">
                             <span className="flex size-9 items-center justify-center rounded-xl bg-primary/12 text-primary">
@@ -611,6 +634,9 @@ export default function PacienteShow({
                                         consultaOpeningId={consultaLoadingId}
                                         onOpenConsulta={openConsultaRegistro}
                                         onOpenAplicacion={openVacunaRegistro}
+                                        onOpenDesparasitacion={(registro) =>
+                                            setDesparasitacionPanel({ mode: 'edit', url: registro.href })
+                                        }
                                         onShareConsulta={(consulta) =>
                                             setShareTarget({
                                                 url: consulta.whatsapp_url,
@@ -641,6 +667,8 @@ export default function PacienteShow({
                             </ul>
                         )}
                     </div>
+                        </>
+                    )}
                 </section>
 
                 <Can permission="propietarios.view">
