@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { CalendarDays, FolderOpen, History } from 'lucide-react';
+import { CalendarDays, History } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -458,7 +458,7 @@ export default function PacienteShow({
     return (
         <>
             <Head title={title} />
-            <div className="flex flex-1 flex-col gap-4 p-4 sm:gap-5 sm:p-6">
+            <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
                 <PacienteHistorialHero
                     paciente={paciente}
                     propietarioNombre={propietarioNombre}
@@ -524,26 +524,12 @@ export default function PacienteShow({
 
                         openLaboratorio(null);
                     }}
-                />
-
-                {archivos_subidos.length > 0 ? (
-                    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
-                        <header className="flex flex-col gap-2 border-b border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                            <div className="flex items-center gap-2.5">
-                                <span className="flex size-9 items-center justify-center rounded-xl bg-sky-500/12 text-sky-700 dark:text-sky-200">
-                                    <FolderOpen className="size-4" strokeWidth={2.25} />
-                                </span>
-                                <div>
-                                    <h2 className="text-base font-semibold text-foreground">
-                                        {t('historial.archivos_subidos_title')}
-                                    </h2>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t('historial.archivos_subidos_hint')}
-                                    </p>
-                                </div>
-                            </div>
-                        </header>
-                        <div className="flex flex-wrap gap-2 p-3 sm:p-4">
+                >
+                    {archivos_subidos.length > 0 ? (
+                        <div className="flex flex-wrap items-center gap-1.5 border-t border-border/40 px-3 py-2 sm:px-4">
+                            <span className="mr-1 shrink-0 text-xs font-medium text-muted-foreground">
+                                {t('historial.archivos_subidos_title')}
+                            </span>
                             {archivos_subidos.map((archivo) => (
                                 <HistorialArchivoPreview
                                     key={archivo.id}
@@ -552,8 +538,8 @@ export default function PacienteShow({
                                 />
                             ))}
                         </div>
-                    </section>
                     ) : null}
+                </PacienteHistorialHero>
 
                 <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
                     {desparasitacionPanel ? (

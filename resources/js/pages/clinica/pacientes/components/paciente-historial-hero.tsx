@@ -24,7 +24,7 @@ import {
     UserRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SalaEsperaEnviarButton } from '@/components/sala-espera-enviar-button';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +77,7 @@ type Props = {
     variant?: 'admin' | 'public';
     clinicName?: string;
     expiresAt?: string | null;
+    children?: ReactNode;
 };
 
 export type HistorialNuevoAccion =
@@ -168,6 +169,7 @@ export function PacienteHistorialHero({
     variant = 'admin',
     clinicName,
     expiresAt,
+    children,
 }: Props) {
     const { t } = useTranslation(['pacientes']);
     const { can } = usePermission();
@@ -352,143 +354,106 @@ export function PacienteHistorialHero({
     return (
         <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
             <div
-                className="relative border-b border-border/50 px-4 py-5 sm:px-6"
+                className="relative px-3 py-2.5 sm:px-4"
                 style={{
-                    backgroundImage: `linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--primary) / 0.04) 42%, transparent 72%),
-                        radial-gradient(ellipse 80% 60% at 100% 0%, hsl(199 89% 48% / 0.12), transparent 55%),
-                        radial-gradient(ellipse 60% 50% at 0% 100%, hsl(142 71% 45% / 0.08), transparent 50%)`,
+                    backgroundImage: `linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.03) 48%, transparent 78%)`,
                 }}
             >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="flex min-w-0 gap-4">
-                        <div className="relative size-20 shrink-0 sm:size-24">
-                            {paciente.foto_url ? (
-                                <img
-                                    src={paciente.foto_url}
-                                    alt=""
-                                    className="size-full rounded-2xl border-2 border-background object-cover shadow-md ring-2 ring-primary/20"
-                                />
-                            ) : (
-                                <span className="flex size-full items-center justify-center rounded-2xl border-2 border-dashed border-primary/25 bg-background/70 shadow-sm">
-                                    <SpeciesIcon
-                                        especie={paciente.especie}
-                                        className="size-9 text-primary/70"
-                                    />
-                                </span>
-                            )}
-                            <span
-                                className={cn(
-                                    'absolute right-0 bottom-0 z-10 flex size-6 translate-x-1/4 translate-y-1/4 items-center justify-center rounded-full border-2 border-background shadow-sm sm:size-7',
-                                    paciente.activo
-                                        ? 'bg-emerald-500 text-white'
-                                        : 'bg-red-500 text-white',
-                                )}
-                                title={
-                                    paciente.activo
-                                        ? t('historial.estado_activo')
-                                        : t('historial.estado_inactivo')
-                                }
-                                aria-label={
-                                    paciente.activo
-                                        ? t('historial.estado_activo')
-                                        : t('historial.estado_inactivo')
-                                }
-                            >
-                                <span className="size-2 rounded-full bg-current" />
+                <div className="flex items-center gap-3">
+                    <div className="relative size-12 shrink-0">
+                        {paciente.foto_url ? (
+                            <img
+                                src={paciente.foto_url}
+                                alt=""
+                                className="size-full rounded-xl border border-background object-cover shadow-sm ring-1 ring-primary/15"
+                            />
+                        ) : (
+                            <span className="flex size-full items-center justify-center rounded-xl border border-dashed border-primary/25 bg-background/70">
+                                <SpeciesIcon especie={paciente.especie} className="size-5 text-primary/70" />
                             </span>
-                        </div>
+                        )}
+                        <span
+                            className={cn(
+                                'absolute -right-0.5 -bottom-0.5 z-10 size-3 rounded-full border-2 border-background',
+                                paciente.activo ? 'bg-emerald-500' : 'bg-red-500',
+                            )}
+                            title={paciente.activo ? t('historial.estado_activo') : t('historial.estado_inactivo')}
+                            aria-label={paciente.activo ? t('historial.estado_activo') : t('historial.estado_inactivo')}
+                        />
+                    </div>
 
-                        <div className="min-w-0 flex-1 space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                                    {paciente.nombre}
-                                </h1>
-                                {paciente.petpass_status === 'lost' ? (
-                                    <Badge className="border-red-500/30 bg-red-500/15 text-[0.7rem] font-semibold text-red-800 dark:text-red-200">
-                                        {t('historial.petpass_badge_lost')}
-                                    </Badge>
-                                ) : paciente.petpass_status === 'registered' ? (
-                                    <Badge className="border-cyan-500/30 bg-cyan-500/15 text-[0.7rem] font-semibold text-cyan-900 dark:text-cyan-100">
-                                        {t('historial.petpass_badge_registered')}
-                                    </Badge>
-                                ) : paciente.petpass_status === 'pending' ? (
-                                    <Badge variant="secondary" className="text-[0.7rem] font-medium">
-                                        {t('historial.petpass_badge_pending')}
-                                    </Badge>
-                                ) : paciente.microchip ? (
-                                    <Badge variant="outline" className="text-[0.7rem] font-medium text-muted-foreground">
-                                        {t('historial.petpass_badge_local')}
-                                    </Badge>
-                                ) : null}
-                                {timelineStats.total > 0 ? (
-                                    <Badge
-                                        variant="secondary"
-                                        className="border-primary/20 bg-primary/10 text-[0.7rem] font-medium text-primary"
-                                    >
-                                        {t('historial.stat_total', { count: timelineStats.total })}
-                                    </Badge>
-                                ) : null}
-                            </div>
-
-                            {subline ? (
-                                <p className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-                                    <SpeciesIcon
-                                        especie={paciente.especie}
-                                        className="size-4 shrink-0 text-sky-600 dark:text-sky-400"
-                                    />
-                                    {subline}
-                                </p>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <h1 className="text-lg font-semibold tracking-tight text-foreground">{paciente.nombre}</h1>
+                            {paciente.petpass_status === 'lost' ? (
+                                <Badge className="border-red-500/30 bg-red-500/15 text-[0.65rem] font-semibold text-red-800 dark:text-red-200">
+                                    {t('historial.petpass_badge_lost')}
+                                </Badge>
+                            ) : paciente.petpass_status === 'registered' ? (
+                                <Badge className="border-cyan-500/30 bg-cyan-500/15 text-[0.65rem] font-semibold text-cyan-900 dark:text-cyan-100">
+                                    {t('historial.petpass_badge_registered')}
+                                </Badge>
+                            ) : paciente.petpass_status === 'pending' ? (
+                                <Badge variant="secondary" className="text-[0.65rem] font-medium">
+                                    {t('historial.petpass_badge_pending')}
+                                </Badge>
+                            ) : paciente.microchip ? (
+                                <Badge variant="outline" className="text-[0.65rem] font-medium text-muted-foreground">
+                                    {t('historial.petpass_badge_local')}
+                                </Badge>
                             ) : null}
-
-                            <div className="flex flex-wrap gap-1.5">
-                                {sexo ? (
-                                    <span className="inline-flex items-center rounded-full bg-violet-500/12 px-2.5 py-0.5 text-xs font-medium text-violet-800 dark:text-violet-200">
-                                        {sexo}
-                                    </span>
-                                ) : null}
-                                {edadTexto ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/12 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:text-amber-100">
-                                        <Cake className="size-3" />
-                                        {edadTexto}
-                                    </span>
-                                ) : null}
-                                {pesoOk ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/12 px-2.5 py-0.5 text-xs font-medium text-sky-900 dark:text-sky-100">
-                                        <Scale className="size-3" />
-                                        {t('card.peso_valor', {
-                                            value: pesoNum.toLocaleString(undefined, {
-                                                minimumFractionDigits: 0,
-                                                maximumFractionDigits: 2,
-                                            }),
-                                        })}
-                                    </span>
-                                ) : null}
-                                {paciente.microchip ? (
-                                    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground">
-                                        {paciente.microchip}
-                                    </span>
-                                ) : null}
-                            </div>
-
-                            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            {subline ? (
+                                <span className="inline-flex items-center gap-1 text-sm text-foreground/80">
+                                    <SpeciesIcon especie={paciente.especie} className="size-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
+                                    {subline}
+                                </span>
+                            ) : null}
+                            {sexo ? (
+                                <span className="inline-flex items-center rounded-full bg-violet-500/12 px-2 py-0.5 text-xs font-medium text-violet-800 dark:text-violet-200">
+                                    {sexo}
+                                </span>
+                            ) : null}
+                            {edadTexto ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/12 px-2 py-0.5 text-xs font-medium text-amber-900 dark:text-amber-100">
+                                    <Cake className="size-3" />
+                                    {edadTexto}
+                                </span>
+                            ) : null}
+                            {pesoOk ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/12 px-2 py-0.5 text-xs font-medium text-sky-900 dark:text-sky-100">
+                                    <Scale className="size-3" />
+                                    {t('card.peso_valor', {
+                                        value: pesoNum.toLocaleString(undefined, {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 2,
+                                        }),
+                                    })}
+                                </span>
+                            ) : null}
+                            {paciente.microchip ? (
+                                <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 font-mono text-[0.65rem] text-muted-foreground">
+                                    {paciente.microchip}
+                                </span>
+                            ) : null}
+                            <span className="inline-flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
                                 <UserRound className="size-3.5 shrink-0 text-primary/80" />
-                                <span>
+                                <span className="truncate">
                                     {t('historial.titular_label')}:{' '}
                                     <span className="font-medium text-foreground">{propietarioNombre}</span>
                                 </span>
-                            </p>
+                            </span>
                         </div>
                     </div>
 
                     {!isPublic ? (
-                        <Button type="button" variant="outline" size="sm" className="shrink-0 gap-2 self-start" asChild>
+                        <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 px-2.5" asChild>
                             <Link href={clinica.pacientes.index().url} prefetch>
-                                <ArrowLeft className="size-4" strokeWidth={2.25} />
-                                {t('historial.back_list')}
+                                <ArrowLeft className="size-3.5" strokeWidth={2.25} />
+                                <span className="hidden sm:inline">{t('historial.back_list')}</span>
                             </Link>
                         </Button>
                     ) : clinicName ? (
-                        <div className="shrink-0 rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-right shadow-sm">
+                        <div className="shrink-0 text-right">
                             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('historial.public_clinic_label')}
                             </p>
@@ -497,12 +462,12 @@ export function PacienteHistorialHero({
                     ) : null}
                 </div>
                 {isPublic && expiresAt ? (
-                    <p className="mt-3 text-xs text-muted-foreground">{t('historial.public_expires_hint')}</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">{t('historial.public_expires_hint')}</p>
                 ) : null}
             </div>
 
-            <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6">
-                <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 border-t border-border/40 px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4">
+                <div className="flex flex-wrap gap-1.5">
                     {!isPublic && nuevoAcciones.length > 0 ? (
                         <DropdownMenu open={nuevoOpen} onOpenChange={setNuevoOpen}>
                             <DropdownMenuTrigger asChild>
@@ -610,25 +575,26 @@ export function PacienteHistorialHero({
                 </div>
 
                 {timelineStats.total > 0 ? (
-                    <div className="flex flex-wrap gap-2 text-xs">
+                    <div className="flex flex-wrap gap-1.5 text-xs">
                         {timelineStats.consultas > 0 ? (
-                            <span className="inline-flex items-center rounded-lg border border-sky-500/25 bg-sky-500/8 px-2.5 py-1 font-medium text-sky-800 dark:text-sky-200">
+                            <span className="inline-flex items-center rounded-md border border-sky-500/25 bg-sky-500/8 px-2 py-0.5 font-medium text-sky-800 dark:text-sky-200">
                                 {t('historial.stat_consultas', { count: timelineStats.consultas })}
                             </span>
                         ) : null}
                         {timelineStats.aplicaciones > 0 ? (
-                            <span className="inline-flex items-center rounded-lg border border-emerald-500/25 bg-emerald-500/8 px-2.5 py-1 font-medium text-emerald-800 dark:text-emerald-200">
+                            <span className="inline-flex items-center rounded-md border border-emerald-500/25 bg-emerald-500/8 px-2 py-0.5 font-medium text-emerald-800 dark:text-emerald-200">
                                 {t('historial.stat_aplicaciones', { count: timelineStats.aplicaciones })}
                             </span>
                         ) : null}
                         {(timelineStats.servicios ?? 0) > 0 ? (
-                            <span className="inline-flex items-center rounded-lg border border-violet-500/25 bg-violet-500/8 px-2.5 py-1 font-medium text-violet-800 dark:text-violet-200">
+                            <span className="inline-flex items-center rounded-md border border-violet-500/25 bg-violet-500/8 px-2 py-0.5 font-medium text-violet-800 dark:text-violet-200">
                                 {t('historial.stat_servicios', { count: timelineStats.servicios })}
                             </span>
                         ) : null}
                     </div>
                 ) : null}
             </div>
+            {children}
         </section>
     );
 }
