@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bath, CalendarDays, Check, Package, Stethoscope, Timer } from 'lucide-react';
+import { AlertTriangle, Bath, CalendarClock, CalendarDays, Check, PackageX, Stethoscope, Timer, TrendingDown } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -69,11 +69,58 @@ function notifyOs(title: string, body: string): void {
 
 export { SALA_ESPERA_CHANGED_EVENT } from '@/hooks/use-sala-espera-realtime';
 
-function ProductosPorVencerIcon() {
+type AlertaStockResumen = {
+    agotados: number;
+    bajo_minimo: number;
+    por_vencer: number;
+    vencidos: number;
+};
+
+const ALERTAS_STOCK_ICONOS = [
+    {
+        key: 'agotados',
+        labelKey: 'productos_agotados',
+        href: '/inventario/alertas?tipo_alerta=agotado',
+        icon: PackageX,
+        tone: 'text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/40',
+        badge: 'bg-rose-500',
+    },
+    {
+        key: 'bajo_minimo',
+        labelKey: 'productos_bajo_minimo',
+        href: '/inventario/alertas?tipo_alerta=bajo_minimo',
+        icon: TrendingDown,
+        tone: 'text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:text-amber-300 dark:hover:bg-amber-950/40',
+        badge: 'bg-amber-500',
+    },
+    {
+        key: 'por_vencer',
+        labelKey: 'productos_por_vencer',
+        href: '/inventario/alertas?tipo_alerta=por_vencer',
+        icon: CalendarClock,
+        tone: 'text-orange-600 hover:bg-orange-50 hover:text-orange-700 dark:text-orange-300 dark:hover:bg-orange-950/40',
+        badge: 'bg-orange-500',
+    },
+    {
+        key: 'vencidos',
+        labelKey: 'productos_vencidos',
+        href: '/inventario/alertas?tipo_alerta=vencido',
+        icon: AlertTriangle,
+        tone: 'text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-300 dark:hover:bg-red-950/40',
+        badge: 'bg-red-600',
+    },
+] as const;
+
+function AlertasStockHeaderIcons() {
     const { t } = useTranslation('common');
     const { can } = usePermission();
     const allowed = can('alertas-stock.view');
-    const [count, setCount] = useState(0);
+    const [counts, setCounts] = useState<AlertaStockResumen>({
+        agotados: 0,
+        bajo_minimo: 0,
+        por_vencer: 0,
+        vencidos: 0,
+    });
 
     const load = useCallback(async () => {
         try {
@@ -87,8 +134,13 @@ function ProductosPorVencerIcon() {
             if (!res.ok) {
                 return;
             }
-            const json = (await res.json()) as { count?: number };
-            setCount(Math.max(0, Number(json.count) || 0));
+            const json = (await res.json()) as Partial<AlertaStockResumen>;
+            setCounts({
+                agotados: Math.max(0, Number(json.agotados) || 0),
+                bajo_minimo: Math.max(0, Number(json.bajo_minimo) || 0),
+                por_vencer: Math.max(0, Number(json.por_vencer) || 0),
+                vencidos: Math.max(0, Number(json.vencidos) || 0),
+            });
         } catch {
             // El siguiente ciclo reintenta.
         }
@@ -111,26 +163,38 @@ function ProductosPorVencerIcon() {
         return null;
     }
 
-    const badge = count > 99 ? '99+' : String(count);
-    const label = t('productos_por_vencer');
+    const visibles = ALERTAS_STOCK_ICONOS.filter((item) => counts[item.key] > 0);
+    if (visibles.length === 0) {
+        return null;
+    }
 
     return (
-        <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="relative size-9 cursor-pointer text-orange-600 hover:bg-orange-50 hover:text-orange-700 dark:text-orange-300 dark:hover:bg-orange-950/40"
-            asChild
-        >
-            <Link href="/inventario/alertas?tipo_alerta=por_vencer" aria-label={label} title={label}>
-                <Package className="size-4" strokeWidth={2.25} />
-                {count > 0 ? (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
-                        {badge}
-                    </span>
-                ) : null}
-            </Link>
-        </Button>
+        <>
+            {visibles.map((item) => {
+                const count = counts[item.key];
+                const badge = count > 99 ? '99+' : String(count);
+                const label = t(item.labelKey);
+                const Icon = item.icon;
+
+                return (
+                    <Button
+                        key={item.key}
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className={cn('relative size-9 cursor-pointer', item.tone)}
+                        asChild
+                    >
+                        <Link href={item.href} aria-label={label} title={label}>
+                            <Icon className="size-4" strokeWidth={2.25} />
+                            <span className={cn('absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white', item.badge)}>
+                                {badge}
+                            </span>
+                        </Link>
+                    </Button>
+                );
+            })}
+        </>
     );
 }
 
@@ -292,7 +356,7 @@ export function SalaEsperaHeaderIcons() {
                     </Link>
                 </Button>
             ) : null}
-            <ProductosPorVencerIcon />
+            <AlertasStockHeaderIcons />
             {canConsulta && visibles.consulta ? (
                 <SalaEsperaTipoPopover tipo="consulta" />
             ) : null}

@@ -50,29 +50,28 @@ class AlertaStockInventarioController extends Controller
             ->where('tenant_id', $tenantId)
             ->where('activa', true)
             ->whereNull('deleted_at')
+            ->orderBy('nombre')
             ->pluck('id');
 
         if ($sedeIds->isEmpty()) {
-            return response()->json(['count' => 0]);
+            return response()->json([
+                'agotados' => 0,
+                'bajo_minimo' => 0,
+                'por_vencer' => 0,
+                'vencidos' => 0,
+            ]);
         }
 
-        $hoy = Carbon::today()->toDateString();
-        $limite = Carbon::today()->addDays(self::DIAS_ALERTA_VENCIMIENTO)->toDateString();
+        $sedeId = (string) $sedeIds->first();
+        $stock = $this->conteosAlertasStock($sedeId);
+        $lotes = $this->conteosAlertasLotes($sedeId);
 
-        $count = ProductoLote::query()
-            ->join('productos', function ($join): void {
-                $join->on('productos.id', '=', 'producto_lotes.producto_id')
-                    ->whereNull('productos.deleted_at')
-                    ->where('productos.activo', true);
-            })
-            ->whereIn('producto_lotes.sede_id', $sedeIds)
-            ->where('producto_lotes.cantidad', '>', 0)
-            ->whereNotNull('producto_lotes.fecha_vencimiento')
-            ->whereDate('producto_lotes.fecha_vencimiento', '>=', $hoy)
-            ->whereDate('producto_lotes.fecha_vencimiento', '<=', $limite)
-            ->count();
-
-        return response()->json(['count' => $count]);
+        return response()->json([
+            'agotados' => $stock['agotados'],
+            'bajo_minimo' => $stock['bajo_minimo'],
+            'por_vencer' => $lotes['por_vencer'],
+            'vencidos' => $lotes['vencidos'],
+        ]);
     }
 
     public function alertas(Request $request): Response
