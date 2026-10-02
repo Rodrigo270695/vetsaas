@@ -136,7 +136,7 @@
         "plan_tratamiento_remove_linea": "Quitar línea"
     },
     "dictation": {
-        "start": "Dictar consulta",
+        "start": "Transcripción AI",
         "stop": "Detener y rellenar",
         "processing": "Procesando…",
         "hint": "Habla la consulta. Se rellenan peso, temperatura, FC y FR si los dices; el resto del audio va solo a Anamnesis. En el móvil graba hasta pulsar detener.",

@@ -136,7 +136,7 @@
         "plan_tratamiento_remove_linea": "Remove line"
     },
     "dictation": {
-        "start": "Dictate visit",
+        "start": "AI transcription",
         "stop": "Stop and fill",
         "processing": "Processing…",
         "hint": "Speak the visit. Weight, temperature, HR and RR are filled if mentioned; everything else goes only into Anamnesis. On mobile, record until you press stop.",

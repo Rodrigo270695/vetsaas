@@ -1,6 +1,7 @@
-import { Loader2, Mic, Square } from 'lucide-react';
+import { Loader2, Square } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { TranscripcionAiButton } from '@/components/transcripcion-ai-button';
 import { Button } from '@/components/ui/button';
 import FluidOrb from '@/components/ui/fluid-orb';
 import { cn } from '@/lib/utils';
@@ -478,22 +479,13 @@ export function ConsultaDictationBar<T = ConsultaDictationFields>({
             ) : (
                 <>
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={variant === 'compact' ? 'default' : 'secondary'}
-                            className={cn(
-                                'h-8 gap-1.5',
-                                variant === 'compact' &&
-                                    'border-0 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-md shadow-violet-500/30 hover:from-violet-500 hover:to-fuchsia-400',
-                            )}
+                        <TranscripcionAiButton
                             disabled={disabled}
                             title={t('dictation.hint')}
                             onClick={() => void start()}
                         >
-                            <Mic className="size-3.5" />
                             {label ?? t('dictation.start')}
-                        </Button>
+                        </TranscripcionAiButton>
                         {variant === 'panel' ? (
                             <p className="min-w-0 flex-1 text-xs text-muted-foreground">{t('dictation.hint')}</p>
                         ) : null}
