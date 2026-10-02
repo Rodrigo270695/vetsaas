@@ -225,7 +225,9 @@ export function DefuncionForm({
                         ) : pendiente ? (
                             <p className="text-sm text-amber-800 dark:text-amber-200">{t('defuncion.autorizacion_pendiente')}</p>
                         ) : !registro?.id ? (
-                            <p className="text-sm text-muted-foreground">{t('defuncion.autorizacion_guardar')}</p>
+                            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                {t('defuncion.autorizacion_guardar')}
+                            </p>
                         ) : null}
                         <a
                             href="/configuracion/documentos-autorizacion"

@@ -475,7 +475,7 @@
         "veterinario": "Clinician",
         "autorizacion": "Owner authorization",
         "autorizacion_hint": "The pet is marked deceased once the owner signs the authorization.",
-        "autorizacion_guardar": "Save the certificate before sending the authorization.",
+        "autorizacion_guardar": "Save first. Then you can send the authorization to the owner.",
         "autorizacion_enviar": "Send authorization",
         "autorizacion_pendiente": "Waiting for the owner's signature.",
         "autorizacion_firmada": "Authorization signed. The pet is marked deceased.",

@@ -475,7 +475,7 @@
         "veterinario": "Profesional",
         "autorizacion": "Autorización del titular",
         "autorizacion_hint": "La mascota pasa a fallecida cuando el titular firma la autorización.",
-        "autorizacion_guardar": "Guarda el certificado para enviar la autorización.",
+        "autorizacion_guardar": "Primero pulsa Guardar. Después se habilita el envío al titular.",
         "autorizacion_enviar": "Enviar autorización",
         "autorizacion_pendiente": "Pendiente de firma del titular.",
         "autorizacion_firmada": "Autorización firmada. La mascota figura como fallecida.",
