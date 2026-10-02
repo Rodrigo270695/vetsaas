@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Dictado de una ficha de desparasitación: audio o texto → campos del formulario.
+ * Dictado de una ficha de antipulgas: audio o texto → campos del formulario.
  */
-final class DesparasitacionDictationService
+final class AntipulgaDictationService
 {
     public function __construct(private ConsultaDictationService $consulta) {}
 
@@ -64,7 +64,7 @@ final class DesparasitacionDictationService
         $model = (string) config('consulta-dictation.openai_model', config('in-app-assistant.openai_model', 'gpt-4o-mini'));
 
         $system = <<<'PROMPT'
-Eres un asistente clínico veterinario. El texto es una conversación o un dictado de una DESPARASITACIÓN (antiparasitario), no de una consulta general.
+Eres un asistente clínico veterinario. El texto es una conversación o un dictado de ANTIPULGAS, no de una consulta general.
 
 Extrae solo lo que se mencione. No inventes. Responde ÚNICAMENTE JSON válido con estas claves (null si no se dijo):
 {
@@ -93,7 +93,7 @@ Extrae solo lo que se mencione. No inventes. Responde ÚNICAMENTE JSON válido c
 }
 
 anamnesis: relato clínico breve en español (queja, evolución, lo que el dueño cuenta). No copies el diálogo literal.
-producto_nombre: el antiparasitario aplicado si se nombra.
+producto_nombre: el antipulgas aplicado si se nombra.
 PROMPT;
 
         $userContent = mb_strlen($transcript) > 12000
@@ -115,7 +115,7 @@ PROMPT;
         ]);
 
         if (! $response->successful()) {
-            Log::error('DesparasitacionDictation structure error', [
+            Log::error('AntipulgaDictation structure error', [
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);

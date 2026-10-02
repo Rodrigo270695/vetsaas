@@ -18,7 +18,7 @@ final class PrecuentasPendientesLister
     /**
      * @return list<array{
      *     id: string,
-     *     origen: 'consulta'|'grooming'|'hotel'|'internamiento'|'vacuna'|'desparasitacion',
+     *     origen: 'consulta'|'grooming'|'hotel'|'internamiento'|'vacuna'|'desparasitacion'|'antipulga',
      *     origen_id: string,
      *     origen_label: string,
      *     propietario_id: string|null,
@@ -51,6 +51,10 @@ final class PrecuentasPendientesLister
                 'vacunaAplicada.paciente' => fn ($q) => $q->withTrashed(),
                 'vacunaAplicada.paciente.propietario' => fn ($q) => $q->withTrashed(),
             ];
+            if (Schema::hasColumn('consulta_cargos', 'antipulga_id')) {
+                $with['antipulga.paciente'] = fn ($q) => $q->withTrashed();
+                $with['antipulga.paciente.propietario'] = fn ($q) => $q->withTrashed();
+            }
             if (Schema::hasColumn('consulta_cargos', 'desparasitacion_id')) {
                 $with['desparasitacion.paciente'] = fn ($q) => $q->withTrashed();
                 $with['desparasitacion.paciente.propietario'] = fn ($q) => $q->withTrashed();
@@ -77,11 +81,12 @@ final class PrecuentasPendientesLister
         $canInternamiento = $user->can('consulta-cargos.cobrar');
         $canVacuna = $user->can('vacunaciones.view');
         $canDesparasitacion = $user->can('historias-clinicas.view') || $user->can('vacunaciones.view');
+        $canAntipulga = $canDesparasitacion;
 
         $out = [];
         foreach ($cargos as $cargo) {
             try {
-                $row = $this->mapCargo($cargo, $canConsulta, $canGrooming, $canHotel, $canInternamiento, $canVacuna, $canDesparasitacion);
+                $row = $this->mapCargo($cargo, $canConsulta, $canGrooming, $canHotel, $canInternamiento, $canVacuna, $canDesparasitacion, $canAntipulga);
                 if ($row !== null) {
                     $out[] = $row;
                 }
@@ -104,7 +109,32 @@ final class PrecuentasPendientesLister
         bool $canInternamiento,
         bool $canVacuna,
         bool $canDesparasitacion,
+        bool $canAntipulga,
     ): ?array {
+        if ($cargo->antipulga_id && $canAntipulga) {
+            $ficha = $cargo->antipulga;
+            $pac = $ficha?->paciente;
+            $prop = $pac?->propietario;
+
+            return [
+                'id' => $cargo->id,
+                'origen' => 'antipulga',
+                'origen_id' => $cargo->antipulga_id,
+                'origen_label' => 'Antipulgas',
+                'propietario_id' => $prop?->id,
+                'propietario_nombre' => $prop?->displayName(),
+                'paciente_id' => $pac?->id,
+                'paciente_nombre' => $pac?->nombre,
+                'total' => (string) $cargo->total,
+                'moneda' => (string) $cargo->moneda,
+                'confirmado_at' => $cargo->updated_at?->toIso8601String(),
+                'url_cobrar' => route('caja.ventas.create-desde-antipulga', [
+                    'paciente' => $pac?->id ?? $ficha?->paciente_id,
+                    'antipulga' => $cargo->antipulga_id,
+                ], absolute: false),
+            ];
+        }
+
         if ($cargo->desparasitacion_id && $canDesparasitacion) {
             $ficha = $cargo->desparasitacion;
             $pac = $ficha?->paciente;

@@ -15,6 +15,7 @@ use App\Models\Cirugia;
 use App\Models\ClinicaAsesorada;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
+use App\Models\Antipulga;
 use App\Models\Desparasitacion;
 use App\Models\ConsultaCargo;
 use App\Models\DocumentoAutorizacionEnvio;
@@ -515,6 +516,27 @@ class PacienteController extends Controller
                         'store_url' => route('clinica.pacientes.desparasitaciones.store', $paciente),
                         'productos_url' => route('clinica.pacientes.desparasitaciones.productos', $paciente),
                         'dictar_url' => route('clinica.pacientes.desparasitaciones.dictar', $paciente),
+                        'atendido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
+                    ]
+                    : null,
+                'nueva_antipulga' => ($user instanceof User && Schema::hasTable('antipulgas') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? route('clinica.pacientes.antipulgas.create', $paciente)
+                    : null,
+                'antipulga' => ($user instanceof User && Schema::hasTable('antipulgas') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? [
+                        'store_url' => route('clinica.pacientes.antipulgas.store', $paciente),
+                        'productos_url' => route('clinica.pacientes.antipulgas.productos', $paciente),
+                        'dictar_url' => route('clinica.pacientes.antipulgas.dictar', $paciente),
                         'atendido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
                     ]
                     : null,
@@ -1249,6 +1271,7 @@ class PacienteController extends Controller
         }
 
         $this->appendDesparasitaciones($timeline, $paciente, $user);
+        $this->appendAntipulgas($timeline, $paciente, $user);
         $this->appendStandaloneTimelineEvents($timeline, $paciente, $user, $tz);
 
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
@@ -1300,6 +1323,56 @@ class PacienteController extends Controller
                 'titulo' => 'Desparasitación',
                 'estado' => 'registrada',
                 'href' => route('clinica.pacientes.desparasitaciones.edit', [$paciente, $row]),
+                'detalle_corto' => $corto !== '' ? $corto : null,
+                'veterinario' => $row->veterinario?->name,
+            ];
+        }
+    }
+
+    /**
+     * Fichas de antipulgas. El clic del historial abre esa vista.
+     *
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function appendAntipulgas(array &$timeline, Paciente $paciente, mixed $user): void
+    {
+        if (! $user instanceof User || ! Schema::hasTable('antipulgas')) {
+            return;
+        }
+
+        $canVer = $user->can('historias-clinicas.view')
+            || $user->can('historias-clinicas.update')
+            || $user->can('vacunaciones.view')
+            || $user->can('vacunaciones.update')
+            || $user->can('historias-clinicas.create')
+            || $user->can('vacunaciones.create');
+        if (! $canVer) {
+            return;
+        }
+
+        $rows = Antipulga::query()
+            ->where('paciente_id', $paciente->id)
+            ->with('veterinario:id,name')
+            ->orderByDesc('atendido_at')
+            ->limit(200)
+            ->get();
+
+        foreach ($rows as $row) {
+            $aplicados = is_array($row->aplicados) ? $row->aplicados : [];
+            $primero = $aplicados[0]['nombre'] ?? null;
+            $proxima = $aplicados[0]['proxima_at'] ?? null;
+            $corto = trim(implode(' · ', array_filter([
+                is_string($primero) ? $primero : null,
+                is_string($proxima) && $proxima !== '' ? 'Próxima '.$proxima : null,
+            ])));
+
+            $timeline[] = [
+                'kind' => 'antipulga',
+                'id' => $row->id,
+                'ocurrido_at' => $row->atendido_at->toIso8601String(),
+                'titulo' => 'Antipulgas',
+                'estado' => 'registrada',
+                'href' => route('clinica.pacientes.antipulgas.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
                 'veterinario' => $row->veterinario?->name,
             ];

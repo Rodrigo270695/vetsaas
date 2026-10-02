@@ -351,6 +351,9 @@ class TenantSchemaMigrator
             '2026_10_01_220000_t160_desparasitaciones' => Schema::hasTable('desparasitaciones'),
             '2026_10_01_230000_t161_desparasitacion_cargos' => Schema::hasTable('consulta_cargos')
                 && Schema::hasColumn('consulta_cargos', 'desparasitacion_id'),
+            '2026_10_01_240000_t162_antipulgas' => Schema::hasTable('antipulgas'),
+            '2026_10_01_241000_t163_antipulga_cargos' => Schema::hasTable('consulta_cargos')
+                && Schema::hasColumn('consulta_cargos', 'antipulga_id'),
             '2026_07_22_190000_t121_add_arqueo_json_to_caja_sesiones' => Schema::hasTable('caja_sesiones')
                 && Schema::hasColumn('caja_sesiones', 'arqueo_json'),
             '2026_07_23_200000_t122_create_caja_egresos_table' => Schema::hasTable('caja_egresos'),

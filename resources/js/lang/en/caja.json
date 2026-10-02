@@ -491,6 +491,7 @@
             "precuentas_origen_internamiento": "Hospitalization",
             "precuentas_origen_vacuna": "Vaccination",
             "precuentas_origen_desparasitacion": "Deworming",
+            "precuentas_origen_antipulga": "Flea treatment",
             "precuentas_cargando": "Loading pre-invoices…",
             "precuentas_vacio": "No pending pre-invoices to charge.",
             "precuentas_error": "Could not load pre-invoices.",

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-export type PrecuentaOrigen = 'consulta' | 'grooming' | 'hotel' | 'internamiento' | 'vacuna' | 'desparasitacion';
+export type PrecuentaOrigen = 'consulta' | 'grooming' | 'hotel' | 'internamiento' | 'vacuna' | 'desparasitacion' | 'antipulga';
 
 export type PrecuentaPendiente = {
     id: string;
@@ -74,6 +74,11 @@ const ORIGEN_UI: Record<
         icon: Bug,
         badgeClass: 'border-lime-500/30 bg-lime-500/10 text-lime-800 dark:text-lime-300',
         i18nKey: 'caja:ventas.create.precuentas_origen_desparasitacion',
+    },
+    antipulga: {
+        icon: Bug,
+        badgeClass: 'border-lime-500/30 bg-lime-500/10 text-lime-800 dark:text-lime-300',
+        i18nKey: 'caja:ventas.create.precuentas_origen_antipulga',
     },
 };
 

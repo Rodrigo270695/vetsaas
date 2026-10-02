@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\Desparasitacion;
+use App\Models\Antipulga;
 use App\Models\Paciente;
 use App\Models\Producto;
 use App\Models\User;
-use App\Services\Clinica\DesparasitacionDictationService;
+use App\Services\Clinica\AntipulgaDictationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +18,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
 
-final class DesparasitacionController extends Controller
+final class AntipulgaController extends Controller
 {
     public function create(Request $request, Paciente $paciente): Response
     {
@@ -26,7 +26,7 @@ final class DesparasitacionController extends Controller
 
         $tz = (string) config('app.timezone', 'America/Lima');
 
-        return Inertia::render('clinica/pacientes/desparasitacion', $this->pageProps(
+        return Inertia::render('clinica/pacientes/antipulgas', $this->pageProps(
             $request,
             $paciente,
             null,
@@ -39,7 +39,7 @@ final class DesparasitacionController extends Controller
         $user = $this->authorizeWrite($request, true);
         $data = $this->validated($request);
 
-        $row = Desparasitacion::query()->create([
+        $row = Antipulga::query()->create([
             ...$data,
             'paciente_id' => $paciente->id,
             'veterinario_id' => $user->id,
@@ -49,44 +49,44 @@ final class DesparasitacionController extends Controller
 
         return redirect()
             ->route('clinica.pacientes.show', $paciente)
-            ->with('success', 'Desparasitación registrada.');
+            ->with('success', 'Antipulgas registrada.');
     }
 
-    public function edit(Request $request, Paciente $paciente, Desparasitacion $desparasitacion): Response|JsonResponse
+    public function edit(Request $request, Paciente $paciente, Antipulga $antipulga): Response|JsonResponse
     {
         $this->authorizeWrite($request, false);
-        abort_unless($desparasitacion->paciente_id === $paciente->id, 404);
-        $desparasitacion->load('veterinario:id,name');
+        abort_unless($antipulga->paciente_id === $paciente->id, 404);
+        $antipulga->load('veterinario:id,name');
 
         $tz = (string) config('app.timezone', 'America/Lima');
         $props = $this->pageProps(
             $request,
             $paciente,
-            $desparasitacion,
-            $desparasitacion->atendido_at->timezone($tz)->format('Y-m-d\TH:i'),
+            $antipulga,
+            $antipulga->atendido_at->timezone($tz)->format('Y-m-d\TH:i'),
         );
 
         if ($request->wantsJson()) {
             return response()->json($props);
         }
 
-        return Inertia::render('clinica/pacientes/desparasitacion', $props);
+        return Inertia::render('clinica/pacientes/antipulgas', $props);
     }
 
-    public function update(Request $request, Paciente $paciente, Desparasitacion $desparasitacion): RedirectResponse
+    public function update(Request $request, Paciente $paciente, Antipulga $antipulga): RedirectResponse
     {
         $user = $this->authorizeWrite($request, true);
-        abort_unless($desparasitacion->paciente_id === $paciente->id, 404);
+        abort_unless($antipulga->paciente_id === $paciente->id, 404);
 
-        $desparasitacion->fill([
+        $antipulga->fill([
             ...$this->validated($request),
             'updated_by_id' => $user->id,
         ]);
-        $desparasitacion->save();
+        $antipulga->save();
 
         return redirect()
             ->route('clinica.pacientes.show', $paciente)
-            ->with('success', 'Desparasitación actualizada.');
+            ->with('success', 'Antipulgas actualizada.');
     }
 
     public function productosBuscar(Request $request, Paciente $paciente): JsonResponse
@@ -111,7 +111,7 @@ final class DesparasitacionController extends Controller
         return response()->json(['data' => $items]);
     }
 
-    public function dictar(Request $request, Paciente $paciente, DesparasitacionDictationService $dictation): JsonResponse
+    public function dictar(Request $request, Paciente $paciente, AntipulgaDictationService $dictation): JsonResponse
     {
         $this->authorizeWrite($request, true);
         abort_unless((bool) config('consulta-dictation.enabled', true), 503);
@@ -126,7 +126,7 @@ final class DesparasitacionController extends Controller
         $hasAudio = $request->hasFile('audio');
         $transcript = trim((string) $request->input('transcript', ''));
         if (! $hasAudio && $transcript === '') {
-            return response()->json(['message' => 'Dicta o escribe la desparasitación.'], 422);
+            return response()->json(['message' => 'Dicta o escribe la antipulgas.'], 422);
         }
 
         if ($hasAudio) {
@@ -159,7 +159,7 @@ final class DesparasitacionController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function pageProps(Request $request, Paciente $paciente, ?Desparasitacion $row, string $atendidoLocal): array
+    private function pageProps(Request $request, Paciente $paciente, ?Antipulga $row, string $atendidoLocal): array
     {
         $user = $request->user();
         $puedeEditar = $user instanceof User && (
@@ -207,14 +207,14 @@ final class DesparasitacionController extends Controller
             'atendido_at' => $atendidoLocal,
             'puede_editar' => $puedeEditar,
             'guardar_url' => $row === null
-                ? route('clinica.pacientes.desparasitaciones.store', $paciente)
-                : route('clinica.pacientes.desparasitaciones.update', [$paciente, $row]),
+                ? route('clinica.pacientes.antipulgas.store', $paciente)
+                : route('clinica.pacientes.antipulgas.update', [$paciente, $row]),
             'method' => $row === null ? 'post' : 'put',
-            'productos_url' => route('clinica.pacientes.desparasitaciones.productos', $paciente),
-            'dictar_url' => route('clinica.pacientes.desparasitaciones.dictar', $paciente),
+            'productos_url' => route('clinica.pacientes.antipulgas.productos', $paciente),
+            'dictar_url' => route('clinica.pacientes.antipulgas.dictar', $paciente),
             'cargos_url' => $row === null
                 ? null
-                : route('clinica.pacientes.desparasitaciones.cargos.show', [$paciente, $row]),
+                : route('clinica.pacientes.antipulgas.cargos.show', [$paciente, $row]),
             'volver_url' => route('clinica.pacientes.show', $paciente),
         ];
     }
@@ -223,7 +223,7 @@ final class DesparasitacionController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless(Schema::hasTable('desparasitaciones'), 503, 'Falta la migración de desparasitación.');
+        abort_unless(Schema::hasTable('antipulgas'), 503, 'Falta la migración de antipulgas.');
 
         $ok = $needsWrite
             ? ($user->can('historias-clinicas.create')

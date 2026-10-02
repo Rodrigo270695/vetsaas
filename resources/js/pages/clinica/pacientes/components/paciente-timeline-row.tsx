@@ -75,6 +75,7 @@ type TimelineRowProps = {
     onOpenConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onOpenAplicacion?: (item: Extract<TimelineItem, { kind: 'aplicacion' }>) => void;
     onOpenDesparasitacion?: (item: Extract<TimelineItem, { kind: 'desparasitacion' }>) => void;
+    onOpenAntipulga?: (item: Extract<TimelineItem, { kind: 'antipulga' }>) => void;
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
     onDeleteConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
@@ -420,7 +421,7 @@ function itemTheme(item: TimelineItem) {
         };
     }
 
-    if (item.kind === 'desparasitacion') {
+    if (item.kind === 'desparasitacion' || item.kind === 'antipulga') {
         return {
             stripe: 'bg-gradient-to-b from-lime-400 to-lime-600',
             dot: 'border-lime-400/70 bg-gradient-to-br from-lime-400 to-lime-600 text-white shadow-lime-500/25',
@@ -484,6 +485,7 @@ export function PacienteTimelineRow({
     onOpenConsulta,
     onOpenAplicacion,
     onOpenDesparasitacion,
+    onOpenAntipulga,
     onShareConsulta,
     onUploadLaboratorio,
     onDeleteConsulta,
@@ -532,6 +534,9 @@ export function PacienteTimelineRow({
         if (k === 'desparasitacion') {
             return t('historial.cat_desparasitacion');
         }
+        if (k === 'antipulga') {
+            return t('historial.cat_antipulga');
+        }
 
         if (k === 'otro') {
             return t('historial.cat_otro');
@@ -569,6 +574,19 @@ export function PacienteTimelineRow({
             : item.kind !== 'aplicacion'
               ? (item.archivos ?? []).filter((archivo) => Boolean(archivo.resultado_archivo_url))
               : [];
+
+    const fichaInline =
+        !isPublic &&
+        ((item.kind === 'desparasitacion' && Boolean(onOpenDesparasitacion)) ||
+            (item.kind === 'antipulga' && Boolean(onOpenAntipulga)));
+    const abrirFichaInline = () => {
+        if (item.kind === 'desparasitacion') {
+            onOpenDesparasitacion?.(item);
+        }
+        if (item.kind === 'antipulga') {
+            onOpenAntipulga?.(item);
+        }
+    };
 
     return (
         <li className="relative pb-5 last:pb-0">
@@ -609,11 +627,25 @@ export function PacienteTimelineRow({
                 </div>
 
                 <article
+                    role={fichaInline ? 'button' : undefined}
+                    tabIndex={fichaInline ? 0 : undefined}
+                    onClick={fichaInline ? abrirFichaInline : undefined}
+                    onKeyDown={
+                        fichaInline
+                            ? (event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                      event.preventDefault();
+                                      abrirFichaInline();
+                                  }
+                              }
+                            : undefined
+                    }
                     className={cn(
                         'relative min-w-0 flex-1 overflow-hidden rounded-xl border border-border/60 bg-card shadow-xs transition-all duration-300 ease-out',
                         'ring-1 ring-black/[0.02] dark:ring-white/[0.03]',
                         theme.cardHover,
                         'hover:-translate-y-0.5 hover:shadow-lg',
+                        fichaInline && 'cursor-pointer',
                     )}
                 >
                     <div className={cn('absolute inset-y-0 left-0 w-1', theme.stripe)} aria-hidden />
@@ -649,6 +681,8 @@ export function PacienteTimelineRow({
                                         item.kind === 'hotel' &&
                                             'bg-indigo-500/12 text-indigo-800 dark:text-indigo-200',
                                         item.kind === 'desparasitacion' &&
+                                            'bg-lime-500/12 text-lime-900 dark:text-lime-100',
+                                        item.kind === 'antipulga' &&
                                             'bg-lime-500/12 text-lime-900 dark:text-lime-100',
                                     )}
                                 >
@@ -692,19 +726,7 @@ export function PacienteTimelineRow({
                                         : 'text-foreground',
                                 )}
                             >
-                                {item.kind === 'desparasitacion' && onOpenDesparasitacion ? (
-                                    <button
-                                        type="button"
-                                        className="text-left hover:underline"
-                                        onClick={() => onOpenDesparasitacion(item)}
-                                    >
-                                        {item.titulo}
-                                    </button>
-                                ) : item.titulo === '—' ? (
-                                    t('historial.sin_motivo')
-                                ) : (
-                                    item.titulo
-                                )}
+                                {item.titulo === '—' ? t('historial.sin_motivo') : item.titulo}
                             </h3>
 
                             <div className="flex flex-wrap items-center gap-2">
@@ -793,22 +815,10 @@ export function PacienteTimelineRow({
                             />
 
                             <div className="flex flex-wrap items-center justify-end gap-1.5">
-                                {item.kind === 'desparasitacion' && onOpenDesparasitacion && !isPublic ? (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        className="group/btn h-8 gap-1.5 px-2.5 text-xs"
-                                        onClick={() => onOpenDesparasitacion(item)}
-                                    >
-                                        <ExternalLink
-                                            className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
-                                            strokeWidth={2.25}
-                                        />
-                                        {t('historial.ver_evento')}
-                                    </Button>
-                                ) : item.kind !== 'consulta' &&
+                                {item.kind !== 'consulta' &&
                                 item.kind !== 'aplicacion' &&
+                                item.kind !== 'desparasitacion' &&
+                                item.kind !== 'antipulga' &&
                                 item.href &&
                                 !isPublic ? (
                                     <Button

@@ -43,6 +43,7 @@ class ConsultaCargo extends Model
         'hotel_estancia_id',
         'vacuna_aplicada_id',
         'desparasitacion_id',
+        'antipulga_id',
         'estado',
         'moneda',
         'notas',
@@ -91,6 +92,11 @@ class ConsultaCargo extends Model
     public function desparasitacion(): BelongsTo
     {
         return $this->belongsTo(Desparasitacion::class, 'desparasitacion_id');
+    }
+
+    public function antipulga(): BelongsTo
+    {
+        return $this->belongsTo(Antipulga::class, 'antipulga_id');
     }
 
     public function lineas(): HasMany

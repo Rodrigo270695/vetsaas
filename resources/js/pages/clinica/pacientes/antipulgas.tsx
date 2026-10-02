@@ -123,7 +123,7 @@ function vacioAplicado(): Aplicado {
     };
 }
 
-export function DesparasitacionForm({
+export function AntipulgaForm({
     paciente,
     registro,
     atendido_at,
@@ -287,7 +287,7 @@ export function DesparasitacionForm({
                             disabled={!puede_editar}
                             onChange={() => form.setData(name, opcion)}
                         />
-                        {t(`desparasitacion.${opcion}`)}
+                        {t(`antipulga.${opcion}`)}
                     </label>
                 ))}
             </div>
@@ -303,11 +303,11 @@ export function DesparasitacionForm({
                                 <span className="flex size-8 items-center justify-center rounded-lg bg-lime-500/15 text-lime-700">
                                     <Bug className="size-4" />
                                 </span>
-                                {t('desparasitacion.title')}
+                                {t('antipulga.title')}
                             </h2>
                             <p className="text-sm text-muted-foreground">
-                                {t('desparasitacion.subtitle', { nombre: paciente.nombre })}
-                                {registro?.veterinario ? ` · ${t('desparasitacion.veterinario')}: ${registro.veterinario}` : ''}
+                                {t('antipulga.subtitle', { nombre: paciente.nombre })}
+                                {registro?.veterinario ? ` · ${t('antipulga.veterinario')}: ${registro.veterinario}` : ''}
                             </p>
                         </div>
                         {puede_editar ? (
@@ -321,7 +321,7 @@ export function DesparasitacionForm({
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center gap-2">
                             <Label htmlFor="atendido_at" className="shrink-0 text-xs text-muted-foreground">
-                                {t('desparasitacion.atendido')}
+                                {t('antipulga.atendido')}
                             </Label>
                             <Input
                                 id="atendido_at"
@@ -336,7 +336,7 @@ export function DesparasitacionForm({
                             <DropdownMenuTrigger asChild>
                                 <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground">
                                     <MoreHorizontal className="size-4" />
-                                    <span className="sr-only">{t('desparasitacion.precuenta')}</span>
+                                    <span className="sr-only">{t('antipulga.precuenta')}</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
@@ -346,7 +346,7 @@ export function DesparasitacionForm({
                                         if (!cargos_url) {
                                             toastManager.add({
                                                 type: 'info',
-                                                title: t('desparasitacion.precuenta_guardar'),
+                                                title: t('antipulga.precuenta_guardar'),
                                             });
                                             return;
                                         }
@@ -354,7 +354,7 @@ export function DesparasitacionForm({
                                     }}
                                 >
                                     <Receipt className="size-4" />
-                                    {t('desparasitacion.precuenta')}
+                                    {t('antipulga.precuenta')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -363,7 +363,7 @@ export function DesparasitacionForm({
                             onClick={() => {
                                 if (
                                     form.isDirty &&
-                                    !window.confirm(t('desparasitacion.confirmar_volver'))
+                                    !window.confirm(t('antipulga.confirmar_volver'))
                                 ) {
                                     return;
                                 }
@@ -372,7 +372,7 @@ export function DesparasitacionForm({
                             className="inline-flex items-center gap-1 px-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
                         >
                             <ArrowLeft className="size-3.5" />
-                            {t('desparasitacion.volver')}
+                            {t('antipulga.volver')}
                         </button>
                     </div>
                 </div>
@@ -387,7 +387,7 @@ export function DesparasitacionForm({
                             onSuccess: () => {
                                 toastManager.add({
                                     type: 'success' as const,
-                                    title: t('desparasitacion.guardado'),
+                                    title: t('antipulga.guardado'),
                                 });
                                 onVolver();
                             },
@@ -409,14 +409,14 @@ export function DesparasitacionForm({
                     ) : null}
                     <section className="rounded-xl border bg-card p-4">
                         <div className="mb-2 flex items-center justify-between gap-2">
-                            <h2 className="text-sm font-semibold">{t('desparasitacion.anamnesis')}</h2>
+                            <h2 className="text-sm font-semibold">{t('antipulga.anamnesis')}</h2>
                             <Button type="button" variant="outline" size="sm" onClick={() => setDetalleOpen(true)}>
-                                + {t('desparasitacion.anamnesis_detallada')}
+                                + {t('antipulga.anamnesis_detallada')}
                             </Button>
                         </div>
                         <Textarea
                             rows={4}
-                            placeholder={t('desparasitacion.anamnesis_ph')}
+                            placeholder={t('antipulga.anamnesis_ph')}
                             value={form.data.anamnesis}
                             disabled={!puede_editar}
                             onChange={(event) => form.setData('anamnesis', event.target.value)}
@@ -425,7 +425,7 @@ export function DesparasitacionForm({
 
                     <Collapsible defaultOpen className="rounded-xl border bg-card">
                         <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold">
-                            {t('desparasitacion.constantes')}
+                            {t('antipulga.constantes')}
                         </CollapsibleTrigger>
                         <CollapsibleContent className="grid gap-3 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-4">
                             {(
@@ -440,7 +440,7 @@ export function DesparasitacionForm({
                                 ] as const
                             ).map(([key, label]) => (
                                 <div key={key} className="space-y-1">
-                                    <Label htmlFor={key}>{t(`desparasitacion.${label}`)}</Label>
+                                    <Label htmlFor={key}>{t(`antipulga.${label}`)}</Label>
                                     <Input
                                         id={key}
                                         value={form.data[key]}
@@ -453,12 +453,12 @@ export function DesparasitacionForm({
                     </Collapsible>
 
                     <section className="rounded-xl border bg-card p-4">
-                        <h2 className="mb-3 text-sm font-semibold">{t('desparasitacion.antiparasitario')}</h2>
+                        <h2 className="mb-3 text-sm font-semibold">{t('antipulga.antiparasitario')}</h2>
                         <div className="relative mb-3">
                             <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 className="bg-amber-50/80 pl-9 dark:bg-amber-950/20"
-                                placeholder={t('desparasitacion.buscar_desparasitacion')}
+                                placeholder={t('antipulga.buscar_antipulga')}
                                 value={buscar}
                                 disabled={!puede_editar}
                                 onChange={(event) => setBuscar(event.target.value)}
@@ -487,17 +487,17 @@ export function DesparasitacionForm({
                             ) : null}
                         </div>
                         {form.data.aplicados.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">{t('desparasitacion.sin_lineas')}</p>
+                            <p className="text-sm text-muted-foreground">{t('antipulga.sin_lineas')}</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[720px] text-left text-sm">
                                     <thead className="text-xs text-muted-foreground">
                                         <tr>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.aplicado')}</th>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.especificaciones')}</th>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.proxima_fecha')}</th>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.proxima_nombre')}</th>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.principal')}</th>
+                                            <th className="pb-2 font-medium">{t('antipulga.aplicado')}</th>
+                                            <th className="pb-2 font-medium">{t('antipulga.especificaciones')}</th>
+                                            <th className="pb-2 font-medium">{t('antipulga.proxima_fecha')}</th>
+                                            <th className="pb-2 font-medium">{t('antipulga.proxima_nombre')}</th>
+                                            <th className="pb-2 font-medium">{t('antipulga.principal')}</th>
                                             <th className="pb-2" />
                                         </tr>
                                     </thead>
@@ -555,8 +555,8 @@ export function DesparasitacionForm({
                                                             form.setData('aplicados', next);
                                                         }}
                                                     >
-                                                        <option value="principal">{t('desparasitacion.principal')}</option>
-                                                        <option value="complementario">{t('desparasitacion.complementario')}</option>
+                                                        <option value="principal">{t('antipulga.principal')}</option>
+                                                        <option value="complementario">{t('antipulga.complementario')}</option>
                                                     </select>
                                                 </td>
                                                 <td className="py-1">
@@ -565,7 +565,7 @@ export function DesparasitacionForm({
                                                         size="icon"
                                                         variant="ghost"
                                                         disabled={!puede_editar}
-                                                        aria-label={t('desparasitacion.quitar')}
+                                                        aria-label={t('antipulga.quitar')}
                                                         onClick={() =>
                                                             form.setData(
                                                                 'aplicados',
@@ -585,12 +585,12 @@ export function DesparasitacionForm({
                     </section>
 
                     <section className="rounded-xl border border-violet-200/70 bg-card p-4 shadow-sm dark:border-violet-900/40">
-                        <h2 className="mb-3 text-sm font-semibold">{t('desparasitacion.receta')}</h2>
+                        <h2 className="mb-3 text-sm font-semibold">{t('antipulga.receta')}</h2>
                         <div className="relative mb-3">
                             <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 className="bg-amber-50/80 pl-9 dark:bg-amber-950/20"
-                                placeholder={t('desparasitacion.buscar')}
+                                placeholder={t('antipulga.buscar')}
                                 value={buscarReceta}
                                 disabled={!puede_editar}
                                 onChange={(event) => setBuscarReceta(event.target.value)}
@@ -640,15 +640,15 @@ export function DesparasitacionForm({
                             ) : null}
                         </div>
                         {form.data.receta.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">{t('desparasitacion.sin_lineas')}</p>
+                            <p className="text-sm text-muted-foreground">{t('antipulga.sin_lineas')}</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[640px] text-left text-sm">
                                     <thead className="text-xs text-muted-foreground">
                                         <tr>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.medicamento')}</th>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.especificaciones')}</th>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.cantidad')}</th>
+                                            <th className="pb-2 font-medium">{t('antipulga.medicamento')}</th>
+                                            <th className="pb-2 font-medium">{t('antipulga.especificaciones')}</th>
+                                            <th className="pb-2 font-medium">{t('antipulga.cantidad')}</th>
                                             <th className="pb-2" />
                                         </tr>
                                     </thead>
@@ -684,7 +684,7 @@ export function DesparasitacionForm({
                                                         size="icon"
                                                         variant="ghost"
                                                         disabled={!puede_editar}
-                                                        aria-label={t('desparasitacion.quitar')}
+                                                        aria-label={t('antipulga.quitar')}
                                                         onClick={() =>
                                                             form.setData(
                                                                 'receta',
@@ -704,7 +704,7 @@ export function DesparasitacionForm({
                     </section>
 
                     <section className="rounded-xl border bg-card p-4">
-                        <h2 className="mb-2 text-sm font-semibold">{t('desparasitacion.comentarios')}</h2>
+                        <h2 className="mb-2 text-sm font-semibold">{t('antipulga.comentarios')}</h2>
                         <Textarea
                             rows={3}
                             value={form.data.comentarios}
@@ -717,7 +717,7 @@ export function DesparasitacionForm({
                         <div className="flex justify-end">
                             <Button type="submit" disabled={form.processing}>
                                 {form.processing ? <Loader2 className="size-4 animate-spin" /> : null}
-                                {form.processing ? t('desparasitacion.guardando') : t('desparasitacion.guardar')}
+                                {form.processing ? t('antipulga.guardando') : t('antipulga.guardar')}
                             </Button>
                         </div>
                     ) : null}
@@ -726,67 +726,67 @@ export function DesparasitacionForm({
             <Dialog open={detalleOpen} onOpenChange={setDetalleOpen}>
                 <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>{t('desparasitacion.anamnesis_detallada')}</DialogTitle>
+                        <DialogTitle>{t('antipulga.anamnesis_detallada')}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 sm:grid-cols-2">
-                        {tri('apetito', t('desparasitacion.apetito'))}
-                        {tri('ingesta_agua', t('desparasitacion.ingesta'))}
+                        {tri('apetito', t('antipulga.apetito'))}
+                        {tri('ingesta_agua', t('antipulga.ingesta'))}
                         <div className="space-y-1 sm:col-span-2">
-                            <p className="text-sm font-medium">{t('desparasitacion.vomitos')}</p>
+                            <p className="text-sm font-medium">{t('antipulga.vomitos')}</p>
                         </div>
                         <Campo
-                            label={t('desparasitacion.frecuencia')}
+                            label={t('antipulga.frecuencia')}
                             value={form.data.vomitos_frecuencia}
                             disabled={!puede_editar}
                             numeric
                             onChange={(value) => form.setData('vomitos_frecuencia', value)}
                         />
                         <Campo
-                            label={t('desparasitacion.descripcion')}
+                            label={t('antipulga.descripcion')}
                             value={form.data.vomitos_descripcion}
                             disabled={!puede_editar}
                             onChange={(value) => form.setData('vomitos_descripcion', value)}
                         />
                         <div className="space-y-1 sm:col-span-2">
-                            <p className="text-sm font-medium">{t('desparasitacion.heces')}</p>
+                            <p className="text-sm font-medium">{t('antipulga.heces')}</p>
                         </div>
                         <Campo
-                            label={t('desparasitacion.frecuencia')}
+                            label={t('antipulga.frecuencia')}
                             value={form.data.heces_frecuencia}
                             disabled={!puede_editar}
                             numeric
                             onChange={(value) => form.setData('heces_frecuencia', value)}
                         />
                         <Campo
-                            label={t('desparasitacion.descripcion')}
+                            label={t('antipulga.descripcion')}
                             value={form.data.heces_descripcion}
                             disabled={!puede_editar}
                             onChange={(value) => form.setData('heces_descripcion', value)}
                         />
                         <div className="space-y-1 sm:col-span-2">
-                            <p className="text-sm font-medium">{t('desparasitacion.orina')}</p>
+                            <p className="text-sm font-medium">{t('antipulga.orina')}</p>
                         </div>
                         <Campo
-                            label={t('desparasitacion.frecuencia')}
+                            label={t('antipulga.frecuencia')}
                             value={form.data.orina_frecuencia}
                             disabled={!puede_editar}
                             numeric
                             onChange={(value) => form.setData('orina_frecuencia', value)}
                         />
                         <Campo
-                            label={t('desparasitacion.color')}
+                            label={t('antipulga.color')}
                             value={form.data.orina_color}
                             disabled={!puede_editar}
                             onChange={(value) => form.setData('orina_color', value)}
                         />
                         <Campo
-                            label={t('desparasitacion.olor')}
+                            label={t('antipulga.olor')}
                             value={form.data.orina_olor}
                             disabled={!puede_editar}
                             onChange={(value) => form.setData('orina_olor', value)}
                         />
                         <div className="space-y-1">
-                            <Label htmlFor="ultimo_celo">{t('desparasitacion.ultimo_celo')}</Label>
+                            <Label htmlFor="ultimo_celo">{t('antipulga.ultimo_celo')}</Label>
                             <Input
                                 id="ultimo_celo"
                                 type="date"
@@ -839,28 +839,28 @@ function Campo({
     );
 }
 
-export type DesparasitacionCreateLinks = {
+export type AntipulgaCreateLinks = {
     store_url: string;
     productos_url: string;
     dictar_url: string;
     atendido_at: string;
 };
 
-type DesparasitacionPayload = Omit<Props, 'onVolver'>;
+type AntipulgaPayload = Omit<Props, 'onVolver'>;
 
-export function DesparasitacionEmbed({
+export function AntipulgaEmbed({
     paciente,
     create,
     editUrl,
     onVolver,
 }: {
     paciente: { id: string; nombre: string };
-    create: DesparasitacionCreateLinks | null;
+    create: AntipulgaCreateLinks | null;
     editUrl: string | null;
     onVolver: () => void;
 }) {
     const { t } = useTranslation('pacientes');
-    const [payload, setPayload] = useState<DesparasitacionPayload | null>(null);
+    const [payload, setPayload] = useState<AntipulgaPayload | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -880,10 +880,10 @@ export function DesparasitacionEmbed({
         })
             .then(async (res) => {
                 if (!res.ok) {
-                    throw new Error('No se pudo abrir la desparasitación.');
+                    throw new Error('No se pudo abrir la antipulgas.');
                 }
 
-                return (await res.json()) as DesparasitacionPayload;
+                return (await res.json()) as AntipulgaPayload;
             })
             .then((body) => {
                 if (!cancel) {
@@ -892,7 +892,7 @@ export function DesparasitacionEmbed({
             })
             .catch((reason: unknown) => {
                 if (!cancel) {
-                    setError(reason instanceof Error ? reason.message : 'No se pudo abrir la desparasitación.');
+                    setError(reason instanceof Error ? reason.message : 'No se pudo abrir la antipulgas.');
                 }
             });
 
@@ -908,7 +908,7 @@ export function DesparasitacionEmbed({
                     <p className="text-sm text-destructive">{error}</p>
                     <Button type="button" variant="outline" onClick={onVolver}>
                         <ArrowLeft className="size-4" />
-                        {t('desparasitacion.volver')}
+                        {t('antipulga.volver')}
                     </Button>
                 </div>
             );
@@ -922,7 +922,7 @@ export function DesparasitacionEmbed({
             );
         }
 
-        return <DesparasitacionForm {...payload} onVolver={onVolver} />;
+        return <AntipulgaForm {...payload} onVolver={onVolver} />;
     }
 
     if (!create) {
@@ -930,7 +930,7 @@ export function DesparasitacionEmbed({
     }
 
     return (
-        <DesparasitacionForm
+        <AntipulgaForm
             paciente={paciente}
             registro={null}
             atendido_at={create.atendido_at}
@@ -946,14 +946,14 @@ export function DesparasitacionEmbed({
 
 type PageProps = Omit<Props, 'onVolver'> & { volver_url: string };
 
-export default function DesparasitacionPage({ volver_url, ...props }: PageProps) {
+export default function AntipulgaPage({ volver_url, ...props }: PageProps) {
     const { t } = useTranslation('pacientes');
 
     return (
         <>
-            <Head title={t('desparasitacion.title')} />
+            <Head title={t('antipulga.title')} />
             <div className="flex flex-1 flex-col p-4 sm:p-6">
-                <DesparasitacionForm {...props} onVolver={() => router.visit(volver_url)} />
+                <AntipulgaForm {...props} onVolver={() => router.visit(volver_url)} />
             </div>
         </>
     );

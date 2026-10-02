@@ -437,6 +437,47 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware($desparasitacionCargoPerm)
                 ->delete('pacientes/{paciente}/desparasitaciones/{desparasitacion}/cargos', [\App\Http\Controllers\DesparasitacionCargoController::class, 'destroy'])
                 ->name('pacientes.desparasitaciones.cargos.destroy');
+            $antipulgaPerm = 'permission:historias-clinicas.view|historias-clinicas.create|historias-clinicas.update|vacunaciones.view|vacunaciones.create|vacunaciones.update';
+            Route::middleware($antipulgaPerm)
+                ->get('pacientes/{paciente}/antipulgas/crear', [\App\Http\Controllers\AntipulgaController::class, 'create'])
+                ->name('pacientes.antipulgas.create');
+            Route::middleware($antipulgaPerm)
+                ->post('pacientes/{paciente}/antipulgas', [\App\Http\Controllers\AntipulgaController::class, 'store'])
+                ->name('pacientes.antipulgas.store');
+            Route::middleware($antipulgaPerm)
+                ->get('pacientes/{paciente}/antipulgas/productos-buscar', [\App\Http\Controllers\AntipulgaController::class, 'productosBuscar'])
+                ->name('pacientes.antipulgas.productos');
+            Route::middleware($antipulgaPerm)
+                ->post('pacientes/{paciente}/antipulgas/dictar', [\App\Http\Controllers\AntipulgaController::class, 'dictar'])
+                ->name('pacientes.antipulgas.dictar');
+            Route::middleware($antipulgaPerm)
+                ->get('pacientes/{paciente}/antipulgas/{antipulga}', [\App\Http\Controllers\AntipulgaController::class, 'edit'])
+                ->name('pacientes.antipulgas.edit');
+            Route::middleware($antipulgaPerm)
+                ->match(['put', 'patch'], 'pacientes/{paciente}/antipulgas/{antipulga}', [\App\Http\Controllers\AntipulgaController::class, 'update'])
+                ->name('pacientes.antipulgas.update');
+            $antipulgaCargoPerm = 'permission:consulta-cargos.view|consulta-cargos.manage|historias-clinicas.view|historias-clinicas.update|vacunaciones.view|vacunaciones.update';
+            Route::middleware($antipulgaCargoPerm)
+                ->get('pacientes/{paciente}/antipulgas/{antipulga}/cargos', [\App\Http\Controllers\AntipulgaCargoController::class, 'show'])
+                ->name('pacientes.antipulgas.cargos.show');
+            Route::middleware($antipulgaCargoPerm)
+                ->get('pacientes/{paciente}/antipulgas/{antipulga}/cargos/productos-buscar', [\App\Http\Controllers\AntipulgaCargoController::class, 'productosBuscar'])
+                ->name('pacientes.antipulgas.cargos.productos');
+            Route::middleware($antipulgaCargoPerm)
+                ->get('pacientes/{paciente}/antipulgas/{antipulga}/cargos/servicios-buscar', [\App\Http\Controllers\AntipulgaCargoController::class, 'serviciosBuscar'])
+                ->name('pacientes.antipulgas.cargos.servicios');
+            Route::middleware($antipulgaCargoPerm)
+                ->get('pacientes/{paciente}/antipulgas/{antipulga}/cargos/ticket', [\App\Http\Controllers\AntipulgaCargoController::class, 'ticket'])
+                ->name('pacientes.antipulgas.cargos.ticket');
+            Route::middleware($antipulgaCargoPerm)
+                ->match(['put', 'patch'], 'pacientes/{paciente}/antipulgas/{antipulga}/cargos', [\App\Http\Controllers\AntipulgaCargoController::class, 'update'])
+                ->name('pacientes.antipulgas.cargos.update');
+            Route::middleware($antipulgaCargoPerm)
+                ->post('pacientes/{paciente}/antipulgas/{antipulga}/cargos/confirmar', [\App\Http\Controllers\AntipulgaCargoController::class, 'confirmar'])
+                ->name('pacientes.antipulgas.cargos.confirmar');
+            Route::middleware($antipulgaCargoPerm)
+                ->delete('pacientes/{paciente}/antipulgas/{antipulga}/cargos', [\App\Http\Controllers\AntipulgaCargoController::class, 'destroy'])
+                ->name('pacientes.antipulgas.cargos.destroy');
             Route::middleware('permission:pacientes.create')
                 ->post('pacientes', [PacienteController::class, 'store'])
                 ->name('pacientes.store');
@@ -1111,6 +1152,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('ventas/desde-desparasitacion/{paciente}/{desparasitacion}', [VentaController::class, 'createDesdeDesparasitacion'])
             ->whereUuid('desparasitacion')
             ->name('ventas.create-desde-desparasitacion');
+        Route::middleware(['permission:ventas.create', 'permission:vacunaciones.view|historias-clinicas.view'])
+            ->get('ventas/desde-antipulga/{paciente}/{antipulga}', [VentaController::class, 'createDesdeAntipulga'])
+            ->whereUuid('antipulga')
+            ->name('ventas.create-desde-antipulga');
         Route::middleware(['permission:ventas.create', 'permission:grooming.view'])
             ->post('ventas/adelanto-grooming/{grooming_turno}', [VentaController::class, 'storeAdelantoGrooming'])
             ->whereUuid('grooming_turno')

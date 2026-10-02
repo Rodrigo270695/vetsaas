@@ -13,6 +13,7 @@ use App\Models\HotelEstancia;
 use App\Models\HotelEstanciaTarifa;
 use App\Models\Internamiento;
 use App\Models\ConsultaCargoLinea;
+use App\Models\Antipulga;
 use App\Models\Desparasitacion;
 use App\Models\VacunaAplicada;
 use Illuminate\Support\Facades\Auth;
@@ -753,6 +754,109 @@ final class VentaDesdeCargoPrefill
     }
 
     /**
+     * Prefill POS desde una ficha de antipulgas (precuenta confirmada).
+     *
+     * @return array<string, mixed>
+     */
+    public function buildFromAntipulga(Antipulga $antipulga): array
+    {
+        $antipulga->load([
+            'paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+            'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
+            'cargo.lineas' => fn ($q) => $q->orderBy('orden'),
+        ]);
+
+        $paciente = $antipulga->paciente;
+        if ($paciente === null) {
+            throw ValidationException::withMessages([
+                'antipulga' => __('caja.ventas.vacuna.aplicacion_invalida'),
+            ]);
+        }
+
+        $propietario = $paciente->propietario;
+        if ($propietario === null) {
+            throw ValidationException::withMessages([
+                'antipulga' => __('caja.ventas.vacuna.sin_propietario'),
+            ]);
+        }
+
+        $cargo = $antipulga->cargo;
+        if ($cargo === null) {
+            throw ValidationException::withMessages([
+                'antipulga' => __('caja.ventas.desde_cargo.validation.cargo_invalido'),
+            ]);
+        }
+
+        if ($cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO) {
+            throw ValidationException::withMessages([
+                'antipulga' => __('caja.ventas.desde_cargo.validation.no_confirmado'),
+            ]);
+        }
+
+        if ($cargo->venta_id !== null) {
+            throw ValidationException::withMessages([
+                'antipulga' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
+            ]);
+        }
+
+        if ($cargo->lineas->isEmpty()) {
+            throw ValidationException::withMessages([
+                'antipulga' => __('caja.ventas.desde_cargo.validation.sin_lineas'),
+            ]);
+        }
+
+        $sesion = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->where('opened_by_id', Auth::id())
+            ->first();
+
+        $lineasCobro = $cargo->lineas->filter(function (ConsultaCargoLinea $ln): bool {
+            if ($ln->tipo_linea === ConsultaCargoLinea::TIPO_SERVICIO) {
+                return true;
+            }
+
+            return (float) (string) $ln->precio_unitario > 0.0001;
+        })->values();
+
+        if ($lineasCobro->isEmpty()) {
+            $lineasCobro = $cargo->lineas;
+        }
+
+        $productoIds = $lineasCobro
+            ->pluck('producto_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $stocks = ($sesion === null || $productoIds === [])
+            ? []
+            : DB::table('existencias_sede')
+                ->where('sede_id', $sesion->sede_id)
+                ->whereIn('producto_id', $productoIds)
+                ->pluck('cantidad', 'producto_id')
+                ->all();
+
+        $lineasIniciales = $this->mapLineasCargoParaVenta($cargo, $lineasCobro, $stocks);
+
+        return [
+            'consulta_id' => null,
+            'consulta_cargo_id' => $cargo->id,
+            'grooming_turno_id' => null,
+            'hotel_estancia_id' => null,
+            'vacuna_aplicada_id' => null,
+            'propietario_id' => (string) $propietario->id,
+            'paciente_id' => $paciente->id,
+            'paciente_nombre' => $paciente->nombre,
+            'consulta_atendido_at' => $antipulga->atendido_at?->toIso8601String(),
+            'cargo_total' => (string) $cargo->total,
+            'adelanto_monto' => null,
+            'adelanto_venta_numero' => null,
+            'lineas_iniciales' => $lineasIniciales,
+        ];
+    }
+
+    /**
      * Combina varias pre-cuentas confirmadas (mismo propietario) en un solo prefill de venta.
      *
      * @param  list<string>  $cargoIds
@@ -817,6 +921,11 @@ final class VentaDesdeCargoPrefill
             'vacunaAplicada.paciente' => fn ($q) => $q->withTrashed(),
             'vacunaAplicada.paciente.propietario' => fn ($q) => $q->withTrashed(),
         ];
+        if (Schema::hasColumn('consulta_cargos', 'antipulga_id')) {
+            $with['antipulga.paciente'] = fn ($q) => $q->withTrashed();
+            $with['antipulga.paciente.propietario'] = fn ($q) => $q->withTrashed();
+        }
+
         if (Schema::hasColumn('consulta_cargos', 'desparasitacion_id')) {
             $with['desparasitacion.paciente'] = fn ($q) => $q->withTrashed();
             $with['desparasitacion.paciente.propietario'] = fn ($q) => $q->withTrashed();
@@ -981,6 +1090,17 @@ final class VentaDesdeCargoPrefill
      */
     private function resolverActoresCargo(ConsultaCargo $cargo): array
     {
+        if ($cargo->antipulga_id && $cargo->antipulga) {
+            $pac = $cargo->antipulga->paciente;
+
+            return [
+                $pac?->propietario_id,
+                $pac?->id,
+                $pac?->nombre,
+                $cargo->antipulga->atendido_at?->toIso8601String(),
+            ];
+        }
+
         if ($cargo->desparasitacion_id && $cargo->desparasitacion) {
             $pac = $cargo->desparasitacion->paciente;
 

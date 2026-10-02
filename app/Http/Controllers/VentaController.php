@@ -26,6 +26,7 @@ use App\Models\Producto;
 use App\Models\Propietario;
 use App\Models\Sede;
 use App\Models\Tenant;
+use App\Models\Antipulga;
 use App\Models\Desparasitacion;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
@@ -711,6 +712,50 @@ class VentaController extends Controller
 
         try {
             $desdeCargo = $prefill->buildFromDesparasitacion($desparasitacion);
+        } catch (ValidationException $e) {
+            $first = collect($e->errors())->flatten()->first();
+            $message = is_string($first) ? $first : __('caja.ventas.vacuna.aplicacion_invalida');
+
+            return redirect()->route('caja.ventas.create')->with('error', $message);
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()->route('caja.ventas.create')->with('error', __('caja.ventas.vacuna.aplicacion_invalida'));
+        }
+
+        $miSesion = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->where('opened_by_id', Auth::id())
+            ->first();
+
+        $sedeNombre = $this->resolveSedeNombre($miSesion?->sede_id);
+        $clinic = ClinicSetting::current();
+        $tenantModel = $tenants->current()?->tenant;
+        $propietarios = PropietarioSearch::opcionesActivas('', 120);
+
+        return Inertia::render('caja/ventas/create', [
+            ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
+            'desde_cargo' => $desdeCargo,
+        ]);
+    }
+
+    public function createDesdeAntipulga(
+        Request $request,
+        \App\Models\Paciente $paciente,
+        Antipulga $antipulga,
+        VentaDesdeCargoPrefill $prefill,
+        TenantManager $tenants,
+    ): Response|RedirectResponse {
+        $user = $request->user();
+        abort_if($user === null, 403);
+        abort_unless($antipulga->paciente_id === $paciente->id, 404);
+        abort_unless(
+            $user->can('ventas.create') && ($user->can('historias-clinicas.view') || $user->can('vacunaciones.view')),
+            403,
+        );
+
+        try {
+            $desdeCargo = $prefill->buildFromAntipulga($antipulga);
         } catch (ValidationException $e) {
             $first = collect($e->errors())->flatten()->first();
             $message = is_string($first) ? $first : __('caja.ventas.vacuna.aplicacion_invalida');

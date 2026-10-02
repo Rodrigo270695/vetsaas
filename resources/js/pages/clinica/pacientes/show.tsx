@@ -52,6 +52,7 @@ import { DocumentoAutorizacionSendDialog } from './components/documento-autoriza
 import { HistorialArchivoPreview } from './components/historial-archivo-preview';
 import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
+import { AntipulgaEmbed } from './antipulgas';
 import { DesparasitacionEmbed } from './desparasitacion';
 import type { HistorialNuevoAccion } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
@@ -169,6 +170,7 @@ export type TimelineAplicacionDetalle = {
 export type TimelineEventKind =
     | 'laboratorio'
     | 'desparasitacion'
+    | 'antipulga'
     | 'cirugia'
     | 'internamiento'
     | 'grooming'
@@ -256,6 +258,13 @@ type Props = {
             dictar_url: string;
             atendido_at: string;
         } | null;
+        nueva_antipulga?: string | null;
+        antipulga?: {
+            store_url: string;
+            productos_url: string;
+            dictar_url: string;
+            atendido_at: string;
+        } | null;
         historial_pdf: string | null;
         historial_whatsapp: string | null;
         laboratorio_rapido: string | null;
@@ -321,6 +330,9 @@ export default function PacienteShow({
     const [groomingOpen, setGroomingOpen] = useState(false);
     const [hotelOpen, setHotelOpen] = useState(false);
     const [desparasitacionPanel, setDesparasitacionPanel] = useState<
+        null | { mode: 'create' } | { mode: 'edit'; url: string }
+    >(null);
+    const [antipulgaPanel, setAntipulgaPanel] = useState<
         null | { mode: 'create' } | { mode: 'edit'; url: string }
     >(null);
     const [autorizacionConsultaId, setAutorizacionConsultaId] = useState<string | null>(null);
@@ -493,7 +505,14 @@ export default function PacienteShow({
                         }
 
                         if (accion === 'desparasitacion') {
+                            setAntipulgaPanel(null);
                             setDesparasitacionPanel({ mode: 'create' });
+                            return;
+                        }
+
+                        if (accion === 'antipulga') {
+                            setDesparasitacionPanel(null);
+                            setAntipulgaPanel({ mode: 'create' });
                             return;
                         }
 
@@ -553,6 +572,17 @@ export default function PacienteShow({
                                 }
                                 editUrl={desparasitacionPanel.mode === 'edit' ? desparasitacionPanel.url : null}
                                 onVolver={() => setDesparasitacionPanel(null)}
+                            />
+                        </div>
+                    ) : antipulgaPanel ? (
+                        <div className="p-4 sm:p-5">
+                            <AntipulgaEmbed
+                                paciente={{ id: paciente.id, nombre: paciente.nombre }}
+                                create={
+                                    antipulgaPanel.mode === 'create' ? (links.antipulga ?? null) : null
+                                }
+                                editUrl={antipulgaPanel.mode === 'edit' ? antipulgaPanel.url : null}
+                                onVolver={() => setAntipulgaPanel(null)}
                             />
                         </div>
                     ) : (
@@ -620,9 +650,14 @@ export default function PacienteShow({
                                         consultaOpeningId={consultaLoadingId}
                                         onOpenConsulta={openConsultaRegistro}
                                         onOpenAplicacion={openVacunaRegistro}
-                                        onOpenDesparasitacion={(registro) =>
-                                            setDesparasitacionPanel({ mode: 'edit', url: registro.href })
-                                        }
+                                        onOpenDesparasitacion={(registro) => {
+                                            setAntipulgaPanel(null);
+                                            setDesparasitacionPanel({ mode: 'edit', url: registro.href });
+                                        }}
+                                        onOpenAntipulga={(registro) => {
+                                            setDesparasitacionPanel(null);
+                                            setAntipulgaPanel({ mode: 'edit', url: registro.href });
+                                        }}
                                         onShareConsulta={(consulta) =>
                                             setShareTarget({
                                                 url: consulta.whatsapp_url,

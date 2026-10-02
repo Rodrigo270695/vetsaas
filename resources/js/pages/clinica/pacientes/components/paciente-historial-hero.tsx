@@ -52,6 +52,7 @@ type Props = {
         historial_whatsapp?: string | null;
         laboratorio_rapido?: string | null;
         nueva_desparasitacion?: string | null;
+        nueva_antipulga?: string | null;
         petpass_registrar?: string | null;
         petpass_propietario?: string | null;
         petpass_perfil_publico?: string | null;
@@ -85,6 +86,7 @@ export type HistorialNuevoAccion =
     | 'cita'
     | 'vacuna'
     | 'desparasitacion'
+    | 'antipulga'
     | 'receta'
     | 'hospitalizacion'
     | 'cirugia'
@@ -220,6 +222,14 @@ export function PacienteHistorialHero({
             });
         }
 
+        if (links.nueva_antipulga) {
+            items.push({
+                id: 'antipulga',
+                label: t('historial.nuevo_antipulga'),
+                icon: Bug,
+            });
+        }
+
         if (recetasModule && can('recetas.create')) {
             items.push({
                 id: 'receta',
@@ -280,6 +290,7 @@ export function PacienteHistorialHero({
         laboratorioModule,
         links.laboratorio_rapido,
         links.nueva_desparasitacion,
+        links.nueva_antipulga,
         permisos.citas_crear,
         permisos.consultas_crear,
         permisos.laboratorio_crear,
