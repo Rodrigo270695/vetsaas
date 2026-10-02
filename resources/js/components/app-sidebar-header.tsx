@@ -49,16 +49,16 @@ export function AppSidebarHeader({
         <>
             <header
                 data-session-enter-header=""
-                className="flex h-16 shrink-0 items-center gap-2 overflow-visible border-b border-border/60 bg-white px-3 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4 dark:bg-background"
+                className="flex h-16 shrink-0 items-center gap-1.5 overflow-visible border-b border-border/60 bg-white px-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sm:gap-2 sm:px-3 md:px-4 dark:bg-background"
             >
-                <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden md:gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden sm:gap-1.5 md:gap-2">
                     <SidebarTrigger className="-ml-1 shrink-0" />
-                    <div className="min-w-0 flex-1">
+                    <div className="hidden min-w-0 flex-1 sm:block">
                         <Breadcrumbs breadcrumbs={breadcrumbs} />
                     </div>
                 </div>
 
-                <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
+                <div className="ml-auto flex min-w-0 items-center gap-0.5 overflow-x-auto py-1 [scrollbar-width:none] sm:gap-1 sm:overflow-visible [&::-webkit-scrollbar]:hidden">
                     <PwaInstallHeaderButton />
                     <HeaderClinicaAcciones />
                     <SalaEsperaHeaderIcons />
@@ -71,7 +71,7 @@ export function AppSidebarHeader({
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="h-9 gap-1.5 px-2.5 text-sky-700 hover:bg-sky-50 hover:text-sky-800 dark:text-sky-300 dark:hover:bg-sky-950/50 dark:hover:text-sky-200"
+                                    className="size-8 shrink-0 gap-1.5 px-0 text-sky-700 hover:bg-sky-50 hover:text-sky-800 sm:size-9 sm:w-auto sm:px-2.5 dark:text-sky-300 dark:hover:bg-sky-950/50 dark:hover:text-sky-200"
                                     onClick={() => setAssistantOpen(true)}
                                     aria-label={t('button.label')}
                                 >

@@ -290,14 +290,14 @@ export function PwaInstallHeaderButton() {
     return (
         <button
             type="button"
-            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-[#008064] hover:bg-[#008064]/10 lg:hidden"
+            className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md text-[#008064] hover:bg-[#008064]/10 sm:h-9 sm:w-auto sm:px-2.5 lg:hidden"
             onClick={() => {
                 window.dispatchEvent(new Event(OPEN_PWA_INSTALL_HELP_EVENT));
             }}
             aria-label="Instalar app"
         >
             <Download className="size-4" strokeWidth={2.25} />
-            <span className="text-xs font-medium">App</span>
+            <span className="hidden text-xs font-medium sm:inline">App</span>
         </button>
     );
 }

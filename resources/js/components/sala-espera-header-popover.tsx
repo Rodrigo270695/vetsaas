@@ -182,7 +182,7 @@ function AlertasStockHeaderIcons() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className={cn('relative size-9 cursor-pointer', item.tone)}
+                        className={cn('relative size-8 shrink-0 cursor-pointer sm:size-9', item.tone)}
                         asChild
                     >
                         <Link href={item.href} aria-label={label} title={label}>
@@ -331,7 +331,7 @@ export function SalaEsperaHeaderIcons() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="relative size-9 cursor-pointer text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                    className="relative size-8 shrink-0 cursor-pointer text-amber-700 hover:bg-amber-50 hover:text-amber-800 sm:size-9 dark:text-amber-300 dark:hover:bg-amber-950/40"
                     asChild
                 >
                     <Link
@@ -348,7 +348,7 @@ export function SalaEsperaHeaderIcons() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="relative size-9 cursor-pointer text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                    className="relative size-8 shrink-0 cursor-pointer text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 sm:size-9 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
                     asChild
                 >
                     <Link href="/clinica/citas" aria-label={t('sala_espera.ir_citas')} title={t('sala_espera.ir_citas')}>
@@ -474,7 +474,7 @@ function SalaEsperaTipoPopover({ tipo }: { tipo: 'consulta' | 'grooming' }) {
                     variant="ghost"
                     size="icon"
                     className={cn(
-                        'relative size-9 cursor-pointer',
+                        'relative size-8 shrink-0 cursor-pointer sm:size-9',
                         isGrooming
                             ? 'text-violet-600 hover:bg-violet-50 hover:text-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/40'
                             : 'text-sky-600 hover:bg-sky-50 hover:text-sky-700 dark:text-sky-300 dark:hover:bg-sky-950/40',

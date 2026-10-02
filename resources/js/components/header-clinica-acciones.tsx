@@ -167,7 +167,7 @@ export function HeaderClinicaAcciones() {
                             'absolute top-1/2 right-full z-30 mr-1 flex h-9 -translate-y-1/2 items-center overflow-hidden rounded-full border bg-white shadow-sm dark:bg-background',
                             'transition-[width,opacity,border-color,box-shadow] duration-300',
                             searchOpen
-                                ? 'w-[min(18rem,calc(100vw-7.5rem))] border-border/80 opacity-100 shadow-md'
+                                ? 'w-[min(18rem,calc(100vw-7.5rem))] border-border/80 opacity-100 shadow-md max-sm:fixed max-sm:top-3 max-sm:right-2 max-sm:left-12 max-sm:z-40 max-sm:w-auto max-sm:translate-y-0'
                                 : 'pointer-events-none w-0 border-transparent opacity-0 shadow-none',
                         )}
                         style={{ transitionTimingFunction: EASE }}
@@ -237,7 +237,7 @@ export function HeaderClinicaAcciones() {
                     <div
                         id={listId}
                         role="listbox"
-                        className="absolute top-[calc(100%+0.4rem)] right-full z-40 mr-1 w-[min(18rem,calc(100vw-7.5rem))] origin-top-right overflow-hidden rounded-xl border border-border/70 bg-popover shadow-lg motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+                        className="absolute top-[calc(100%+0.4rem)] right-full z-40 mr-1 w-[min(18rem,calc(100vw-7.5rem))] origin-top-right overflow-hidden rounded-xl border border-border/70 bg-popover shadow-lg motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200 max-sm:fixed max-sm:top-14 max-sm:right-2 max-sm:left-12 max-sm:w-auto"
                     >
                         {loading && hits.length === 0 ? (
                             <p className="flex items-center gap-2 px-3 py-2.5 text-sm text-muted-foreground">
@@ -287,7 +287,7 @@ export function HeaderClinicaAcciones() {
                                 variant="ghost"
                                 size="icon"
                                 className={cn(
-                                    'size-9 cursor-pointer text-sky-700 hover:bg-sky-50 hover:text-sky-800 dark:text-sky-300 dark:hover:bg-sky-950/40',
+                                    'size-8 shrink-0 cursor-pointer text-sky-700 hover:bg-sky-50 hover:text-sky-800 sm:size-9 dark:text-sky-300 dark:hover:bg-sky-950/40',
                                     searchOpen && 'bg-sky-50 text-sky-800 dark:bg-sky-950/40',
                                 )}
                                 aria-label={t('header_clinica.buscar')}
@@ -316,7 +316,7 @@ export function HeaderClinicaAcciones() {
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="size-9 cursor-pointer text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                                className="size-8 shrink-0 cursor-pointer text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 sm:size-9 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
                                 aria-label={t('header_clinica.nuevo_propietario')}
                                 onClick={openOwner}
                             >
