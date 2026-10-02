@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bath, CalendarDays, Check, Stethoscope, Timer } from 'lucide-react';
+import { Bath, CalendarDays, Check, Package, Stethoscope, Timer } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -68,6 +68,71 @@ function notifyOs(title: string, body: string): void {
 }
 
 export { SALA_ESPERA_CHANGED_EVENT } from '@/hooks/use-sala-espera-realtime';
+
+function ProductosPorVencerIcon() {
+    const { t } = useTranslation('common');
+    const { can } = usePermission();
+    const allowed = can('alertas-stock.view');
+    const [count, setCount] = useState(0);
+
+    const load = useCallback(async () => {
+        try {
+            const res = await fetch('/inventario/alertas/resumen', {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+            if (!res.ok) {
+                return;
+            }
+            const json = (await res.json()) as { count?: number };
+            setCount(Math.max(0, Number(json.count) || 0));
+        } catch {
+            // El siguiente ciclo reintenta.
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!allowed) {
+            return;
+        }
+
+        void load();
+        const id = window.setInterval(() => {
+            void load();
+        }, 60_000);
+
+        return () => window.clearInterval(id);
+    }, [allowed, load]);
+
+    if (!allowed) {
+        return null;
+    }
+
+    const badge = count > 99 ? '99+' : String(count);
+    const label = t('productos_por_vencer');
+
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="relative size-9 cursor-pointer text-orange-600 hover:bg-orange-50 hover:text-orange-700 dark:text-orange-300 dark:hover:bg-orange-950/40"
+            asChild
+        >
+            <Link href="/inventario/alertas?tipo_alerta=por_vencer" aria-label={label} title={label}>
+                <Package className="size-4" strokeWidth={2.25} />
+                {count > 0 ? (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
+                        {badge}
+                    </span>
+                ) : null}
+            </Link>
+        </Button>
+    );
+}
 
 export function SalaEsperaHeaderIcons() {
     const { t } = useTranslation('common');
@@ -227,6 +292,7 @@ export function SalaEsperaHeaderIcons() {
                     </Link>
                 </Button>
             ) : null}
+            <ProductosPorVencerIcon />
             {canConsulta && visibles.consulta ? (
                 <SalaEsperaTipoPopover tipo="consulta" />
             ) : null}

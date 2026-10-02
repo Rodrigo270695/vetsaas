@@ -153,6 +153,7 @@
         "banner_body_tenant": "We updated notifications. Without scanning the QR, reminders and queue messages will not send. Tap «Go connect».",
         "banner_body_platform": "We updated the gateway. Re-link platform WhatsApp for renewal notices."
     },
+    "productos_por_vencer": "Products expiring soon",
     "sala_espera": {
         "title": "Waiting room",
         "title_consulta": "Consult waiting room",

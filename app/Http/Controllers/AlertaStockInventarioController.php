@@ -6,6 +6,7 @@ use App\Models\Producto;
 use App\Models\ProductoLote;
 use App\Models\Sede;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -41,6 +42,38 @@ class AlertaStockInventarioController extends Controller
     private const TIPO_ALERTA_LOTES = ['por_vencer', 'vencido'];
 
     private const TIPO_ALERTA_OPTIONS = ['todos', 'agotado', 'bajo_minimo', 'por_vencer', 'vencido'];
+
+    public function resumenVencimientos(): JsonResponse
+    {
+        $tenantId = clinic_tenant_id();
+        $sedeIds = Sede::query()
+            ->where('tenant_id', $tenantId)
+            ->where('activa', true)
+            ->whereNull('deleted_at')
+            ->pluck('id');
+
+        if ($sedeIds->isEmpty()) {
+            return response()->json(['count' => 0]);
+        }
+
+        $hoy = Carbon::today()->toDateString();
+        $limite = Carbon::today()->addDays(self::DIAS_ALERTA_VENCIMIENTO)->toDateString();
+
+        $count = ProductoLote::query()
+            ->join('productos', function ($join): void {
+                $join->on('productos.id', '=', 'producto_lotes.producto_id')
+                    ->whereNull('productos.deleted_at')
+                    ->where('productos.activo', true);
+            })
+            ->whereIn('producto_lotes.sede_id', $sedeIds)
+            ->where('producto_lotes.cantidad', '>', 0)
+            ->whereNotNull('producto_lotes.fecha_vencimiento')
+            ->whereDate('producto_lotes.fecha_vencimiento', '>=', $hoy)
+            ->whereDate('producto_lotes.fecha_vencimiento', '<=', $limite)
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
 
     public function alertas(Request $request): Response
     {

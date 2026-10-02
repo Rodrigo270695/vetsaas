@@ -1056,6 +1056,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('movimientos', [MovimientoInventarioController::class, 'store'])
             ->name('movimientos.store');
         Route::middleware('permission:alertas-stock.view')
+            ->get('alertas/resumen', [AlertaStockInventarioController::class, 'resumenVencimientos'])
+            ->name('alertas.resumen');
+        Route::middleware('permission:alertas-stock.view')
             ->get('alertas', [AlertaStockInventarioController::class, 'alertas'])
             ->name('alertas');
         Route::middleware('permission:proveedores.create|proveedores.update')

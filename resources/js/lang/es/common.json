@@ -153,6 +153,7 @@
         "banner_body_tenant": "Actualizamos las notificaciones. Sin escanear el QR no saldrán recordatorios ni mensajes de la cola. Pulsa «Ir a conectar».",
         "banner_body_platform": "Actualizamos el gateway. Vincula de nuevo el WhatsApp de plataforma para avisos de renovación."
     },
+    "productos_por_vencer": "Productos próximos a vencer",
     "sala_espera": {
         "title": "Sala de espera",
         "title_consulta": "Sala consulta",
