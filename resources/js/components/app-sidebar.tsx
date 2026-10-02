@@ -77,6 +77,7 @@ import { usePlatformSupportChatUnread } from '@/contexts/platform-support-chat-u
 import { useTenantChatUnread } from '@/contexts/tenant-chat-unread-context';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
+import { SidebarAppVersion } from '@/components/sidebar-app-version';
 import { SidebarPlanBadge } from '@/components/sidebar-plan-badge';
 import { NavMainCollapsible } from '@/components/nav-main-collapsible';
 import { NavUser } from '@/components/nav-user';
@@ -796,6 +797,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
+                <SidebarAppVersion />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
