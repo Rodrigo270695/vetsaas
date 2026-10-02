@@ -1,6 +1,7 @@
 import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { OPEN_TENANT_CHAT_EVENT } from '@/components/comunicaciones/tenant-chat-dock';
 import { useTenantChatUnread } from '@/contexts/tenant-chat-unread-context';
 import { usePermission } from '@/hooks/use-permission';
 import { toastManager } from '@/lib/toast';
@@ -159,13 +160,23 @@ export function TenantChatNotifier() {
                     action: {
                         label: t('toast_open'),
                         onClick: () => {
-                            const qs = new URLSearchParams({
-                                c: latest.conversation_id,
-                            });
-                            if (isMention) {
-                                qs.set('m', latest.message_id);
+                            if (page.url.startsWith('/comunicaciones/chat')) {
+                                const qs = new URLSearchParams({
+                                    c: latest.conversation_id,
+                                });
+                                if (isMention) {
+                                    qs.set('m', latest.message_id);
+                                }
+                                router.visit(`/comunicaciones/chat?${qs.toString()}`);
+
+                                return;
                             }
-                            router.visit(`/comunicaciones/chat?${qs.toString()}`);
+
+                            window.dispatchEvent(
+                                new CustomEvent(OPEN_TENANT_CHAT_EVENT, {
+                                    detail: { conversationId: latest.conversation_id },
+                                }),
+                            );
                         },
                     },
                 });

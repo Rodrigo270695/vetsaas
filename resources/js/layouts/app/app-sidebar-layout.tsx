@@ -16,6 +16,7 @@ import { useClinicSedeLocationToast } from '@/hooks/use-clinic-sede-location-toa
 import { useSessionEnterReveal } from '@/hooks/use-session-enter-reveal';
 import { useWhatsAppDisconnectedToast } from '@/hooks/use-whatsapp-disconnected-toast';
 import { PlatformSupportChatNotifier } from '@/components/plataforma/platform-support-chat-notifier';
+import { TenantChatDock } from '@/components/comunicaciones/tenant-chat-dock';
 import { TenantChatNotifier } from '@/components/comunicaciones/tenant-chat-notifier';
 import { PlatformSupportChatUnreadProvider } from '@/contexts/platform-support-chat-unread-context';
 import { TenantChatUnreadProvider } from '@/contexts/tenant-chat-unread-context';
@@ -69,6 +70,7 @@ export default function AppSidebarLayout({
                     <DemoLeadCaptureModal />
                     <InAppAssistantAnnouncementModal />
                     <TenantChatNotifier />
+                    <TenantChatDock />
                     <PlatformSupportChatNotifier />
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
                     <div

@@ -1,5 +1,7 @@
 {
     "title": "Chat interno",
+    "dock_collapse": "Minimizar chat",
+    "dock_open_page": "Abrir chat completo",
     "subtitle": "Mensajes entre el equipo de tu clínica. Solo usuarios de este tenant.",
     "search_placeholder": "Buscar conversación…",
     "search_thread": "Buscar en el hilo…",

@@ -1342,6 +1342,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:comunicaciones-chat.view')->group(function (): void {
             Route::get('chat', [TenantChatController::class, 'index'])->name('chat');
             Route::get('chat/inbox', [TenantChatController::class, 'inbox'])->name('chat.inbox');
+            Route::get('chat/dock', [TenantChatController::class, 'dock'])->name('chat.dock');
             Route::post('chat/direct', [TenantChatController::class, 'storeDirect'])->name('chat.direct');
             Route::post('chat/notify-team', [TenantChatController::class, 'notifyTeam'])->name('chat.notify-team');
             Route::post('chat/presence', [TenantChatController::class, 'presence'])->name('chat.presence');

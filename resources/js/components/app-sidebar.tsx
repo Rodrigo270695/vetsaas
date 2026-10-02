@@ -357,12 +357,6 @@ export function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'comunicaciones-historico.view',
                         },
                         {
-                            title: t('items.chat_interno'),
-                            href: '/comunicaciones/chat',
-                            icon: MessagesSquare,
-                            permission: 'comunicaciones-chat.view',
-                        },
-                        {
                             title: t('items.bot_ia'),
                             href: '/comunicaciones/bot-ia',
                             icon: Bot,

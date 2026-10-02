@@ -64,6 +64,17 @@ class TenantChatController extends Controller
         return response()->json($this->chat->inboxPing($user));
     }
 
+    public function dock(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null && $user->can('comunicaciones-chat.view'), 403);
+
+        return response()->json([
+            'conversations' => $this->chat->listConversationsPayload($user),
+            'unread_total' => $this->chat->unreadTotalFor($user),
+        ]);
+    }
+
     public function storeDirect(StoreChatDirectRequest $request): RedirectResponse
     {
         $user = $request->user();
@@ -148,7 +159,7 @@ class TenantChatController extends Controller
         StoreChatMessageRequest $request,
         ChatConversation $chatConversation,
         TenantManager $tenants,
-    ): RedirectResponse {
+    ): JsonResponse|RedirectResponse {
         $user = $request->user();
         abort_unless($user !== null, 401);
 
@@ -167,6 +178,10 @@ class TenantChatController extends Controller
             $request->input('reply_to_id'),
             $mentions,
         );
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
 
         return redirect()->route('comunicaciones.chat', ['c' => $chatConversation->id]);
     }
