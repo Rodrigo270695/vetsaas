@@ -6,6 +6,7 @@ namespace App\Support\Clinica;
 
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
+use App\Models\Defuncion;
 use App\Models\DocumentoAutorizacionPlantilla;
 use App\Models\Paciente;
 use App\Models\Propietario;
@@ -28,6 +29,20 @@ final class DocumentoAutorizacionRenderer
             .'<li>Declaro haber podido formular preguntas sobre el procedimiento.</li>'
             .'</ol>'
             .'<p style="text-align:center">Confirmo que he leído este documento bajo mi juicio.</p>'
+            .'<p>{{ciudad}}, {{dia}} de {{mes_nombre}} de {{anio}}</p>';
+    }
+
+    public static function cuerpoDefuncion(): string
+    {
+        return '<p style="text-align:center"><img class="auth-doc-logo" alt=""></p>'
+            .'<p style="text-align:center"><strong>AUTORIZACIÓN DE DEFUNCIÓN</strong></p>'
+            .'<p>YO: {{propietario}}</p>'
+            .'<p>DNI: {{documento}}, propietario de la mascota de nombre {{paciente}}</p>'
+            .'<p>Especie: {{especie}}, Raza: {{raza}}, Edad: {{edad}}, Sexo: {{sexo}}, autorizo el registro del certificado de defunción por Causa: {{motivo}}.</p>'
+            .'<p>Sitio y lugar de defunción: {{sitio}}.</p>'
+            .'<p>Testigo del hecho: {{testigo}}.</p>'
+            .'<p>Fecha y hora: {{fecha}}.</p>'
+            .'<p style="text-align:center">Confirmo que he leído este documento y autorizo el trámite correspondiente.</p>'
             .'<p>{{ciudad}}, {{dia}} de {{mes_nombre}} de {{anio}}</p>';
     }
 
@@ -71,7 +86,29 @@ final class DocumentoAutorizacionRenderer
             'clinica' => $clinicName,
             'ciudad' => $ciudad !== '' ? $ciudad : '—',
             'veterinario' => trim((string) ($consulta->medico_tratante ?: $consulta->veterinario?->name)) ?: '—',
+            'sitio' => '—',
+            'testigo' => '—',
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function variablesForDefuncion(Defuncion $defuncion, Paciente $paciente, ?Propietario $owner): array
+    {
+        $defuncion->loadMissing('veterinario:id,name');
+        $vars = self::variablesFor(new Consulta([
+            'atendido_at' => $defuncion->ocurrido_at,
+            'motivo' => $defuncion->motivo,
+            'medico_tratante' => $defuncion->veterinario?->name,
+        ]), $paciente, $owner);
+        $sitio = trim((string) ($defuncion->sitio ?? ''));
+        $testigo = trim((string) ($defuncion->testigo ?? ''));
+        $vars['sitio'] = $sitio !== '' ? $sitio : '—';
+        $vars['testigo'] = $testigo !== '' ? $testigo : '—';
+        $vars['motivo'] = trim($defuncion->motivo) !== '' ? trim($defuncion->motivo) : '—';
+
+        return $vars;
     }
 
     /**
@@ -96,6 +133,24 @@ final class DocumentoAutorizacionRenderer
         $vars = self::variablesFor($consulta, $paciente, $owner);
         $isHtml = self::looksLikeHtml($plantilla->cuerpo);
         if ($isHtml) {
+            $escaped = [];
+            foreach ($vars as $key => $value) {
+                $escaped[$key] = e($value);
+            }
+            $vars = $escaped;
+        }
+
+        return self::prepareCuerpoHtml(self::render($plantilla->cuerpo, $vars));
+    }
+
+    public static function renderPlantillaDefuncion(
+        DocumentoAutorizacionPlantilla $plantilla,
+        Defuncion $defuncion,
+        Paciente $paciente,
+        ?Propietario $owner,
+    ): string {
+        $vars = self::variablesForDefuncion($defuncion, $paciente, $owner);
+        if (self::looksLikeHtml($plantilla->cuerpo)) {
             $escaped = [];
             foreach ($vars as $key => $value) {
                 $escaped[$key] = e($value);

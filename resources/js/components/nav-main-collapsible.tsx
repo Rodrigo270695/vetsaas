@@ -154,13 +154,6 @@ export function useVisibleNavigation(singles: NavItem[], groups: NavGroup[]): {
         return !item.permission || can(item.permission);
     };
 
-    const closeMobileSidebar = () => {
-        markPendingViewEnter();
-        if (isMobile) {
-            setOpenMobile(false);
-        }
-    };
-
     const visibleSingles = useMemo(
         () => singles.filter(itemVisible),
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,6 +193,12 @@ export function NavMainCollapsible({
         useCurrentUrl();
     const { isMobile, setOpenMobile, state } = useSidebar();
     const iconCollapsed = !isMobile && state === 'collapsed';
+    const closeMobileSidebar = () => {
+        markPendingViewEnter();
+        if (isMobile) {
+            setOpenMobile(false);
+        }
+    };
     const { t } = useTranslation('nav');
     const { visibleSingles, visibleGroups } = useVisibleNavigation(singles, groups);
 

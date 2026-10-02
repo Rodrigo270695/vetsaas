@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?bool $esterilizado
  * @property ?string $notas
  * @property bool $activo
+ * @property ?\Illuminate\Support\Carbon $fallecido_at
  * @property ?string $created_by_id
  * @property ?string $updated_by_id
  */
@@ -69,6 +70,7 @@ class Paciente extends Model
         'esterilizado',
         'notas',
         'activo',
+        'fallecido_at',
         'created_by_id',
         'updated_by_id',
     ];
@@ -79,6 +81,7 @@ class Paciente extends Model
             'fecha_nacimiento' => 'date',
             'esterilizado' => 'boolean',
             'activo' => 'boolean',
+            'fallecido_at' => 'datetime',
             'petpass_registered_at' => 'datetime',
             'petpass_lost_at' => 'datetime',
         ];
@@ -124,6 +127,11 @@ class Paciente extends Model
     public function antipulgas(): HasMany
     {
         return $this->hasMany(Antipulga::class, 'paciente_id');
+    }
+
+    public function defunciones(): HasMany
+    {
+        return $this->hasMany(Defuncion::class, 'paciente_id');
     }
 
     public function citas(): HasMany

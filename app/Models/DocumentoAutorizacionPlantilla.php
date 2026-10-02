@@ -20,6 +20,8 @@ class DocumentoAutorizacionPlantilla extends Model
 {
     use HasUuids;
 
+    public const NOMBRE_DEFUNCION = 'AUTORIZACIÓN DE DEFUNCIÓN';
+
     protected $table = 'documento_autorizacion_plantillas';
 
     protected $fillable = [

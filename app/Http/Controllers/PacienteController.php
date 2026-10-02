@@ -16,6 +16,7 @@ use App\Models\ClinicaAsesorada;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\Antipulga;
+use App\Models\Defuncion;
 use App\Models\Desparasitacion;
 use App\Models\ConsultaCargo;
 use App\Models\DocumentoAutorizacionEnvio;
@@ -538,6 +539,25 @@ class PacienteController extends Controller
                         'productos_url' => route('clinica.pacientes.antipulgas.productos', $paciente),
                         'dictar_url' => route('clinica.pacientes.antipulgas.dictar', $paciente),
                         'atendido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
+                    ]
+                    : null,
+                'nueva_defuncion' => ($user instanceof User && Schema::hasTable('defunciones') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? route('clinica.pacientes.defunciones.create', $paciente)
+                    : null,
+                'defuncion' => ($user instanceof User && Schema::hasTable('defunciones') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? [
+                        'store_url' => route('clinica.pacientes.defunciones.store', $paciente),
+                        'ocurrido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
                     ]
                     : null,
                 'nueva_aplicacion' => route('clinica.vacunaciones.index', ['prefill_paciente_id' => $paciente->id]),
@@ -1272,6 +1292,7 @@ class PacienteController extends Controller
 
         $this->appendDesparasitaciones($timeline, $paciente, $user);
         $this->appendAntipulgas($timeline, $paciente, $user);
+        $this->appendDefunciones($timeline, $paciente, $user);
         $this->appendStandaloneTimelineEvents($timeline, $paciente, $user, $tz);
 
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
@@ -1373,6 +1394,65 @@ class PacienteController extends Controller
                 'titulo' => 'Antipulgas',
                 'estado' => 'registrada',
                 'href' => route('clinica.pacientes.antipulgas.edit', [$paciente, $row]),
+                'detalle_corto' => $corto !== '' ? $corto : null,
+                'veterinario' => $row->veterinario?->name,
+            ];
+        }
+    }
+
+    /**
+     * Certificados de defunción. El clic del historial abre esa ficha.
+     *
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function appendDefunciones(array &$timeline, Paciente $paciente, mixed $user): void
+    {
+        if (! $user instanceof User || ! Schema::hasTable('defunciones')) {
+            return;
+        }
+
+        $canVer = $user->can('historias-clinicas.view')
+            || $user->can('historias-clinicas.update')
+            || $user->can('vacunaciones.view')
+            || $user->can('vacunaciones.update')
+            || $user->can('historias-clinicas.create')
+            || $user->can('vacunaciones.create');
+        if (! $canVer) {
+            return;
+        }
+
+        $rows = Defuncion::query()
+            ->where('paciente_id', $paciente->id)
+            ->with('veterinario:id,name')
+            ->orderByDesc('ocurrido_at')
+            ->limit(50)
+            ->get();
+
+        $enviosPorDefuncion = collect();
+        if ($rows->isNotEmpty() && Schema::hasColumn('documento_autorizacion_envios', 'defuncion_id')) {
+            $enviosPorDefuncion = DocumentoAutorizacionEnvio::query()
+                ->whereIn('defuncion_id', $rows->pluck('id'))
+                ->orderByDesc('created_at')
+                ->get()
+                ->groupBy('defuncion_id');
+        }
+
+        foreach ($rows as $row) {
+            $envios = $enviosPorDefuncion->get($row->id, collect());
+            $firmada = $envios->contains(fn (DocumentoAutorizacionEnvio $envio): bool => $envio->estado === DocumentoAutorizacionEnvio::ESTADO_FIRMADO);
+            $pendiente = $envios->contains(fn (DocumentoAutorizacionEnvio $envio): bool => $envio->estado === DocumentoAutorizacionEnvio::ESTADO_PENDIENTE);
+            $corto = trim(implode(' · ', array_filter([
+                $row->motivo,
+                $row->sitio,
+            ])));
+
+            $timeline[] = [
+                'kind' => 'defuncion',
+                'id' => $row->id,
+                'ocurrido_at' => $row->ocurrido_at->toIso8601String(),
+                'titulo' => 'Defunción',
+                'estado' => $firmada ? 'firmada' : ($pendiente ? 'pendiente' : 'registrada'),
+                'href' => route('clinica.pacientes.defunciones.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
                 'veterinario' => $row->veterinario?->name,
             ];

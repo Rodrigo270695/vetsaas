@@ -478,6 +478,22 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware($antipulgaCargoPerm)
                 ->delete('pacientes/{paciente}/antipulgas/{antipulga}/cargos', [\App\Http\Controllers\AntipulgaCargoController::class, 'destroy'])
                 ->name('pacientes.antipulgas.cargos.destroy');
+            $defuncionPerm = 'permission:historias-clinicas.view|historias-clinicas.create|historias-clinicas.update|vacunaciones.view|vacunaciones.create|vacunaciones.update';
+            Route::middleware($defuncionPerm)
+                ->get('pacientes/{paciente}/defunciones/crear', [\App\Http\Controllers\DefuncionController::class, 'create'])
+                ->name('pacientes.defunciones.create');
+            Route::middleware($defuncionPerm)
+                ->post('pacientes/{paciente}/defunciones', [\App\Http\Controllers\DefuncionController::class, 'store'])
+                ->name('pacientes.defunciones.store');
+            Route::middleware($defuncionPerm)
+                ->get('pacientes/{paciente}/defunciones/{defuncion}', [\App\Http\Controllers\DefuncionController::class, 'edit'])
+                ->name('pacientes.defunciones.edit');
+            Route::middleware($defuncionPerm)
+                ->match(['put', 'patch'], 'pacientes/{paciente}/defunciones/{defuncion}', [\App\Http\Controllers\DefuncionController::class, 'update'])
+                ->name('pacientes.defunciones.update');
+            Route::middleware('permission:historias-clinicas.update|vacunaciones.update|historias-clinicas.create|vacunaciones.create')
+                ->post('pacientes/{paciente}/defunciones/{defuncion}/autorizacion', [\App\Http\Controllers\DefuncionController::class, 'autorizacion'])
+                ->name('pacientes.defunciones.autorizacion');
             Route::middleware('permission:pacientes.create')
                 ->post('pacientes', [PacienteController::class, 'store'])
                 ->name('pacientes.store');

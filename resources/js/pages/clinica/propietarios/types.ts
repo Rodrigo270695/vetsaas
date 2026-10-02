@@ -120,6 +120,7 @@ export type Paciente = {
     esterilizado: boolean | null;
     notas: string | null;
     activo: boolean;
+    fallecido_at?: string | null;
     created_at: string;
     updated_at: string;
     propietario?: {

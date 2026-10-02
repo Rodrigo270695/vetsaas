@@ -329,7 +329,9 @@ export function MascotaTarjetaFicha({
                             <span className="text-xs">—</span>
                         )}
                     </div>
-                    {p.activo ? (
+                    {p.fallecido_at ? (
+                        <StatBadge label={t('historial.estado_fallecido')} value="" variant="danger" />
+                    ) : p.activo ? (
                         <StatBadge label={t('common:filters.active')} value="" variant="success" />
                     ) : (
                         <StatBadge label={t('common:filters.inactive')} value="" variant="muted" />

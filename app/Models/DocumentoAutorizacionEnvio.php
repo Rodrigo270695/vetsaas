@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\URL;
 /**
  * @property string $id
  * @property ?string $plantilla_id
- * @property string $consulta_id
+ * @property ?string $consulta_id
+ * @property ?string $defuncion_id
  * @property string $paciente_id
  * @property ?string $propietario_id
  * @property string $titulo
@@ -44,6 +45,7 @@ class DocumentoAutorizacionEnvio extends Model
     protected $fillable = [
         'plantilla_id',
         'consulta_id',
+        'defuncion_id',
         'paciente_id',
         'propietario_id',
         'titulo',
@@ -108,6 +110,11 @@ class DocumentoAutorizacionEnvio extends Model
     public function consulta(): BelongsTo
     {
         return $this->belongsTo(Consulta::class, 'consulta_id');
+    }
+
+    public function defuncion(): BelongsTo
+    {
+        return $this->belongsTo(Defuncion::class, 'defuncion_id');
     }
 
     public function paciente(): BelongsTo

@@ -53,6 +53,7 @@ import { HistorialArchivoPreview } from './components/historial-archivo-preview'
 import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { AntipulgaEmbed } from './antipulgas';
+import { DefuncionEmbed } from './defuncion';
 import { DesparasitacionEmbed } from './desparasitacion';
 import type { HistorialNuevoAccion } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
@@ -171,6 +172,7 @@ export type TimelineEventKind =
     | 'laboratorio'
     | 'desparasitacion'
     | 'antipulga'
+    | 'defuncion'
     | 'cirugia'
     | 'internamiento'
     | 'grooming'
@@ -265,6 +267,11 @@ type Props = {
             dictar_url: string;
             atendido_at: string;
         } | null;
+        nueva_defuncion?: string | null;
+        defuncion?: {
+            store_url: string;
+            ocurrido_at: string;
+        } | null;
         historial_pdf: string | null;
         historial_whatsapp: string | null;
         laboratorio_rapido: string | null;
@@ -308,7 +315,8 @@ export default function PacienteShow({
     plantillas_autorizacion = [],
 }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
-    const { timezone: appTz } = usePage().props;
+    const { timezone: appTz, flash } = usePage().props;
+    const flashDefuncion = flash as { id?: string; defuncion_editar?: string | null } | null;
     const [timelineLaneFilter, setTimelineLaneFilter] = useState<
         'todo' | 'clinico' | 'servicio'
     >('todo');
@@ -335,6 +343,13 @@ export default function PacienteShow({
     const [antipulgaPanel, setAntipulgaPanel] = useState<
         null | { mode: 'create' } | { mode: 'edit'; url: string }
     >(null);
+    const [defuncionPanel, setDefuncionPanel] = useState<
+        null | { mode: 'create' } | { mode: 'edit'; url: string }
+    >(() => {
+        const url = flashDefuncion?.defuncion_editar;
+
+        return typeof url === 'string' && url !== '' ? { mode: 'edit', url } : null;
+    });
     const [autorizacionConsultaId, setAutorizacionConsultaId] = useState<string | null>(null);
 
     const openLaboratorio = (consultaId: string | null = null) => {
@@ -487,6 +502,10 @@ export default function PacienteShow({
                         }
                     }}
                     onNuevo={(accion: HistorialNuevoAccion) => {
+                        if (accion !== 'defuncion') {
+                            setDefuncionPanel(null);
+                        }
+
                         if (accion === 'consulta') {
                             setConsultaEdit(null);
                             setConsultaCreateOpen(true);
@@ -513,6 +532,13 @@ export default function PacienteShow({
                         if (accion === 'antipulga') {
                             setDesparasitacionPanel(null);
                             setAntipulgaPanel({ mode: 'create' });
+                            return;
+                        }
+
+                        if (accion === 'defuncion') {
+                            setDesparasitacionPanel(null);
+                            setAntipulgaPanel(null);
+                            setDefuncionPanel({ mode: 'create' });
                             return;
                         }
 
@@ -585,6 +611,32 @@ export default function PacienteShow({
                                 onVolver={() => setAntipulgaPanel(null)}
                             />
                         </div>
+                    ) : defuncionPanel ? (
+                        <div className="p-4 sm:p-5">
+                            <DefuncionEmbed
+                                paciente={{
+                                    id: paciente.id,
+                                    nombre: paciente.nombre,
+                                    fallecido: Boolean(paciente.fallecido_at),
+                                }}
+                                create={defuncionPanel.mode === 'create' ? (links.defuncion ?? null) : null}
+                                editUrl={defuncionPanel.mode === 'edit' ? defuncionPanel.url : null}
+                                plantillas={plantillas_autorizacion}
+                                plantillaDefuncionId={
+                                    plantillas_autorizacion.find((plantilla) =>
+                                        plantilla.nombre.toLocaleUpperCase('es').includes('DEFUNCIÓN'),
+                                    )?.id ?? null
+                                }
+                                telefono={paciente.propietario?.telefono ?? ''}
+                                email={paciente.propietario?.email ?? ''}
+                                onVolver={() => setDefuncionPanel(null)}
+                                onSaved={(url) => {
+                                    setDesparasitacionPanel(null);
+                                    setAntipulgaPanel(null);
+                                    setDefuncionPanel({ mode: 'edit', url });
+                                }}
+                            />
+                        </div>
                     ) : (
                         <>
                     <header className="flex flex-col gap-3 border-b border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -652,11 +704,18 @@ export default function PacienteShow({
                                         onOpenAplicacion={openVacunaRegistro}
                                         onOpenDesparasitacion={(registro) => {
                                             setAntipulgaPanel(null);
+                                            setDefuncionPanel(null);
                                             setDesparasitacionPanel({ mode: 'edit', url: registro.href });
                                         }}
                                         onOpenAntipulga={(registro) => {
                                             setDesparasitacionPanel(null);
+                                            setDefuncionPanel(null);
                                             setAntipulgaPanel({ mode: 'edit', url: registro.href });
+                                        }}
+                                        onOpenDefuncion={(registro) => {
+                                            setDesparasitacionPanel(null);
+                                            setAntipulgaPanel(null);
+                                            setDefuncionPanel({ mode: 'edit', url: registro.href });
                                         }}
                                         onShareConsulta={(consulta) =>
                                             setShareTarget({

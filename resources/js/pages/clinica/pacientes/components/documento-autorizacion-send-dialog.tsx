@@ -32,6 +32,8 @@ export type PlantillaAutorizacionOpcion = {
 type Props = {
     open: boolean;
     consultaId: string | null;
+    actionUrl?: string | null;
+    preferredPlantillaId?: string | null;
     plantillas: readonly PlantillaAutorizacionOpcion[];
     defaultPhone: string;
     defaultEmail: string;
@@ -41,14 +43,18 @@ type Props = {
 export function DocumentoAutorizacionSendDialog({
     open,
     consultaId,
+    actionUrl = null,
+    preferredPlantillaId = null,
     plantillas,
     defaultPhone,
     defaultEmail,
     onOpenChange,
 }: Props) {
     const { t } = useTranslation('pacientes');
+    const plantillaInicial =
+        plantillas.find((plantilla) => plantilla.id === preferredPlantillaId)?.id ?? plantillas[0]?.id ?? '';
     const form = useForm({
-        plantilla_id: plantillas[0]?.id ?? '',
+        plantilla_id: plantillaInicial,
         telefono: defaultPhone,
         email: defaultEmail,
         enviar_whatsapp: true,
@@ -58,7 +64,7 @@ export function DocumentoAutorizacionSendDialog({
     useEffect(() => {
         if (open) {
             form.setData({
-                plantilla_id: plantillas[0]?.id ?? '',
+                plantilla_id: plantillaInicial,
                 telefono: defaultPhone,
                 email: defaultEmail,
                 enviar_whatsapp: true,
@@ -67,14 +73,20 @@ export function DocumentoAutorizacionSendDialog({
             form.clearErrors();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, consultaId, defaultPhone, defaultEmail]);
+    }, [open, consultaId, actionUrl, plantillaInicial, defaultPhone, defaultEmail]);
 
     const submit = () => {
-        if (!consultaId || !form.data.plantilla_id) {
+        const destino =
+            actionUrl ??
+            (consultaId ? `/clinica/historias-clinicas/consultas/${consultaId}/autorizacion` : null);
+
+        if (!destino || !form.data.plantilla_id) {
             return;
         }
-        form.post(`/clinica/historias-clinicas/consultas/${consultaId}/autorizacion`, {
+
+        form.post(destino, {
             preserveScroll: true,
+            preserveState: actionUrl ? false : undefined,
             onSuccess: () => onOpenChange(false),
         });
     };

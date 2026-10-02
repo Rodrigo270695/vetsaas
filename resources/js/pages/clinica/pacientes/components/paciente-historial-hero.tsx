@@ -11,6 +11,7 @@ import {
     ExternalLink,
     FileDown,
     FlaskConical,
+    HeartOff,
     Hotel,
     MessageCircle,
     PawPrint,
@@ -53,6 +54,7 @@ type Props = {
         laboratorio_rapido?: string | null;
         nueva_desparasitacion?: string | null;
         nueva_antipulga?: string | null;
+        nueva_defuncion?: string | null;
         petpass_registrar?: string | null;
         petpass_propietario?: string | null;
         petpass_perfil_publico?: string | null;
@@ -87,6 +89,7 @@ export type HistorialNuevoAccion =
     | 'vacuna'
     | 'desparasitacion'
     | 'antipulga'
+    | 'defuncion'
     | 'receta'
     | 'hospitalizacion'
     | 'cirugia'
@@ -230,6 +233,14 @@ export function PacienteHistorialHero({
             });
         }
 
+        if (links.nueva_defuncion) {
+            items.push({
+                id: 'defuncion',
+                label: t('historial.nuevo_defuncion'),
+                icon: HeartOff,
+            });
+        }
+
         if (recetasModule && can('recetas.create')) {
             items.push({
                 id: 'receta',
@@ -291,6 +302,7 @@ export function PacienteHistorialHero({
         links.laboratorio_rapido,
         links.nueva_desparasitacion,
         links.nueva_antipulga,
+        links.nueva_defuncion,
         permisos.citas_crear,
         permisos.consultas_crear,
         permisos.laboratorio_crear,
@@ -386,16 +398,37 @@ export function PacienteHistorialHero({
                         <span
                             className={cn(
                                 'absolute -right-0.5 -bottom-0.5 z-10 size-3 rounded-full border-2 border-background',
-                                paciente.activo ? 'bg-emerald-500' : 'bg-red-500',
+                                paciente.fallecido_at
+                                    ? 'bg-slate-500'
+                                    : paciente.activo
+                                      ? 'bg-emerald-500'
+                                      : 'bg-red-500',
                             )}
-                            title={paciente.activo ? t('historial.estado_activo') : t('historial.estado_inactivo')}
-                            aria-label={paciente.activo ? t('historial.estado_activo') : t('historial.estado_inactivo')}
+                            title={
+                                paciente.fallecido_at
+                                    ? t('historial.estado_fallecido')
+                                    : paciente.activo
+                                      ? t('historial.estado_activo')
+                                      : t('historial.estado_inactivo')
+                            }
+                            aria-label={
+                                paciente.fallecido_at
+                                    ? t('historial.estado_fallecido')
+                                    : paciente.activo
+                                      ? t('historial.estado_activo')
+                                      : t('historial.estado_inactivo')
+                            }
                         />
                     </div>
 
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <h1 className="text-lg font-semibold tracking-tight text-foreground">{paciente.nombre}</h1>
+                            {paciente.fallecido_at ? (
+                                <Badge className="border-slate-500/30 bg-slate-700 text-[0.65rem] font-semibold text-white">
+                                    {t('historial.estado_fallecido')}
+                                </Badge>
+                            ) : null}
                             {paciente.petpass_status === 'lost' ? (
                                 <Badge className="border-red-500/30 bg-red-500/15 text-[0.65rem] font-semibold text-red-800 dark:text-red-200">
                                     {t('historial.petpass_badge_lost')}

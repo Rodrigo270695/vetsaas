@@ -393,7 +393,13 @@ export default function Index({
                 header: t('columns.estado'),
                 sortable: true,
                 cell: (p) =>
-                    p.activo ? (
+                    p.fallecido_at ? (
+                        <StatBadge
+                            label={t('historial.estado_fallecido')}
+                            value=""
+                            variant="danger"
+                        />
+                    ) : p.activo ? (
                         <StatBadge
                             label={t('common:filters.active')}
                             value=""

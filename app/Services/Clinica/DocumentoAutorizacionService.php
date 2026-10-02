@@ -7,14 +7,17 @@ namespace App\Services\Clinica;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
+use App\Models\Defuncion;
 use App\Models\DocumentoAutorizacionEnvio;
 use App\Models\DocumentoAutorizacionPlantilla;
+use App\Models\Paciente;
 use App\Models\Tenant;
 use App\Notifications\Clinica\DocumentoAutorizacionMailNotification;
 use App\Support\Clinica\DocumentoAutorizacionRenderer;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -140,6 +143,130 @@ final class DocumentoAutorizacionService
         ];
     }
 
+    /**
+     * @return array{envio: DocumentoAutorizacionEnvio, whatsapp_ok: bool, email_ok: bool, warnings: list<string>}
+     */
+    public function emitirParaDefuncion(
+        Defuncion $defuncion,
+        Paciente $paciente,
+        DocumentoAutorizacionPlantilla $plantilla,
+        Tenant $tenant,
+        ?string $telefono,
+        ?string $email,
+        bool $enviarWhatsapp,
+        bool $enviarEmail,
+        ?string $userId,
+    ): array {
+        abort_unless(Schema::hasColumn('documento_autorizacion_envios', 'defuncion_id'), 503);
+
+        $paciente->loadMissing('propietario');
+        $owner = $paciente->propietario;
+        $cuerpo = DocumentoAutorizacionRenderer::renderPlantillaDefuncion($plantilla, $defuncion, $paciente, $owner);
+        $ttlMinutes = max(5, (int) config('clinic-documents.public_link_ttl_minutes', 10080));
+        $token = Str::lower(Str::random(48));
+
+        $envio = DocumentoAutorizacionEnvio::query()->create([
+            'plantilla_id' => $plantilla->id,
+            'consulta_id' => null,
+            'defuncion_id' => $defuncion->id,
+            'paciente_id' => $paciente->id,
+            'propietario_id' => $owner?->id,
+            'titulo' => $plantilla->nombre,
+            'cuerpo_snapshot' => $cuerpo,
+            'token' => $token,
+            'estado' => DocumentoAutorizacionEnvio::ESTADO_PENDIENTE,
+            'expires_at' => now()->addMinutes($ttlMinutes),
+            'created_by_id' => $userId,
+        ]);
+
+        $url = route('tenant.public.autorizacion.show', [
+            'tenant_subdomain' => $tenant->slug,
+            'token' => $token,
+        ]);
+
+        $clinic = ClinicSetting::current();
+        $clinicName = trim((string) ($clinic->nombre_comercial ?: $clinic->razon_social))
+            ?: (string) config('app.name', 'Clínica veterinaria');
+        $ownerName = $owner?->displayName() ?: 'cliente';
+        $expiresDays = max(1, (int) ceil($ttlMinutes / 1440));
+
+        $warnings = [];
+        $whatsappOk = false;
+        $emailOk = false;
+
+        if ($enviarWhatsapp) {
+            $phone = trim((string) $telefono) !== '' ? (string) $telefono : $owner?->telefono;
+            $chatId = WhatsAppChatId::fromPhone($phone);
+            if ($chatId === null) {
+                $warnings[] = 'No hay un WhatsApp válido para el titular.';
+            } else {
+                $message = "Hola {$ownerName} 👋\n\n"
+                    ."{$clinicName} te pide leer y firmar: {$plantilla->nombre} (paciente {$paciente->nombre}).\n\n"
+                    ."Ábrelo en tu celular:\n{$url}\n\n"
+                    ."🔒 El enlace estará disponible por {$expiresDays} día(s).";
+                try {
+                    $this->whatsApp->send($tenant, $chatId, $message);
+                    $whatsappOk = true;
+                } catch (Throwable $e) {
+                    report($e);
+                    $warnings[] = 'No se pudo enviar por WhatsApp. Verifica la conexión.';
+                }
+            }
+        }
+
+        if ($enviarEmail) {
+            $mailTo = trim((string) $email) !== '' ? trim((string) $email) : trim((string) ($owner?->email ?? ''));
+            if ($mailTo === '' || ! filter_var($mailTo, FILTER_VALIDATE_EMAIL)) {
+                $warnings[] = 'No hay un correo válido para el titular.';
+            } else {
+                try {
+                    Notification::route('mail', $mailTo)->notify(
+                        new DocumentoAutorizacionMailNotification(
+                            $clinicName,
+                            $ownerName,
+                            $paciente->nombre,
+                            $plantilla->nombre,
+                            $url,
+                            $expiresDays,
+                        ),
+                    );
+                    $emailOk = true;
+                } catch (Throwable $e) {
+                    report($e);
+                    $warnings[] = 'No se pudo enviar el correo.';
+                }
+            }
+        }
+
+        $envio->update([
+            'enviado_whatsapp' => $whatsappOk,
+            'enviado_email' => $emailOk,
+        ]);
+
+        return [
+            'envio' => $envio->fresh() ?? $envio,
+            'whatsapp_ok' => $whatsappOk,
+            'email_ok' => $emailOk,
+            'warnings' => $warnings,
+        ];
+    }
+
+    public function marcarPacienteFallecido(Paciente $paciente, Defuncion $defuncion): void
+    {
+        if (! Schema::hasColumn('pacientes', 'fallecido_at')) {
+            return;
+        }
+
+        if ($paciente->fallecido_at !== null && $paciente->activo === false) {
+            return;
+        }
+
+        $paciente->forceFill([
+            'fallecido_at' => $paciente->fallecido_at ?? $defuncion->ocurrido_at ?? now(),
+            'activo' => false,
+        ])->save();
+    }
+
     public function firmar(
         DocumentoAutorizacionEnvio $envio,
         string $firmaDataUri,
@@ -171,7 +298,16 @@ final class DocumentoAutorizacionService
         Storage::disk('public')->put($pdfPath, $binary);
         $envio->update(['pdf_path' => $pdfPath]);
 
-        return $envio->fresh() ?? $envio;
+        $firmado = $envio->fresh() ?? $envio;
+        if (is_string($firmado->defuncion_id) && $firmado->defuncion_id !== '' && Schema::hasColumn('documento_autorizacion_envios', 'defuncion_id')) {
+            $defuncion = Defuncion::query()->find($firmado->defuncion_id);
+            $paciente = $defuncion !== null ? Paciente::query()->find($defuncion->paciente_id) : null;
+            if ($defuncion !== null && $paciente !== null) {
+                $this->marcarPacienteFallecido($paciente, $defuncion);
+            }
+        }
+
+        return $firmado;
     }
 
     public function renderPdf(DocumentoAutorizacionEnvio $envio): string

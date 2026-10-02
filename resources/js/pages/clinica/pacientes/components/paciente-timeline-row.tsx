@@ -12,6 +12,7 @@ import {
     FilePenLine,
     FlaskConical,
     Heart,
+    HeartOff,
     Home,
     Loader2,
     MessageCircle,
@@ -76,6 +77,7 @@ type TimelineRowProps = {
     onOpenAplicacion?: (item: Extract<TimelineItem, { kind: 'aplicacion' }>) => void;
     onOpenDesparasitacion?: (item: Extract<TimelineItem, { kind: 'desparasitacion' }>) => void;
     onOpenAntipulga?: (item: Extract<TimelineItem, { kind: 'antipulga' }>) => void;
+    onOpenDefuncion?: (item: Extract<TimelineItem, { kind: 'defuncion' }>) => void;
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
     onDeleteConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
@@ -421,6 +423,19 @@ function itemTheme(item: TimelineItem) {
         };
     }
 
+    if (item.kind === 'defuncion') {
+        return {
+            stripe: 'bg-gradient-to-b from-slate-400 to-slate-700',
+            dot: 'border-slate-400/70 bg-gradient-to-br from-slate-500 to-slate-700 text-white shadow-slate-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(71,85,105,0.16)]',
+            ringPulse: 'bg-slate-500/50',
+            iconBg: 'bg-gradient-to-br from-slate-500/20 to-slate-500/5',
+            iconText: 'text-slate-700 dark:text-slate-200',
+            cardHover: 'hover:border-slate-500/35 hover:shadow-slate-500/10',
+            Icon: HeartOff,
+        };
+    }
+
     if (item.kind === 'desparasitacion' || item.kind === 'antipulga') {
         return {
             stripe: 'bg-gradient-to-b from-lime-400 to-lime-600',
@@ -486,6 +501,7 @@ export function PacienteTimelineRow({
     onOpenAplicacion,
     onOpenDesparasitacion,
     onOpenAntipulga,
+    onOpenDefuncion,
     onShareConsulta,
     onUploadLaboratorio,
     onDeleteConsulta,
@@ -578,13 +594,20 @@ export function PacienteTimelineRow({
     const fichaInline =
         !isPublic &&
         ((item.kind === 'desparasitacion' && Boolean(onOpenDesparasitacion)) ||
-            (item.kind === 'antipulga' && Boolean(onOpenAntipulga)));
+            (item.kind === 'antipulga' && Boolean(onOpenAntipulga)) ||
+            (item.kind === 'defuncion' && Boolean(onOpenDefuncion)));
+
     const abrirFichaInline = () => {
         if (item.kind === 'desparasitacion') {
             onOpenDesparasitacion?.(item);
         }
+
         if (item.kind === 'antipulga') {
             onOpenAntipulga?.(item);
+        }
+
+        if (item.kind === 'defuncion') {
+            onOpenDefuncion?.(item);
         }
     };
 
@@ -684,6 +707,8 @@ export function PacienteTimelineRow({
                                             'bg-lime-500/12 text-lime-900 dark:text-lime-100',
                                         item.kind === 'antipulga' &&
                                             'bg-lime-500/12 text-lime-900 dark:text-lime-100',
+                                        item.kind === 'defuncion' &&
+                                            'bg-slate-500/12 text-slate-800 dark:text-slate-100',
                                     )}
                                 >
                                     {item.kind === 'consulta'
