@@ -63,6 +63,12 @@ export function TenantChatDock() {
     const allowed = can('comunicaciones-chat.view');
     const onChatPage = page.url.startsWith('/comunicaciones/chat');
     const [open, setOpen] = useState(false);
+    const [panelPresent, setPanelPresent] = useState(false);
+    const [panelShown, setPanelShown] = useState(false);
+    const [threadPresent, setThreadPresent] = useState(false);
+    const [threadShown, setThreadShown] = useState(false);
+    const panelTimer = useRef<number | null>(null);
+    const threadTimer = useRef<number | null>(null);
     const [conversations, setConversations] = useState<DockConversation[]>([]);
     const [loadingList, setLoadingList] = useState(false);
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -116,6 +122,69 @@ export function TenantChatDock() {
         }
     }, [setUnreadTotal]);
 
+    const showPanel = useCallback(() => {
+        if (panelTimer.current !== null) {
+            window.clearTimeout(panelTimer.current);
+            panelTimer.current = null;
+        }
+
+        setLoadingList(true);
+        setOpen(true);
+        setPanelPresent(true);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => setPanelShown(true));
+        });
+    }, []);
+
+    const hidePanel = useCallback(() => {
+        setOpen(false);
+        setPanelShown(false);
+        setThreadShown(false);
+
+        if (panelTimer.current !== null) {
+            window.clearTimeout(panelTimer.current);
+        }
+
+        if (threadTimer.current !== null) {
+            window.clearTimeout(threadTimer.current);
+            threadTimer.current = null;
+        }
+
+        panelTimer.current = window.setTimeout(() => {
+            setPanelPresent(false);
+            setActiveId(null);
+            setThreadPresent(false);
+            panelTimer.current = null;
+        }, 320);
+    }, []);
+
+    const showThread = useCallback((id: string) => {
+        if (threadTimer.current !== null) {
+            window.clearTimeout(threadTimer.current);
+            threadTimer.current = null;
+        }
+
+        setActiveId(id);
+        setThreadPresent(true);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => setThreadShown(true));
+        });
+    }, []);
+
+    const hideThread = useCallback(() => {
+        setThreadShown(false);
+
+        if (threadTimer.current !== null) {
+            window.clearTimeout(threadTimer.current);
+        }
+
+        threadTimer.current = window.setTimeout(() => {
+            setActiveId(null);
+            setThreadPresent(false);
+            threadTimer.current = null;
+        }, 280);
+    }, []);
+
     useEffect(() => {
         setActiveConversationId(open ? activeId : null);
     }, [activeId, open, setActiveConversationId]);
@@ -127,17 +196,17 @@ export function TenantChatDock() {
 
         const onOpen = (event: Event) => {
             const detail = (event as CustomEvent<{ conversationId?: string }>).detail;
-            setOpen(true);
+            showPanel();
 
             if (detail?.conversationId) {
-                setActiveId(detail.conversationId);
+                showThread(detail.conversationId);
             }
         };
 
         window.addEventListener(OPEN_TENANT_CHAT_EVENT, onOpen);
 
         return () => window.removeEventListener(OPEN_TENANT_CHAT_EVENT, onOpen);
-    }, [allowed]);
+    }, [allowed, showPanel, showThread]);
 
     useEffect(() => {
         if (!allowed || !open) {
@@ -233,7 +302,7 @@ export function TenantChatDock() {
                 <button
                     type="button"
                     className="cursor-pointer rounded-md px-1.5 text-muted-foreground hover:bg-muted"
-                    onClick={() => setActiveId(null)}
+                    onClick={hideThread}
                     aria-label={t('dock_collapse')}
                 >
                     –
@@ -288,12 +357,36 @@ export function TenantChatDock() {
         </section>
     ) : null;
 
+    const motion =
+        'origin-bottom-right transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
+
     return (
-        <div className="pointer-events-none fixed right-3 bottom-0 z-40 flex items-end gap-2">
-            {open && active ? <div className="pointer-events-auto">{thread}</div> : null}
-            <div className={cn('pointer-events-auto', active && 'hidden sm:block')}>
-                {open ? (
-                    <section className="flex h-[min(28rem,72vh)] w-[min(20rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-t-2xl border border-teal-700/20 bg-white shadow-2xl dark:bg-background">
+        <div className="pointer-events-none fixed right-3 bottom-0 z-40">
+            <div className="relative w-[min(20rem,calc(100vw-1.5rem))]">
+                {threadPresent && thread ? (
+                    <div
+                        className={cn(
+                            'pointer-events-auto absolute right-0 bottom-0 sm:right-full sm:mr-2',
+                            motion,
+                            threadShown
+                                ? 'translate-x-0 opacity-100'
+                                : 'pointer-events-none translate-x-3 opacity-0',
+                        )}
+                    >
+                        {thread}
+                    </div>
+                ) : null}
+                {panelPresent ? (
+                    <section
+                        className={cn(
+                            'absolute right-0 bottom-0 flex h-[min(28rem,72vh)] w-full flex-col overflow-hidden rounded-t-2xl border border-teal-700/20 bg-white shadow-2xl dark:bg-background',
+                            motion,
+                            panelShown
+                                ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
+                                : 'pointer-events-none translate-y-3 scale-[0.96] opacity-0',
+                            threadShown && 'max-sm:pointer-events-none max-sm:opacity-0',
+                        )}
+                    >
                         <header className="flex items-center justify-between bg-teal-600 px-3 py-2.5 text-white">
                             <span className="text-sm font-semibold">{t('title')}</span>
                             <div className="flex items-center gap-1">
@@ -309,7 +402,7 @@ export function TenantChatDock() {
                                 <button
                                     type="button"
                                     className="cursor-pointer rounded-md p-1 hover:bg-white/15"
-                                    onClick={() => setOpen(false)}
+                                    onClick={hidePanel}
                                     aria-label={t('dock_collapse')}
                                 >
                                     <ChevronDown className="size-4" />
@@ -333,8 +426,8 @@ export function TenantChatDock() {
                                                 row.id === activeId && 'bg-teal-50 dark:bg-teal-950/30',
                                             )}
                                             onClick={() => {
-                                                setActiveId(row.id);
                                                 setLoadingList(false);
+                                                showThread(row.id);
                                             }}
                                         >
                                             <PersonMark name={row.title} online={row.peer_online} />
@@ -357,14 +450,15 @@ export function TenantChatDock() {
                             )}
                         </ul>
                     </section>
-                ) : (
+                ) : null}
+                <div className="flex justify-end">
                     <button
                         type="button"
-                        className="mb-3 flex cursor-pointer items-center gap-2 rounded-full bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-700/25 hover:bg-teal-700"
-                        onClick={() => {
-                            setLoadingList(true);
-                            setOpen(true);
-                        }}
+                        className={cn(
+                            'pointer-events-auto mb-3 flex cursor-pointer items-center gap-2 rounded-full bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-700/25 transition-opacity duration-200 hover:bg-teal-700',
+                            panelShown && 'pointer-events-none opacity-0',
+                        )}
+                        onClick={showPanel}
                     >
                         {t('title')}
                         {unreadTotal > 0 ? (
@@ -374,7 +468,7 @@ export function TenantChatDock() {
                         ) : null}
                         <ChevronUp className="size-4" />
                     </button>
-                )}
+                </div>
             </div>
         </div>
     );

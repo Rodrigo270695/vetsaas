@@ -3,15 +3,9 @@ import { Settings2 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavConfig } from '@/components/app-sidebar';
+import { FormModal } from '@/components/forms/form-modal';
 import { useVisibleNavigation } from '@/components/nav-main-collapsible';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_HREFS = [
@@ -179,64 +173,62 @@ export function DashboardAccesosRapidos() {
             </div>
             )}
 
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>{t('accesos.personalizar')}</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-sm text-muted-foreground">{t('accesos.hint')}</p>
-                    <div className="space-y-4">
-                        {groupsInCatalog.map(([group, items]) => (
-                            <div key={group}>
-                                <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                                    {group}
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {items.map((item) => {
-                                        const active = draft.includes(item.href);
+            <FormModal
+                open={open}
+                onOpenChange={setOpen}
+                title={t('accesos.personalizar')}
+                description={t('accesos.hint')}
+                size="md"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    const next = draft.filter((href) => catalog.some((item) => item.href === href));
+                    window.localStorage.setItem(storageKey(userId), JSON.stringify(next));
+                    setSaved(next);
+                    setOpen(false);
+                }}
+                footer={
+                    <Button type="submit" className="cursor-pointer">
+                        {t('accesos.guardar')}
+                    </Button>
+                }
+            >
+                <div className="space-y-4 pb-1">
+                    {groupsInCatalog.map(([group, items]) => (
+                        <div key={group}>
+                            <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                {group}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {items.map((item) => {
+                                    const active = draft.includes(item.href);
 
-                                        return (
-                                            <button
-                                                key={item.href}
-                                                type="button"
-                                                className={cn(
-                                                    'cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium',
-                                                    active
-                                                        ? 'border-primary bg-primary/10 text-primary'
-                                                        : 'border-border text-muted-foreground hover:bg-muted',
-                                                )}
-                                                onClick={() =>
-                                                    setDraft((current) =>
-                                                        current.includes(item.href)
-                                                            ? current.filter((href) => href !== item.href)
-                                                            : [...current, item.href],
-                                                    )
-                                                }
-                                            >
-                                                {item.title}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                    return (
+                                        <button
+                                            key={item.href}
+                                            type="button"
+                                            className={cn(
+                                                'cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium',
+                                                active
+                                                    ? 'border-primary bg-primary/10 text-primary'
+                                                    : 'border-border text-muted-foreground hover:bg-muted',
+                                            )}
+                                            onClick={() =>
+                                                setDraft((current) =>
+                                                    current.includes(item.href)
+                                                        ? current.filter((href) => href !== item.href)
+                                                        : [...current, item.href],
+                                                )
+                                            }
+                                        >
+                                            {item.title}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        ))}
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            className="cursor-pointer"
-                            onClick={() => {
-                                const next = draft.filter((href) => catalog.some((item) => item.href === href));
-                                window.localStorage.setItem(storageKey(userId), JSON.stringify(next));
-                                setSaved(next);
-                                setOpen(false);
-                            }}
-                        >
-                            {t('accesos.guardar')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                        </div>
+                    ))}
+                </div>
+            </FormModal>
         </section>
     );
 }
