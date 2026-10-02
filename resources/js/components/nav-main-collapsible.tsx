@@ -97,6 +97,7 @@ function matchesContext(
 export function useVisibleNavigation(singles: NavItem[], groups: NavGroup[]): {
     visibleSingles: NavItem[];
     visibleGroups: NavGroup[];
+    isBotIaNovedadPromo: (item: NavItem) => boolean;
 } {
     const { can, permissions } = usePermission();
     const page = usePage();
@@ -181,7 +182,7 @@ export function useVisibleNavigation(singles: NavItem[], groups: NavGroup[]): {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groups, hasTenant, permissions, botIaActive, modoAsesoraActive, hasComunicacionesAccess]);
 
-    return { visibleSingles, visibleGroups };
+    return { visibleSingles, visibleGroups, isBotIaNovedadPromo };
 }
 
 export function NavMainCollapsible({
@@ -200,7 +201,7 @@ export function NavMainCollapsible({
         }
     };
     const { t } = useTranslation('nav');
-    const { visibleSingles, visibleGroups } = useVisibleNavigation(singles, groups);
+    const { visibleSingles, visibleGroups, isBotIaNovedadPromo } = useVisibleNavigation(singles, groups);
 
     const initialOpenMap = useMemo(() => {
         const map: Record<string, boolean> = {};
