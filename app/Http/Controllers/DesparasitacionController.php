@@ -212,6 +212,9 @@ final class DesparasitacionController extends Controller
             'method' => $row === null ? 'post' : 'put',
             'productos_url' => route('clinica.pacientes.desparasitaciones.productos', $paciente),
             'dictar_url' => route('clinica.pacientes.desparasitaciones.dictar', $paciente),
+            'cargos_url' => $row === null
+                ? null
+                : route('clinica.pacientes.desparasitaciones.cargos.show', [$paciente, $row]),
             'volver_url' => route('clinica.pacientes.show', $paciente),
         ];
     }
@@ -276,6 +279,7 @@ final class DesparasitacionController extends Controller
             'receta.*.nombre' => ['nullable', 'string', 'max:160'],
             'receta.*.especificaciones' => ['nullable', 'string', 'max:500'],
             'receta.*.cantidad' => ['nullable', 'string', 'max:40'],
+            'receta.*.producto_id' => ['nullable', 'uuid'],
         ]);
 
         $tz = (string) config('app.timezone', 'America/Lima');
@@ -306,6 +310,7 @@ final class DesparasitacionController extends Controller
                 continue;
             }
             $receta[] = [
+                'producto_id' => $blank($linea['producto_id'] ?? null),
                 'nombre' => $nombre,
                 'especificaciones' => $blank($linea['especificaciones'] ?? null),
                 'cantidad' => $blank($linea['cantidad'] ?? null),

@@ -8,6 +8,7 @@ use App\Models\ConsultaCargo;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Lista pre-cuentas confirmadas pendientes de cobro para el POS.
@@ -17,7 +18,7 @@ final class PrecuentasPendientesLister
     /**
      * @return list<array{
      *     id: string,
-     *     origen: 'consulta'|'grooming'|'hotel'|'internamiento',
+     *     origen: 'consulta'|'grooming'|'hotel'|'internamiento'|'vacuna'|'desparasitacion',
      *     origen_id: string,
      *     origen_label: string,
      *     propietario_id: string|null,
@@ -38,22 +39,28 @@ final class PrecuentasPendientesLister
         }
 
         try {
+            $with = [
+                'consulta.historiaClinica.paciente' => fn ($q) => $q->withTrashed(),
+                'consulta.historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                'groomingTurno.paciente' => fn ($q) => $q->withTrashed(),
+                'groomingTurno.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                'hotelEstancia.paciente' => fn ($q) => $q->withTrashed(),
+                'hotelEstancia.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                'internamiento.paciente' => fn ($q) => $q->withTrashed(),
+                'internamiento.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                'vacunaAplicada.paciente' => fn ($q) => $q->withTrashed(),
+                'vacunaAplicada.paciente.propietario' => fn ($q) => $q->withTrashed(),
+            ];
+            if (Schema::hasColumn('consulta_cargos', 'desparasitacion_id')) {
+                $with['desparasitacion.paciente'] = fn ($q) => $q->withTrashed();
+                $with['desparasitacion.paciente.propietario'] = fn ($q) => $q->withTrashed();
+            }
+
             $cargos = ConsultaCargo::query()
                 ->whereNull('venta_id')
                 ->where('estado', ConsultaCargo::ESTADO_CONFIRMADO)
                 ->where('total', '>', 0)
-                ->with([
-                    'consulta.historiaClinica.paciente' => fn ($q) => $q->withTrashed(),
-                    'consulta.historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed(),
-                    'groomingTurno.paciente' => fn ($q) => $q->withTrashed(),
-                    'groomingTurno.paciente.propietario' => fn ($q) => $q->withTrashed(),
-                    'hotelEstancia.paciente' => fn ($q) => $q->withTrashed(),
-                    'hotelEstancia.paciente.propietario' => fn ($q) => $q->withTrashed(),
-                    'internamiento.paciente' => fn ($q) => $q->withTrashed(),
-                    'internamiento.paciente.propietario' => fn ($q) => $q->withTrashed(),
-                    'vacunaAplicada.paciente' => fn ($q) => $q->withTrashed(),
-                    'vacunaAplicada.paciente.propietario' => fn ($q) => $q->withTrashed(),
-                ])
+                ->with($with)
                 ->orderByDesc('updated_at')
                 ->limit(100)
                 ->get();
@@ -69,11 +76,12 @@ final class PrecuentasPendientesLister
         $canHotel = $user->can('hotel.view') && TenantModuleAccess::isEnabled($tenant, 'hotel');
         $canInternamiento = $user->can('consulta-cargos.cobrar');
         $canVacuna = $user->can('vacunaciones.view');
+        $canDesparasitacion = $user->can('historias-clinicas.view') || $user->can('vacunaciones.view');
 
         $out = [];
         foreach ($cargos as $cargo) {
             try {
-                $row = $this->mapCargo($cargo, $canConsulta, $canGrooming, $canHotel, $canInternamiento, $canVacuna);
+                $row = $this->mapCargo($cargo, $canConsulta, $canGrooming, $canHotel, $canInternamiento, $canVacuna, $canDesparasitacion);
                 if ($row !== null) {
                     $out[] = $row;
                 }
@@ -95,7 +103,32 @@ final class PrecuentasPendientesLister
         bool $canHotel,
         bool $canInternamiento,
         bool $canVacuna,
+        bool $canDesparasitacion,
     ): ?array {
+        if ($cargo->desparasitacion_id && $canDesparasitacion) {
+            $ficha = $cargo->desparasitacion;
+            $pac = $ficha?->paciente;
+            $prop = $pac?->propietario;
+
+            return [
+                'id' => $cargo->id,
+                'origen' => 'desparasitacion',
+                'origen_id' => $cargo->desparasitacion_id,
+                'origen_label' => 'Desparasitación',
+                'propietario_id' => $prop?->id,
+                'propietario_nombre' => $prop?->displayName(),
+                'paciente_id' => $pac?->id,
+                'paciente_nombre' => $pac?->nombre,
+                'total' => (string) $cargo->total,
+                'moneda' => (string) $cargo->moneda,
+                'confirmado_at' => $cargo->updated_at?->toIso8601String(),
+                'url_cobrar' => route('caja.ventas.create-desde-desparasitacion', [
+                    'paciente' => $pac?->id ?? $ficha?->paciente_id,
+                    'desparasitacion' => $cargo->desparasitacion_id,
+                ], absolute: false),
+            ];
+        }
+
         if ($cargo->vacuna_aplicada_id && $canVacuna) {
             $vac = $cargo->vacunaAplicada;
             $pac = $vac?->paciente;

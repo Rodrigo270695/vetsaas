@@ -20,6 +20,8 @@ export type ConsultaDictationFields = {
 type Props<T = ConsultaDictationFields> = {
     disabled?: boolean;
     endpoint?: string;
+    variant?: 'panel' | 'compact';
+    label?: string;
     onFields: (fields: T, transcript: string) => void;
 };
 
@@ -65,6 +67,8 @@ function isLikelyMobile(): boolean {
 export function ConsultaDictationBar<T = ConsultaDictationFields>({
     disabled = false,
     endpoint = '/clinica/historias-clinicas/consultas/dictar',
+    variant = 'panel',
+    label,
     onFields,
 }: Props<T>) {
     const { t } = useTranslation('historias-clinicas');
@@ -408,10 +412,15 @@ export function ConsultaDictationBar<T = ConsultaDictationFields>({
     return (
         <div
             className={cn(
-                'rounded-xl border px-3 py-2.5',
-                listening || processing
-                    ? 'border-sky-300/80 bg-sky-50/70 dark:border-sky-800/50 dark:bg-sky-950/30'
-                    : 'border-sky-200/80 bg-sky-50/50 dark:border-sky-800/40 dark:bg-sky-950/20',
+                variant === 'compact'
+                    ? listening || processing
+                        ? 'flex flex-wrap items-center gap-2'
+                        : 'inline-flex'
+                    : 'rounded-xl border px-3 py-2.5',
+                variant === 'panel' &&
+                    (listening || processing
+                        ? 'border-sky-300/80 bg-sky-50/70 dark:border-sky-800/50 dark:bg-sky-950/30'
+                        : 'border-sky-200/80 bg-sky-50/50 dark:border-sky-800/40 dark:bg-sky-950/20'),
             )}
         >
             {listening || processing ? (
@@ -472,17 +481,22 @@ export function ConsultaDictationBar<T = ConsultaDictationFields>({
                         <Button
                             type="button"
                             size="sm"
-                            variant="secondary"
-                            className="h-8 gap-1.5"
+                            variant={variant === 'compact' ? 'default' : 'secondary'}
+                            className={cn(
+                                'h-8 gap-1.5',
+                                variant === 'compact' &&
+                                    'border-0 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-md shadow-violet-500/30 hover:from-violet-500 hover:to-fuchsia-400',
+                            )}
                             disabled={disabled}
+                            title={t('dictation.hint')}
                             onClick={() => void start()}
                         >
                             <Mic className="size-3.5" />
-                            {t('dictation.start')}
+                            {label ?? t('dictation.start')}
                         </Button>
-                        <p className="min-w-0 flex-1 text-xs text-muted-foreground">
-                            {t('dictation.hint')}
-                        </p>
+                        {variant === 'panel' ? (
+                            <p className="min-w-0 flex-1 text-xs text-muted-foreground">{t('dictation.hint')}</p>
+                        ) : null}
                     </div>
                     {error ? (
                         <p className="mt-2 text-xs text-destructive">{error}</p>

@@ -369,6 +369,7 @@
         "hidratacion": "Hydration",
         "antiparasitario": "Antiparasitic",
         "buscar": "Search…",
+        "buscar_desparasitacion": "Search deworming…",
         "principal": "Primary",
         "complementario": "Complementary",
         "aplicado": "Product applied",
@@ -383,6 +384,8 @@
         "guardar": "Save",
         "guardando": "Saving…",
         "guardado": "Deworming saved.",
+        "precuenta": "Pre-invoice",
+        "precuenta_guardar": "Save the chart before building the pre-invoice."
         "volver": "Back to history",
         "agregar": "Add",
         "quitar": "Remove",

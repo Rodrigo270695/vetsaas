@@ -415,6 +415,28 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware($desparasitacionPerm)
                 ->match(['put', 'patch'], 'pacientes/{paciente}/desparasitaciones/{desparasitacion}', [\App\Http\Controllers\DesparasitacionController::class, 'update'])
                 ->name('pacientes.desparasitaciones.update');
+            $desparasitacionCargoPerm = 'permission:consulta-cargos.view|consulta-cargos.manage|historias-clinicas.view|historias-clinicas.update|vacunaciones.view|vacunaciones.update';
+            Route::middleware($desparasitacionCargoPerm)
+                ->get('pacientes/{paciente}/desparasitaciones/{desparasitacion}/cargos', [\App\Http\Controllers\DesparasitacionCargoController::class, 'show'])
+                ->name('pacientes.desparasitaciones.cargos.show');
+            Route::middleware($desparasitacionCargoPerm)
+                ->get('pacientes/{paciente}/desparasitaciones/{desparasitacion}/cargos/productos-buscar', [\App\Http\Controllers\DesparasitacionCargoController::class, 'productosBuscar'])
+                ->name('pacientes.desparasitaciones.cargos.productos');
+            Route::middleware($desparasitacionCargoPerm)
+                ->get('pacientes/{paciente}/desparasitaciones/{desparasitacion}/cargos/servicios-buscar', [\App\Http\Controllers\DesparasitacionCargoController::class, 'serviciosBuscar'])
+                ->name('pacientes.desparasitaciones.cargos.servicios');
+            Route::middleware($desparasitacionCargoPerm)
+                ->get('pacientes/{paciente}/desparasitaciones/{desparasitacion}/cargos/ticket', [\App\Http\Controllers\DesparasitacionCargoController::class, 'ticket'])
+                ->name('pacientes.desparasitaciones.cargos.ticket');
+            Route::middleware($desparasitacionCargoPerm)
+                ->match(['put', 'patch'], 'pacientes/{paciente}/desparasitaciones/{desparasitacion}/cargos', [\App\Http\Controllers\DesparasitacionCargoController::class, 'update'])
+                ->name('pacientes.desparasitaciones.cargos.update');
+            Route::middleware($desparasitacionCargoPerm)
+                ->post('pacientes/{paciente}/desparasitaciones/{desparasitacion}/cargos/confirmar', [\App\Http\Controllers\DesparasitacionCargoController::class, 'confirmar'])
+                ->name('pacientes.desparasitaciones.cargos.confirmar');
+            Route::middleware($desparasitacionCargoPerm)
+                ->delete('pacientes/{paciente}/desparasitaciones/{desparasitacion}/cargos', [\App\Http\Controllers\DesparasitacionCargoController::class, 'destroy'])
+                ->name('pacientes.desparasitaciones.cargos.destroy');
             Route::middleware('permission:pacientes.create')
                 ->post('pacientes', [PacienteController::class, 'store'])
                 ->name('pacientes.store');
@@ -1085,6 +1107,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('ventas/desde-vacuna/{vacuna_aplicada}', [VentaController::class, 'createDesdeVacuna'])
             ->whereUuid('vacuna_aplicada')
             ->name('ventas.create-desde-vacuna');
+        Route::middleware(['permission:ventas.create', 'permission:vacunaciones.view|historias-clinicas.view'])
+            ->get('ventas/desde-desparasitacion/{paciente}/{desparasitacion}', [VentaController::class, 'createDesdeDesparasitacion'])
+            ->whereUuid('desparasitacion')
+            ->name('ventas.create-desde-desparasitacion');
         Route::middleware(['permission:ventas.create', 'permission:grooming.view'])
             ->post('ventas/adelanto-grooming/{grooming_turno}', [VentaController::class, 'storeAdelantoGrooming'])
             ->whereUuid('grooming_turno')

@@ -97,4 +97,15 @@ class Desparasitacion extends Model
     {
         return $this->belongsTo(User::class, 'veterinario_id');
     }
+
+    public function cargo(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ConsultaCargo::class, 'desparasitacion_id')
+            ->whereNull('venta_id');
+    }
+
+    public function permiteCargosPreCuenta(): bool
+    {
+        return true;
+    }
 }

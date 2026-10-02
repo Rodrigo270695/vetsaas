@@ -369,6 +369,7 @@
         "hidratacion": "Hidratación",
         "antiparasitario": "Antiparasitario",
         "buscar": "Buscar…",
+        "buscar_desparasitacion": "Buscar desparasitación…",
         "principal": "Principal",
         "complementario": "Complementario",
         "aplicado": "Antiparasitario aplicado",
@@ -383,6 +384,8 @@
         "guardar": "Guardar",
         "guardando": "Guardando…",
         "guardado": "Desparasitación guardada.",
+        "precuenta": "Precuenta",
+        "precuenta_guardar": "Guarda la ficha para armar la precuenta."
         "volver": "Volver al historial",
         "agregar": "Agregar",
         "quitar": "Quitar",

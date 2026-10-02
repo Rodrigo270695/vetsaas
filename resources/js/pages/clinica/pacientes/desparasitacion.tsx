@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Bug, Loader2, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Bug, Loader2, MoreHorizontal, Receipt, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +35,7 @@ type Aplicado = {
 };
 
 type RecetaLinea = {
+    producto_id?: string | null;
     nombre: string;
     especificaciones: string;
     cantidad: string;
@@ -93,6 +100,7 @@ type Props = {
     method: 'post' | 'put';
     productos_url: string;
     dictar_url: string;
+    cargos_url?: string | null;
     onVolver: () => void;
 };
 
@@ -124,6 +132,7 @@ export function DesparasitacionForm({
     method,
     productos_url,
     dictar_url,
+    cargos_url = null,
     onVolver,
 }: Props) {
     const { t } = useTranslation('pacientes');
@@ -131,6 +140,7 @@ export function DesparasitacionForm({
     const [buscar, setBuscar] = useState('');
     const [sugerencias, setSugerencias] = useState<{ id: string; nombre: string; sku: string | null }[]>([]);
     const [buscarReceta, setBuscarReceta] = useState('');
+    const [sugerenciasReceta, setSugerenciasReceta] = useState<{ id: string; nombre: string; sku: string | null }[]>([]);
 
     const form = useForm({
         atendido_at,
@@ -161,6 +171,7 @@ export function DesparasitacionForm({
             proxima_nombre: linea.proxima_nombre ?? '',
         })),
         receta: (registro?.receta ?? []).map((linea) => ({
+            producto_id: linea.producto_id ?? null,
             nombre: linea.nombre ?? '',
             especificaciones: linea.especificaciones ?? '',
             cantidad: linea.cantidad ?? '',
@@ -169,7 +180,7 @@ export function DesparasitacionForm({
 
     useEffect(() => {
         const q = buscar.trim();
-        if (q.length < 2) {
+        if (q.length < 1) {
             setSugerencias([]);
             return;
         }
@@ -187,6 +198,27 @@ export function DesparasitacionForm({
 
         return () => window.clearTimeout(timer);
     }, [buscar, productos_url]);
+
+    useEffect(() => {
+        const q = buscarReceta.trim();
+        if (q.length < 1) {
+            setSugerenciasReceta([]);
+            return;
+        }
+        const timer = window.setTimeout(() => {
+            void fetch(`${productos_url}?q=${encodeURIComponent(q)}`, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            })
+                .then((res) => res.json())
+                .then((body: { data?: { id: string; nombre: string; sku: string | null }[] }) => {
+                    setSugerenciasReceta(body.data ?? []);
+                })
+                .catch(() => setSugerenciasReceta([]));
+        }, 250);
+
+        return () => window.clearTimeout(timer);
+    }, [buscarReceta, productos_url]);
 
     const aplicarDictado = (fields: Dictado) => {
         const next = { ...form.data };
@@ -263,27 +295,66 @@ export function DesparasitacionForm({
     );
 
     return (
-        <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h2 className="flex items-center gap-2 text-lg font-semibold">
-                            <Bug className="size-5 text-lime-700" />
-                            {t('desparasitacion.title')}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                            {t('desparasitacion.subtitle', { nombre: paciente.nombre })}
-                            {registro?.veterinario ? ` · ${t('desparasitacion.veterinario')}: ${registro.veterinario}` : ''}
-                        </p>
+        <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                        <div className="min-w-0">
+                            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                                <span className="flex size-8 items-center justify-center rounded-lg bg-lime-500/15 text-lime-700">
+                                    <Bug className="size-4" />
+                                </span>
+                                {t('desparasitacion.title')}
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                {t('desparasitacion.subtitle', { nombre: paciente.nombre })}
+                                {registro?.veterinario ? ` · ${t('desparasitacion.veterinario')}: ${registro.veterinario}` : ''}
+                            </p>
+                        </div>
+                        {puede_editar ? (
+                            <ConsultaDictationBar<Dictado>
+                                variant="compact"
+                                endpoint={dictar_url}
+                                onFields={aplicarDictado}
+                            />
+                        ) : null}
                     </div>
-                    <Button type="button" variant="outline" onClick={onVolver}>
-                        <ArrowLeft className="size-4" />
-                        {t('desparasitacion.volver')}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground">
+                                    <MoreHorizontal className="size-4" />
+                                    <span className="sr-only">{t('desparasitacion.precuenta')}</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem
+                                    className="cursor-pointer gap-2"
+                                    onSelect={() => {
+                                        if (!cargos_url) {
+                                            toastManager.add({
+                                                type: 'info',
+                                                title: t('desparasitacion.precuenta_guardar'),
+                                            });
+                                            return;
+                                        }
+                                        router.visit(cargos_url);
+                                    }}
+                                >
+                                    <Receipt className="size-4" />
+                                    {t('desparasitacion.precuenta')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <button
+                            type="button"
+                            onClick={onVolver}
+                            className="inline-flex items-center gap-1 px-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                            <ArrowLeft className="size-3.5" />
+                            {t('desparasitacion.volver')}
+                        </button>
+                    </div>
                 </div>
-
-                {puede_editar ? (
-                    <ConsultaDictationBar<Dictado> endpoint={dictar_url} onFields={aplicarDictado} />
-                ) : null}
 
                 <form
                     className="flex flex-col gap-4"
@@ -377,8 +448,8 @@ export function DesparasitacionForm({
                         <div className="relative mb-3">
                             <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                className="pl-9"
-                                placeholder={t('desparasitacion.buscar')}
+                                className="bg-amber-50/80 pl-9 dark:bg-amber-950/20"
+                                placeholder={t('desparasitacion.buscar_desparasitacion')}
                                 value={buscar}
                                 disabled={!puede_editar}
                                 onChange={(event) => setBuscar(event.target.value)}
@@ -504,112 +575,134 @@ export function DesparasitacionForm({
                         )}
                     </section>
 
-                    <Collapsible className="rounded-xl border bg-card">
-                        <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold">
-                            {t('desparasitacion.receta')}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="space-y-3 px-4 pb-4">
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder={t('desparasitacion.buscar')}
-                                    value={buscarReceta}
-                                    disabled={!puede_editar}
-                                    onChange={(event) => setBuscarReceta(event.target.value)}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter') {
-                                            event.preventDefault();
-                                            const nombre = buscarReceta.trim();
-                                            if (nombre === '') {
-                                                return;
-                                            }
-                                            form.setData('receta', [
-                                                ...form.data.receta,
-                                                { nombre, especificaciones: '', cantidad: '' },
-                                            ]);
-                                            setBuscarReceta('');
-                                        }
-                                    }}
-                                />
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={!puede_editar}
-                                    onClick={() => {
+                    <section className="rounded-xl border border-violet-200/70 bg-card p-4 shadow-sm dark:border-violet-900/40">
+                        <h2 className="mb-3 text-sm font-semibold">{t('desparasitacion.receta')}</h2>
+                        <div className="relative mb-3">
+                            <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                className="bg-amber-50/80 pl-9 dark:bg-amber-950/20"
+                                placeholder={t('desparasitacion.buscar')}
+                                value={buscarReceta}
+                                disabled={!puede_editar}
+                                onChange={(event) => setBuscarReceta(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault();
                                         const nombre = buscarReceta.trim();
                                         if (nombre === '') {
                                             return;
                                         }
                                         form.setData('receta', [
                                             ...form.data.receta,
-                                            { nombre, especificaciones: '', cantidad: '' },
+                                            { nombre, especificaciones: '', cantidad: '1' },
                                         ]);
                                         setBuscarReceta('');
-                                    }}
-                                >
-                                    <Plus className="size-4" />
-                                    {t('desparasitacion.agregar')}
-                                </Button>
-                            </div>
-                            {form.data.receta.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">{t('desparasitacion.sin_lineas')}</p>
-                            ) : (
-                                form.data.receta.map((linea, index) => (
-                                    <div key={`${linea.nombre}-${index}`} className="grid gap-2 sm:grid-cols-[1.4fr_1.4fr_0.6fr_auto]">
-                                        <Input value={linea.nombre} disabled className="bg-muted/40" />
-                                        <Input
-                                            placeholder={t('desparasitacion.especificaciones')}
-                                            value={linea.especificaciones}
-                                            disabled={!puede_editar}
-                                            onChange={(event) => {
-                                                const next = [...form.data.receta];
-                                                next[index] = { ...linea, especificaciones: event.target.value };
-                                                form.setData('receta', next);
-                                            }}
-                                        />
-                                        <Input
-                                            placeholder={t('desparasitacion.cantidad')}
-                                            value={linea.cantidad}
-                                            disabled={!puede_editar}
-                                            onChange={(event) => {
-                                                const next = [...form.data.receta];
-                                                next[index] = { ...linea, cantidad: event.target.value };
-                                                form.setData('receta', next);
-                                            }}
-                                        />
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            disabled={!puede_editar}
-                                            aria-label={t('desparasitacion.quitar')}
-                                            onClick={() =>
-                                                form.setData(
-                                                    'receta',
-                                                    form.data.receta.filter((_, i) => i !== index),
-                                                )
-                                            }
-                                        >
-                                            <Trash2 className="size-4" />
-                                        </Button>
-                                    </div>
-                                ))
-                            )}
-                        </CollapsibleContent>
-                    </Collapsible>
-
-                    <Collapsible className="rounded-xl border bg-card">
-                        <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold">
-                            {t('desparasitacion.comentarios')}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="px-4 pb-4">
-                            <Textarea
-                                rows={3}
-                                value={form.data.comentarios}
-                                disabled={!puede_editar}
-                                onChange={(event) => form.setData('comentarios', event.target.value)}
+                                        setSugerenciasReceta([]);
+                                    }
+                                }}
                             />
-                        </CollapsibleContent>
-                    </Collapsible>
+                            {sugerenciasReceta.length > 0 ? (
+                                <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md">
+                                    {sugerenciasReceta.map((item) => (
+                                        <li key={item.id}>
+                                            <button
+                                                type="button"
+                                                className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                                                onClick={() => {
+                                                    form.setData('receta', [
+                                                        ...form.data.receta,
+                                                        {
+                                                            producto_id: item.id,
+                                                            nombre: item.nombre,
+                                                            especificaciones: '',
+                                                            cantidad: '1',
+                                                        },
+                                                    ]);
+                                                    setBuscarReceta('');
+                                                    setSugerenciasReceta([]);
+                                                }}
+                                            >
+                                                {item.nombre}
+                                                {item.sku ? <span className="ml-2 text-muted-foreground">{item.sku}</span> : null}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : null}
+                        </div>
+                        {form.data.receta.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">{t('desparasitacion.sin_lineas')}</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[640px] text-left text-sm">
+                                    <thead className="text-xs text-muted-foreground">
+                                        <tr>
+                                            <th className="pb-2 font-medium">{t('desparasitacion.medicamento')}</th>
+                                            <th className="pb-2 font-medium">{t('desparasitacion.especificaciones')}</th>
+                                            <th className="pb-2 font-medium">{t('desparasitacion.cantidad')}</th>
+                                            <th className="pb-2" />
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {form.data.receta.map((linea, index) => (
+                                            <tr key={`${linea.nombre}-${index}`} className="align-top">
+                                                <td className="py-1 pr-2 font-medium">{linea.nombre}</td>
+                                                <td className="py-1 pr-2">
+                                                    <Input
+                                                        value={linea.especificaciones}
+                                                        disabled={!puede_editar}
+                                                        onChange={(event) => {
+                                                            const next = [...form.data.receta];
+                                                            next[index] = { ...linea, especificaciones: event.target.value };
+                                                            form.setData('receta', next);
+                                                        }}
+                                                    />
+                                                </td>
+                                                <td className="w-28 py-1 pr-2">
+                                                    <Input
+                                                        value={linea.cantidad}
+                                                        disabled={!puede_editar}
+                                                        onChange={(event) => {
+                                                            const next = [...form.data.receta];
+                                                            next[index] = { ...linea, cantidad: event.target.value };
+                                                            form.setData('receta', next);
+                                                        }}
+                                                    />
+                                                </td>
+                                                <td className="py-1">
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        disabled={!puede_editar}
+                                                        aria-label={t('desparasitacion.quitar')}
+                                                        onClick={() =>
+                                                            form.setData(
+                                                                'receta',
+                                                                form.data.receta.filter((_, i) => i !== index),
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+
+                    <section className="rounded-xl border bg-card p-4">
+                        <h2 className="mb-2 text-sm font-semibold">{t('desparasitacion.comentarios')}</h2>
+                        <Textarea
+                            rows={3}
+                            value={form.data.comentarios}
+                            disabled={!puede_editar}
+                            onChange={(event) => form.setData('comentarios', event.target.value)}
+                        />
+                    </section>
 
                     {puede_editar ? (
                         <div className="flex justify-end">
