@@ -11,6 +11,7 @@ use App\Hotel\HotelCatalogoTipoEstancia;
 use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
+use App\Models\Cita;
 use App\Models\Cirugia;
 use App\Models\ClinicaAsesorada;
 use App\Models\ClinicSetting;
@@ -1066,6 +1067,71 @@ class PacienteController extends Controller
     }
 
     /**
+     * Fila completa para abrir el modal del historial (cita, cirugía, laboratorio, etc.).
+     */
+    public function timelineRegistro(Request $request, Paciente $paciente, string $kind, string $id): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $user->can('pacientes.view'), 403);
+
+        $registro = match ($kind) {
+            'cita' => $this->registroTimeline(
+                $user->can('citas.view'),
+                Schema::hasTable('citas'),
+                Cita::query()->where('paciente_id', $paciente->id)->whereKey($id),
+                ['paciente.propietario', 'veterinario:id,name', 'sede:id,nombre,codigo'],
+            ),
+            'cirugia' => $this->registroTimeline(
+                $user->can('cirugias.view'),
+                Schema::hasTable('cirugias'),
+                Cirugia::query()->where('paciente_id', $paciente->id)->whereKey($id),
+                ['paciente.propietario', 'consulta.historiaClinica', 'veterinario:id,name', 'sede:id,nombre,codigo'],
+            ),
+            'internamiento' => $this->registroTimeline(
+                $user->can('hospitalizacion.view'),
+                Schema::hasTable('internamientos'),
+                Internamiento::query()->where('paciente_id', $paciente->id)->whereKey($id),
+                ['paciente.propietario', 'consulta.historiaClinica', 'veterinario:id,name', 'sede:id,nombre,codigo'],
+            ),
+            'grooming' => $this->registroTimeline(
+                $user->can('grooming.view'),
+                Schema::hasTable('grooming_turnos'),
+                GroomingTurno::query()->where('paciente_id', $paciente->id)->whereKey($id),
+                ['paciente.propietario', 'responsable:id,name', 'sede:id,nombre,codigo', 'groomingServicio'],
+            ),
+            'hotel' => $this->registroTimeline(
+                $user->can('hotel.view'),
+                Schema::hasTable('hotel_estancias'),
+                HotelEstancia::query()->where('paciente_id', $paciente->id)->whereKey($id),
+                ['paciente.propietario', 'responsable:id,name', 'sede:id,nombre,codigo', 'hotelTipo:id,nombre'],
+            ),
+            'laboratorio' => $this->registroTimeline(
+                $user->can('laboratorio.view'),
+                Schema::hasTable('pedidos_laboratorio'),
+                PedidoLaboratorio::query()->where('paciente_id', $paciente->id)->whereKey($id),
+                ['paciente.propietario', 'consulta.historiaClinica', 'veterinario:id,name', 'sede:id,nombre,codigo', 'lineas'],
+            ),
+            default => abort(404),
+        };
+
+        return response()->json(['registro' => $registro]);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model>  $query
+     * @param  list<string>  $with
+     */
+    private function registroTimeline(bool $permitido, bool $tabla, $query, array $with): \Illuminate\Database\Eloquent\Model
+    {
+        abort_unless($permitido && $tabla, 404);
+
+        $row = $query->firstOrFail();
+        $row->load($with);
+
+        return $row;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function buildPacienteTimeline(
@@ -1508,6 +1574,7 @@ class PacienteController extends Controller
                     continue;
                 }
                 $timeline[] = $this->timelineEventPayload(
+                    $paciente,
                     'laboratorio',
                     (string) $p->id,
                     $at->toIso8601String(),
@@ -1531,6 +1598,7 @@ class PacienteController extends Controller
                 ->get();
             foreach ($cirugias as $c) {
                 $timeline[] = $this->timelineEventPayload(
+                    $paciente,
                     'cirugia',
                     (string) $c->id,
                     $c->programada_at->toIso8601String(),
@@ -1552,6 +1620,7 @@ class PacienteController extends Controller
                 ->get();
             foreach ($internamientos as $i) {
                 $timeline[] = $this->timelineEventPayload(
+                    $paciente,
                     'internamiento',
                     (string) $i->id,
                     $i->ingreso_at->toIso8601String(),
@@ -1581,6 +1650,7 @@ class PacienteController extends Controller
                 }
                 $titulo = trim((string) $t->servicio_label);
                 $timeline[] = $this->timelineEventPayload(
+                    $paciente,
                     'grooming',
                     (string) $t->id,
                     $t->inicio_at->toIso8601String(),
@@ -1609,6 +1679,7 @@ class PacienteController extends Controller
                 }
                 $titulo = trim((string) ($e->tipo_detalle ?: $e->tipo_estancia));
                 $timeline[] = $this->timelineEventPayload(
+                    $paciente,
                     'hotel',
                     (string) $e->id,
                     $e->ingreso_at->toIso8601String(),
@@ -1616,6 +1687,34 @@ class PacienteController extends Controller
                     (string) $e->estado,
                     route('servicios.hotel', ['editar_hotel_estancia' => $e->id]),
                     $this->timelineTextPreview($e->notas, 160),
+                );
+            }
+        }
+
+        if (
+            Schema::hasTable('citas')
+            && ($user->can('citas.view') ?? false)
+            && TenantModuleAccess::isEnabled($tenant, 'citas')
+        ) {
+            $citas = Cita::query()
+                ->where('paciente_id', $paciente->id)
+                ->orderByDesc('inicio_at')
+                ->limit(100)
+                ->get();
+            foreach ($citas as $cita) {
+                if ($cita->inicio_at === null) {
+                    continue;
+                }
+                $titulo = trim((string) ($cita->motivo ?? ''));
+                $timeline[] = $this->timelineEventPayload(
+                    $paciente,
+                    'cita',
+                    (string) $cita->id,
+                    $cita->inicio_at->toIso8601String(),
+                    $titulo !== '' ? Str::limit($titulo, 120) : 'Cita',
+                    (string) $cita->estado,
+                    route('clinica.citas.index', ['editar_cita' => $cita->id]),
+                    $this->timelineTextPreview($cita->notas, 160),
                 );
             }
         }
@@ -1629,10 +1728,12 @@ class PacienteController extends Controller
      *     titulo: string,
      *     estado: string,
      *     href: string,
-     *     detalle_corto: ?string
+     *     detalle_corto: ?string,
+     *     detalle_url: string
      * }
      */
     private function timelineEventPayload(
+        Paciente $paciente,
         string $kind,
         string $id,
         string $ocurridoAt,
@@ -1649,6 +1750,11 @@ class PacienteController extends Controller
             'estado' => $estado,
             'href' => $href,
             'detalle_corto' => $detalleCorto,
+            'detalle_url' => route('clinica.pacientes.timeline.registro', [
+                'paciente' => $paciente,
+                'kind' => $kind,
+                'id' => $id,
+            ]),
         ];
     }
 

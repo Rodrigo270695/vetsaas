@@ -9,12 +9,14 @@ import { GroomingFormModal } from '@/pages/servicios/grooming/components/groomin
 import type {
     GroomingServicioGrupo,
     GroomingServicioRow,
+    GroomingTurnoRow,
     PacienteGroomingOpcion,
     SedeGroomingOpcion,
     UsuarioGroomingOpcion,
 } from '@/pages/servicios/grooming/types';
 import { HotelFormModal } from '@/pages/servicios/hotel/components/hotel-form-modal';
 import type {
+    HotelEstanciaRow,
     HotelTipoGrupo,
     HotelTipoRow,
     PacienteHotelOpcion,
@@ -23,18 +25,26 @@ import type {
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import { CitaFormModal } from '../citas/components/cita-form-modal';
-import type { PacienteCitaOpcion, SedeCitaOpcion } from '../citas/types';
+import type { CitaRow, PacienteCitaOpcion, SedeCitaOpcion, UsuarioCitaOpcion } from '../citas/types';
 import { CirugiaFormModal } from '../cirugias/components/cirugia-form-modal';
-import type { ConsultaCirugiaOpcion, PacienteCirugiaOpcion, SedeCirugiaOpcion } from '../cirugias/types';
+import type { CirugiaRow, ConsultaCirugiaOpcion, PacienteCirugiaOpcion, SedeCirugiaOpcion } from '../cirugias/types';
 import type { CatalogoOpcion } from '../historias-clinicas/components/consulta-form-modal';
 import { ConsultaFormModal } from '../historias-clinicas/components/consulta-form-modal';
 import type { ConsultaHistoriaRow, PacienteHistoriaOpcion } from '../historias-clinicas/types';
 import { InternamientoFormModal } from '../hospitalizacion/components/internamiento-form-modal';
 import type {
     ConsultaHospitalizacionOpcion,
+    InternamientoRow,
     PacienteHospitalizacionOpcion,
     SedeHospitalizacionOpcion,
 } from '../hospitalizacion/types';
+import { PedidoFormModal } from '../laboratorio/components/pedido-form-modal';
+import type {
+    ConsultaLaboratorioOpcion,
+    PacienteLaboratorioOpcion,
+    PedidoLaboratorioRow,
+    SedeLaboratorioOpcion,
+} from '../laboratorio/types';
 import { RecetaFormModal } from '../recetas/components/receta-form-modal';
 import type { ConsultaRecetaOpcion, PacienteRecetaOpcion, SedeRecetaOpcion } from '../recetas/types';
 import { dateKeyInAppTimezone } from '../historias-clinicas/format-atendido';
@@ -176,7 +186,8 @@ export type TimelineEventKind =
     | 'cirugia'
     | 'internamiento'
     | 'grooming'
-    | 'hotel';
+    | 'hotel'
+    | 'cita';
 
 export type TimelineEventItem = {
     kind: TimelineEventKind;
@@ -186,6 +197,7 @@ export type TimelineEventItem = {
     estado: string;
     href: string;
     detalle_corto?: string | null;
+    detalle_url?: string | null;
     archivos?: TimelineLabLinea[];
     veterinario?: string | null;
 };
@@ -332,11 +344,17 @@ export default function PacienteShow({
     const [consultaLoadingId, setConsultaLoadingId] = useState<string | null>(null);
     const [consultaToDelete, setConsultaToDelete] = useState<{ id: string } | null>(null);
     const [citaOpen, setCitaOpen] = useState(false);
+    const [citaEdit, setCitaEdit] = useState<CitaRow | null>(null);
     const [recetaOpen, setRecetaOpen] = useState(false);
     const [cirugiaOpen, setCirugiaOpen] = useState(false);
+    const [cirugiaEdit, setCirugiaEdit] = useState<CirugiaRow | null>(null);
     const [hospitalOpen, setHospitalOpen] = useState(false);
+    const [internamientoEdit, setInternamientoEdit] = useState<InternamientoRow | null>(null);
     const [groomingOpen, setGroomingOpen] = useState(false);
+    const [groomingEdit, setGroomingEdit] = useState<GroomingTurnoRow | null>(null);
     const [hotelOpen, setHotelOpen] = useState(false);
+    const [hotelEdit, setHotelEdit] = useState<HotelEstanciaRow | null>(null);
+    const [pedidoEdit, setPedidoEdit] = useState<PedidoLaboratorioRow | null>(null);
     const [desparasitacionPanel, setDesparasitacionPanel] = useState<
         null | { mode: 'create' } | { mode: 'edit'; url: string }
     >(null);
@@ -482,6 +500,76 @@ export default function PacienteShow({
         [],
     );
 
+    const openTimelineRegistro = useCallback(async (item: TimelineEventItem) => {
+        if (!item.detalle_url) {
+            return;
+        }
+
+        setConsultaLoadingId(item.id);
+
+        try {
+            const res = await fetch(item.detalle_url, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': readCsrfToken(),
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!res.ok) {
+                return;
+            }
+
+            const payload = (await res.json()) as { registro?: unknown };
+
+            if (!payload.registro || typeof payload.registro !== 'object') {
+                return;
+            }
+
+            if (item.kind === 'cita') {
+                setCitaEdit(payload.registro as CitaRow);
+                setCitaOpen(true);
+
+                return;
+            }
+
+            if (item.kind === 'cirugia') {
+                setCirugiaEdit(payload.registro as CirugiaRow);
+                setCirugiaOpen(true);
+
+                return;
+            }
+
+            if (item.kind === 'internamiento') {
+                setInternamientoEdit(payload.registro as InternamientoRow);
+                setHospitalOpen(true);
+
+                return;
+            }
+
+            if (item.kind === 'grooming') {
+                setGroomingEdit(payload.registro as GroomingTurnoRow);
+                setGroomingOpen(true);
+
+                return;
+            }
+
+            if (item.kind === 'hotel') {
+                setHotelEdit(payload.registro as HotelEstanciaRow);
+                setHotelOpen(true);
+
+                return;
+            }
+
+            if (item.kind === 'laboratorio') {
+                setPedidoEdit(payload.registro as PedidoLaboratorioRow);
+            }
+        } finally {
+            setConsultaLoadingId(null);
+        }
+    }, []);
+
     return (
         <>
             <Head title={title} />
@@ -513,7 +601,9 @@ export default function PacienteShow({
                         }
 
                         if (accion === 'cita') {
+                            setCitaEdit(null);
                             setCitaOpen(true);
+
                             return;
                         }
 
@@ -548,22 +638,30 @@ export default function PacienteShow({
                         }
 
                         if (accion === 'cirugia') {
+                            setCirugiaEdit(null);
                             setCirugiaOpen(true);
+
                             return;
                         }
 
                         if (accion === 'hospitalizacion') {
+                            setInternamientoEdit(null);
                             setHospitalOpen(true);
+
                             return;
                         }
 
                         if (accion === 'grooming') {
+                            setGroomingEdit(null);
                             setGroomingOpen(true);
+
                             return;
                         }
 
                         if (accion === 'hotel') {
+                            setHotelEdit(null);
                             setHotelOpen(true);
+
                             return;
                         }
 
@@ -717,6 +815,9 @@ export default function PacienteShow({
                                             setAntipulgaPanel(null);
                                             setDefuncionPanel({ mode: 'edit', url: registro.href });
                                         }}
+                                        onOpenRegistro={(registro) => {
+                                            void openTimelineRegistro(registro);
+                                        }}
                                         onShareConsulta={(consulta) =>
                                             setShareTarget({
                                                 url: consulta.whatsapp_url,
@@ -861,8 +962,14 @@ export default function PacienteShow({
 
             <CirugiaFormModal
                 open={cirugiaOpen}
-                onOpenChange={setCirugiaOpen}
-                cirugia={null}
+                onOpenChange={(open) => {
+                    setCirugiaOpen(open);
+
+                    if (!open) {
+                        setCirugiaEdit(null);
+                    }
+                }}
+                cirugia={cirugiaEdit}
                 prefillPacienteId={paciente.id}
                 pacientesOpciones={pacientes_opciones as readonly PacienteCirugiaOpcion[]}
                 sedesOpciones={sedes_opciones as readonly SedeCirugiaOpcion[]}
@@ -871,8 +978,14 @@ export default function PacienteShow({
 
             <InternamientoFormModal
                 open={hospitalOpen}
-                onOpenChange={setHospitalOpen}
-                internamiento={null}
+                onOpenChange={(open) => {
+                    setHospitalOpen(open);
+
+                    if (!open) {
+                        setInternamientoEdit(null);
+                    }
+                }}
+                internamiento={internamientoEdit}
                 prefillPacienteId={paciente.id}
                 pacientesOpciones={pacientes_opciones as readonly PacienteHospitalizacionOpcion[]}
                 sedesOpciones={sedes_opciones as readonly SedeHospitalizacionOpcion[]}
@@ -880,15 +993,34 @@ export default function PacienteShow({
                 usuariosOpciones={usuarios_opciones}
             />
 
-            {grooming_nuevo ? (
+            <PedidoFormModal
+                open={pedidoEdit !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPedidoEdit(null);
+                    }
+                }}
+                pedido={pedidoEdit}
+                pacientesOpciones={pacientes_opciones as readonly PacienteLaboratorioOpcion[]}
+                sedesOpciones={sedes_opciones as readonly SedeLaboratorioOpcion[]}
+                consultasOpciones={consultas_opciones as readonly ConsultaLaboratorioOpcion[]}
+            />
+
+            {grooming_nuevo || groomingEdit ? (
                 <GroomingFormModal
                     open={groomingOpen}
-                    onOpenChange={setGroomingOpen}
-                    turno={null}
-                    catalogoPersonalizado={grooming_nuevo.catalogo_personalizado}
-                    serviciosOpciones={grooming_nuevo.servicios}
-                    servicioGrupos={grooming_nuevo.grupos}
-                    servicioDuraciones={grooming_nuevo.duraciones}
+                    onOpenChange={(open) => {
+                        setGroomingOpen(open);
+
+                        if (!open) {
+                            setGroomingEdit(null);
+                        }
+                    }}
+                    turno={groomingEdit}
+                    catalogoPersonalizado={grooming_nuevo?.catalogo_personalizado ?? false}
+                    serviciosOpciones={grooming_nuevo?.servicios ?? []}
+                    servicioGrupos={grooming_nuevo?.grupos ?? []}
+                    servicioDuraciones={grooming_nuevo?.duraciones ?? {}}
                     pacientesOpciones={pacientes_opciones as readonly PacienteGroomingOpcion[]}
                     usuariosOpciones={usuarios_opciones}
                     sedesOpciones={sedes_opciones as readonly SedeGroomingOpcion[]}
@@ -896,30 +1028,43 @@ export default function PacienteShow({
                 />
             ) : null}
 
-            {hotel_nuevo ? (
+            {hotel_nuevo || hotelEdit ? (
                 <HotelFormModal
                     open={hotelOpen}
-                    onOpenChange={setHotelOpen}
-                    estancia={null}
-                    catalogoPersonalizado={hotel_nuevo.catalogo_personalizado}
-                    hotelTipos={hotel_nuevo.tipos}
-                    tipoGrupos={hotel_nuevo.grupos}
+                    onOpenChange={(open) => {
+                        setHotelOpen(open);
+
+                        if (!open) {
+                            setHotelEdit(null);
+                        }
+                    }}
+                    estancia={hotelEdit}
+                    catalogoPersonalizado={hotel_nuevo?.catalogo_personalizado ?? false}
+                    hotelTipos={hotel_nuevo?.tipos ?? []}
+                    tipoGrupos={hotel_nuevo?.grupos ?? []}
                     pacientesOpciones={pacientes_opciones as readonly PacienteHotelOpcion[]}
                     sedesOpciones={sedes_opciones as readonly SedeHotelOpcion[]}
                     prefill={{ paciente_id: paciente.id }}
                 />
             ) : null}
 
-            {permisos.citas_crear ? (
+            {permisos.citas_crear || citaEdit ? (
                 <CitaFormModal
                     open={citaOpen}
-                    onOpenChange={setCitaOpen}
-                    cita={null}
+                    onOpenChange={(open) => {
+                        setCitaOpen(open);
+
+                        if (!open) {
+                            setCitaEdit(null);
+                        }
+                    }}
+                    cita={citaEdit}
                     prefill={{
                         paciente_id: paciente.id,
                         lockPaciente: true,
                     }}
                     pacientesOpciones={pacientesCitaOpciones}
+                    usuariosOpciones={usuarios_opciones as readonly UsuarioCitaOpcion[]}
                     sedesOpciones={sedesCitaOpciones}
                 />
             ) : null}

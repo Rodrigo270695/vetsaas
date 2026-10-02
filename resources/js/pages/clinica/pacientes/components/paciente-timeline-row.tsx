@@ -51,6 +51,7 @@ import type {
     TimelineCobroVenta,
     TimelineConsultaDetalle,
     TimelineConsultaVinculos,
+    TimelineEventItem,
     TimelineItem,
     TimelineLabLinea,
     TimelinePlanLinea,
@@ -78,6 +79,7 @@ type TimelineRowProps = {
     onOpenDesparasitacion?: (item: Extract<TimelineItem, { kind: 'desparasitacion' }>) => void;
     onOpenAntipulga?: (item: Extract<TimelineItem, { kind: 'antipulga' }>) => void;
     onOpenDefuncion?: (item: Extract<TimelineItem, { kind: 'defuncion' }>) => void;
+    onOpenRegistro?: (item: TimelineEventItem) => void;
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
     onDeleteConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
@@ -423,6 +425,19 @@ function itemTheme(item: TimelineItem) {
         };
     }
 
+    if (item.kind === 'cita') {
+        return {
+            stripe: 'bg-gradient-to-b from-blue-400 to-blue-600',
+            dot: 'border-blue-400/70 bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-blue-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(59,130,246,0.16)]',
+            ringPulse: 'bg-blue-500/50',
+            iconBg: 'bg-gradient-to-br from-blue-500/20 to-blue-500/5',
+            iconText: 'text-blue-700 dark:text-blue-300',
+            cardHover: 'hover:border-blue-500/35 hover:shadow-blue-500/10',
+            Icon: CalendarDays,
+        };
+    }
+
     if (item.kind === 'defuncion') {
         return {
             stripe: 'bg-gradient-to-b from-slate-400 to-slate-700',
@@ -502,6 +517,7 @@ export function PacienteTimelineRow({
     onOpenDesparasitacion,
     onOpenAntipulga,
     onOpenDefuncion,
+    onOpenRegistro,
     onShareConsulta,
     onUploadLaboratorio,
     onDeleteConsulta,
@@ -597,19 +613,53 @@ export function PacienteTimelineRow({
             (item.kind === 'antipulga' && Boolean(onOpenAntipulga)) ||
             (item.kind === 'defuncion' && Boolean(onOpenDefuncion)));
 
-    const abrirFichaInline = () => {
+    const abreEnModal =
+        !isPublic &&
+        (fichaInline ||
+            (item.kind === 'consulta' && Boolean(onOpenConsulta)) ||
+            (item.kind === 'aplicacion' && Boolean(onOpenAplicacion) && Boolean(item.registro)) ||
+            (item.kind !== 'consulta' &&
+                item.kind !== 'aplicacion' &&
+                Boolean(item.detalle_url) &&
+                Boolean(onOpenRegistro)));
+
+    const abrirTarjeta = () => {
+        if (item.kind === 'consulta') {
+            onOpenConsulta?.(item);
+
+            return;
+        }
+
+        if (item.kind === 'aplicacion') {
+            onOpenAplicacion?.(item);
+
+            return;
+        }
+
         if (item.kind === 'desparasitacion') {
             onOpenDesparasitacion?.(item);
+
+            return;
         }
 
         if (item.kind === 'antipulga') {
             onOpenAntipulga?.(item);
+
+            return;
         }
 
         if (item.kind === 'defuncion') {
             onOpenDefuncion?.(item);
+
+            return;
         }
+
+        onOpenRegistro?.(item);
     };
+
+    const clickEsControl = (target: EventTarget | null) =>
+        target instanceof Element &&
+        Boolean(target.closest('button, a, input, textarea, select, [role="menuitem"]'));
 
     return (
         <li className="relative pb-5 last:pb-0">
@@ -650,16 +700,32 @@ export function PacienteTimelineRow({
                 </div>
 
                 <article
-                    role={fichaInline ? 'button' : undefined}
-                    tabIndex={fichaInline ? 0 : undefined}
-                    onClick={fichaInline ? abrirFichaInline : undefined}
-                    onKeyDown={
-                        fichaInline
+                    role={abreEnModal ? 'button' : undefined}
+                    tabIndex={abreEnModal ? 0 : undefined}
+                    onClick={
+                        abreEnModal
                             ? (event) => {
-                                  if (event.key === 'Enter' || event.key === ' ') {
-                                      event.preventDefault();
-                                      abrirFichaInline();
+                                  if (clickEsControl(event.target)) {
+                                      return;
                                   }
+
+                                  abrirTarjeta();
+                              }
+                            : undefined
+                    }
+                    onKeyDown={
+                        abreEnModal
+                            ? (event) => {
+                                  if (event.key !== 'Enter' && event.key !== ' ') {
+                                      return;
+                                  }
+
+                                  if (event.target !== event.currentTarget) {
+                                      return;
+                                  }
+
+                                  event.preventDefault();
+                                  abrirTarjeta();
                               }
                             : undefined
                     }
@@ -668,7 +734,8 @@ export function PacienteTimelineRow({
                         'ring-1 ring-black/[0.02] dark:ring-white/[0.03]',
                         theme.cardHover,
                         'hover:-translate-y-0.5 hover:shadow-lg',
-                        fichaInline && 'cursor-pointer',
+                        abreEnModal && 'cursor-pointer',
+                        consultaOpeningId === item.id && 'opacity-80',
                     )}
                 >
                     <div className={cn('absolute inset-y-0 left-0 w-1', theme.stripe)} aria-hidden />
@@ -703,6 +770,8 @@ export function PacienteTimelineRow({
                                             'bg-violet-500/12 text-violet-800 dark:text-violet-200',
                                         item.kind === 'hotel' &&
                                             'bg-indigo-500/12 text-indigo-800 dark:text-indigo-200',
+                                        item.kind === 'cita' &&
+                                            'bg-blue-500/12 text-blue-800 dark:text-blue-200',
                                         item.kind === 'desparasitacion' &&
                                             'bg-lime-500/12 text-lime-900 dark:text-lime-100',
                                         item.kind === 'antipulga' &&
@@ -840,10 +909,15 @@ export function PacienteTimelineRow({
                             />
 
                             <div className="flex flex-wrap items-center justify-end gap-1.5">
-                                {item.kind !== 'consulta' &&
+                                {consultaOpeningId === item.id && item.kind !== 'consulta' ? (
+                                    <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                                ) : null}
+                                {!abreEnModal &&
+                                item.kind !== 'consulta' &&
                                 item.kind !== 'aplicacion' &&
                                 item.kind !== 'desparasitacion' &&
                                 item.kind !== 'antipulga' &&
+                                item.kind !== 'defuncion' &&
                                 item.href &&
                                 !isPublic ? (
                                     <Button

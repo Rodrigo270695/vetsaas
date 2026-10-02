@@ -383,6 +383,11 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes/{paciente}/timeline', [PacienteController::class, 'timeline'])
                 ->name('pacientes.timeline');
+            Route::middleware('permission:pacientes.view')
+                ->get('pacientes/{paciente}/timeline-registro/{kind}/{id}', [PacienteController::class, 'timelineRegistro'])
+                ->whereIn('kind', ['cita', 'cirugia', 'internamiento', 'grooming', 'hotel', 'laboratorio'])
+                ->whereUuid(['paciente', 'id'])
+                ->name('pacientes.timeline.registro');
             Route::middleware('permission:petpass.register')
                 ->get('pacientes/{paciente}/petpass/registrar', [PacientePetPassController::class, 'start'])
                 ->name('pacientes.petpass.registrar');
