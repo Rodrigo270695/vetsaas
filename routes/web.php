@@ -395,6 +395,26 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:laboratorio.create')
                 ->post('pacientes/{paciente}/laboratorio-rapido', [PacienteController::class, 'storeLaboratorioRapido'])
                 ->name('pacientes.laboratorio-rapido');
+
+            $desparasitacionPerm = 'permission:historias-clinicas.view|historias-clinicas.create|historias-clinicas.update|vacunaciones.view|vacunaciones.create|vacunaciones.update';
+            Route::middleware($desparasitacionPerm)
+                ->get('pacientes/{paciente}/desparasitaciones/crear', [\App\Http\Controllers\DesparasitacionController::class, 'create'])
+                ->name('pacientes.desparasitaciones.create');
+            Route::middleware($desparasitacionPerm)
+                ->post('pacientes/{paciente}/desparasitaciones', [\App\Http\Controllers\DesparasitacionController::class, 'store'])
+                ->name('pacientes.desparasitaciones.store');
+            Route::middleware($desparasitacionPerm)
+                ->get('pacientes/{paciente}/desparasitaciones/productos-buscar', [\App\Http\Controllers\DesparasitacionController::class, 'productosBuscar'])
+                ->name('pacientes.desparasitaciones.productos');
+            Route::middleware($desparasitacionPerm)
+                ->post('pacientes/{paciente}/desparasitaciones/dictar', [\App\Http\Controllers\DesparasitacionController::class, 'dictar'])
+                ->name('pacientes.desparasitaciones.dictar');
+            Route::middleware($desparasitacionPerm)
+                ->get('pacientes/{paciente}/desparasitaciones/{desparasitacion}', [\App\Http\Controllers\DesparasitacionController::class, 'edit'])
+                ->name('pacientes.desparasitaciones.edit');
+            Route::middleware($desparasitacionPerm)
+                ->match(['put', 'patch'], 'pacientes/{paciente}/desparasitaciones/{desparasitacion}', [\App\Http\Controllers\DesparasitacionController::class, 'update'])
+                ->name('pacientes.desparasitaciones.update');
             Route::middleware('permission:pacientes.create')
                 ->post('pacientes', [PacienteController::class, 'store'])
                 ->name('pacientes.store');

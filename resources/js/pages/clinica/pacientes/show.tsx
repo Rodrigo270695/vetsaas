@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { CalendarDays, FolderOpen, History } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -167,6 +167,7 @@ export type TimelineAplicacionDetalle = {
 
 export type TimelineEventKind =
     | 'laboratorio'
+    | 'desparasitacion'
     | 'cirugia'
     | 'internamiento'
     | 'grooming'
@@ -181,6 +182,7 @@ export type TimelineEventItem = {
     href: string;
     detalle_corto?: string | null;
     archivos?: TimelineLabLinea[];
+    veterinario?: string | null;
 };
 
 export type TimelineItem =
@@ -246,6 +248,7 @@ type Props = {
     links: {
         nueva_consulta: string;
         nueva_aplicacion: string;
+        nueva_desparasitacion?: string | null;
         historial_pdf: string | null;
         historial_whatsapp: string | null;
         laboratorio_rapido: string | null;
@@ -476,6 +479,13 @@ export default function PacienteShow({
                         if (accion === 'vacuna') {
                             setVacunaEdit(null);
                             setVacunaCreateOpen(true);
+                            return;
+                        }
+
+                        if (accion === 'desparasitacion') {
+                            if (links.nueva_desparasitacion) {
+                                router.visit(links.nueva_desparasitacion);
+                            }
                             return;
                         }
 

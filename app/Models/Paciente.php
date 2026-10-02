@@ -116,6 +116,11 @@ class Paciente extends Model
         return $this->hasMany(VacunaAplicada::class, 'paciente_id');
     }
 
+    public function desparasitaciones(): HasMany
+    {
+        return $this->hasMany(Desparasitacion::class, 'paciente_id');
+    }
+
     public function citas(): HasMany
     {
         return $this->hasMany(Cita::class, 'paciente_id');

@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import {
     Activity,
     BedDouble,
+    Bug,
     CalendarDays,
     ChevronDown,
     Clock,
@@ -418,6 +419,19 @@ function itemTheme(item: TimelineItem) {
         };
     }
 
+    if (item.kind === 'desparasitacion') {
+        return {
+            stripe: 'bg-gradient-to-b from-lime-400 to-lime-600',
+            dot: 'border-lime-400/70 bg-gradient-to-br from-lime-400 to-lime-600 text-white shadow-lime-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(132,204,22,0.16)]',
+            ringPulse: 'bg-lime-500/50',
+            iconBg: 'bg-gradient-to-br from-lime-500/20 to-lime-500/5',
+            iconText: 'text-lime-800 dark:text-lime-200',
+            cardHover: 'hover:border-lime-500/35 hover:shadow-lime-500/10',
+            Icon: Bug,
+        };
+    }
+
     const cat = (item.categoria ?? 'vacuna').toLowerCase();
 
     if (cat === 'desparasitacion') {
@@ -632,6 +646,8 @@ export function PacienteTimelineRow({
                                             'bg-violet-500/12 text-violet-800 dark:text-violet-200',
                                         item.kind === 'hotel' &&
                                             'bg-indigo-500/12 text-indigo-800 dark:text-indigo-200',
+                                        item.kind === 'desparasitacion' &&
+                                            'bg-lime-500/12 text-lime-900 dark:text-lime-100',
                                     )}
                                 >
                                     {item.kind === 'consulta'
@@ -674,7 +690,15 @@ export function PacienteTimelineRow({
                                         : 'text-foreground',
                                 )}
                             >
-                                {item.titulo === '—' ? t('historial.sin_motivo') : item.titulo}
+                                {item.kind === 'desparasitacion' && item.href ? (
+                                    <Link href={item.href} className="hover:underline">
+                                        {item.titulo}
+                                    </Link>
+                                ) : item.titulo === '—' ? (
+                                    t('historial.sin_motivo')
+                                ) : (
+                                    item.titulo
+                                )}
                             </h3>
 
                             <div className="flex flex-wrap items-center gap-2">

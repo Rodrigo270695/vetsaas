@@ -17,9 +17,10 @@ export type ConsultaDictationFields = {
     fr_rpm: string | null;
 };
 
-type Props = {
+type Props<T = ConsultaDictationFields> = {
     disabled?: boolean;
-    onFields: (fields: ConsultaDictationFields, transcript: string) => void;
+    endpoint?: string;
+    onFields: (fields: T, transcript: string) => void;
 };
 
 type SpeechRecognitionLike = {
@@ -61,7 +62,11 @@ function isLikelyMobile(): boolean {
     return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
-export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
+export function ConsultaDictationBar<T = ConsultaDictationFields>({
+    disabled = false,
+    endpoint = '/clinica/historias-clinicas/consultas/dictar',
+    onFields,
+}: Props<T>) {
     const { t } = useTranslation('historias-clinicas');
     const [listening, setListening] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -133,7 +138,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
         setProcessing(true);
         setError(null);
         try {
-            const res = await fetch('/clinica/historias-clinicas/consultas/dictar', {
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -147,7 +152,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
             const body = (await res.json()) as {
                 message?: string;
                 transcript?: string;
-                fields?: ConsultaDictationFields;
+                fields?: T;
             };
             if (!res.ok) {
                 throw new Error(body.message || t('dictation.error'));
@@ -178,7 +183,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
         try {
             const form = new FormData();
             form.append('audio', blob, 'dictado.webm');
-            const res = await fetch('/clinica/historias-clinicas/consultas/dictar', {
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -191,7 +196,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
             const body = (await res.json()) as {
                 message?: string;
                 transcript?: string;
-                fields?: ConsultaDictationFields;
+                fields?: T;
             };
             if (!res.ok) {
                 throw new Error(body.message || t('dictation.error'));

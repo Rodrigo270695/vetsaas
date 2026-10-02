@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import {
     ArrowLeft,
     BedDouble,
+    Bug,
     Cake,
     CalendarPlus,
     Cat,
@@ -50,6 +51,7 @@ type Props = {
         historial_pdf: string | null;
         historial_whatsapp?: string | null;
         laboratorio_rapido?: string | null;
+        nueva_desparasitacion?: string | null;
         petpass_registrar?: string | null;
         petpass_propietario?: string | null;
         petpass_perfil_publico?: string | null;
@@ -81,6 +83,7 @@ export type HistorialNuevoAccion =
     | 'consulta'
     | 'cita'
     | 'vacuna'
+    | 'desparasitacion'
     | 'receta'
     | 'hospitalizacion'
     | 'cirugia'
@@ -207,6 +210,14 @@ export function PacienteHistorialHero({
             });
         }
 
+        if (links.nueva_desparasitacion) {
+            items.push({
+                id: 'desparasitacion',
+                label: t('historial.nuevo_desparasitacion'),
+                icon: Bug,
+            });
+        }
+
         if (recetasModule && can('recetas.create')) {
             items.push({
                 id: 'receta',
@@ -266,6 +277,7 @@ export function PacienteHistorialHero({
         hotelModule,
         laboratorioModule,
         links.laboratorio_rapido,
+        links.nueva_desparasitacion,
         permisos.citas_crear,
         permisos.consultas_crear,
         permisos.laboratorio_crear,

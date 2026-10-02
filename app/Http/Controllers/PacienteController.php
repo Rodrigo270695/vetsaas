@@ -15,6 +15,7 @@ use App\Models\Cirugia;
 use App\Models\ClinicaAsesorada;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
+use App\Models\Desparasitacion;
 use App\Models\ConsultaCargo;
 use App\Models\DocumentoAutorizacionEnvio;
 use App\Models\DocumentoAutorizacionPlantilla;
@@ -496,6 +497,14 @@ class PacienteController extends Controller
             'medico_tratante_default' => $user?->name ?? '',
             'links' => [
                 'nueva_consulta' => route('clinica.historias-clinicas', ['nuevo_para_paciente' => $paciente->id]),
+                'nueva_desparasitacion' => ($user instanceof User && Schema::hasTable('desparasitaciones') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? route('clinica.pacientes.desparasitaciones.create', $paciente)
+                    : null,
                 'nueva_aplicacion' => route('clinica.vacunaciones.index', ['prefill_paciente_id' => $paciente->id]),
                 'historial_pdf' => ($canVerConsultas || $canVerVacunas)
                     ? route('clinica.pacientes.historial-clinico-pdf', $paciente)
@@ -1226,11 +1235,62 @@ class PacienteController extends Controller
             }
         }
 
+        $this->appendDesparasitaciones($timeline, $paciente, $user);
         $this->appendStandaloneTimelineEvents($timeline, $paciente, $user, $tz);
 
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
 
         return $timeline;
+    }
+
+    /**
+     * Fichas de desparasitación. El clic del historial abre esa vista.
+     *
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function appendDesparasitaciones(array &$timeline, Paciente $paciente, mixed $user): void
+    {
+        if (! $user instanceof User || ! Schema::hasTable('desparasitaciones')) {
+            return;
+        }
+
+        $canVer = $user->can('historias-clinicas.view')
+            || $user->can('historias-clinicas.update')
+            || $user->can('vacunaciones.view')
+            || $user->can('vacunaciones.update')
+            || $user->can('historias-clinicas.create')
+            || $user->can('vacunaciones.create');
+        if (! $canVer) {
+            return;
+        }
+
+        $rows = Desparasitacion::query()
+            ->where('paciente_id', $paciente->id)
+            ->with('veterinario:id,name')
+            ->orderByDesc('atendido_at')
+            ->limit(200)
+            ->get();
+
+        foreach ($rows as $row) {
+            $aplicados = is_array($row->aplicados) ? $row->aplicados : [];
+            $primero = $aplicados[0]['nombre'] ?? null;
+            $proxima = $aplicados[0]['proxima_at'] ?? null;
+            $corto = trim(implode(' · ', array_filter([
+                is_string($primero) ? $primero : null,
+                is_string($proxima) && $proxima !== '' ? 'Próxima '.$proxima : null,
+            ])));
+
+            $timeline[] = [
+                'kind' => 'desparasitacion',
+                'id' => $row->id,
+                'ocurrido_at' => $row->atendido_at->toIso8601String(),
+                'titulo' => 'Desparasitación',
+                'estado' => 'registrada',
+                'href' => route('clinica.pacientes.desparasitaciones.edit', [$paciente, $row]),
+                'detalle_corto' => $corto !== '' ? $corto : null,
+                'veterinario' => $row->veterinario?->name,
+            ];
+        }
     }
 
     /**
