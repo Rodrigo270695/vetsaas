@@ -183,6 +183,7 @@
         "nuevo_desparasitacion": "Deworming",
         "nuevo_antipulga": "Flea treatment",
         "nuevo_defuncion": "Death certificate",
+        "nuevo_triaje": "Triage",
         "nuevo_receta": "Prescription",
         "nuevo_hospitalizacion": "Hospitalization",
         "nuevo_cirugia": "Surgery",
@@ -277,6 +278,7 @@
         "badge_desparasitacion": "Deworming",
         "badge_antipulga": "Flea treatment",
         "badge_defuncion": "Death",
+        "badge_triaje": "Triage",
         "ver_evento": "Open",
         "badge_cerrada": "Closed",
         "badge_abierta": "Open",
@@ -484,5 +486,116 @@
         "autorizacion_pdf": "View signed document",
         "autorizacion_plantillas": "Edit the text in Settings → Authorizations.",
         "error_abrir": "Could not open the death certificate."
+    },
+    "triaje": {
+        "title": "Triage",
+        "subtitle": "Check-up for {{nombre}}.",
+        "fecha": "Visit date and time",
+        "comentarios": "Additional comments",
+        "guardar": "Save changes",
+        "cancelar": "Cancel",
+        "recordatorio": "Save after any change you make.",
+        "volver": "Back to history",
+        "confirmar_volver": "Going back will discard the data you have not saved. Leave anyway?",
+        "veterinario": "Clinician",
+        "error_abrir": "Could not open the triage record.",
+        "recomendaciones": "Important recommendations for your pet and your family",
+        "secciones": {
+            "piel": "Skin",
+            "oidos": "Ears",
+            "ojos": "Eyes",
+            "dientes": "Teeth and gums",
+            "pelaje": "Coat",
+            "pulgas": "Fleas",
+            "garrapatas": "Ticks",
+            "desparasitacion": "Deworming",
+            "vacunas": "Vaccines"
+        },
+        "opciones": {
+            "piel": {
+                "bien": "Good",
+                "costras": "Scabs",
+                "heridas": "Wounds",
+                "roja": "Red",
+                "eczemas": "Eczema",
+                "hematomas": "Bruises",
+                "caspa": "Dandruff",
+                "alergia": "Allergy",
+                "masa": "Mass/lump"
+            },
+            "oidos": {
+                "bien": "Good",
+                "hematomas": "Hematomas",
+                "mal_olor": "Bad smell",
+                "inflamados": "Inflamed",
+                "dolor": "Pain",
+                "sangrado": "Bleeding",
+                "cerumen": "Excess wax"
+            },
+            "ojos": {
+                "bien": "Good",
+                "leganas": "Discharge",
+                "enrojecimiento": "Redness",
+                "lagrimeo": "Tearing"
+            },
+            "dientes": {
+                "bien": "Good",
+                "gingivitis": "Gingivitis",
+                "perdida": "Missing teeth",
+                "mal_aliento": "Bad breath",
+                "sarro": "Tartar",
+                "flojos": "Loose teeth",
+                "sangrado": "Bleeding"
+            },
+            "pelaje": {
+                "bien": "Good",
+                "caida": "Hair loss in patches",
+                "opaco": "Dull",
+                "brilloso": "Shiny",
+                "mal_olor": "Bad smell",
+                "motoso": "Matted",
+                "manchado": "Stained",
+                "alopecia": "Alopecia"
+            },
+            "pulgas": {
+                "si": "Yes",
+                "no": "No",
+                "gran_cantidad": "Large amount",
+                "poca_cantidad": "Small amount"
+            },
+            "garrapatas": {
+                "si": "Yes",
+                "no": "No",
+                "gran_cantidad": "Large amount",
+                "poca_cantidad": "Small amount"
+            },
+            "desparasitacion": {
+                "si_registra": "On record",
+                "no_registra": "Not on record",
+                "al_dia": "Up to date",
+                "pendiente": "Pending"
+            },
+            "vacunas": {
+                "si_registra": "On record",
+                "no_registra": "Not on record",
+                "pendiente": "Pending"
+            }
+        },
+        "recomendacion": {
+            "consulta_medica": "Schedule a medical visit",
+            "aplicar_vacuna": "Give vaccine",
+            "antipulgas": "Apply flea and tick treatment",
+            "tratamiento": "Start a specific treatment",
+            "bano_medicado": "Medicated bath",
+            "alimento": "Feed a specific balanced diet",
+            "bajar_peso": "Lose weight",
+            "profilaxis": "Dental prophylaxis",
+            "desparasitacion_interna": "Internal deworming",
+            "examenes": "Further tests",
+            "bano_antipulgas": "Flea bath",
+            "control_anual": "Annual check-up",
+            "vitaminas": "Specific vitamins and omegas",
+            "subir_peso": "Gain weight"
+        }
     }
 }

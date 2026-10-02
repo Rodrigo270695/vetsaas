@@ -134,6 +134,11 @@ class Paciente extends Model
         return $this->hasMany(Defuncion::class, 'paciente_id');
     }
 
+    public function triajes(): HasMany
+    {
+        return $this->hasMany(Triaje::class, 'paciente_id');
+    }
+
     public function citas(): HasMany
     {
         return $this->hasMany(Cita::class, 'paciente_id');

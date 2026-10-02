@@ -437,6 +437,7 @@ class HandleInertiaRequests extends Middleware
                     'copy_url' => $session->get('copy_url'),
                     'copy_label' => $session->get('copy_label'),
                     'defuncion_editar' => $session->get('defuncion_editar'),
+                    'triaje_editar' => $session->get('triaje_editar'),
                 ];
 
                 $hasMessage = collect($payload)

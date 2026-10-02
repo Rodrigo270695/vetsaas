@@ -499,6 +499,19 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:historias-clinicas.update|vacunaciones.update|historias-clinicas.create|vacunaciones.create')
                 ->post('pacientes/{paciente}/defunciones/{defuncion}/autorizacion', [\App\Http\Controllers\DefuncionController::class, 'autorizacion'])
                 ->name('pacientes.defunciones.autorizacion');
+            $triajePerm = 'permission:historias-clinicas.view|historias-clinicas.create|historias-clinicas.update|vacunaciones.view|vacunaciones.create|vacunaciones.update';
+            Route::middleware($triajePerm)
+                ->get('pacientes/{paciente}/triajes/crear', [\App\Http\Controllers\TriajeController::class, 'create'])
+                ->name('pacientes.triajes.create');
+            Route::middleware($triajePerm)
+                ->post('pacientes/{paciente}/triajes', [\App\Http\Controllers\TriajeController::class, 'store'])
+                ->name('pacientes.triajes.store');
+            Route::middleware($triajePerm)
+                ->get('pacientes/{paciente}/triajes/{triaje}', [\App\Http\Controllers\TriajeController::class, 'edit'])
+                ->name('pacientes.triajes.edit');
+            Route::middleware($triajePerm)
+                ->match(['put', 'patch'], 'pacientes/{paciente}/triajes/{triaje}', [\App\Http\Controllers\TriajeController::class, 'update'])
+                ->name('pacientes.triajes.update');
             Route::middleware('permission:pacientes.create')
                 ->post('pacientes', [PacienteController::class, 'store'])
                 ->name('pacientes.store');

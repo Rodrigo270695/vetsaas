@@ -18,6 +18,8 @@ use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\Antipulga;
 use App\Models\Defuncion;
+use App\Models\Triaje;
+use App\Support\Clinica\TriajeCatalogo;
 use App\Models\Desparasitacion;
 use App\Models\ConsultaCargo;
 use App\Models\DocumentoAutorizacionEnvio;
@@ -561,6 +563,25 @@ class PacienteController extends Controller
                     ? [
                         'store_url' => route('clinica.pacientes.defunciones.store', $paciente),
                         'ocurrido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
+                    ]
+                    : null,
+                'nueva_triaje' => ($user instanceof User && Schema::hasTable('triajes') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? route('clinica.pacientes.triajes.create', $paciente)
+                    : null,
+                'triaje' => ($user instanceof User && Schema::hasTable('triajes') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? [
+                        'store_url' => route('clinica.pacientes.triajes.store', $paciente),
+                        'atendido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
                     ]
                     : null,
                 'nueva_aplicacion' => route('clinica.vacunaciones.index', ['prefill_paciente_id' => $paciente->id]),
@@ -1370,6 +1391,7 @@ class PacienteController extends Controller
         $this->appendDesparasitaciones($timeline, $paciente, $user);
         $this->appendAntipulgas($timeline, $paciente, $user);
         $this->appendDefunciones($timeline, $paciente, $user);
+        $this->appendTriajes($timeline, $paciente, $user);
         $this->appendStandaloneTimelineEvents($timeline, $paciente, $user, $tz);
 
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
@@ -1531,6 +1553,50 @@ class PacienteController extends Controller
                 'estado' => $firmada ? 'firmada' : ($pendiente ? 'pendiente' : 'registrada'),
                 'href' => route('clinica.pacientes.defunciones.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
+                'veterinario' => $row->veterinario?->name,
+            ];
+        }
+    }
+
+    /**
+     * Triajes. El clic del historial abre esa ficha.
+     *
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function appendTriajes(array &$timeline, Paciente $paciente, mixed $user): void
+    {
+        if (! $user instanceof User || ! Schema::hasTable('triajes')) {
+            return;
+        }
+
+        $canVer = $user->can('historias-clinicas.view')
+            || $user->can('historias-clinicas.update')
+            || $user->can('vacunaciones.view')
+            || $user->can('vacunaciones.update')
+            || $user->can('historias-clinicas.create')
+            || $user->can('vacunaciones.create');
+        if (! $canVer) {
+            return;
+        }
+
+        $rows = Triaje::query()
+            ->where('paciente_id', $paciente->id)
+            ->with('veterinario:id,name')
+            ->orderByDesc('atendido_at')
+            ->limit(200)
+            ->get();
+
+        foreach ($rows as $row) {
+            $hallazgos = is_array($row->hallazgos) ? $row->hallazgos : [];
+
+            $timeline[] = [
+                'kind' => 'triaje',
+                'id' => $row->id,
+                'ocurrido_at' => $row->atendido_at->toIso8601String(),
+                'titulo' => 'Triaje',
+                'estado' => 'registrada',
+                'href' => route('clinica.pacientes.triajes.edit', [$paciente, $row]),
+                'detalle_corto' => TriajeCatalogo::resumen($hallazgos),
                 'veterinario' => $row->veterinario?->name,
             ];
         }

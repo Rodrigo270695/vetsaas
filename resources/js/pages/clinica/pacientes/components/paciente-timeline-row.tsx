@@ -77,6 +77,7 @@ type TimelineRowProps = {
     onOpenDesparasitacion?: (item: Extract<TimelineItem, { kind: 'desparasitacion' }>) => void;
     onOpenAntipulga?: (item: Extract<TimelineItem, { kind: 'antipulga' }>) => void;
     onOpenDefuncion?: (item: Extract<TimelineItem, { kind: 'defuncion' }>) => void;
+    onOpenTriaje?: (item: Extract<TimelineItem, { kind: 'triaje' }>) => void;
     onOpenRegistro?: (item: TimelineEventItem) => void;
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
@@ -436,6 +437,19 @@ function itemTheme(item: TimelineItem) {
         };
     }
 
+    if (item.kind === 'triaje') {
+        return {
+            stripe: 'bg-gradient-to-b from-violet-400 to-fuchsia-600',
+            dot: 'border-violet-400/70 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-violet-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(139,92,246,0.16)]',
+            ringPulse: 'bg-violet-500/50',
+            iconBg: 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/5',
+            iconText: 'text-violet-700 dark:text-violet-200',
+            cardHover: 'hover:border-violet-500/35 hover:shadow-violet-500/10',
+            Icon: ClipboardList,
+        };
+    }
+
     if (item.kind === 'defuncion') {
         return {
             stripe: 'bg-gradient-to-b from-slate-400 to-slate-700',
@@ -515,6 +529,7 @@ export function PacienteTimelineRow({
     onOpenDesparasitacion,
     onOpenAntipulga,
     onOpenDefuncion,
+    onOpenTriaje,
     onOpenRegistro,
     onShareConsulta,
     onUploadLaboratorio,
@@ -609,7 +624,8 @@ export function PacienteTimelineRow({
         !isPublic &&
         ((item.kind === 'desparasitacion' && Boolean(onOpenDesparasitacion)) ||
             (item.kind === 'antipulga' && Boolean(onOpenAntipulga)) ||
-            (item.kind === 'defuncion' && Boolean(onOpenDefuncion)));
+            (item.kind === 'defuncion' && Boolean(onOpenDefuncion)) ||
+            (item.kind === 'triaje' && Boolean(onOpenTriaje)));
 
     const abreEnModal =
         !isPublic &&
@@ -648,6 +664,12 @@ export function PacienteTimelineRow({
 
         if (item.kind === 'defuncion') {
             onOpenDefuncion?.(item);
+
+            return;
+        }
+
+        if (item.kind === 'triaje') {
+            onOpenTriaje?.(item);
 
             return;
         }
@@ -776,6 +798,8 @@ export function PacienteTimelineRow({
                                             'bg-lime-500/12 text-lime-900 dark:text-lime-100',
                                         item.kind === 'defuncion' &&
                                             'bg-slate-500/12 text-slate-800 dark:text-slate-100',
+                                        item.kind === 'triaje' &&
+                                            'bg-violet-500/12 text-violet-800 dark:text-violet-100',
                                     )}
                                 >
                                     {item.kind === 'consulta'

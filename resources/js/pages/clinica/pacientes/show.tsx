@@ -66,6 +66,7 @@ import { PacienteFormModal } from './components/paciente-form-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { AntipulgaEmbed } from './antipulgas';
 import { DefuncionEmbed } from './defuncion';
+import { TriajeEmbed } from './triaje';
 import { DesparasitacionEmbed } from './desparasitacion';
 import type { HistorialNuevoAccion } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
@@ -185,6 +186,7 @@ export type TimelineEventKind =
     | 'desparasitacion'
     | 'antipulga'
     | 'defuncion'
+    | 'triaje'
     | 'cirugia'
     | 'internamiento'
     | 'grooming'
@@ -293,6 +295,11 @@ type Props = {
             store_url: string;
             ocurrido_at: string;
         } | null;
+        nueva_triaje?: string | null;
+        triaje?: {
+            store_url: string;
+            atendido_at: string;
+        } | null;
         historial_pdf: string | null;
         historial_whatsapp: string | null;
         laboratorio_rapido: string | null;
@@ -341,7 +348,11 @@ export default function PacienteShow({
 }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
     const { timezone: appTz, flash } = usePage().props;
-    const flashDefuncion = flash as { id?: string; defuncion_editar?: string | null } | null;
+    const flashDefuncion = flash as {
+        id?: string;
+        defuncion_editar?: string | null;
+        triaje_editar?: string | null;
+    } | null;
     const [timelineLaneFilter, setTimelineLaneFilter] = useState<
         'todo' | 'clinico' | 'servicio'
     >('todo');
@@ -379,6 +390,13 @@ export default function PacienteShow({
         null | { mode: 'create' } | { mode: 'edit'; url: string }
     >(() => {
         const url = flashDefuncion?.defuncion_editar;
+
+        return typeof url === 'string' && url !== '' ? { mode: 'edit', url } : null;
+    });
+    const [triajePanel, setTriajePanel] = useState<
+        null | { mode: 'create' } | { mode: 'edit'; url: string }
+    >(() => {
+        const url = flashDefuncion?.triaje_editar;
 
         return typeof url === 'string' && url !== '' ? { mode: 'edit', url } : null;
     });
@@ -626,6 +644,10 @@ export default function PacienteShow({
                             setDefuncionPanel(null);
                         }
 
+                        if (accion !== 'triaje') {
+                            setTriajePanel(null);
+                        }
+
                         if (accion === 'consulta') {
                             setConsultaEdit(null);
                             setConsultaCreateOpen(true);
@@ -660,7 +682,17 @@ export default function PacienteShow({
                         if (accion === 'defuncion') {
                             setDesparasitacionPanel(null);
                             setAntipulgaPanel(null);
+                            setTriajePanel(null);
                             setDefuncionPanel({ mode: 'create' });
+                            return;
+                        }
+
+                        if (accion === 'triaje') {
+                            setDesparasitacionPanel(null);
+                            setAntipulgaPanel(null);
+                            setDefuncionPanel(null);
+                            setTriajePanel({ mode: 'create' });
+
                             return;
                         }
 
@@ -763,7 +795,23 @@ export default function PacienteShow({
                                 onSaved={(url) => {
                                     setDesparasitacionPanel(null);
                                     setAntipulgaPanel(null);
+                                    setTriajePanel(null);
                                     setDefuncionPanel({ mode: 'edit', url });
+                                }}
+                            />
+                        </div>
+                    ) : triajePanel ? (
+                        <div className="p-4 sm:p-5">
+                            <TriajeEmbed
+                                paciente={{ id: paciente.id, nombre: paciente.nombre }}
+                                create={triajePanel.mode === 'create' ? (links.triaje ?? null) : null}
+                                editUrl={triajePanel.mode === 'edit' ? triajePanel.url : null}
+                                onVolver={() => setTriajePanel(null)}
+                                onSaved={(url) => {
+                                    setDesparasitacionPanel(null);
+                                    setAntipulgaPanel(null);
+                                    setDefuncionPanel(null);
+                                    setTriajePanel({ mode: 'edit', url });
                                 }}
                             />
                         </div>
@@ -835,17 +883,26 @@ export default function PacienteShow({
                                         onOpenDesparasitacion={(registro) => {
                                             setAntipulgaPanel(null);
                                             setDefuncionPanel(null);
+                                            setTriajePanel(null);
                                             setDesparasitacionPanel({ mode: 'edit', url: registro.href });
                                         }}
                                         onOpenAntipulga={(registro) => {
                                             setDesparasitacionPanel(null);
                                             setDefuncionPanel(null);
+                                            setTriajePanel(null);
                                             setAntipulgaPanel({ mode: 'edit', url: registro.href });
                                         }}
                                         onOpenDefuncion={(registro) => {
                                             setDesparasitacionPanel(null);
                                             setAntipulgaPanel(null);
+                                            setTriajePanel(null);
                                             setDefuncionPanel({ mode: 'edit', url: registro.href });
+                                        }}
+                                        onOpenTriaje={(registro) => {
+                                            setDesparasitacionPanel(null);
+                                            setAntipulgaPanel(null);
+                                            setDefuncionPanel(null);
+                                            setTriajePanel({ mode: 'edit', url: registro.href });
                                         }}
                                         onOpenRegistro={(registro) => {
                                             void openTimelineRegistro(registro);

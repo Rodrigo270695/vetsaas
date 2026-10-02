@@ -183,6 +183,7 @@
         "nuevo_desparasitacion": "Desparasitación",
         "nuevo_antipulga": "Antipulgas",
         "nuevo_defuncion": "Defunción",
+        "nuevo_triaje": "Triaje",
         "nuevo_receta": "Receta",
         "nuevo_hospitalizacion": "Hospitalización",
         "nuevo_cirugia": "Cirugía",
@@ -277,6 +278,7 @@
         "badge_desparasitacion": "Desparasitación",
         "badge_antipulga": "Antipulgas",
         "badge_defuncion": "Defunción",
+        "badge_triaje": "Triaje",
         "ver_evento": "Abrir",
         "badge_cerrada": "Cerrada",
         "badge_abierta": "Abierta",
@@ -484,5 +486,116 @@
         "autorizacion_pdf": "Ver documento firmado",
         "autorizacion_plantillas": "El texto se edita en Configuración → Autorizaciones.",
         "error_abrir": "No se pudo abrir el certificado de defunción."
+    },
+    "triaje": {
+        "title": "Triaje",
+        "subtitle": "Revisión de {{nombre}}.",
+        "fecha": "Fecha y hora de atención",
+        "comentarios": "Comentarios adicionales",
+        "guardar": "Guardar cambios",
+        "cancelar": "Cancelar",
+        "recordatorio": "Recuerda guardar ante cualquier cambio que realices.",
+        "volver": "Volver al historial",
+        "confirmar_volver": "Si vuelves al historial se perderán los datos que no guardaste. ¿Quieres salir?",
+        "veterinario": "Profesional",
+        "error_abrir": "No se pudo abrir el triaje.",
+        "recomendaciones": "Recomendaciones muy importantes para la salud de su mascota y su familia",
+        "secciones": {
+            "piel": "Piel",
+            "oidos": "Oídos",
+            "ojos": "Ojos",
+            "dientes": "Dientes y encías",
+            "pelaje": "Pelaje",
+            "pulgas": "Pulgas",
+            "garrapatas": "Garrapatas",
+            "desparasitacion": "Desparasitación",
+            "vacunas": "Vacunas"
+        },
+        "opciones": {
+            "piel": {
+                "bien": "Bien",
+                "costras": "Costras",
+                "heridas": "Heridas",
+                "roja": "Roja",
+                "eczemas": "Eczemas",
+                "hematomas": "Hematomas",
+                "caspa": "Caspa",
+                "alergia": "Alergia",
+                "masa": "Masa/Bultos"
+            },
+            "oidos": {
+                "bien": "Bien",
+                "hematomas": "Hematomas",
+                "mal_olor": "Mal olor",
+                "inflamados": "Inflamados",
+                "dolor": "Dolor",
+                "sangrado": "Sangrado",
+                "cerumen": "Abundante cerumen"
+            },
+            "ojos": {
+                "bien": "Bien",
+                "leganas": "Legañas",
+                "enrojecimiento": "Enrojecimiento",
+                "lagrimeo": "Lagrimeo"
+            },
+            "dientes": {
+                "bien": "Bien",
+                "gingivitis": "Gingivitis",
+                "perdida": "Pérdida de dientes",
+                "mal_aliento": "Mal aliento",
+                "sarro": "Sarro dental",
+                "flojos": "Dientes flojos",
+                "sangrado": "Sangrado"
+            },
+            "pelaje": {
+                "bien": "Bien",
+                "caida": "Caída/Falta por zonas",
+                "opaco": "Opaco",
+                "brilloso": "Brilloso",
+                "mal_olor": "Mal olor",
+                "motoso": "Motoso",
+                "manchado": "Manchado",
+                "alopecia": "Alopecia"
+            },
+            "pulgas": {
+                "si": "Sí",
+                "no": "No",
+                "gran_cantidad": "Gran cantidad",
+                "poca_cantidad": "Poca cantidad"
+            },
+            "garrapatas": {
+                "si": "Sí",
+                "no": "No",
+                "gran_cantidad": "Gran cantidad",
+                "poca_cantidad": "Poca cantidad"
+            },
+            "desparasitacion": {
+                "si_registra": "Si registra",
+                "no_registra": "No registra",
+                "al_dia": "Al día",
+                "pendiente": "Pendiente"
+            },
+            "vacunas": {
+                "si_registra": "Si registra",
+                "no_registra": "No registra",
+                "pendiente": "Pendiente"
+            }
+        },
+        "recomendacion": {
+            "consulta_medica": "Pasar por consulta médica",
+            "aplicar_vacuna": "Aplicar vacuna",
+            "antipulgas": "Aplicar antipulgas/antigarrapatas",
+            "tratamiento": "Realizar tratamiento específico",
+            "bano_medicado": "Realizar baño medicado",
+            "alimento": "Dar alimento balanceado específico",
+            "bajar_peso": "Bajar de peso",
+            "profilaxis": "Realizar profilaxis dental",
+            "desparasitacion_interna": "Aplicar desparasitación interna",
+            "examenes": "Realizar exámenes complementarios",
+            "bano_antipulgas": "Realizar baño antipulgas",
+            "control_anual": "Realizar control anual",
+            "vitaminas": "Dar vitaminas y omegas específicos",
+            "subir_peso": "Subir de peso"
+        }
     }
 }

@@ -360,6 +360,7 @@ class TenantSchemaMigrator
             '2026_10_02_120000_t165_defunciones' => Schema::hasTable('defunciones')
                 && Schema::hasColumn('pacientes', 'fallecido_at')
                 && Schema::hasColumn('documento_autorizacion_envios', 'defuncion_id'),
+            '2026_10_02_180000_t166_triajes' => Schema::hasTable('triajes'),
             '2026_07_22_190000_t121_add_arqueo_json_to_caja_sesiones' => Schema::hasTable('caja_sesiones')
                 && Schema::hasColumn('caja_sesiones', 'arqueo_json'),
             '2026_07_23_200000_t122_create_caja_egresos_table' => Schema::hasTable('caja_egresos'),

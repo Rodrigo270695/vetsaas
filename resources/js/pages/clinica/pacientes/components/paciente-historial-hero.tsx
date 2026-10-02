@@ -7,6 +7,7 @@ import {
     CalendarPlus,
     Cat,
     ChevronDown,
+    ClipboardList,
     Dog,
     ExternalLink,
     FileDown,
@@ -56,6 +57,7 @@ type Props = {
         nueva_desparasitacion?: string | null;
         nueva_antipulga?: string | null;
         nueva_defuncion?: string | null;
+        nueva_triaje?: string | null;
         petpass_registrar?: string | null;
         petpass_propietario?: string | null;
         petpass_perfil_publico?: string | null;
@@ -93,6 +95,7 @@ export type HistorialNuevoAccion =
     | 'desparasitacion'
     | 'antipulga'
     | 'defuncion'
+    | 'triaje'
     | 'receta'
     | 'hospitalizacion'
     | 'cirugia'
@@ -237,6 +240,14 @@ export function PacienteHistorialHero({
             });
         }
 
+        if (links.nueva_triaje) {
+            items.push({
+                id: 'triaje',
+                label: t('historial.nuevo_triaje'),
+                icon: ClipboardList,
+            });
+        }
+
         if (links.nueva_defuncion) {
             items.push({
                 id: 'defuncion',
@@ -307,6 +318,7 @@ export function PacienteHistorialHero({
         links.nueva_desparasitacion,
         links.nueva_antipulga,
         links.nueva_defuncion,
+        links.nueva_triaje,
         permisos.citas_crear,
         permisos.consultas_crear,
         permisos.laboratorio_crear,
