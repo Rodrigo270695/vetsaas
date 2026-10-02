@@ -9,6 +9,7 @@ use App\Models\Paciente;
 use App\Models\Producto;
 use App\Models\User;
 use App\Services\Clinica\AntipulgaDictationService;
+use App\Support\Clinica\RecetaFichaLineas;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -193,6 +194,7 @@ final class AntipulgaController extends Controller
                 'hidratacion' => $row->hidratacion,
                 'aplicados' => $row->aplicados ?? [],
                 'receta' => $row->receta ?? [],
+                'recetas' => RecetaFichaLineas::resumen('antipulga_id', $row->id),
                 'comentarios' => $row->comentarios,
                 'veterinario' => $row->veterinario?->name,
             ];
@@ -264,9 +266,9 @@ final class AntipulgaController extends Controller
             'temperatura_c' => ['nullable', 'numeric', 'min:0', 'max:50'],
             'fc_lpm' => ['nullable', 'integer', 'min:0', 'max:400'],
             'fr_rpm' => ['nullable', 'integer', 'min:0', 'max:200'],
-            'tlc' => ['nullable', 'string', 'max:40'],
-            'pa' => ['nullable', 'string', 'max:40'],
-            'hidratacion' => ['nullable', 'string', 'max:40'],
+            'tlc' => ['nullable', 'numeric', 'min:0', 'max:99'],
+            'pa' => ['nullable', 'numeric', 'min:0', 'max:400'],
+            'hidratacion' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'comentarios' => ['nullable', 'string', 'max:20000'],
             'aplicados' => ['nullable', 'array', 'max:20'],
             'aplicados.*.producto_id' => ['nullable', 'uuid'],
@@ -334,9 +336,9 @@ final class AntipulgaController extends Controller
             'temperatura_c' => $data['temperatura_c'] ?? null,
             'fc_lpm' => $data['fc_lpm'] ?? null,
             'fr_rpm' => $data['fr_rpm'] ?? null,
-            'tlc' => $blank($data['tlc'] ?? null),
-            'pa' => $blank($data['pa'] ?? null),
-            'hidratacion' => $blank($data['hidratacion'] ?? null),
+            'tlc' => $data['tlc'] ?? null,
+            'pa' => $data['pa'] ?? null,
+            'hidratacion' => $data['hidratacion'] ?? null,
             'comentarios' => $blank($data['comentarios'] ?? null),
             'aplicados' => $aplicados,
             'receta' => $receta,

@@ -11,6 +11,7 @@ use App\Models\ConsultaCargo;
 use App\Models\ConsultaCargoLinea;
 use App\Models\Desparasitacion;
 use App\Models\Producto;
+use App\Support\Clinica\RecetaFichaLineas;
 use App\Models\Sede;
 use App\Models\User;
 use App\Models\Venta;
@@ -517,7 +518,10 @@ class DesparasitacionCargoController extends Controller
             ];
         }
 
-        $receta = is_array($desparasitacion->receta) ? $desparasitacion->receta : [];
+        $receta = array_merge(
+            is_array($desparasitacion->receta) ? $desparasitacion->receta : [],
+            RecetaFichaLineas::paraCargo('desparasitacion_id', $desparasitacion->id),
+        );
         $idsReceta = [];
         foreach ($receta as $linea) {
             $id = $linea['producto_id'] ?? null;

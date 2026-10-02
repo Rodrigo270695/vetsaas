@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $id
  * @property string $paciente_id
  * @property ?string $consulta_id
+ * @property ?string $desparasitacion_id
+ * @property ?string $antipulga_id
  * @property ?string $veterinario_id
  * @property ?string $sede_id
  * @property \Illuminate\Support\Carbon $emitida_at
@@ -54,6 +56,8 @@ class Receta extends Model
     protected $fillable = [
         'paciente_id',
         'consulta_id',
+        'desparasitacion_id',
+        'antipulga_id',
         'veterinario_id',
         'sede_id',
         'emitida_at',
@@ -82,6 +86,16 @@ class Receta extends Model
     public function consulta(): BelongsTo
     {
         return $this->belongsTo(Consulta::class, 'consulta_id');
+    }
+
+    public function desparasitacion(): BelongsTo
+    {
+        return $this->belongsTo(Desparasitacion::class, 'desparasitacion_id');
+    }
+
+    public function antipulga(): BelongsTo
+    {
+        return $this->belongsTo(Antipulga::class, 'antipulga_id');
     }
 
     public function veterinario(): BelongsTo

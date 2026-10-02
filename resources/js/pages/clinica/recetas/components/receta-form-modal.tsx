@@ -179,6 +179,9 @@ export type RecetaFormModalProps = {
     consultasOpciones: readonly ConsultaRecetaOpcion[];
     /** Al crear desde la HC, deja la mascota fija. */
     prefillPacienteId?: string | null;
+    /** Liga la receta nueva a una ficha de desparasitación o antipulgas. */
+    vinculo?: { desparasitacionId?: string | null; antipulgaId?: string | null } | null;
+    onSaved?: () => void;
 };
 
 /**
@@ -192,6 +195,8 @@ export function RecetaFormModal({
     sedesOpciones,
     consultasOpciones,
     prefillPacienteId = null,
+    vinculo = null,
+    onSaved,
 }: RecetaFormModalProps) {
     const { t } = useTranslation(['recetas', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
@@ -208,6 +213,8 @@ export function RecetaFormModal({
     const lockPaciente = isEdit || Boolean(prefillPacienteId);
 
     const initialSnapshotRef = useRef<FormShape>(emptyForm(null, []));
+    const vinculoRef = useRef(vinculo);
+    vinculoRef.current = vinculo;
 
     useEffect(() => {
         transform((raw) => {
@@ -242,6 +249,8 @@ export function RecetaFormModal({
                 veterinario_id:
                     r.veterinario_id != null && r.veterinario_id !== '' ? r.veterinario_id : null,
                 sede_id: r.sede_id != null && r.sede_id !== '' ? r.sede_id : null,
+                desparasitacion_id: vinculoRef.current?.desparasitacionId || null,
+                antipulga_id: vinculoRef.current?.antipulgaId || null,
                 lineas: lineasOut,
             };
         });
@@ -443,6 +452,8 @@ export function RecetaFormModal({
             veterinario_id:
                 raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
             sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+            desparasitacion_id: vinculo?.desparasitacionId || null,
+            antipulga_id: vinculo?.antipulgaId || null,
             lineas: lineasOut,
         };
     };
@@ -453,6 +464,7 @@ export function RecetaFormModal({
         const onSuccess = () => {
             reset();
             clearErrors();
+            onSaved?.();
             onOpenChange(false);
         };
 
@@ -483,6 +495,7 @@ export function RecetaFormModal({
 
             post(clinica.recetas.store().url, {
                 preserveScroll: true,
+                preserveState: Boolean(vinculo?.desparasitacionId || vinculo?.antipulgaId),
                 onSuccess,
             });
         })();

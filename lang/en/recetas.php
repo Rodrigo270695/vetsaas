@@ -12,6 +12,7 @@ return [
     ],
     'validation' => [
         'consulta_invalida' => 'The visit does not belong to the selected patient.',
+        'origen_invalida' => 'The chart does not belong to the selected patient.',
         'consulta_cerrada' => 'You cannot link a prescription to a closed visit.',
     ],
     'pdf' => [

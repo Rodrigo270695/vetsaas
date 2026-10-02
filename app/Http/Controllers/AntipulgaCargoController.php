@@ -11,6 +11,7 @@ use App\Models\ConsultaCargo;
 use App\Models\ConsultaCargoLinea;
 use App\Models\Antipulga;
 use App\Models\Producto;
+use App\Support\Clinica\RecetaFichaLineas;
 use App\Models\Sede;
 use App\Models\User;
 use App\Models\Venta;
@@ -517,7 +518,10 @@ class AntipulgaCargoController extends Controller
             ];
         }
 
-        $receta = is_array($antipulga->receta) ? $antipulga->receta : [];
+        $receta = array_merge(
+            is_array($antipulga->receta) ? $antipulga->receta : [],
+            RecetaFichaLineas::paraCargo('antipulga_id', $antipulga->id),
+        );
         $idsReceta = [];
         foreach ($receta as $linea) {
             $id = $linea['producto_id'] ?? null;

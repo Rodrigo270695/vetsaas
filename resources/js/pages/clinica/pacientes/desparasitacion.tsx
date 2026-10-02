@@ -3,7 +3,6 @@ import { ArrowLeft, Bug, Loader2, MoreHorizontal, Receipt, Search, Trash2 } from
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     Dialog,
     DialogContent,
@@ -22,6 +21,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { ConsultaDictationBar } from '@/pages/clinica/historias-clinicas/components/consulta-dictation-bar';
+import { ConstantesCompactas, soloNumero } from './components/constantes-compactas';
+import { FichaRecetas, type FichaRecetaItem } from './components/ficha-recetas';
 
 type Tri = 'disminuido' | 'normal' | 'aumentado' | '';
 
@@ -67,6 +68,8 @@ type Dictado = {
 };
 
 type Registro = {
+    id?: string;
+    recetas?: FichaRecetaItem[];
     anamnesis: string | null;
     apetito: Tri | null;
     ingesta_agua: Tri | null;
@@ -101,6 +104,7 @@ type Props = {
     productos_url: string;
     dictar_url: string;
     cargos_url?: string | null;
+    recargar_url?: string | null;
     onVolver: () => void;
 };
 
@@ -133,14 +137,13 @@ export function DesparasitacionForm({
     productos_url,
     dictar_url,
     cargos_url = null,
+    recargar_url = null,
     onVolver,
 }: Props) {
     const { t } = useTranslation('pacientes');
     const [detalleOpen, setDetalleOpen] = useState(false);
     const [buscar, setBuscar] = useState('');
     const [sugerencias, setSugerencias] = useState<{ id: string; nombre: string; sku: string | null }[]>([]);
-    const [buscarReceta, setBuscarReceta] = useState('');
-    const [sugerenciasReceta, setSugerenciasReceta] = useState<{ id: string; nombre: string; sku: string | null }[]>([]);
 
     const form = useForm({
         atendido_at,
@@ -155,13 +158,13 @@ export function DesparasitacionForm({
         orina_color: registro?.orina_color ?? '',
         orina_olor: registro?.orina_olor ?? '',
         ultimo_celo: registro?.ultimo_celo ?? '',
-        peso_kg: str(registro?.peso_kg),
-        temperatura_c: str(registro?.temperatura_c),
-        fc_lpm: str(registro?.fc_lpm),
-        fr_rpm: str(registro?.fr_rpm),
-        tlc: registro?.tlc ?? '',
-        pa: registro?.pa ?? '',
-        hidratacion: registro?.hidratacion ?? '',
+        peso_kg: soloNumero(str(registro?.peso_kg), 'decimal'),
+        temperatura_c: soloNumero(str(registro?.temperatura_c), 'decimal'),
+        fc_lpm: soloNumero(str(registro?.fc_lpm), 'entero'),
+        fr_rpm: soloNumero(str(registro?.fr_rpm), 'entero'),
+        tlc: soloNumero(registro?.tlc, 'decimal'),
+        pa: soloNumero(registro?.pa, 'entero'),
+        hidratacion: soloNumero(registro?.hidratacion, 'entero'),
         comentarios: registro?.comentarios ?? '',
         aplicados: (registro?.aplicados ?? []).map((linea) => ({
             ...vacioAplicado(),
@@ -199,27 +202,6 @@ export function DesparasitacionForm({
         return () => window.clearTimeout(timer);
     }, [buscar, productos_url]);
 
-    useEffect(() => {
-        const q = buscarReceta.trim();
-        if (q.length < 1) {
-            setSugerenciasReceta([]);
-            return;
-        }
-        const timer = window.setTimeout(() => {
-            void fetch(`${productos_url}?q=${encodeURIComponent(q)}`, {
-                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin',
-            })
-                .then((res) => res.json())
-                .then((body: { data?: { id: string; nombre: string; sku: string | null }[] }) => {
-                    setSugerenciasReceta(body.data ?? []);
-                })
-                .catch(() => setSugerenciasReceta([]));
-        }, 250);
-
-        return () => window.clearTimeout(timer);
-    }, [buscarReceta, productos_url]);
-
     const aplicarDictado = (fields: Dictado) => {
         const next = { ...form.data };
         const fill = <K extends keyof typeof next>(key: K, value: (typeof next)[K] | null | undefined) => {
@@ -239,13 +221,13 @@ export function DesparasitacionForm({
         fill('orina_color', fields.orina_color);
         fill('orina_olor', fields.orina_olor);
         fill('ultimo_celo', fields.ultimo_celo);
-        fill('peso_kg', fields.peso_kg);
-        fill('temperatura_c', fields.temperatura_c);
-        fill('fc_lpm', fields.fc_lpm);
-        fill('fr_rpm', fields.fr_rpm);
-        fill('tlc', fields.tlc);
-        fill('pa', fields.pa);
-        fill('hidratacion', fields.hidratacion);
+        fill('peso_kg', soloNumero(fields.peso_kg, 'decimal'));
+        fill('temperatura_c', soloNumero(fields.temperatura_c, 'decimal'));
+        fill('fc_lpm', soloNumero(fields.fc_lpm, 'entero'));
+        fill('fr_rpm', soloNumero(fields.fr_rpm, 'entero'));
+        fill('tlc', soloNumero(fields.tlc, 'decimal'));
+        fill('pa', soloNumero(fields.pa, 'entero'));
+        fill('hidratacion', soloNumero(fields.hidratacion, 'entero'));
         fill('comentarios', fields.comentarios);
         if (fields.producto_nombre) {
             next.aplicados = [
@@ -369,7 +351,7 @@ export function DesparasitacionForm({
                                 }
                                 onVolver();
                             }}
-                            className="inline-flex items-center gap-1 px-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                            className="inline-flex cursor-pointer items-center gap-1 px-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
                         >
                             <ArrowLeft className="size-3.5" />
                             {t('desparasitacion.volver')}
@@ -378,7 +360,7 @@ export function DesparasitacionForm({
                 </div>
 
                 <form
-                    className="flex flex-col gap-4"
+                    className="flex flex-col gap-3"
                     onSubmit={(event) => {
                         event.preventDefault();
                         const options = {
@@ -407,7 +389,7 @@ export function DesparasitacionForm({
                                 .join(' ')}
                         </p>
                     ) : null}
-                    <section className="rounded-xl border bg-card p-4">
+                    <section className="rounded-xl border bg-card p-3">
                         <div className="mb-2 flex items-center justify-between gap-2">
                             <h2 className="text-sm font-semibold">{t('desparasitacion.anamnesis')}</h2>
                             <Button type="button" variant="outline" size="sm" onClick={() => setDetalleOpen(true)}>
@@ -415,7 +397,7 @@ export function DesparasitacionForm({
                             </Button>
                         </div>
                         <Textarea
-                            rows={4}
+                            rows={2}
                             placeholder={t('desparasitacion.anamnesis_ph')}
                             value={form.data.anamnesis}
                             disabled={!puede_editar}
@@ -423,37 +405,32 @@ export function DesparasitacionForm({
                         />
                     </section>
 
-                    <Collapsible defaultOpen className="rounded-xl border bg-card">
-                        <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold">
-                            {t('desparasitacion.constantes')}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="grid gap-3 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-4">
-                            {(
-                                [
-                                    ['peso_kg', 'peso'],
-                                    ['temperatura_c', 'temp'],
-                                    ['fc_lpm', 'fc'],
-                                    ['fr_rpm', 'fr'],
-                                    ['tlc', 'tlc'],
-                                    ['pa', 'pa'],
-                                    ['hidratacion', 'hidratacion'],
-                                ] as const
-                            ).map(([key, label]) => (
-                                <div key={key} className="space-y-1">
-                                    <Label htmlFor={key}>{t(`desparasitacion.${label}`)}</Label>
-                                    <Input
-                                        id={key}
-                                        value={form.data[key]}
-                                        disabled={!puede_editar}
-                                        onChange={(event) => form.setData(key, event.target.value)}
-                                    />
-                                </div>
-                            ))}
-                        </CollapsibleContent>
-                    </Collapsible>
+                    <ConstantesCompactas
+                        title={t('desparasitacion.constantes')}
+                        disabled={!puede_editar}
+                        labels={{
+                            peso_kg: t('desparasitacion.peso'),
+                            temperatura_c: t('desparasitacion.temp'),
+                            fc_lpm: t('desparasitacion.fc'),
+                            fr_rpm: t('desparasitacion.fr'),
+                            tlc: t('desparasitacion.tlc'),
+                            pa: t('desparasitacion.pa'),
+                            hidratacion: t('desparasitacion.hidratacion'),
+                        }}
+                        values={{
+                            peso_kg: form.data.peso_kg,
+                            temperatura_c: form.data.temperatura_c,
+                            fc_lpm: form.data.fc_lpm,
+                            fr_rpm: form.data.fr_rpm,
+                            tlc: form.data.tlc,
+                            pa: form.data.pa,
+                            hidratacion: form.data.hidratacion,
+                        }}
+                        onChange={(key, value) => form.setData(key, value)}
+                    />
 
-                    <section className="rounded-xl border bg-card p-4">
-                        <h2 className="mb-3 text-sm font-semibold">{t('desparasitacion.antiparasitario')}</h2>
+                    <section className="rounded-xl border bg-card p-3">
+                        <h2 className="mb-2 text-sm font-semibold">{t('desparasitacion.antiparasitario')}</h2>
                         <div className="relative mb-3">
                             <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -584,129 +561,20 @@ export function DesparasitacionForm({
                         )}
                     </section>
 
-                    <section className="rounded-xl border border-violet-200/70 bg-card p-4 shadow-sm dark:border-violet-900/40">
-                        <h2 className="mb-3 text-sm font-semibold">{t('desparasitacion.receta')}</h2>
-                        <div className="relative mb-3">
-                            <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                className="bg-amber-50/80 pl-9 dark:bg-amber-950/20"
-                                placeholder={t('desparasitacion.buscar')}
-                                value={buscarReceta}
-                                disabled={!puede_editar}
-                                onChange={(event) => setBuscarReceta(event.target.value)}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                        event.preventDefault();
-                                        const nombre = buscarReceta.trim();
-                                        if (nombre === '') {
-                                            return;
-                                        }
-                                        form.setData('receta', [
-                                            ...form.data.receta,
-                                            { nombre, especificaciones: '', cantidad: '1' },
-                                        ]);
-                                        setBuscarReceta('');
-                                        setSugerenciasReceta([]);
-                                    }
-                                }}
-                            />
-                            {sugerenciasReceta.length > 0 ? (
-                                <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md">
-                                    {sugerenciasReceta.map((item) => (
-                                        <li key={item.id}>
-                                            <button
-                                                type="button"
-                                                className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
-                                                onClick={() => {
-                                                    form.setData('receta', [
-                                                        ...form.data.receta,
-                                                        {
-                                                            producto_id: item.id,
-                                                            nombre: item.nombre,
-                                                            especificaciones: '',
-                                                            cantidad: '1',
-                                                        },
-                                                    ]);
-                                                    setBuscarReceta('');
-                                                    setSugerenciasReceta([]);
-                                                }}
-                                            >
-                                                {item.nombre}
-                                                {item.sku ? <span className="ml-2 text-muted-foreground">{item.sku}</span> : null}
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : null}
-                        </div>
-                        {form.data.receta.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">{t('desparasitacion.sin_lineas')}</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[640px] text-left text-sm">
-                                    <thead className="text-xs text-muted-foreground">
-                                        <tr>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.medicamento')}</th>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.especificaciones')}</th>
-                                            <th className="pb-2 font-medium">{t('desparasitacion.cantidad')}</th>
-                                            <th className="pb-2" />
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {form.data.receta.map((linea, index) => (
-                                            <tr key={`${linea.nombre}-${index}`} className="align-top">
-                                                <td className="py-1 pr-2 font-medium">{linea.nombre}</td>
-                                                <td className="py-1 pr-2">
-                                                    <Input
-                                                        value={linea.especificaciones}
-                                                        disabled={!puede_editar}
-                                                        onChange={(event) => {
-                                                            const next = [...form.data.receta];
-                                                            next[index] = { ...linea, especificaciones: event.target.value };
-                                                            form.setData('receta', next);
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="w-28 py-1 pr-2">
-                                                    <Input
-                                                        value={linea.cantidad}
-                                                        disabled={!puede_editar}
-                                                        onChange={(event) => {
-                                                            const next = [...form.data.receta];
-                                                            next[index] = { ...linea, cantidad: event.target.value };
-                                                            form.setData('receta', next);
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="py-1">
-                                                    <Button
-                                                        type="button"
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        disabled={!puede_editar}
-                                                        aria-label={t('desparasitacion.quitar')}
-                                                        onClick={() =>
-                                                            form.setData(
-                                                                'receta',
-                                                                form.data.receta.filter((_, i) => i !== index),
-                                                            )
-                                                        }
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </section>
+                    <FichaRecetas
+                        ns="desparasitacion"
+                        paciente={paciente}
+                        registroId={registro?.id ?? null}
+                        origen="desparasitacion"
+                        recetasIniciales={registro?.recetas ?? []}
+                        recargarUrl={recargar_url}
+                        puedeEditar={puede_editar}
+                    />
 
-                    <section className="rounded-xl border bg-card p-4">
+                    <section className="rounded-xl border bg-card p-3">
                         <h2 className="mb-2 text-sm font-semibold">{t('desparasitacion.comentarios')}</h2>
                         <Textarea
-                            rows={3}
+                            rows={2}
                             value={form.data.comentarios}
                             disabled={!puede_editar}
                             onChange={(event) => form.setData('comentarios', event.target.value)}
@@ -922,7 +790,7 @@ export function DesparasitacionEmbed({
             );
         }
 
-        return <DesparasitacionForm {...payload} onVolver={onVolver} />;
+        return <DesparasitacionForm {...payload} recargar_url={editUrl} onVolver={onVolver} />;
     }
 
     if (!create) {

@@ -3,9 +3,12 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
+use App\Models\Antipulga;
 use App\Models\Consulta;
+use App\Models\Desparasitacion;
 use App\Models\Receta;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class StoreRecetaRequest extends FormRequest
@@ -24,7 +27,7 @@ class StoreRecetaRequest extends FormRequest
         if ($cid === '' || $cid === null) {
             $out['consulta_id'] = null;
         }
-        foreach (['veterinario_id', 'sede_id'] as $key) {
+        foreach (['veterinario_id', 'sede_id', 'desparasitacion_id', 'antipulga_id'] as $key) {
             $v = $this->input($key);
             if ($v === '' || $v === null) {
                 $out[$key] = null;
@@ -70,19 +73,38 @@ class StoreRecetaRequest extends FormRequest
     public function withValidator(\Illuminate\Validation\Validator $validator): void
     {
         $validator->after(function (\Illuminate\Validation\Validator $v): void {
-            $cid = $this->input('consulta_id');
-            if ($cid === null || $cid === '') {
-                return;
-            }
             $pid = $this->input('paciente_id');
-            $consulta = Consulta::query()->with('historiaClinica:id,paciente_id')->find($cid);
-            if ($consulta === null || $consulta->historiaClinica === null
-                || (string) $consulta->historiaClinica->paciente_id !== (string) $pid) {
-                $v->errors()->add('consulta_id', __('recetas.validation.consulta_invalida'));
-
-                return;
+            $cid = $this->input('consulta_id');
+            if ($cid !== null && $cid !== '') {
+                $consulta = Consulta::query()->with('historiaClinica:id,paciente_id')->find($cid);
+                if ($consulta === null || $consulta->historiaClinica === null
+                    || (string) $consulta->historiaClinica->paciente_id !== (string) $pid) {
+                    $v->errors()->add('consulta_id', __('recetas.validation.consulta_invalida'));
+                }
             }
+            $this->validarOrigenFicha($v, 'desparasitacion_id', Desparasitacion::class);
+            $this->validarOrigenFicha($v, 'antipulga_id', Antipulga::class);
         });
+    }
+
+    /**
+     * @param  class-string<Desparasitacion|Antipulga>  $modelo
+     */
+    private function validarOrigenFicha(\Illuminate\Validation\Validator $v, string $key, string $modelo): void
+    {
+        $id = $this->input($key);
+        if ($id === null || $id === '') {
+            return;
+        }
+        if (! Schema::hasColumn('recetas', $key)) {
+            $v->errors()->add($key, __('recetas.validation.origen_invalida'));
+
+            return;
+        }
+        $row = $modelo::query()->find($id);
+        if ($row === null || (string) $row->paciente_id !== (string) $this->input('paciente_id')) {
+            $v->errors()->add($key, __('recetas.validation.origen_invalida'));
+        }
     }
 
     /**
@@ -101,6 +123,8 @@ class StoreRecetaRequest extends FormRequest
                 ),
             ],
             'consulta_id' => ['nullable', 'uuid', 'exists:consultas,id'],
+            'desparasitacion_id' => ['nullable', 'uuid'],
+            'antipulga_id' => ['nullable', 'uuid'],
             'veterinario_id' => [
                 'nullable',
                 'uuid',

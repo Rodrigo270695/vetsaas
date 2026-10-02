@@ -12,6 +12,7 @@ return [
     ],
     'validation' => [
         'consulta_invalida' => 'La consulta no corresponde al paciente seleccionado.',
+        'origen_invalida' => 'La ficha no corresponde al paciente seleccionado.',
         'consulta_cerrada' => 'No puedes vincular una receta a una consulta ya cerrada.',
     ],
     'pdf' => [

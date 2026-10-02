@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -91,6 +92,11 @@ class Desparasitacion extends Model
     public function paciente(): BelongsTo
     {
         return $this->belongsTo(Paciente::class, 'paciente_id');
+    }
+
+    public function recetas(): HasMany
+    {
+        return $this->hasMany(Receta::class, 'desparasitacion_id');
     }
 
     public function veterinario(): BelongsTo
