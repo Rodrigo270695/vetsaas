@@ -483,6 +483,8 @@ class PacienteController extends Controller
             ];
         }
 
+        $modoAsesora = ClinicSetting::modoAsesoraActivo();
+
         return Inertia::render('clinica/pacientes/show', [
             'paciente' => $paciente,
             'timeline' => $timeline,
@@ -604,7 +606,16 @@ class PacienteController extends Controller
                 'sala_espera_enviar' => $request->user()?->can('sala-espera.enviar') ?? false,
                 'petpass_register' => $canPetPassRegister,
                 'autorizacion_enviar' => $canEditarConsulta,
+                'pacientes_editar' => $user?->can('pacientes.update') ?? false,
             ],
+            'especie_raza_catalogo' => PacienteEspecieRazaCatalogo::payload(),
+            'modo_asesora' => $modoAsesora,
+            'clinicas_asesoradas_opciones' => $modoAsesora
+                ? ClinicaAsesorada::query()
+                    ->orderByDesc('activo')
+                    ->orderBy('nombre')
+                    ->get(['id', 'nombre', 'activo'])
+                : [],
             'plantillas_autorizacion' => $canEditarConsulta
                 && Schema::hasTable('documento_autorizacion_plantillas')
                 ? DocumentoAutorizacionPlantilla::query()

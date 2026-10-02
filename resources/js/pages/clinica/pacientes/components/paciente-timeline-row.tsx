@@ -1,4 +1,3 @@
-import { Link } from '@inertiajs/react';
 import {
     Activity,
     BedDouble,
@@ -7,7 +6,6 @@ import {
     ChevronDown,
     Clock,
     ClipboardList,
-    ExternalLink,
     FileDown,
     FilePenLine,
     FlaskConical,
@@ -909,63 +907,11 @@ export function PacienteTimelineRow({
                             />
 
                             <div className="flex flex-wrap items-center justify-end gap-1.5">
-                                {consultaOpeningId === item.id && item.kind !== 'consulta' ? (
+                                {consultaOpeningId === item.id ? (
                                     <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-                                ) : null}
-                                {!abreEnModal &&
-                                item.kind !== 'consulta' &&
-                                item.kind !== 'aplicacion' &&
-                                item.kind !== 'desparasitacion' &&
-                                item.kind !== 'antipulga' &&
-                                item.kind !== 'defuncion' &&
-                                item.href &&
-                                !isPublic ? (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        className="group/btn h-8 gap-1.5 px-2.5 text-xs"
-                                        asChild
-                                    >
-                                        <Link href={item.href}>
-                                            <ExternalLink
-                                                className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
-                                                strokeWidth={2.25}
-                                            />
-                                            {t('historial.ver_evento')}
-                                        </Link>
-                                    </Button>
                                 ) : null}
                                 {item.kind === 'consulta' && permisos.consultas_ver ? (
                                     <>
-                                        {!isPublic && (onOpenConsulta || item.historia_url) ? (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                className="group/btn h-8 gap-1.5 px-2.5 text-xs"
-                                                disabled={consultaOpeningId === item.id}
-                                                onClick={() => {
-                                                    if (onOpenConsulta) {
-                                                        onOpenConsulta(item);
-                                                        return;
-                                                    }
-                                                    if (item.historia_url) {
-                                                        window.location.href = item.historia_url;
-                                                    }
-                                                }}
-                                            >
-                                                {consultaOpeningId === item.id ? (
-                                                    <Loader2 className="size-3.5 animate-spin" strokeWidth={2.25} />
-                                                ) : (
-                                                    <ExternalLink
-                                                        className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
-                                                        strokeWidth={2.25}
-                                                    />
-                                                )}
-                                                <span className="hidden sm:inline">{t('historial.ver_consulta_corta')}</span>
-                                                <span className="sm:hidden">{t('historial.ver_consulta_completa')}</span>
-                                            </Button>
-                                        ) : null}
                                         {item.pdf_url ? (
                                             <Button
                                                 type="button"
@@ -1046,39 +992,6 @@ export function PacienteTimelineRow({
                                 ) : null}
                                 {item.kind === 'aplicacion' && permisos.vacunas_ver ? (
                                     <>
-                                        {!isPublic && (onOpenAplicacion || item.vacunaciones_url) ? (
-                                            onOpenAplicacion && item.registro ? (
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    className="group/btn h-8 gap-1.5 px-2.5 text-xs"
-                                                    onClick={() => onOpenAplicacion(item)}
-                                                >
-                                                    <ExternalLink
-                                                        className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
-                                                        strokeWidth={2.25}
-                                                    />
-                                                    <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
-                                                    <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
-                                                </Button>
-                                            ) : item.vacunaciones_url ? (
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    className="group/btn h-8 gap-1.5 px-2.5 text-xs"
-                                                    asChild
-                                                >
-                                                    <Link href={item.vacunaciones_url} prefetch>
-                                                        <ExternalLink
-                                                            className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
-                                                            strokeWidth={2.25}
-                                                        />
-                                                        <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
-                                                        <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
-                                                    </Link>
-                                                </Button>
-                                            ) : null
-                                        ) : null}
                                         {item.pdf_url ? (
                                             <Button
                                                 type="button"

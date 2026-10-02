@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import { Button } from '@/components/ui/button';
+import type { EspecieRazaCatalogo } from '@/lib/paciente-especie-raza-options';
 import { cn } from '@/lib/utils';
 import { GroomingFormModal } from '@/pages/servicios/grooming/components/grooming-form-modal';
 import type {
@@ -48,7 +49,7 @@ import type {
 import { RecetaFormModal } from '../recetas/components/receta-form-modal';
 import type { ConsultaRecetaOpcion, PacienteRecetaOpcion, SedeRecetaOpcion } from '../recetas/types';
 import { dateKeyInAppTimezone } from '../historias-clinicas/format-atendido';
-import type { Paciente } from '../propietarios/types';
+import type { Paciente, PropietarioOpcion } from '../propietarios/types';
 import { VacunaFormModal } from '../vacunaciones/components/vacuna-form-modal';
 import type {
     PacienteVacunaOpcion,
@@ -61,6 +62,7 @@ import type { ClinicalHistoryShareTarget } from './components/clinical-history-w
 import { DocumentoAutorizacionSendDialog } from './components/documento-autorizacion-send-dialog';
 import { HistorialArchivoPreview } from './components/historial-archivo-preview';
 import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
+import { PacienteFormModal } from './components/paciente-form-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { AntipulgaEmbed } from './antipulgas';
 import { DefuncionEmbed } from './defuncion';
@@ -262,6 +264,13 @@ type Props = {
         grupos: readonly HotelTipoGrupo[];
     } | null;
     medico_tratante_default?: string;
+    especie_raza_catalogo?: EspecieRazaCatalogo;
+    modo_asesora?: boolean;
+    clinicas_asesoradas_opciones?: readonly {
+        id: string;
+        nombre: string;
+        activo?: boolean;
+    }[];
     links: {
         nueva_consulta: string;
         nueva_aplicacion: string;
@@ -300,6 +309,7 @@ type Props = {
         consultas_eliminar?: boolean;
         citas_crear?: boolean;
         autorizacion_enviar?: boolean;
+        pacientes_editar?: boolean;
     };
     plantillas_autorizacion?: readonly { id: string; nombre: string; descripcion: string | null }[];
 };
@@ -322,6 +332,9 @@ export default function PacienteShow({
     grooming_nuevo = null,
     hotel_nuevo = null,
     medico_tratante_default = '',
+    especie_raza_catalogo = { especies: [], razas: [] },
+    modo_asesora = false,
+    clinicas_asesoradas_opciones = [],
     links,
     permisos,
     plantillas_autorizacion = [],
@@ -355,6 +368,7 @@ export default function PacienteShow({
     const [hotelOpen, setHotelOpen] = useState(false);
     const [hotelEdit, setHotelEdit] = useState<HotelEstanciaRow | null>(null);
     const [pedidoEdit, setPedidoEdit] = useState<PedidoLaboratorioRow | null>(null);
+    const [pacienteEditOpen, setPacienteEditOpen] = useState(false);
     const [desparasitacionPanel, setDesparasitacionPanel] = useState<
         null | { mode: 'create' } | { mode: 'edit'; url: string }
     >(null);
@@ -401,6 +415,23 @@ export default function PacienteShow({
     }, [paciente, pacientes_opciones]);
 
     const sedesCitaOpciones = sedes_opciones as readonly SedeCitaOpcion[];
+
+    const propietariosEditar = useMemo((): readonly PropietarioOpcion[] => {
+        const owner = paciente.propietario;
+
+        if (!owner) {
+            return [];
+        }
+
+        return [
+            {
+                id: owner.id,
+                nombres: owner.nombres,
+                apellidos: owner.apellidos,
+                razon_social: owner.razon_social,
+            },
+        ];
+    }, [paciente.propietario]);
 
     const title = useMemo(() => `${paciente.nombre} · ${t('historial.title_suffix')}`, [paciente.nombre, t]);
 
@@ -581,6 +612,7 @@ export default function PacienteShow({
                     permisos={permisos}
                     timelineStats={timelineStats}
                     hasTimeline={timeline.length > 0}
+                    onEditar={permisos.pacientes_editar ? () => setPacienteEditOpen(true) : undefined}
                     onShareHistory={() => {
                         if (links.historial_whatsapp) {
                             setShareTarget({
@@ -911,6 +943,17 @@ export default function PacienteShow({
                     prefillConsultaId={labPrefillConsultaId}
                 />
             ) : null}
+
+            <PacienteFormModal
+                open={pacienteEditOpen}
+                onOpenChange={setPacienteEditOpen}
+                paciente={paciente}
+                propietarioFijoId={null}
+                propietariosOpciones={propietariosEditar}
+                especieRazaCatalogo={especie_raza_catalogo}
+                modoAsesora={modo_asesora}
+                clinicasAsesoradasOpciones={clinicas_asesoradas_opciones}
+            />
 
             <VacunaFormModal
                 open={vacunaEdit !== null || vacunaCreateOpen}

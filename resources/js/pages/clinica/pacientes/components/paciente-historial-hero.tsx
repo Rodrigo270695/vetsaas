@@ -10,6 +10,7 @@ import {
     Dog,
     ExternalLink,
     FileDown,
+    Pencil,
     FlaskConical,
     HeartOff,
     Hotel,
@@ -66,6 +67,7 @@ type Props = {
         citas_crear?: boolean;
         sala_espera_enviar?: boolean;
         petpass_register?: boolean;
+        pacientes_editar?: boolean;
     };
     timelineStats: {
         consultas: number;
@@ -75,6 +77,7 @@ type Props = {
     };
     hasTimeline: boolean;
     onShareHistory?: () => void;
+    onEditar?: () => void;
     onNuevo?: (accion: HistorialNuevoAccion) => void;
     /** Vista pública para el titular: sin CTAs de administración. */
     variant?: 'admin' | 'public';
@@ -170,6 +173,7 @@ export function PacienteHistorialHero({
     timelineStats,
     hasTimeline,
     onShareHistory,
+    onEditar,
     onNuevo,
     variant = 'admin',
     clinicName,
@@ -490,12 +494,26 @@ export function PacienteHistorialHero({
                     </div>
 
                     {!isPublic ? (
-                        <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 px-2.5" asChild>
-                            <Link href={clinica.pacientes.index().url} prefetch>
-                                <ArrowLeft className="size-3.5" strokeWidth={2.25} />
-                                <span className="hidden sm:inline">{t('historial.back_list')}</span>
-                            </Link>
-                        </Button>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                            {permisos.pacientes_editar && onEditar ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 cursor-pointer gap-1.5 px-2.5"
+                                    onClick={onEditar}
+                                >
+                                    <Pencil className="size-3.5" strokeWidth={2.25} />
+                                    <span className="hidden sm:inline">{t('historial.action_editar')}</span>
+                                </Button>
+                            ) : null}
+                            <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 px-2.5" asChild>
+                                <Link href={clinica.pacientes.index().url} prefetch>
+                                    <ArrowLeft className="size-3.5" strokeWidth={2.25} />
+                                    <span className="hidden sm:inline">{t('historial.back_list')}</span>
+                                </Link>
+                            </Button>
+                        </div>
                     ) : clinicName ? (
                         <div className="shrink-0 text-right">
                             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">

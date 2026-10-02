@@ -157,6 +157,14 @@
     "productos_bajo_minimo": "Productos bajo mínimo",
     "productos_por_vencer": "Productos próximos a vencer",
     "productos_vencidos": "Productos vencidos con stock",
+    "header_clinica": {
+        "buscar": "Buscar paciente",
+        "buscar_placeholder": "Nombre, dueño o teléfono",
+        "buscar_vacio": "Sin coincidencias",
+        "buscar_cargando": "Buscando…",
+        "buscar_limpiar": "Limpiar búsqueda",
+        "nuevo_propietario": "Crear nuevo propietario"
+    },
     "sala_espera": {
         "title": "Sala de espera",
         "title_consulta": "Sala consulta",

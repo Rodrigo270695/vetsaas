@@ -157,6 +157,14 @@
     "productos_bajo_minimo": "Below minimum stock",
     "productos_por_vencer": "Products expiring soon",
     "productos_vencidos": "Expired products still in stock",
+    "header_clinica": {
+        "buscar": "Search patient",
+        "buscar_placeholder": "Name, owner or phone",
+        "buscar_vacio": "No matches",
+        "buscar_cargando": "Searching…",
+        "buscar_limpiar": "Clear search",
+        "nuevo_propietario": "Create new owner"
+    },
     "sala_espera": {
         "title": "Waiting room",
         "title_consulta": "Consult waiting room",

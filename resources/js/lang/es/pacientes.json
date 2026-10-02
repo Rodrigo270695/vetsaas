@@ -171,6 +171,7 @@
         "title_suffix": "Historial clínico",
         "description": "Titular: {{propietario}}",
         "back_list": "Volver a pacientes",
+        "action_editar": "Editar mascota",
         "action_nueva_consulta": "Nueva consulta",
         "action_nueva_aplicacion": "Registrar aplicación",
         "action_laboratorio": "Subir archivo",

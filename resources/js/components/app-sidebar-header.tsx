@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { HeaderClinicaAcciones } from '@/components/header-clinica-acciones';
 import { OPEN_IN_APP_ASSISTANT_EVENT } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
 import { InAppAssistantPanel } from '@/components/in-app-assistant/in-app-assistant-panel';
 import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
@@ -48,7 +49,7 @@ export function AppSidebarHeader({
         <>
             <header
                 data-session-enter-header=""
-                className="flex h-16 shrink-0 items-center gap-2 overflow-hidden border-b border-border/60 bg-white px-3 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4 dark:bg-background"
+                className="flex h-16 shrink-0 items-center gap-2 overflow-visible border-b border-border/60 bg-white px-3 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4 dark:bg-background"
             >
                 <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden md:gap-2">
                     <SidebarTrigger className="-ml-1 shrink-0" />
@@ -59,6 +60,7 @@ export function AppSidebarHeader({
 
                 <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
                     <PwaInstallHeaderButton />
+                    <HeaderClinicaAcciones />
                     <SalaEsperaHeaderIcons />
                     {showPushBell && <PushNotificationPrompt />}
 

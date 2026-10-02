@@ -171,6 +171,7 @@
         "title_suffix": "Clinical history",
         "description": "Owner: {{propietario}}",
         "back_list": "Back to patients",
+        "action_editar": "Edit pet",
         "action_nueva_consulta": "New consultation",
         "action_nueva_aplicacion": "Record application",
         "action_laboratorio": "Upload file",
