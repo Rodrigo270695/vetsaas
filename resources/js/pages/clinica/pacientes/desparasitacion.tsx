@@ -318,7 +318,20 @@ export function DesparasitacionForm({
                             />
                         ) : null}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="atendido_at" className="shrink-0 text-xs text-muted-foreground">
+                                {t('desparasitacion.atendido')}
+                            </Label>
+                            <Input
+                                id="atendido_at"
+                                type="datetime-local"
+                                className="h-8 w-[12.5rem] px-2 text-sm"
+                                value={form.data.atendido_at}
+                                disabled={!puede_editar}
+                                onChange={(event) => form.setData('atendido_at', event.target.value)}
+                            />
+                        </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground">
@@ -347,7 +360,15 @@ export function DesparasitacionForm({
                         </DropdownMenu>
                         <button
                             type="button"
-                            onClick={onVolver}
+                            onClick={() => {
+                                if (
+                                    form.isDirty &&
+                                    !window.confirm(t('desparasitacion.confirmar_volver'))
+                                ) {
+                                    return;
+                                }
+                                onVolver();
+                            }}
                             className="inline-flex items-center gap-1 px-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
                         >
                             <ArrowLeft className="size-3.5" />
@@ -386,18 +407,6 @@ export function DesparasitacionForm({
                                 .join(' ')}
                         </p>
                     ) : null}
-                    <section className="rounded-xl border bg-card p-4">
-                        <Label htmlFor="atendido_at">{t('desparasitacion.atendido')}</Label>
-                        <Input
-                            id="atendido_at"
-                            type="datetime-local"
-                            className="mt-2 max-w-xs"
-                            value={form.data.atendido_at}
-                            disabled={!puede_editar}
-                            onChange={(event) => form.setData('atendido_at', event.target.value)}
-                        />
-                    </section>
-
                     <section className="rounded-xl border bg-card p-4">
                         <div className="mb-2 flex items-center justify-between gap-2">
                             <h2 className="text-sm font-semibold">{t('desparasitacion.anamnesis')}</h2>

@@ -386,6 +386,7 @@
         "guardado": "Desparasitación guardada.",
         "precuenta": "Precuenta",
         "precuenta_guardar": "Guarda la ficha para armar la precuenta.",
+        "confirmar_volver": "Si vuelves al historial se perderán los datos que no guardaste. ¿Quieres salir?",
         "volver": "Volver al historial",
         "agregar": "Agregar",
         "quitar": "Quitar",

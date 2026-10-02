@@ -386,6 +386,7 @@
         "guardado": "Deworming saved.",
         "precuenta": "Pre-invoice",
         "precuenta_guardar": "Save the chart before building the pre-invoice.",
+        "confirmar_volver": "Going back will discard the data you have not saved. Leave anyway?",
         "volver": "Back to history",
         "agregar": "Add",
         "quitar": "Remove",
