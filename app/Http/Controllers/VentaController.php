@@ -1517,6 +1517,7 @@ class VentaController extends Controller
                     'productos.id',
                     'productos.nombre',
                     'productos.sku',
+                    'productos.codigo_barras',
                     'productos.precio_venta',
                     'productos.unidad',
                     DB::raw('COALESCE(es.cantidad, 0) as stock_sede'),
@@ -1525,7 +1526,7 @@ class VentaController extends Controller
             $productos = $query
                 ->orderBy('productos.nombre')
                 ->limit(40)
-                ->get(['productos.id', 'productos.nombre', 'productos.sku', 'productos.precio_venta', 'productos.unidad']);
+                ->get(['productos.id', 'productos.nombre', 'productos.sku', 'productos.codigo_barras', 'productos.precio_venta', 'productos.unidad']);
 
             foreach ($productos as $p) {
                 $p->setAttribute('stock_sede', '0');
@@ -1537,6 +1538,7 @@ class VentaController extends Controller
                 'id' => $p->id,
                 'nombre' => $p->nombre,
                 'sku' => $p->sku,
+                'codigo_barras' => $p->codigo_barras,
                 'precio_venta' => $p->precio_venta !== null ? (string) $p->precio_venta : null,
                 'unidad' => $p->unidad,
                 'stock_sede' => (string) ($p->stock_sede ?? '0'),

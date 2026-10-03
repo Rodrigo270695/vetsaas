@@ -2,6 +2,7 @@
     "title": "Team chat",
     "dock_collapse": "Minimize chat",
     "dock_open_page": "Open full chat",
+    "dock_equipo": "Team",
     "subtitle": "Messages between your clinic team. Same-tenant users only.",
     "search_placeholder": "Search conversation…",
     "search_thread": "Search in thread…",

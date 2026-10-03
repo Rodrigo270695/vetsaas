@@ -277,6 +277,7 @@ export type ProductoBusqueda = {
     id: string;
     nombre: string;
     sku: string | null;
+    codigo_barras?: string | null;
     precio_venta: string | null;
     unidad: string;
     /** Existencia en la sede de la sesión de caja abierta. */

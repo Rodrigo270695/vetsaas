@@ -69,13 +69,28 @@ class TenantChatController extends Controller
         $user = $request->user();
         abort_unless($user !== null && $user->can('comunicaciones-chat.view'), 403);
 
+        $conversations = $this->chat->listConversationsPayload($user);
+        $directory = $this->chat->directoryUsers((string) $user->id);
+        $presence = $this->chat->presenceForUsers(
+            $directory->pluck('id')->map(static fn ($id): string => (string) $id)->all(),
+        );
+
         return response()->json([
-            'conversations' => $this->chat->listConversationsPayload($user),
+            'conversations' => $conversations,
+            'users' => $directory->map(static function ($member) use ($presence): array {
+                $id = (string) $member->id;
+
+                return [
+                    'id' => $id,
+                    'name' => (string) $member->name,
+                    'online' => (bool) ($presence[$id]['online'] ?? false),
+                ];
+            })->values()->all(),
             'unread_total' => $this->chat->unreadTotalFor($user),
         ]);
     }
 
-    public function storeDirect(StoreChatDirectRequest $request): RedirectResponse
+    public function storeDirect(StoreChatDirectRequest $request): JsonResponse|RedirectResponse
     {
         $user = $request->user();
         abort_unless($user !== null, 401);
@@ -84,6 +99,12 @@ class TenantChatController extends Controller
             $user,
             (string) $request->validated('user_id'),
         );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'conversation_id' => (string) $conversation->id,
+            ]);
+        }
 
         $draft = trim((string) $request->input('draft', ''));
         $params = ['c' => $conversation->id];

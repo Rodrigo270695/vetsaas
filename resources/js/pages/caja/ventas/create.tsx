@@ -147,6 +147,37 @@ async function jsonGet(url: string): Promise<unknown> {
     return res.json();
 }
 
+function mismoCodigo(producto: ProductoBusqueda, consulta: string): boolean {
+    const needle = consulta.trim().toLowerCase();
+
+    if (needle === '') {
+        return false;
+    }
+
+    const sku = (producto.sku ?? '').trim().toLowerCase();
+    const barras = (producto.codigo_barras ?? '').trim().toLowerCase();
+
+    return (sku !== '' && sku === needle) || (barras !== '' && barras === needle);
+}
+
+function elegirPistola(lista: ProductoBusqueda[], consulta: string, porEnter: boolean): ProductoBusqueda | null {
+    const exactos = lista.filter((producto) => mismoCodigo(producto, consulta));
+
+    if (exactos.length === 1) {
+        return exactos[0] ?? null;
+    }
+
+    if (exactos.length > 1) {
+        return null;
+    }
+
+    if (porEnter && lista.length === 1) {
+        return lista[0] ?? null;
+    }
+
+    return null;
+}
+
 export default function Create({
     puede_vender,
     mi_sesion,
@@ -164,6 +195,8 @@ export default function Create({
     const desdeCargoInicializado = useRef(false);
     const [qProducto, setQProducto] = useState('');
     const [hits, setHits] = useState<ProductoBusqueda[]>([]);
+    const busquedaProductoGen = useRef(0);
+    const ultimaPistola = useRef<{ q: string; at: number } | null>(null);
     const [buscando, setBuscando] = useState(false);
     const [qServicio, setQServicio] = useState('');
     const [hitsServicio, setHitsServicio] = useState<ServicioTarifaBusqueda[]>([]);
@@ -451,55 +484,30 @@ export default function Create({
         form.data.promotion_code,
     ]);
 
-    useEffect(() => {
-        const tmr = window.setTimeout(() => {
-            const q = qProducto.trim();
+    const cargarProductos = useCallback(async (q: string): Promise<ProductoBusqueda[]> => {
+        if (!navigator.onLine && isIndexedDbSupported()) {
+            const cache = await loadCajaBootstrap();
 
-            if (q.length < 2) {
-                setHits([]);
-
-                return;
+            if (!cache) {
+                return [];
             }
 
-            if (!navigator.onLine && isIndexedDbSupported()) {
-                setBuscando(true);
-                void loadCajaBootstrap()
-                    .then((cache) => {
-                        if (!cache) {
-                            setHits([]);
+            return searchCachedProductos(cache, q).map((p) => ({
+                id: p.id,
+                nombre: p.nombre,
+                sku: p.sku,
+                codigo_barras: p.codigo_barras,
+                precio_venta: p.precio_venta,
+                unidad: p.unidad,
+                stock_sede: p.stock_sede,
+            }));
+        }
 
-                            return;
-                        }
+        const url = caja.ventas.buscarProductos.url({ query: { q } });
+        const raw = await jsonGet(url);
 
-                        setHits(
-                            searchCachedProductos(cache, q).map((p) => ({
-                                id: p.id,
-                                nombre: p.nombre,
-                                sku: p.sku,
-                                precio_venta: p.precio_venta,
-                                unidad: p.unidad,
-                                stock_sede: p.stock_sede,
-                            })),
-                        );
-                    })
-                    .finally(() => setBuscando(false));
-
-                return;
-            }
-
-            setBuscando(true);
-            const url = caja.ventas.buscarProductos.url({ query: { q } });
-            jsonGet(url)
-                .then((raw) => {
-                    const data = (raw as { data?: ProductoBusqueda[] }).data ?? [];
-                    setHits(data);
-                })
-                .catch(() => setHits([]))
-                .finally(() => setBuscando(false));
-        }, 320);
-
-        return () => window.clearTimeout(tmr);
-    }, [qProducto]);
+        return (raw as { data?: ProductoBusqueda[] }).data ?? [];
+    }, []);
 
     useEffect(() => {
         const tmr = window.setTimeout(() => {
@@ -586,6 +594,69 @@ export default function Create({
         },
         [t],
     );
+
+    const pasarAlCarrito = useCallback(
+        (lista: ProductoBusqueda[], consulta: string, porEnter: boolean): boolean => {
+            const elegido = elegirPistola(lista, consulta, porEnter);
+
+            if (!elegido) {
+                return false;
+            }
+
+            const ahora = Date.now();
+            const previa = ultimaPistola.current;
+
+            if (previa && previa.q === consulta && ahora - previa.at < 450) {
+                setQProducto('');
+                setHits([]);
+
+                return true;
+            }
+
+            ultimaPistola.current = { q: consulta, at: ahora };
+            addProduct(elegido);
+            setQProducto('');
+            setHits([]);
+
+            return true;
+        },
+        [addProduct],
+    );
+
+    useEffect(() => {
+        const gen = ++busquedaProductoGen.current;
+        const q = qProducto.trim();
+
+        if (q.length < 2) {
+            return;
+        }
+
+        const tmr = window.setTimeout(() => {
+            setBuscando(true);
+            void cargarProductos(q)
+                .then((data) => {
+                    if (gen !== busquedaProductoGen.current) {
+                        return;
+                    }
+
+                    setBuscando(false);
+
+                    if (!pasarAlCarrito(data, q, false)) {
+                        setHits(data);
+                    }
+                })
+                .catch(() => {
+                    if (gen !== busquedaProductoGen.current) {
+                        return;
+                    }
+
+                    setHits([]);
+                    setBuscando(false);
+                });
+        }, 320);
+
+        return () => window.clearTimeout(tmr);
+    }, [cargarProductos, pasarAlCarrito, qProducto]);
 
     const addServicioLine = useCallback(
         (nombre: string, precioLista: string) => {
@@ -1225,7 +1296,49 @@ export default function Create({
                                             className="h-8 w-full pl-8 text-sm"
                                             placeholder={t('caja:ventas.create.buscar_producto_ph')}
                                             value={qProducto}
-                                            onChange={(e) => setQProducto(e.target.value)}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setQProducto(value);
+
+                                                if (value.trim().length < 2) {
+                                                    setHits([]);
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key !== 'Enter') {
+                                                    return;
+                                                }
+
+                                                e.preventDefault();
+                                                const q = e.currentTarget.value.trim();
+
+                                                if (q.length < 2 || !puede_vender) {
+                                                    return;
+                                                }
+
+                                                const gen = ++busquedaProductoGen.current;
+                                                setBuscando(true);
+                                                void cargarProductos(q)
+                                                    .then((data) => {
+                                                        if (gen !== busquedaProductoGen.current) {
+                                                            return;
+                                                        }
+
+                                                        setBuscando(false);
+
+                                                        if (!pasarAlCarrito(data, q, true)) {
+                                                            setHits(data);
+                                                        }
+                                                    })
+                                                    .catch(() => {
+                                                        if (gen !== busquedaProductoGen.current) {
+                                                            return;
+                                                        }
+
+                                                        setHits([]);
+                                                        setBuscando(false);
+                                                    });
+                                            }}
                                             disabled={!puede_vender}
                                         />
                                         {buscando ? (

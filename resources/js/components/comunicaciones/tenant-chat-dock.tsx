@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, ExternalLink, Loader2, SendHorizontal } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Loader2, Paperclip, SendHorizontal, Smile, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTenantChatUnread } from '@/contexts/tenant-chat-unread-context';
@@ -14,7 +14,20 @@ type DockConversation = {
     type: 'direct' | 'group';
     unread: number;
     peer_online?: boolean | null;
+    participants?: { id: string; name: string }[];
     last_message: { body: string; created_at: string | null } | null;
+};
+
+type DockUser = {
+    id: string;
+    name: string;
+    online?: boolean;
+};
+
+type DockAttachment = {
+    url: string | null;
+    name: string;
+    is_image: boolean;
 };
 
 type DockMessage = {
@@ -24,7 +37,18 @@ type DockMessage = {
     created_at: string | null;
     mine?: boolean;
     is_deleted?: boolean;
+    attachment?: DockAttachment | null;
+    attachments?: DockAttachment[];
 };
+
+const EMOJIS = [
+    '😀', '😁', '😂', '🙂', '😉', '😊', '😍', '🤩',
+    '😎', '🤔', '😢', '😭', '😤', '🙌', '👍', '👎',
+    '👏', '🙏', '💪', '🔥', '✨', '✅', '❌', '⚠️',
+    '📌', '📎', '📷', '🐶', '🐱', '💉', '💊', '🩺',
+];
+
+const MAX_FILES = 5;
 
 function csrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
@@ -70,12 +94,18 @@ export function TenantChatDock() {
     const panelTimer = useRef<number | null>(null);
     const threadTimer = useRef<number | null>(null);
     const [conversations, setConversations] = useState<DockConversation[]>([]);
+    const [users, setUsers] = useState<DockUser[]>([]);
     const [loadingList, setLoadingList] = useState(false);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [threadTitle, setThreadTitle] = useState('');
+    const [startingId, setStartingId] = useState<string | null>(null);
     const [messages, setMessages] = useState<DockMessage[]>([]);
     const [draft, setDraft] = useState('');
+    const [files, setFiles] = useState<File[]>([]);
+    const [emojiOpen, setEmojiOpen] = useState(false);
     const [sending, setSending] = useState(false);
     const scrollerRef = useRef<HTMLDivElement>(null);
+    const fileRef = useRef<HTMLInputElement>(null);
 
     const loadList = useCallback(async () => {
         const res = await fetch('/comunicaciones/chat/dock', {
@@ -91,9 +121,11 @@ export function TenantChatDock() {
 
         const json = (await res.json()) as {
             conversations?: DockConversation[];
+            users?: DockUser[];
             unread_total?: number;
         };
         setConversations(Array.isArray(json.conversations) ? json.conversations : []);
+        setUsers(Array.isArray(json.users) ? json.users : []);
         setLoadingList(false);
 
         if (typeof json.unread_total === 'number') {
@@ -165,6 +197,9 @@ export function TenantChatDock() {
         }
 
         setActiveId(id);
+        setDraft('');
+        setFiles([]);
+        setEmojiOpen(false);
         setThreadPresent(true);
         requestAnimationFrame(() => {
             requestAnimationFrame(() => setThreadShown(true));
@@ -261,18 +296,24 @@ export function TenantChatDock() {
     }
 
     const active = conversations.find((row) => row.id === activeId) ?? null;
+    const directPeerIds = new Set(
+        conversations
+            .filter((row) => row.type === 'direct')
+            .flatMap((row) => row.participants ?? [])
+            .map((person) => person.id),
+    );
+    const directory = users.filter((person) => !directPeerIds.has(person.id));
+    const listEmpty = conversations.length === 0 && directory.length === 0;
 
-    const send = async () => {
-        const body = draft.trim();
-
-        if (!activeId || body === '' || sending) {
+    const startDirect = async (person: DockUser) => {
+        if (startingId) {
             return;
         }
 
-        setSending(true);
+        setStartingId(person.id);
 
         try {
-            const res = await fetch(`/comunicaciones/chat/${activeId}/messages`, {
+            const res = await fetch('/comunicaciones/chat/direct', {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -281,11 +322,48 @@ export function TenantChatDock() {
                     'X-CSRF-TOKEN': csrfToken(),
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ body }),
+                body: JSON.stringify({ user_id: person.id }),
+            });
+            const json = (await res.json()) as { conversation_id?: string };
+
+            if (res.ok && json.conversation_id) {
+                setThreadTitle(person.name);
+                showThread(json.conversation_id);
+                void loadList();
+            }
+        } finally {
+            setStartingId(null);
+        }
+    };
+
+    const send = async () => {
+        const body = draft.trim();
+
+        if (!activeId || sending || (body === '' && files.length === 0)) {
+            return;
+        }
+
+        setSending(true);
+
+        try {
+            const form = new FormData();
+            form.append('body', body);
+            files.forEach((file) => form.append('attachments[]', file));
+            const res = await fetch(`/comunicaciones/chat/${activeId}/messages`, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken(),
+                },
+                credentials: 'same-origin',
+                body: form,
             });
 
             if (res.ok) {
                 setDraft('');
+                setFiles([]);
+                setEmojiOpen(false);
                 await loadThread(activeId);
                 await loadList();
             }
@@ -294,11 +372,11 @@ export function TenantChatDock() {
         }
     };
 
-    const thread = active ? (
+    const thread = activeId ? (
         <section className="flex h-[min(26rem,70vh)] w-[min(20rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-t-2xl border border-border/70 bg-white shadow-2xl dark:bg-background">
             <header className="flex items-center gap-2 border-b px-3 py-2.5">
-                <PersonMark name={active.title} online={active.peer_online} />
-                <p className="min-w-0 flex-1 truncate text-sm font-semibold">{active.title}</p>
+                <PersonMark name={active?.title ?? threadTitle} online={active?.peer_online} />
+                <p className="min-w-0 flex-1 truncate text-sm font-semibold">{active?.title ?? threadTitle}</p>
                 <button
                     type="button"
                     className="cursor-pointer rounded-md px-1.5 text-muted-foreground hover:bg-muted"
@@ -322,9 +400,12 @@ export function TenantChatDock() {
                             {!message.mine ? (
                                 <p className="mb-0.5 text-[10px] font-medium opacity-70">{message.user_name}</p>
                             ) : null}
-                            <p className="whitespace-pre-wrap break-words">
-                                {message.is_deleted ? '…' : message.body}
-                            </p>
+                            <MessageFiles message={message} mine={Boolean(message.mine)} />
+                            {message.body && !message.is_deleted ? (
+                                <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                            ) : message.is_deleted ? (
+                                <p className="whitespace-pre-wrap break-words">…</p>
+                            ) : null}
                             <p className={cn('mt-0.5 text-[10px]', message.mine ? 'text-white/75' : 'text-muted-foreground')}>
                                 {timeLabel(message.created_at)}
                             </p>
@@ -333,26 +414,92 @@ export function TenantChatDock() {
                 ))}
             </div>
             <form
-                className="flex items-center gap-2 border-t px-2 py-2"
+                className="relative border-t px-2 py-2"
                 onSubmit={(event) => {
                     event.preventDefault();
                     void send();
                 }}
             >
-                <input
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    placeholder={t('composer_placeholder')}
-                    className="h-9 min-w-0 flex-1 rounded-full border border-amber-100 bg-[#fbf6e4] px-3 text-sm outline-none focus:border-teal-500 dark:border-border dark:bg-muted/40"
-                />
-                <button
-                    type="submit"
-                    disabled={sending || draft.trim() === ''}
-                    className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-teal-600 text-white disabled:opacity-40"
-                    aria-label={t('send')}
-                >
-                    {sending ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
-                </button>
+                {emojiOpen ? (
+                    <div className="absolute right-2 bottom-full z-10 mb-1 grid w-64 grid-cols-8 gap-0.5 rounded-xl border bg-white p-2 shadow-lg dark:bg-background">
+                        {EMOJIS.map((emoji) => (
+                            <button
+                                key={emoji}
+                                type="button"
+                                className="cursor-pointer rounded-md p-1 text-lg hover:bg-muted"
+                                onClick={() => {
+                                    setDraft((current) => `${current}${emoji}`);
+                                    setEmojiOpen(false);
+                                }}
+                            >
+                                {emoji}
+                            </button>
+                        ))}
+                    </div>
+                ) : null}
+                {files.length > 0 ? (
+                    <ul className="mb-1.5 flex flex-wrap gap-1">
+                        {files.map((file, index) => (
+                            <li key={`${file.name}-${index}`} className="flex max-w-full items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                                <span className="truncate">{file.name}</span>
+                                <button
+                                    type="button"
+                                    className="cursor-pointer text-muted-foreground"
+                                    aria-label={t('remove_attachment')}
+                                    onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}
+                                >
+                                    <X className="size-3" />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                ) : null}
+                <div className="flex items-center gap-1">
+                    <input
+                        ref={fileRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+                        onChange={(event) => {
+                            const picked = Array.from(event.target.files ?? []);
+                            setFiles((current) => [...current, ...picked].slice(0, MAX_FILES));
+                            event.target.value = '';
+                        }}
+                    />
+                    <button
+                        type="button"
+                        className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-40"
+                        aria-label={t('attach')}
+                        title={files.length >= MAX_FILES ? t('attachments_max') : t('attach')}
+                        disabled={files.length >= MAX_FILES}
+                        onClick={() => fileRef.current?.click()}
+                    >
+                        <Paperclip className="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+                        aria-label={t('emoji')}
+                        onClick={() => setEmojiOpen((current) => !current)}
+                    >
+                        <Smile className="size-4" />
+                    </button>
+                    <input
+                        value={draft}
+                        onChange={(event) => setDraft(event.target.value)}
+                        placeholder={t('composer_placeholder')}
+                        className="h-9 min-w-0 flex-1 rounded-full border border-amber-100 bg-[#fbf6e4] px-3 text-sm outline-none focus:border-teal-500 dark:border-border dark:bg-muted/40"
+                    />
+                    <button
+                        type="submit"
+                        disabled={sending || (draft.trim() === '' && files.length === 0)}
+                        className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-teal-600 text-white disabled:opacity-40"
+                        aria-label={t('send')}
+                    >
+                        {sending ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
+                    </button>
+                </div>
             </form>
         </section>
     ) : null;
@@ -410,11 +557,11 @@ export function TenantChatDock() {
                             </div>
                         </header>
                         <ul className="min-h-0 flex-1 overflow-y-auto">
-                            {loadingList && conversations.length === 0 ? (
+                            {loadingList && listEmpty ? (
                                 <li className="flex justify-center py-8 text-muted-foreground">
                                     <Loader2 className="size-4 animate-spin" />
                                 </li>
-                            ) : conversations.length === 0 ? (
+                            ) : listEmpty ? (
                                 <li className="px-4 py-8 text-center text-sm text-muted-foreground">{t('empty_list')}</li>
                             ) : (
                                 conversations.map((row) => (
@@ -427,6 +574,7 @@ export function TenantChatDock() {
                                             )}
                                             onClick={() => {
                                                 setLoadingList(false);
+                                                setThreadTitle(row.title);
                                                 showThread(row.id);
                                             }}
                                         >
@@ -448,6 +596,26 @@ export function TenantChatDock() {
                                     </li>
                                 ))
                             )}
+                            {directory.length > 0 && conversations.length > 0 ? (
+                                <li className="px-3 pt-2 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                    {t('dock_equipo')}
+                                </li>
+                            ) : null}
+                            {directory.map((person) => (
+                                <li key={person.id}>
+                                    <button
+                                        type="button"
+                                        className="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/60"
+                                        onClick={() => void startDirect(person)}
+                                    >
+                                        <PersonMark name={person.name} online={person.online} />
+                                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{person.name}</span>
+                                        {startingId === person.id ? (
+                                            <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                                        ) : null}
+                                    </button>
+                                </li>
+                            ))}
                         </ul>
                     </section>
                 ) : null}
@@ -470,6 +638,51 @@ export function TenantChatDock() {
                     </button>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function messageFiles(message: DockMessage): DockAttachment[] {
+    if (message.attachments && message.attachments.length > 0) {
+        return message.attachments;
+    }
+
+    if (message.attachment) {
+        return [message.attachment];
+    }
+
+    return [];
+}
+
+function MessageFiles({ message, mine }: { message: DockMessage; mine: boolean }) {
+    const files = messageFiles(message);
+
+    if (files.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="mb-1 space-y-1">
+            {files.map((file, index) =>
+                file.is_image && file.url ? (
+                    <a key={`${file.url}-${index}`} href={file.url} target="_blank" rel="noreferrer">
+                        <img src={file.url} alt={file.name} className="max-h-32 rounded-lg" />
+                    </a>
+                ) : (
+                    <a
+                        key={`${file.name}-${index}`}
+                        href={file.url ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={cn(
+                            'block truncate text-xs underline',
+                            mine ? 'text-white' : 'text-teal-700',
+                        )}
+                    >
+                        {file.name}
+                    </a>
+                ),
+            )}
         </div>
     );
 }
