@@ -145,7 +145,7 @@ export function SidebarPlanBadge() {
     );
 
     const className = cn(
-        'mx-2 mb-2 block overflow-hidden rounded-xl border bg-card/80 shadow-sm',
+        'block overflow-hidden rounded-xl border bg-card/80 shadow-sm',
         href && 'cursor-pointer transition-transform duration-200 hover:-translate-y-px hover:shadow-md',
     );
 

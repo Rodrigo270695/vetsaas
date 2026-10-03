@@ -769,7 +769,7 @@ export function AppSidebar() {
 
     return (
         <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
+            <SidebarHeader className="shrink-0">
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
@@ -779,10 +779,10 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
+                <SidebarPlanBadge />
             </SidebarHeader>
 
             <SidebarContent>
-                <SidebarPlanBadge />
                 <NavMainCollapsible
                     label={t('section')}
                     singles={singles}
