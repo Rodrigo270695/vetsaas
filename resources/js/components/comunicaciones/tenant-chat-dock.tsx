@@ -106,6 +106,7 @@ export function TenantChatDock() {
     const [sending, setSending] = useState(false);
     const scrollerRef = useRef<HTMLDivElement>(null);
     const fileRef = useRef<HTMLInputElement>(null);
+    const composerRef = useRef<HTMLTextAreaElement>(null);
 
     const loadList = useCallback(async () => {
         const res = await fetch('/comunicaciones/chat/dock', {
@@ -291,6 +292,17 @@ export function TenantChatDock() {
         }
     }, [messages, activeId]);
 
+    useEffect(() => {
+        const field = composerRef.current;
+
+        if (!field) {
+            return;
+        }
+
+        field.style.height = 'auto';
+        field.style.height = `${Math.min(field.scrollHeight, 96)}px`;
+    }, [draft, activeId]);
+
     if (!allowed || onChatPage) {
         return null;
     }
@@ -454,7 +466,7 @@ export function TenantChatDock() {
                         ))}
                     </ul>
                 ) : null}
-                <div className="flex items-center gap-1">
+                <div className="flex items-end gap-1">
                     <input
                         ref={fileRef}
                         type="file"
@@ -485,11 +497,19 @@ export function TenantChatDock() {
                     >
                         <Smile className="size-4" />
                     </button>
-                    <input
+                    <textarea
+                        ref={composerRef}
+                        rows={1}
                         value={draft}
                         onChange={(event) => setDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter' && !event.shiftKey) {
+                                event.preventDefault();
+                                void send();
+                            }
+                        }}
                         placeholder={t('composer_placeholder')}
-                        className="h-9 min-w-0 flex-1 rounded-full border border-amber-100 bg-[#fbf6e4] px-3 text-sm outline-none focus:border-teal-500 dark:border-border dark:bg-muted/40"
+                        className="max-h-24 min-h-9 min-w-0 flex-1 resize-none rounded-2xl border border-amber-100 bg-[#fbf6e4] px-3 py-2 text-sm leading-5 outline-none focus:border-teal-500 dark:border-border dark:bg-muted/40"
                     />
                     <button
                         type="submit"
