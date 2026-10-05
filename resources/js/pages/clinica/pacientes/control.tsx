@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -57,6 +58,34 @@ type Sugerencia = { id: string; nombre: string; sku: string | null };
 
 function str(value: string | number | null | undefined): string {
     return value == null ? '' : String(value);
+}
+
+function RolSelect({
+    value,
+    disabled,
+    onChange,
+}: {
+    value: Linea['rol'];
+    disabled: boolean;
+    onChange: (rol: Linea['rol']) => void;
+}) {
+    const { t } = useTranslation('pacientes');
+
+    return (
+        <Select
+            value={value}
+            disabled={disabled}
+            onValueChange={(next) => onChange(next === 'complementario' ? 'complementario' : 'principal')}
+        >
+            <SelectTrigger className="h-9 w-[11rem] shrink-0">
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="principal">{t('control.principal')}</SelectItem>
+                <SelectItem value="complementario">{t('control.complementario')}</SelectItem>
+            </SelectContent>
+        </Select>
+    );
 }
 
 function lineaDesde(raw: Partial<Linea> | undefined): Linea {
@@ -166,15 +195,7 @@ function BuscadorLineas({
                         </ul>
                     ) : null}
                 </div>
-                <select
-                    className="h-9 shrink-0 rounded-md border bg-transparent px-2 text-sm"
-                    value={rol}
-                    disabled={disabled}
-                    onChange={(event) => setRol(event.target.value === 'complementario' ? 'complementario' : 'principal')}
-                >
-                    <option value="principal">{t('control.principal')}</option>
-                    <option value="complementario">{t('control.complementario')}</option>
-                </select>
+                <RolSelect value={rol} disabled={disabled} onChange={setRol} />
             </div>
             {lineas.length === 0 ? null : (
                 <div className="overflow-x-auto">
@@ -217,22 +238,15 @@ function BuscadorLineas({
                                         </td>
                                     ) : null}
                                     <td className="py-1 pr-2">
-                                        <select
-                                            className="h-9 rounded-md border bg-transparent px-2 text-sm"
+                                        <RolSelect
                                             value={linea.rol}
                                             disabled={disabled}
-                                            onChange={(event) => {
+                                            onChange={(rol) => {
                                                 const next = [...lineas];
-                                                next[index] = {
-                                                    ...linea,
-                                                    rol: event.target.value === 'complementario' ? 'complementario' : 'principal',
-                                                };
+                                                next[index] = { ...linea, rol };
                                                 onChange(next);
                                             }}
-                                        >
-                                            <option value="principal">{t('control.principal')}</option>
-                                            <option value="complementario">{t('control.complementario')}</option>
-                                        </select>
+                                        />
                                     </td>
                                     <td className="py-1">
                                         <Button
