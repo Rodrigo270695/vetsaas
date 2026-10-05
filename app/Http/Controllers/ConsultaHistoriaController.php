@@ -567,7 +567,7 @@ class ConsultaHistoriaController extends Controller
             ]);
         }
 
-        return redirect()->route('clinica.historias-clinicas');
+        return redirect()->back();
     }
 
     /**
@@ -610,7 +610,7 @@ class ConsultaHistoriaController extends Controller
             ]);
         }
 
-        return redirect()->route('clinica.historias-clinicas');
+        return redirect()->back();
     }
 
     public function resultado(Request $request, Consulta $consulta, ConsultaResultado $resultado): BinaryFileResponse

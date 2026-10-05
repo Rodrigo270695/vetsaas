@@ -93,6 +93,36 @@ const controlClass = 'h-10 w-full min-w-0';
 const FARMACOS_STORE = '/clinica/historias-clinicas/farmacos';
 const SERVICIOS_STORE = '/clinica/historias-clinicas/servicios-clinicos-rapido';
 
+function csrfToken(): string {
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+}
+
+async function crearCatalogo(url: string, nombre: string): Promise<CatalogoOpcion | null> {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken(),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ nombre }),
+    });
+
+    if (!res.ok) {
+        return null;
+    }
+
+    const body = (await res.json()) as { id?: string; nombre?: string };
+
+    if (!body.id || !body.nombre) {
+        return null;
+    }
+
+    return { id: body.id, nombre: body.nombre };
+}
+
 function labelPaciente(o: PacienteHistoriaOpcion): string {
     const p = o.propietario;
     if (!p) {
@@ -481,39 +511,27 @@ export function ConsultaFormModal({
         if (nombre === '') {
             return;
         }
-        const antes = new Set(servicios.map((s) => s.id));
-        router.post(
-            SERVICIOS_STORE,
-            { nombre },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                only: ['servicios_clinicos_opciones'],
-                onSuccess: (page) => {
-                    const props = page.props as {
-                        servicios_clinicos_opciones?: CatalogoOpcion[];
-                    };
-                    const next = props.servicios_clinicos_opciones ?? servicios;
-                    setServicios([...next]);
-                    const nueva = next.find((s) => !antes.has(s.id) && s.nombre === nombre)
-                        ?? next.find((s) => s.nombre.toLowerCase() === nombre.toLowerCase());
-                    if (nueva) {
-                        setData((prev) => ({
-                            ...prev,
-                            examenes: prev.examenes.map((e) =>
-                                e.key === rowKey
-                                    ? {
-                                          ...e,
-                                          servicio_clinico_id: nueva.id,
-                                          nombre: nueva.nombre,
-                                      }
-                                    : e,
-                            ),
-                        }));
-                    }
-                },
-            },
-        );
+        void crearCatalogo(SERVICIOS_STORE, nombre).then((nueva) => {
+            if (!nueva) {
+                return;
+            }
+
+            setServicios((current) =>
+                current.some((item) => item.id === nueva.id) ? current : [...current, nueva],
+            );
+            setData((prev) => ({
+                ...prev,
+                examenes: prev.examenes.map((e) =>
+                    e.key === rowKey
+                        ? {
+                              ...e,
+                              servicio_clinico_id: nueva.id,
+                              nombre: nueva.nombre,
+                          }
+                        : e,
+                ),
+            }));
+        });
     };
 
     const createFarmaco = (query: string, rowKey: string) => {
@@ -521,37 +539,27 @@ export function ConsultaFormModal({
         if (nombre === '') {
             return;
         }
-        const antes = new Set(farmacos.map((f) => f.id));
-        router.post(
-            FARMACOS_STORE,
-            { nombre },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                only: ['farmacos_opciones'],
-                onSuccess: (page) => {
-                    const props = page.props as { farmacos_opciones?: CatalogoOpcion[] };
-                    const next = props.farmacos_opciones ?? farmacos;
-                    setFarmacos([...next]);
-                    const nueva = next.find((f) => !antes.has(f.id))
-                        ?? next.find((f) => f.nombre.toLowerCase() === nombre.toLowerCase());
-                    if (nueva) {
-                        setData((prev) => ({
-                            ...prev,
-                            terapia_lineas: prev.terapia_lineas.map((l) =>
-                                l.key === rowKey
-                                    ? {
-                                          ...l,
-                                          farmaco_id: nueva.id,
-                                          farmaco_nombre: nueva.nombre,
-                                      }
-                                    : l,
-                            ),
-                        }));
-                    }
-                },
-            },
-        );
+        void crearCatalogo(FARMACOS_STORE, nombre).then((nueva) => {
+            if (!nueva) {
+                return;
+            }
+
+            setFarmacos((current) =>
+                current.some((item) => item.id === nueva.id) ? current : [...current, nueva],
+            );
+            setData((prev) => ({
+                ...prev,
+                terapia_lineas: prev.terapia_lineas.map((l) =>
+                    l.key === rowKey
+                        ? {
+                              ...l,
+                              farmaco_id: nueva.id,
+                              farmaco_nombre: nueva.nombre,
+                          }
+                        : l,
+                ),
+            }));
+        });
     };
 
     const cierreBusy = cierreProcessing || processing;
