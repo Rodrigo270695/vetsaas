@@ -338,6 +338,8 @@
         "stat_servicios": "{{count}} service(s)",
         "ver_consulta_corta": "Open consultation",
         "eliminar_consulta": "Delete",
+        "eliminar_registro_title": "Delete record",
+        "eliminar_registro_description": "It will be removed from the pet history. This cannot be undone.",
         "ver_aplicacion_corta": "Open record",
         "vinculos_corto": "links",
         "vinculos_lead": "Linked to this consultation",

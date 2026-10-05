@@ -320,11 +320,16 @@ class HotelEstanciaController extends Controller
 
         $hotelEstancia->delete();
 
+        $message = __('hotel.flash.deleted');
+        if ($stay = \App\Support\Http\PacienteHistorialReturn::ifFromPaciente($message)) {
+            return $stay;
+        }
+
         return redirect()
             ->route('servicios.hotel', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'hotel_desde', 'hotel_hasta',
             ]))
-            ->with('success', __('hotel.flash.deleted'));
+            ->with('success', $message);
     }
 
     public function cambiarEstado(

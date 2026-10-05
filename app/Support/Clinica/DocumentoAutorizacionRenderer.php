@@ -94,6 +94,59 @@ final class DocumentoAutorizacionRenderer
     /**
      * @return array<string, string>
      */
+    public static function variablesForRegistro(
+        Paciente $paciente,
+        ?Propietario $owner,
+        string $motivo,
+        string $fechaIso,
+        string $veterinario,
+    ): array {
+        $clinic = ClinicSetting::current();
+        $clinic->loadMissing('distritoModel');
+        $clinicName = trim((string) ($clinic->nombre_comercial ?: $clinic->razon_social))
+            ?: (string) config('app.name', 'Clínica');
+        $ciudad = trim((string) ($clinic->distritoModel?->name ?? ''));
+        $doc = trim(implode(' ', array_filter([
+            $owner?->tipo_documento,
+            $owner?->numero_documento,
+        ])));
+
+        try {
+            $at = $fechaIso !== ''
+                ? Carbon::parse($fechaIso)->timezone((string) config('app.timezone'))
+                : Carbon::now((string) config('app.timezone'));
+        } catch (\Throwable) {
+            $at = Carbon::now((string) config('app.timezone'));
+        }
+        $at->locale('es');
+
+        return [
+            'paciente' => $paciente->nombre,
+            'especie' => trim((string) ($paciente->especie ?? '')) ?: '—',
+            'raza' => trim((string) ($paciente->raza ?? '')) ?: '—',
+            'edad' => self::edadTexto($paciente),
+            'sexo' => trim((string) ($paciente->sexo ?? '')) ?: '—',
+            'propietario' => $owner?->displayName() ?: '—',
+            'documento' => $doc !== '' ? $doc : '—',
+            'telefono' => trim((string) ($owner?->telefono ?? '')) ?: '—',
+            'motivo' => $motivo !== '' ? $motivo : '—',
+            'fecha' => $at->format('d/m/Y H:i'),
+            'fecha_corta' => $at->format('d/m/Y'),
+            'dia' => $at->format('j'),
+            'mes' => $at->format('n'),
+            'mes_nombre' => $at->translatedFormat('F'),
+            'anio' => $at->format('Y'),
+            'clinica' => $clinicName,
+            'ciudad' => $ciudad !== '' ? $ciudad : '—',
+            'veterinario' => $veterinario !== '' ? $veterinario : '—',
+            'sitio' => '—',
+            'testigo' => '—',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
     public static function variablesForDefuncion(Defuncion $defuncion, Paciente $paciente, ?Propietario $owner): array
     {
         $defuncion->loadMissing('veterinario:id,name');
@@ -133,6 +186,26 @@ final class DocumentoAutorizacionRenderer
         $vars = self::variablesFor($consulta, $paciente, $owner);
         $isHtml = self::looksLikeHtml($plantilla->cuerpo);
         if ($isHtml) {
+            $escaped = [];
+            foreach ($vars as $key => $value) {
+                $escaped[$key] = e($value);
+            }
+            $vars = $escaped;
+        }
+
+        return self::prepareCuerpoHtml(self::render($plantilla->cuerpo, $vars));
+    }
+
+    public static function renderPlantillaRegistro(
+        DocumentoAutorizacionPlantilla $plantilla,
+        Paciente $paciente,
+        ?Propietario $owner,
+        string $motivo,
+        string $fechaIso,
+        string $veterinario,
+    ): string {
+        $vars = self::variablesForRegistro($paciente, $owner, $motivo, $fechaIso, $veterinario);
+        if (self::looksLikeHtml($plantilla->cuerpo)) {
             $escaped = [];
             foreach ($vars as $key => $value) {
                 $escaped[$key] = e($value);

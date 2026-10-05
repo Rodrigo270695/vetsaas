@@ -385,11 +385,16 @@ class LaboratorioController extends Controller
 
         $pedidoLaboratorio->delete();
 
+        $message = __('laboratorio.flash.deleted');
+        if ($stay = \App\Support\Http\PacienteHistorialReturn::ifFromPaciente($message)) {
+            return $stay;
+        }
+
         return redirect()
             ->route('clinica.laboratorio.index', $this->listIndexQuery($request, [
                 'search', 'per_page', 'sort', 'direction', 'pedido_desde', 'pedido_hasta', 'estado',
             ]))
-            ->with('success', __('laboratorio.flash.deleted'));
+            ->with('success', $message);
     }
 
     /**

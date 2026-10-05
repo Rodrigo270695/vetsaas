@@ -661,11 +661,16 @@ class VacunacionController extends Controller
                 ->withErrors($errors);
         }
 
+        $message = __('vacunaciones.flash.deleted');
+        if ($stay = \App\Support\Http\PacienteHistorialReturn::ifFromPaciente($message)) {
+            return $stay;
+        }
+
         return redirect()
             ->route('clinica.vacunaciones.index', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'aplicada_desde', 'aplicada_hasta',
             ]))
-            ->with('success', __('vacunaciones.flash.deleted'));
+            ->with('success', $message);
     }
 
     /**

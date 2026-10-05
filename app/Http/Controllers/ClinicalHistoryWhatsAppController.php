@@ -56,6 +56,9 @@ final class ClinicalHistoryWhatsAppController extends Controller
         );
 
         $paciente->loadMissing('propietario:id,nombres,apellidos,razon_social,telefono');
+        $documento = trim((string) $request->query('documento', ''));
+        $documento = preg_replace('/\s+/u', ' ', $documento) ?? '';
+        $documento = mb_substr($documento, 0, 80);
 
         return $this->send(
             request: $request,
@@ -63,7 +66,7 @@ final class ClinicalHistoryWhatsAppController extends Controller
             sender: $sender,
             routeName: 'tenant.public.clinical-history.historial.view',
             routeParameters: ['paciente' => (string) $paciente->getKey()],
-            documentLabel: 'el historial clínico completo',
+            documentLabel: $documento !== '' ? $documento : 'el historial clínico completo',
             logContext: ['paciente_id' => (string) $paciente->getKey()],
         );
     }

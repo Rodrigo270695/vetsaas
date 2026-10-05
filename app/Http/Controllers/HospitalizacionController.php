@@ -534,6 +534,11 @@ class HospitalizacionController extends Controller
 
         $internamiento->delete();
 
+        $message = __('hospitalizacion.flash.deleted');
+        if ($stay = \App\Support\Http\PacienteHistorialReturn::ifFromPaciente($message)) {
+            return $stay;
+        }
+
         return redirect()
             ->route('clinica.hospitalizacion.index', $this->listIndexQuery($request, [
                 'search', 'per_page', 'sort', 'direction', 'ingreso_desde', 'ingreso_hasta', 'estado',

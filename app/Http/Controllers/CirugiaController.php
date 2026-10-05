@@ -247,11 +247,16 @@ class CirugiaController extends Controller
 
         $cirugia->delete();
 
+        $message = __('cirugia.flash.deleted');
+        if ($stay = \App\Support\Http\PacienteHistorialReturn::ifFromPaciente($message)) {
+            return $stay;
+        }
+
         return redirect()
             ->route('clinica.cirugias.index', $this->listIndexQuery($request, [
                 'search', 'per_page', 'sort', 'direction', 'programada_desde', 'programada_hasta', 'estado',
             ]))
-            ->with('success', __('cirugia.flash.deleted'));
+            ->with('success', $message);
     }
 
     /**

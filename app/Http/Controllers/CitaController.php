@@ -507,11 +507,16 @@ class CitaController extends Controller
 
         $cita->delete();
 
+        $message = __('citas.flash.deleted');
+        if ($stay = \App\Support\Http\PacienteHistorialReturn::ifFromPaciente($message)) {
+            return $stay;
+        }
+
         return redirect()
             ->route('clinica.citas.index', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'mes',
             ]))
-            ->with('success', __('citas.flash.deleted'));
+            ->with('success', $message);
     }
 
     public function cancelar(Request $request, Cita $cita): RedirectResponse

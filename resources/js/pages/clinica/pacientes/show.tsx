@@ -61,6 +61,7 @@ import { ClinicalHistoryWhatsAppDialog } from './components/clinical-history-wha
 import type { ClinicalHistoryShareTarget } from './components/clinical-history-whatsapp-dialog';
 import { DocumentoAutorizacionSendDialog } from './components/documento-autorizacion-send-dialog';
 import { HistorialArchivoPreview } from './components/historial-archivo-preview';
+import { HistorialRegistroDeleteDialog } from './components/historial-registro-delete-dialog';
 import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
 import { PacienteFormModal } from './components/paciente-form-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
@@ -193,6 +194,13 @@ export type TimelineEventKind =
     | 'hotel'
     | 'cita';
 
+export type TimelineAcciones = {
+    whatsapp_url: string | null;
+    share_label: string;
+    eliminar_url: string | null;
+    autorizacion_url: string | null;
+};
+
 export type TimelineEventItem = {
     kind: TimelineEventKind;
     id: string;
@@ -204,6 +212,7 @@ export type TimelineEventItem = {
     detalle_url?: string | null;
     archivos?: TimelineLabLinea[];
     veterinario?: string | null;
+    acciones?: TimelineAcciones | null;
 };
 
 export type TimelineItem =
@@ -232,6 +241,7 @@ export type TimelineItem =
           vacunaciones_url: string;
           pdf_url: string;
           can_edit?: boolean;
+          acciones?: TimelineAcciones | null;
           cobro?: TimelineCobro | null;
           registro?: VacunaAplicadaRow;
           detalle: TimelineAplicacionDetalle;
@@ -367,6 +377,8 @@ export default function PacienteShow({
     const [consultaCreateOpen, setConsultaCreateOpen] = useState(false);
     const [consultaLoadingId, setConsultaLoadingId] = useState<string | null>(null);
     const [consultaToDelete, setConsultaToDelete] = useState<{ id: string } | null>(null);
+    const [registroToDelete, setRegistroToDelete] = useState<string | null>(null);
+    const [autorizacionRegistroUrl, setAutorizacionRegistroUrl] = useState<string | null>(null);
     const [citaOpen, setCitaOpen] = useState(false);
     const [citaEdit, setCitaEdit] = useState<CitaRow | null>(null);
     const [recetaOpen, setRecetaOpen] = useState(false);
@@ -932,6 +944,16 @@ export default function PacienteShow({
                                                       setAutorizacionConsultaId(consultaId)
                                                 : undefined
                                         }
+                                        onShareRegistro={(url, label) =>
+                                            setShareTarget({ url, label })
+                                        }
+                                        onUploadExamen={
+                                            permisos.laboratorio_crear && links.laboratorio_rapido
+                                                ? () => openLaboratorio(null)
+                                                : undefined
+                                        }
+                                        onDeleteRegistro={(url) => setRegistroToDelete(url)}
+                                        onSendAutorizacionRegistro={(url) => setAutorizacionRegistroUrl(url)}
                                     />
                                 ))}
                             </ul>
@@ -964,14 +986,26 @@ export default function PacienteShow({
             />
 
             <DocumentoAutorizacionSendDialog
-                open={autorizacionConsultaId !== null}
+                open={autorizacionConsultaId !== null || autorizacionRegistroUrl !== null}
                 consultaId={autorizacionConsultaId}
+                actionUrl={autorizacionRegistroUrl}
                 plantillas={plantillas_autorizacion}
                 defaultPhone={paciente.propietario?.telefono ?? ''}
                 defaultEmail={paciente.propietario?.email ?? ''}
                 onOpenChange={(open) => {
                     if (!open) {
                         setAutorizacionConsultaId(null);
+                        setAutorizacionRegistroUrl(null);
+                    }
+                }}
+            />
+
+            <HistorialRegistroDeleteDialog
+                open={registroToDelete !== null}
+                url={registroToDelete}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setRegistroToDelete(null);
                     }
                 }}
             />

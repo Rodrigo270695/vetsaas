@@ -47,6 +47,7 @@ import type {
     TimelineAplicacionDetalle,
     TimelineCobro,
     TimelineCobroVenta,
+    TimelineAcciones,
     TimelineConsultaDetalle,
     TimelineConsultaVinculos,
     TimelineEventItem,
@@ -83,8 +84,20 @@ type TimelineRowProps = {
     onUploadLaboratorio?: (consultaId: string) => void;
     onDeleteConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onSendAutorizacion?: (consultaId: string) => void;
+    onShareRegistro?: (url: string, label: string) => void;
+    onUploadExamen?: () => void;
+    onDeleteRegistro?: (url: string) => void;
+    onSendAutorizacionRegistro?: (url: string) => void;
     variant?: 'admin' | 'public';
 };
+
+function accionesRegistro(item: TimelineItem): TimelineAcciones | null {
+    if (item.kind === 'consulta' || !('acciones' in item)) {
+        return null;
+    }
+
+    return item.acciones ?? null;
+}
 
 function vinculosConsultaTieneContenido(v: TimelineConsultaVinculos): boolean {
     return (
@@ -535,12 +548,24 @@ export function PacienteTimelineRow({
     onUploadLaboratorio,
     onDeleteConsulta,
     onSendAutorizacion,
+    onShareRegistro,
+    onUploadExamen,
+    onDeleteRegistro,
+    onSendAutorizacionRegistro,
     variant = 'admin',
 }: TimelineRowProps) {
     const { t, i18n } = useTranslation(['pacientes', 'recetas', 'laboratorio', 'cirugia', 'common']);
     const [resumenAbierto, setResumenAbierto] = useState(false);
     const theme = itemTheme(item);
     const isPublic = variant === 'public';
+    const acciones = accionesRegistro(item);
+    const menuRegistro =
+        !isPublic &&
+        item.kind !== 'consulta' &&
+        (Boolean(onUploadExamen) ||
+            Boolean(acciones?.whatsapp_url && onShareRegistro) ||
+            Boolean(acciones?.autorizacion_url && onSendAutorizacionRegistro) ||
+            Boolean(acciones?.eliminar_url && onDeleteRegistro));
     const isFirst = index === 0;
     const enterDelayMs = Math.min(index, 8) * 45;
     const tz = appTz ?? 'UTC';
@@ -1031,6 +1056,66 @@ export function PacienteTimelineRow({
                                             </Button>
                                         ) : null}
                                     </>
+                                ) : null}
+                                {menuRegistro ? (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="size-8 shrink-0 cursor-pointer text-muted-foreground"
+                                            >
+                                                <MoreHorizontal className="size-4" strokeWidth={2.25} />
+                                                <span className="sr-only">
+                                                    {t('common:actions.more_options')}
+                                                </span>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-52">
+                                            {onShareRegistro && acciones?.whatsapp_url ? (
+                                                <DropdownMenuItem
+                                                    onSelect={() =>
+                                                        onShareRegistro(acciones.whatsapp_url!, acciones.share_label)
+                                                    }
+                                                    className="cursor-pointer gap-2 text-emerald-700 dark:text-emerald-300"
+                                                >
+                                                    <MessageCircle className="size-3.5" strokeWidth={2.25} />
+                                                    {t('historial.action_whatsapp')}
+                                                </DropdownMenuItem>
+                                            ) : null}
+                                            {onUploadExamen ? (
+                                                <DropdownMenuItem
+                                                    onSelect={() => onUploadExamen()}
+                                                    className="cursor-pointer gap-2"
+                                                >
+                                                    <FlaskConical className="size-3.5" strokeWidth={2.25} />
+                                                    {t('historial.action_lab_consulta')}
+                                                </DropdownMenuItem>
+                                            ) : null}
+                                            {onSendAutorizacionRegistro && acciones?.autorizacion_url ? (
+                                                <DropdownMenuItem
+                                                    onSelect={() => onSendAutorizacionRegistro(acciones.autorizacion_url!)}
+                                                    className="cursor-pointer gap-2"
+                                                >
+                                                    <FilePenLine className="size-3.5" strokeWidth={2.25} />
+                                                    {t('historial.action_autorizacion')}
+                                                </DropdownMenuItem>
+                                            ) : null}
+                                            {onDeleteRegistro && acciones?.eliminar_url ? (
+                                                <>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        onSelect={() => onDeleteRegistro(acciones.eliminar_url!)}
+                                                        className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                                                    >
+                                                        <Trash2 className="size-3.5" strokeWidth={2.25} />
+                                                        {t('historial.eliminar_consulta')}
+                                                    </DropdownMenuItem>
+                                                </>
+                                            ) : null}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 ) : null}
                             </div>
                         </div>

@@ -338,6 +338,8 @@
         "stat_servicios": "{{count}} servicio(s)",
         "ver_consulta_corta": "Abrir consulta",
         "eliminar_consulta": "Eliminar",
+        "eliminar_registro_title": "Eliminar registro",
+        "eliminar_registro_description": "Se quita del historial de la mascota. Esta acción no se puede deshacer.",
         "ver_aplicacion_corta": "Abrir registro",
         "vinculos_corto": "vínculos",
         "vinculos_lead": "Vinculados a esta consulta",

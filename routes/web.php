@@ -397,6 +397,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->post('pacientes/{paciente}/historial-clinico/whatsapp', [ClinicalHistoryWhatsAppController::class, 'historial'])
                 ->name('pacientes.historial-clinico-whatsapp');
+            Route::middleware('permission:historias-clinicas.delete|vacunaciones.delete')
+                ->delete('pacientes/{paciente}/historial/{kind}/{id}', [\App\Http\Controllers\PacienteHistorialAccionController::class, 'destroy'])
+                ->whereIn('kind', ['desparasitacion', 'antipulga', 'triaje', 'defuncion'])
+                ->whereUuid(['paciente', 'id'])
+                ->name('pacientes.historial.eliminar');
+            Route::middleware('permission:historias-clinicas.update|vacunaciones.update')
+                ->post('pacientes/{paciente}/autorizacion', [\App\Http\Controllers\PacienteHistorialAccionController::class, 'autorizacion'])
+                ->whereUuid('paciente')
+                ->name('pacientes.autorizacion');
             Route::middleware('permission:laboratorio.create')
                 ->post('pacientes/{paciente}/laboratorio-rapido', [PacienteController::class, 'storeLaboratorioRapido'])
                 ->name('pacientes.laboratorio-rapido');

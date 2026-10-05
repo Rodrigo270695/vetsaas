@@ -415,11 +415,16 @@ class GroomingTurnoController extends Controller
 
         $groomingTurno->delete();
 
+        $message = __('grooming.flash.deleted');
+        if ($stay = \App\Support\Http\PacienteHistorialReturn::ifFromPaciente($message)) {
+            return $stay;
+        }
+
         return redirect()
             ->route('servicios.grooming', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
             ]))
-            ->with('success', __('grooming.flash.deleted'));
+            ->with('success', $message);
     }
 
     public function cambiarEstado(

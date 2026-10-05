@@ -1349,6 +1349,15 @@ class PacienteController extends Controller
                     'vacunaciones_url' => route('clinica.vacunaciones.index', $vacunacionesParams),
                     'pdf_url' => route('clinica.vacunaciones.aplicacion-pdf', $v),
                     'can_edit' => $canEditarVacuna,
+                    'acciones' => $this->timelineAcciones(
+                        $paciente,
+                        'aplicacion',
+                        (string) $v->id,
+                        'la vacunación',
+                        (string) $v->nombre_vacuna,
+                        $v->veterinario?->name,
+                        $v->aplicada_at->toIso8601String(),
+                    ),
                     'cobro' => $this->timelineCobroPayload($user, $v->cargos),
                     'registro' => [
                         'id' => $v->id,
@@ -1445,6 +1454,15 @@ class PacienteController extends Controller
                 'href' => route('clinica.pacientes.desparasitaciones.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
                 'veterinario' => $row->veterinario?->name,
+                'acciones' => $this->timelineAcciones(
+                    $paciente,
+                    'desparasitacion',
+                    (string) $row->id,
+                    'la desparasitación',
+                    'Desparasitación',
+                    $row->veterinario?->name,
+                    $row->atendido_at->toIso8601String(),
+                ),
             ];
         }
     }
@@ -1495,6 +1513,15 @@ class PacienteController extends Controller
                 'href' => route('clinica.pacientes.antipulgas.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
                 'veterinario' => $row->veterinario?->name,
+                'acciones' => $this->timelineAcciones(
+                    $paciente,
+                    'antipulga',
+                    (string) $row->id,
+                    'el registro de antipulgas',
+                    'Antipulgas',
+                    $row->veterinario?->name,
+                    $row->atendido_at->toIso8601String(),
+                ),
             ];
         }
     }
@@ -1554,6 +1581,15 @@ class PacienteController extends Controller
                 'href' => route('clinica.pacientes.defunciones.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
                 'veterinario' => $row->veterinario?->name,
+                'acciones' => $this->timelineAcciones(
+                    $paciente,
+                    'defuncion',
+                    (string) $row->id,
+                    'el certificado de defunción',
+                    'Defunción',
+                    $row->veterinario?->name,
+                    $row->ocurrido_at->toIso8601String(),
+                ),
             ];
         }
     }
@@ -1598,6 +1634,15 @@ class PacienteController extends Controller
                 'href' => route('clinica.pacientes.triajes.edit', [$paciente, $row]),
                 'detalle_corto' => TriajeCatalogo::resumen($hallazgos),
                 'veterinario' => $row->veterinario?->name,
+                'acciones' => $this->timelineAcciones(
+                    $paciente,
+                    'triaje',
+                    (string) $row->id,
+                    'el triaje',
+                    'Triaje',
+                    $row->veterinario?->name,
+                    $row->atendido_at->toIso8601String(),
+                ),
             ];
         }
     }
@@ -1832,7 +1877,101 @@ class PacienteController extends Controller
                 'kind' => $kind,
                 'id' => $id,
             ]),
+            'acciones' => $this->timelineAcciones(
+                $paciente,
+                $kind,
+                $id,
+                $this->timelineDocumentoLabel($kind),
+                $titulo,
+                null,
+                $ocurridoAt,
+            ),
         ];
+    }
+
+    private function timelineDocumentoLabel(string $kind): string
+    {
+        return match ($kind) {
+            'cita' => 'la cita',
+            'cirugia' => 'la cirugía',
+            'internamiento' => 'la hospitalización',
+            'grooming' => 'el servicio de grooming',
+            'hotel' => 'la estancia de hotel',
+            'laboratorio' => 'el examen de laboratorio',
+            default => 'el registro clínico',
+        };
+    }
+
+    /**
+     * @return array{whatsapp_url: ?string, share_label: string, eliminar_url: ?string, autorizacion_url: ?string}
+     */
+    private function timelineAcciones(
+        Paciente $paciente,
+        string $kind,
+        string $id,
+        string $documento,
+        string $titulo,
+        ?string $veterinario,
+        string $ocurridoAt,
+    ): array {
+        $actor = auth()->user();
+        $user = $actor instanceof User ? $actor : null;
+        $canShare = $user !== null && ($user->can('historias-clinicas.view') || $user->can('vacunaciones.view'));
+        $canAuth = $user !== null && ($user->can('historias-clinicas.update') || $user->can('vacunaciones.update'));
+
+        $whatsapp = null;
+        if ($canShare) {
+            $whatsapp = route('clinica.pacientes.historial-clinico-whatsapp', $paciente)
+                .'?documento='.rawurlencode($documento);
+        }
+
+        $eliminar = $this->timelineEliminarUrl($paciente, $kind, $id, $user);
+        $autorizacion = null;
+        if ($canAuth && Schema::hasTable('documento_autorizacion_envios')) {
+            if ($kind === 'defuncion') {
+                $autorizacion = route('clinica.pacientes.defunciones.autorizacion', [$paciente, $id]);
+            } else {
+                $autorizacion = route('clinica.pacientes.autorizacion', $paciente).'?'.http_build_query([
+                    'motivo' => $titulo,
+                    'fecha' => $ocurridoAt,
+                    'veterinario' => $veterinario ?? '',
+                ]);
+            }
+        }
+
+        return [
+            'whatsapp_url' => $whatsapp,
+            'share_label' => $documento,
+            'eliminar_url' => $eliminar,
+            'autorizacion_url' => $autorizacion,
+        ];
+    }
+
+    private function timelineEliminarUrl(Paciente $paciente, string $kind, string $id, ?User $user): ?string
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        $nuevo = in_array($kind, ['desparasitacion', 'antipulga', 'triaje', 'defuncion'], true);
+        if ($nuevo && ($user->can('historias-clinicas.delete') || $user->can('vacunaciones.delete'))) {
+            return route('clinica.pacientes.historial.eliminar', [
+                'paciente' => $paciente,
+                'kind' => $kind,
+                'id' => $id,
+            ]);
+        }
+
+        return match (true) {
+            $kind === 'cita' && $user->can('citas.delete') => route('clinica.citas.destroy', ['cita' => $id]),
+            $kind === 'aplicacion' && $user->can('vacunaciones.delete') => route('clinica.vacunaciones.destroy', ['vacuna_aplicada' => $id]),
+            $kind === 'cirugia' && $user->can('cirugias.delete') => route('clinica.cirugias.destroy', ['cirugia' => $id]),
+            $kind === 'internamiento' && $user->can('hospitalizacion.delete') => route('clinica.hospitalizacion.destroy', ['internamiento' => $id]),
+            $kind === 'grooming' && $user->can('grooming.delete') => route('servicios.grooming.destroy', ['grooming_turno' => $id]),
+            $kind === 'hotel' && $user->can('hotel.delete') => route('servicios.hotel.destroy', ['hotel_estancia' => $id]),
+            $kind === 'laboratorio' && $user->can('laboratorio.delete') => route('clinica.laboratorio.destroy', ['pedido_laboratorio' => $id]),
+            default => null,
+        };
     }
 
     /**
