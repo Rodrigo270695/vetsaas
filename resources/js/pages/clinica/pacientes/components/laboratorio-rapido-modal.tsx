@@ -25,6 +25,8 @@ type Props = {
     consultas: readonly ConsultaLabOpcion[];
     /** Si viene, fuerza vincular a esa consulta. */
     prefillConsultaId?: string | null;
+    /** Si viene, el archivo queda en esa ficha y no abre un laboratorio suelto. */
+    origen?: { kind: string; id: string } | null;
 };
 
 function toDateInputValue(d: Date): string {
@@ -39,12 +41,15 @@ export function LaboratorioRapidoModal({
     storeUrl,
     consultas,
     prefillConsultaId = null,
+    origen = null,
 }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
     const { data, setData, post, processing, errors, reset, clearErrors } =
         useForm({
             vincular_hc: false as boolean,
             consulta_id: '' as string,
+            origen_kind: '' as string,
+            origen_id: '' as string,
             nombre_examen: '',
             fecha: toDateInputValue(new Date()),
             descripcion: '',
@@ -80,14 +85,16 @@ export function LaboratorioRapidoModal({
                 : null;
 
         setData({
-            vincular_hc: Boolean(fromPrefill),
-            consulta_id: fromPrefill ?? '',
+            vincular_hc: origen ? false : Boolean(fromPrefill),
+            consulta_id: origen ? '' : (fromPrefill ?? ''),
+            origen_kind: origen?.kind ?? '',
+            origen_id: origen?.id ?? '',
             nombre_examen: '',
             fecha: toDateInputValue(new Date()),
             descripcion: '',
             documento: null,
         });
-    }, [open, consultas, prefillConsultaId, clearErrors, setData]);
+    }, [open, consultas, prefillConsultaId, origen, clearErrors, setData]);
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -141,6 +148,11 @@ export function LaboratorioRapidoModal({
                     <p>{t('historial.lab_rapido_hint')}</p>
                 </div>
 
+                {origen ? (
+                    <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-sm text-muted-foreground">
+                        {t('historial.lab_rapido_en_ficha')}
+                    </p>
+                ) : (
                 <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
                     <Checkbox
                         id="lab_rapido_vincular"
@@ -166,8 +178,9 @@ export function LaboratorioRapidoModal({
                         </p>
                     </div>
                 </div>
+                )}
 
-                {data.vincular_hc ? (
+                {!origen && data.vincular_hc ? (
                     <FormField
                         id="lab_rapido_consulta"
                         label={t('historial.lab_rapido_consulta')}

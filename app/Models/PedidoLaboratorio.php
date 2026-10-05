@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $id
  * @property string $paciente_id
  * @property ?string $consulta_id
+ * @property ?string $origen_kind
+ * @property ?string $origen_id
  * @property ?string $veterinario_id
  * @property ?string $sede_id
  * @property \Illuminate\Support\Carbon $solicitado_at
@@ -58,6 +60,8 @@ class PedidoLaboratorio extends Model
     protected $fillable = [
         'paciente_id',
         'consulta_id',
+        'origen_kind',
+        'origen_id',
         'veterinario_id',
         'sede_id',
         'solicitado_at',

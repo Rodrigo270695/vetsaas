@@ -193,6 +193,7 @@
         "action_lab_consulta": "Upload exam",
         "action_lab_consulta_corta": "Lab",
         "lab_rapido_consulta_fijada": "Consultation locked from the history.",
+        "lab_rapido_en_ficha": "The file stays on this record, the same way it does on a consultation.",
         "lab_rapido_vincular_hc": "Link to chart",
         "lab_rapido_vincular_hc_hint": "If checked, pick a consultation. Otherwise the file goes to “Uploaded files”.",
         "archivos_subidos_title": "Uploaded files",

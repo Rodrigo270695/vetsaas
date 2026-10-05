@@ -242,6 +242,7 @@ export type TimelineItem =
           pdf_url: string;
           can_edit?: boolean;
           acciones?: TimelineAcciones | null;
+          archivos?: TimelineLabLinea[];
           cobro?: TimelineCobro | null;
           registro?: VacunaAplicadaRow;
           detalle: TimelineAplicacionDetalle;
@@ -379,6 +380,7 @@ export default function PacienteShow({
     const [consultaToDelete, setConsultaToDelete] = useState<{ id: string } | null>(null);
     const [registroToDelete, setRegistroToDelete] = useState<string | null>(null);
     const [autorizacionRegistroUrl, setAutorizacionRegistroUrl] = useState<string | null>(null);
+    const [examenOrigen, setExamenOrigen] = useState<{ kind: string; id: string } | null>(null);
     const [citaOpen, setCitaOpen] = useState(false);
     const [citaEdit, setCitaEdit] = useState<CitaRow | null>(null);
     const [recetaOpen, setRecetaOpen] = useState(false);
@@ -415,6 +417,7 @@ export default function PacienteShow({
     const [autorizacionConsultaId, setAutorizacionConsultaId] = useState<string | null>(null);
 
     const openLaboratorio = (consultaId: string | null = null) => {
+        setExamenOrigen(null);
         setLabPrefillConsultaId(consultaId);
         setLabOpen(true);
     };
@@ -949,7 +952,11 @@ export default function PacienteShow({
                                         }
                                         onUploadExamen={
                                             permisos.laboratorio_crear && links.laboratorio_rapido
-                                                ? () => openLaboratorio(null)
+                                                ? (kind, id) => {
+                                                      setLabPrefillConsultaId(null);
+                                                      setExamenOrigen({ kind, id });
+                                                      setLabOpen(true);
+                                                  }
                                                 : undefined
                                         }
                                         onDeleteRegistro={(url) => setRegistroToDelete(url)}
@@ -1027,10 +1034,12 @@ export default function PacienteShow({
                         setLabOpen(open);
                         if (!open) {
                             setLabPrefillConsultaId(null);
+                            setExamenOrigen(null);
                         }
                     }}
                     storeUrl={links.laboratorio_rapido}
                     consultas={consultas_para_lab}
+                    origen={examenOrigen}
                     prefillConsultaId={labPrefillConsultaId}
                 />
             ) : null}

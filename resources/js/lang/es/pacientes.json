@@ -193,6 +193,7 @@
         "action_lab_consulta": "Subir examen",
         "action_lab_consulta_corta": "Lab",
         "lab_rapido_consulta_fijada": "Consulta fijada desde el historial.",
+        "lab_rapido_en_ficha": "El archivo queda en esta ficha, igual que en una consulta.",
         "lab_rapido_vincular_hc": "Vincular a HC",
         "lab_rapido_vincular_hc_hint": "Si lo marcas, eliges la consulta. Si no, el archivo queda en «Archivos subidos».",
         "archivos_subidos_title": "Archivos subidos",

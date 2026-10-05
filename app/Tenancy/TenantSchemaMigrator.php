@@ -361,6 +361,9 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('pacientes', 'fallecido_at')
                 && Schema::hasColumn('documento_autorizacion_envios', 'defuncion_id'),
             '2026_10_02_180000_t166_triajes' => Schema::hasTable('triajes'),
+            '2026_10_05_000000_t167_pedidos_laboratorio_origen' => Schema::hasTable('pedidos_laboratorio')
+                && Schema::hasColumn('pedidos_laboratorio', 'origen_kind')
+                && Schema::hasColumn('pedidos_laboratorio', 'origen_id'),
             '2026_07_22_190000_t121_add_arqueo_json_to_caja_sesiones' => Schema::hasTable('caja_sesiones')
                 && Schema::hasColumn('caja_sesiones', 'arqueo_json'),
             '2026_07_23_200000_t122_create_caja_egresos_table' => Schema::hasTable('caja_egresos'),

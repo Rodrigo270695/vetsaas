@@ -85,7 +85,7 @@ type TimelineRowProps = {
     onDeleteConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onSendAutorizacion?: (consultaId: string) => void;
     onShareRegistro?: (url: string, label: string) => void;
-    onUploadExamen?: () => void;
+    onUploadExamen?: (kind: string, id: string) => void;
     onDeleteRegistro?: (url: string) => void;
     onSendAutorizacionRegistro?: (url: string) => void;
     variant?: 'admin' | 'public';
@@ -641,9 +641,9 @@ export function PacienteTimelineRow({
                       Boolean(d.resultado_archivo_url),
                   ),
               ]
-            : item.kind !== 'aplicacion'
-              ? (item.archivos ?? []).filter((archivo) => Boolean(archivo.resultado_archivo_url))
-              : [];
+            : ('archivos' in item ? (item.archivos ?? []) : []).filter((archivo) =>
+                  Boolean(archivo.resultado_archivo_url),
+              );
 
     const fichaInline =
         !isPublic &&
@@ -1086,7 +1086,7 @@ export function PacienteTimelineRow({
                                             ) : null}
                                             {onUploadExamen ? (
                                                 <DropdownMenuItem
-                                                    onSelect={() => onUploadExamen()}
+                                                    onSelect={() => onUploadExamen(item.kind, item.id)}
                                                     className="cursor-pointer gap-2"
                                                 >
                                                     <FlaskConical className="size-3.5" strokeWidth={2.25} />

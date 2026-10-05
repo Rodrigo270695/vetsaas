@@ -279,6 +279,10 @@ class PacienteController extends Controller
             $pedidosSueltos = PedidoLaboratorio::query()
                 ->where('paciente_id', $paciente->id)
                 ->whereNull('consulta_id')
+                ->when(
+                    Schema::hasColumn('pedidos_laboratorio', 'origen_id'),
+                    fn ($q) => $q->whereNull('origen_id'),
+                )
                 ->with(['lineas' => fn ($q) => $q->orderBy('orden')])
                 ->orderByDesc('solicitado_at')
                 ->limit(100)
@@ -661,13 +665,22 @@ class PacienteController extends Controller
         $data = $request->validate([
             'vincular_hc' => ['sometimes', 'boolean'],
             'consulta_id' => ['nullable', 'uuid', 'exists:consultas,id'],
+            'origen_kind' => ['nullable', 'string', 'in:desparasitacion,antipulga,defuncion,triaje,cita,aplicacion,cirugia,internamiento,grooming,hotel,laboratorio'],
+            'origen_id' => ['nullable', 'uuid'],
             'nombre_examen' => ['required', 'string', 'max:500'],
             'fecha' => ['required', 'date'],
             'descripcion' => ['nullable', 'string', 'max:20000'],
             'documento' => ['required', 'file', 'mimes:pdf,jpeg,jpg,png,webp', 'max:12288'],
         ]);
 
-        $vincularHc = $request->boolean('vincular_hc');
+        $origenKind = trim((string) ($data['origen_kind'] ?? ''));
+        $origenId = trim((string) ($data['origen_id'] ?? ''));
+        $ligadoAFicha = $origenKind !== '' && $origenId !== '';
+        if ($ligadoAFicha) {
+            $this->assertOrigenDelPaciente($paciente, $origenKind, $origenId);
+        }
+
+        $vincularHc = ! $ligadoAFicha && $request->boolean('vincular_hc');
 
         if ($vincularHc) {
             $request->validate([
@@ -694,24 +707,35 @@ class PacienteController extends Controller
         $fecha = Carbon::parse($data['fecha']);
         $descripcion = isset($data['descripcion']) ? trim((string) $data['descripcion']) : '';
 
-        DB::transaction(function () use ($request, $paciente, $data, $fecha, $descripcion, $tid, $vincularHc): void {
-            $consultaId = $vincularHc ? ($data['consulta_id'] ?? null) : null;
-
-            $pedido = PedidoLaboratorio::query()->create([
-                'paciente_id' => $paciente->id,
-                'consulta_id' => $consultaId,
-                'veterinario_id' => Auth::id(),
-                'solicitado_at' => $fecha,
-                'estado' => PedidoLaboratorio::ESTADO_COMPLETADO,
-                'created_by_id' => Auth::id(),
-                'updated_by_id' => Auth::id(),
-            ]);
+        DB::transaction(function () use ($request, $paciente, $data, $fecha, $descripcion, $tid, $vincularHc, $ligadoAFicha, $origenKind, $origenId): void {
+            if ($ligadoAFicha && $origenKind === 'laboratorio') {
+                $pedido = PedidoLaboratorio::query()
+                    ->where('paciente_id', $paciente->id)
+                    ->whereKey($origenId)
+                    ->firstOrFail();
+            } else {
+                $consultaId = $vincularHc ? ($data['consulta_id'] ?? null) : null;
+                $pedido = PedidoLaboratorio::query()->create([
+                    'paciente_id' => $paciente->id,
+                    'consulta_id' => $consultaId,
+                    'origen_kind' => $ligadoAFicha ? $origenKind : null,
+                    'origen_id' => $ligadoAFicha ? $origenId : null,
+                    'veterinario_id' => Auth::id(),
+                    'solicitado_at' => $fecha,
+                    'estado' => PedidoLaboratorio::ESTADO_COMPLETADO,
+                    'created_by_id' => Auth::id(),
+                    'updated_by_id' => Auth::id(),
+                ]);
+            }
 
             $file = $request->file('documento');
             $ext = Str::lower((string) ($file->getClientOriginalExtension() ?: 'bin'));
             $safe = Str::lower(Str::random(24)).'.'.$ext;
             $baseDir = 'laboratorio/'.$tid.'/'.$pedido->id;
             $archivoPath = $file->storeAs($baseDir, $safe, 'local');
+            $orden = (int) PedidoLaboratorioLinea::query()
+                ->where('pedido_laboratorio_id', $pedido->id)
+                ->max('orden');
 
             PedidoLaboratorioLinea::query()->create([
                 'pedido_laboratorio_id' => $pedido->id,
@@ -721,7 +745,7 @@ class PacienteController extends Controller
                 'resultado_at' => $fecha,
                 'resultado_archivo_path' => $archivoPath,
                 'resultado_archivo_original_name' => $file->getClientOriginalName(),
-                'orden' => 0,
+                'orden' => $orden + 1,
             ]);
         });
 
@@ -1402,6 +1426,7 @@ class PacienteController extends Controller
         $this->appendDefunciones($timeline, $paciente, $user);
         $this->appendTriajes($timeline, $paciente, $user);
         $this->appendStandaloneTimelineEvents($timeline, $paciente, $user, $tz);
+        $this->pegarArchivosEnFicha($timeline, $paciente, $tz);
 
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
 
@@ -1685,6 +1710,10 @@ class PacienteController extends Controller
             $pedidos = PedidoLaboratorio::query()
                 ->where('paciente_id', $paciente->id)
                 ->whereNull('consulta_id')
+                ->when(
+                    Schema::hasColumn('pedidos_laboratorio', 'origen_id'),
+                    fn ($q) => $q->whereNull('origen_id'),
+                )
                 ->where('estado', '!=', PedidoLaboratorio::ESTADO_CANCELADO)
                 ->withCount('lineas')
                 ->orderByDesc('solicitado_at')
@@ -2087,6 +2116,78 @@ class PacienteController extends Controller
      *     }>
      * }>
      */
+    private function assertOrigenDelPaciente(Paciente $paciente, string $kind, string $id): void
+    {
+        $query = match ($kind) {
+            'desparasitacion' => Desparasitacion::query(),
+            'antipulga' => Antipulga::query(),
+            'defuncion' => Defuncion::query(),
+            'triaje' => Triaje::query(),
+            'cita' => Cita::query(),
+            'aplicacion' => VacunaAplicada::query(),
+            'cirugia' => Cirugia::query(),
+            'internamiento' => Internamiento::query(),
+            'grooming' => GroomingTurno::query(),
+            'hotel' => HotelEstancia::query(),
+            'laboratorio' => PedidoLaboratorio::query(),
+            default => abort(422),
+        };
+
+        abort_unless(
+            $query->where('paciente_id', $paciente->id)->whereKey($id)->exists(),
+            422,
+        );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function pegarArchivosEnFicha(array &$timeline, Paciente $paciente, string $tz): void
+    {
+        if (! Schema::hasColumn('pedidos_laboratorio', 'origen_id')) {
+            return;
+        }
+
+        $pedidos = PedidoLaboratorio::query()
+            ->where('paciente_id', $paciente->id)
+            ->whereNotNull('origen_id')
+            ->with(['lineas' => fn ($q) => $q->orderBy('orden')])
+            ->get();
+
+        $mapa = [];
+        foreach ($pedidos as $pedido) {
+            $key = $pedido->origen_kind.':'.$pedido->origen_id;
+            foreach ($pedido->lineas as $linea) {
+                if ($linea->resultado_archivo_url === null) {
+                    continue;
+                }
+
+                $mapa[$key][] = [
+                    'id' => $linea->id,
+                    'nombre_examen' => $linea->nombre_examen,
+                    'resultado' => $linea->resultado !== null && trim((string) $linea->resultado) !== ''
+                        ? trim((string) $linea->resultado)
+                        : null,
+                    'resultado_at' => $linea->resultado_at?->timezone($tz)->toDateString(),
+                    'resultado_archivo_url' => $linea->resultado_archivo_url,
+                    'resultado_archivo_original_name' => $linea->resultado_archivo_original_name,
+                    'archivo_kind' => $this->resultadoArchivoKind(
+                        $linea->resultado_archivo_original_name,
+                        $linea->resultado_archivo_path,
+                    ),
+                ];
+            }
+        }
+
+        foreach ($timeline as &$row) {
+            $key = ($row['kind'] ?? '').':'.($row['id'] ?? '');
+            if (isset($mapa[$key])) {
+                $row['archivos'] = $mapa[$key];
+            }
+        }
+        unset($row);
+    }
+
     private function timelineLaboratorioVinculo(?Authenticatable $user, $pedidos, string $tz): array
     {
         if ($user === null || ! $user->can('laboratorio.view')) {
