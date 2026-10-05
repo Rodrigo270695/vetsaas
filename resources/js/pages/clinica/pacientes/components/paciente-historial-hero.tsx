@@ -522,21 +522,23 @@ export function PacienteHistorialHero({
                             {permisos.pacientes_editar && onEditar ? (
                                 <Button
                                     type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 cursor-pointer gap-1.5 px-2.5"
+                                    size="icon"
+                                    className="size-8 cursor-pointer bg-brand-600 text-white hover:bg-brand-700"
+                                    aria-label={t('historial.action_editar')}
+                                    title={t('historial.action_editar')}
                                     onClick={onEditar}
                                 >
                                     <Pencil className="size-3.5" strokeWidth={2.25} />
-                                    <span className="hidden sm:inline">{t('historial.action_editar')}</span>
                                 </Button>
                             ) : null}
-                            <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 px-2.5" asChild>
-                                <Link href={clinica.pacientes.index().url} prefetch>
-                                    <ArrowLeft className="size-3.5" strokeWidth={2.25} />
-                                    <span className="hidden sm:inline">{t('historial.back_list')}</span>
-                                </Link>
-                            </Button>
+                            <Link
+                                href={clinica.pacientes.index().url}
+                                prefetch
+                                className="inline-flex h-8 items-center gap-1 px-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                            >
+                                <ArrowLeft className="size-3.5" strokeWidth={2.25} />
+                                {t('historial.back_list')}
+                            </Link>
                         </div>
                     ) : clinicName ? (
                         <div className="shrink-0 text-right">
