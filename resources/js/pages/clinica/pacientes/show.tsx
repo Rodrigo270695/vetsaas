@@ -68,6 +68,7 @@ import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { AntipulgaEmbed } from './antipulgas';
 import { DefuncionEmbed } from './defuncion';
 import { TriajeEmbed } from './triaje';
+import { ControlEmbed } from './control';
 import { DesparasitacionEmbed } from './desparasitacion';
 import type { HistorialNuevoAccion } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
@@ -184,6 +185,7 @@ export type TimelineAplicacionDetalle = {
 
 export type TimelineEventKind =
     | 'laboratorio'
+    | 'control'
     | 'desparasitacion'
     | 'antipulga'
     | 'defuncion'
@@ -287,6 +289,12 @@ type Props = {
     links: {
         nueva_consulta: string;
         nueva_aplicacion: string;
+        nueva_control?: string | null;
+        control?: {
+            store_url: string;
+            productos_url: string;
+            atendido_at: string;
+        } | null;
         nueva_desparasitacion?: string | null;
         desparasitacion?: {
             store_url: string;
@@ -394,6 +402,9 @@ export default function PacienteShow({
     const [hotelEdit, setHotelEdit] = useState<HotelEstanciaRow | null>(null);
     const [pedidoEdit, setPedidoEdit] = useState<PedidoLaboratorioRow | null>(null);
     const [pacienteEditOpen, setPacienteEditOpen] = useState(false);
+    const [controlPanel, setControlPanel] = useState<
+        null | { mode: 'create' } | { mode: 'edit'; url: string }
+    >(null);
     const [desparasitacionPanel, setDesparasitacionPanel] = useState<
         null | { mode: 'create' } | { mode: 'edit'; url: string }
     >(null);
@@ -663,9 +674,23 @@ export default function PacienteShow({
                             setTriajePanel(null);
                         }
 
+                        if (accion !== 'control') {
+                            setControlPanel(null);
+                        }
+
                         if (accion === 'consulta') {
                             setConsultaEdit(null);
                             setConsultaCreateOpen(true);
+                            return;
+                        }
+
+                        if (accion === 'control') {
+                            setDesparasitacionPanel(null);
+                            setAntipulgaPanel(null);
+                            setDefuncionPanel(null);
+                            setTriajePanel(null);
+                            setControlPanel({ mode: 'create' });
+
                             return;
                         }
 
@@ -764,7 +789,20 @@ export default function PacienteShow({
                 </PacienteHistorialHero>
 
                 <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
-                    {desparasitacionPanel ? (
+                    {controlPanel ? (
+                        <div className="p-4 sm:p-5">
+                            <ControlEmbed
+                                paciente={{ id: paciente.id, nombre: paciente.nombre }}
+                                create={controlPanel.mode === 'create' ? (links.control ?? null) : null}
+                                editUrl={controlPanel.mode === 'edit' ? controlPanel.url : null}
+                                onVolver={() => setControlPanel(null)}
+                                onRegistrarCita={() => {
+                                    setCitaEdit(null);
+                                    setCitaOpen(true);
+                                }}
+                            />
+                        </div>
+                    ) : desparasitacionPanel ? (
                         <div className="p-4 sm:p-5">
                             <DesparasitacionEmbed
                                 paciente={{ id: paciente.id, nombre: paciente.nombre }}
@@ -895,25 +933,36 @@ export default function PacienteShow({
                                         consultaOpeningId={consultaLoadingId}
                                         onOpenConsulta={openConsultaRegistro}
                                         onOpenAplicacion={openVacunaRegistro}
+                                        onOpenControl={(registro) => {
+                                            setDesparasitacionPanel(null);
+                                            setAntipulgaPanel(null);
+                                            setDefuncionPanel(null);
+                                            setTriajePanel(null);
+                                            setControlPanel({ mode: 'edit', url: registro.href });
+                                        }}
                                         onOpenDesparasitacion={(registro) => {
+                                            setControlPanel(null);
                                             setAntipulgaPanel(null);
                                             setDefuncionPanel(null);
                                             setTriajePanel(null);
                                             setDesparasitacionPanel({ mode: 'edit', url: registro.href });
                                         }}
                                         onOpenAntipulga={(registro) => {
+                                            setControlPanel(null);
                                             setDesparasitacionPanel(null);
                                             setDefuncionPanel(null);
                                             setTriajePanel(null);
                                             setAntipulgaPanel({ mode: 'edit', url: registro.href });
                                         }}
                                         onOpenDefuncion={(registro) => {
+                                            setControlPanel(null);
                                             setDesparasitacionPanel(null);
                                             setAntipulgaPanel(null);
                                             setTriajePanel(null);
                                             setDefuncionPanel({ mode: 'edit', url: registro.href });
                                         }}
                                         onOpenTriaje={(registro) => {
+                                            setControlPanel(null);
                                             setDesparasitacionPanel(null);
                                             setAntipulgaPanel(null);
                                             setDefuncionPanel(null);

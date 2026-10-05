@@ -399,7 +399,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->name('pacientes.historial-clinico-whatsapp');
             Route::middleware('permission:historias-clinicas.delete|vacunaciones.delete')
                 ->delete('pacientes/{paciente}/historial/{kind}/{id}', [\App\Http\Controllers\PacienteHistorialAccionController::class, 'destroy'])
-                ->whereIn('kind', ['desparasitacion', 'antipulga', 'triaje', 'defuncion'])
+                ->whereIn('kind', ['desparasitacion', 'antipulga', 'triaje', 'defuncion', 'control'])
                 ->whereUuid(['paciente', 'id'])
                 ->name('pacientes.historial.eliminar');
             Route::middleware('permission:historias-clinicas.update|vacunaciones.update')
@@ -521,6 +521,22 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware($triajePerm)
                 ->match(['put', 'patch'], 'pacientes/{paciente}/triajes/{triaje}', [\App\Http\Controllers\TriajeController::class, 'update'])
                 ->name('pacientes.triajes.update');
+            $controlPerm = 'permission:historias-clinicas.view|historias-clinicas.create|historias-clinicas.update|vacunaciones.view|vacunaciones.create|vacunaciones.update';
+            Route::middleware($controlPerm)
+                ->get('pacientes/{paciente}/controles/crear', [\App\Http\Controllers\ControlClinicoController::class, 'create'])
+                ->name('pacientes.controles.create');
+            Route::middleware($controlPerm)
+                ->post('pacientes/{paciente}/controles', [\App\Http\Controllers\ControlClinicoController::class, 'store'])
+                ->name('pacientes.controles.store');
+            Route::middleware($controlPerm)
+                ->get('pacientes/{paciente}/controles/productos-buscar', [\App\Http\Controllers\ControlClinicoController::class, 'productosBuscar'])
+                ->name('pacientes.controles.productos');
+            Route::middleware($controlPerm)
+                ->get('pacientes/{paciente}/controles/{control}', [\App\Http\Controllers\ControlClinicoController::class, 'edit'])
+                ->name('pacientes.controles.edit');
+            Route::middleware($controlPerm)
+                ->match(['put', 'patch'], 'pacientes/{paciente}/controles/{control}', [\App\Http\Controllers\ControlClinicoController::class, 'update'])
+                ->name('pacientes.controles.update');
             Route::middleware('permission:pacientes.create')
                 ->post('pacientes', [PacienteController::class, 'store'])
                 ->name('pacientes.store');

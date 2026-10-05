@@ -17,6 +17,7 @@ use App\Models\ClinicaAsesorada;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\Antipulga;
+use App\Models\ControlClinico;
 use App\Models\Defuncion;
 use App\Models\Triaje;
 use App\Support\Clinica\TriajeCatalogo;
@@ -508,6 +509,26 @@ class PacienteController extends Controller
             'medico_tratante_default' => $user?->name ?? '',
             'links' => [
                 'nueva_consulta' => route('clinica.historias-clinicas', ['nuevo_para_paciente' => $paciente->id]),
+                'nueva_control' => ($user instanceof User && Schema::hasTable('controles') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? route('clinica.pacientes.controles.create', $paciente)
+                    : null,
+                'control' => ($user instanceof User && Schema::hasTable('controles') && (
+                    $user->can('historias-clinicas.create')
+                    || $user->can('historias-clinicas.update')
+                    || $user->can('vacunaciones.create')
+                    || $user->can('vacunaciones.update')
+                ))
+                    ? [
+                        'store_url' => route('clinica.pacientes.controles.store', $paciente),
+                        'productos_url' => route('clinica.pacientes.controles.productos', $paciente),
+                        'atendido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
+                    ]
+                    : null,
                 'nueva_desparasitacion' => ($user instanceof User && Schema::hasTable('desparasitaciones') && (
                     $user->can('historias-clinicas.create')
                     || $user->can('historias-clinicas.update')
@@ -665,7 +686,7 @@ class PacienteController extends Controller
         $data = $request->validate([
             'vincular_hc' => ['sometimes', 'boolean'],
             'consulta_id' => ['nullable', 'uuid', 'exists:consultas,id'],
-            'origen_kind' => ['nullable', 'string', 'in:desparasitacion,antipulga,defuncion,triaje,cita,aplicacion,cirugia,internamiento,grooming,hotel,laboratorio'],
+            'origen_kind' => ['nullable', 'string', 'in:desparasitacion,antipulga,defuncion,triaje,control,cita,aplicacion,cirugia,internamiento,grooming,hotel,laboratorio'],
             'origen_id' => ['nullable', 'uuid'],
             'nombre_examen' => ['required', 'string', 'max:500'],
             'fecha' => ['required', 'date'],
@@ -1421,6 +1442,7 @@ class PacienteController extends Controller
             }
         }
 
+        $this->appendControles($timeline, $paciente, $user);
         $this->appendDesparasitaciones($timeline, $paciente, $user);
         $this->appendAntipulgas($timeline, $paciente, $user);
         $this->appendDefunciones($timeline, $paciente, $user);
@@ -1438,6 +1460,64 @@ class PacienteController extends Controller
      *
      * @param  list<array<string, mixed>>  $timeline
      */
+    /**
+     * Fichas de control. El clic del historial abre esa vista.
+     *
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function appendControles(array &$timeline, Paciente $paciente, mixed $user): void
+    {
+        if (! $user instanceof User || ! Schema::hasTable('controles')) {
+            return;
+        }
+
+        $canVer = $user->can('historias-clinicas.view')
+            || $user->can('historias-clinicas.update')
+            || $user->can('vacunaciones.view')
+            || $user->can('vacunaciones.update')
+            || $user->can('historias-clinicas.create')
+            || $user->can('vacunaciones.create');
+        if (! $canVer) {
+            return;
+        }
+
+        $rows = ControlClinico::query()
+            ->where('paciente_id', $paciente->id)
+            ->with('veterinario:id,name')
+            ->orderByDesc('atendido_at')
+            ->limit(200)
+            ->get();
+
+        foreach ($rows as $row) {
+            $diagnosticos = is_array($row->diagnosticos) ? $row->diagnosticos : [];
+            $primero = $diagnosticos[0] ?? null;
+            $corto = trim(implode(' · ', array_filter([
+                is_string($row->motivo) && $row->motivo !== '' && $row->motivo !== 'Control' ? $row->motivo : null,
+                is_string($primero) ? $primero : null,
+            ])));
+
+            $timeline[] = [
+                'kind' => 'control',
+                'id' => $row->id,
+                'ocurrido_at' => $row->atendido_at->toIso8601String(),
+                'titulo' => 'Control',
+                'estado' => 'registrada',
+                'href' => route('clinica.pacientes.controles.edit', [$paciente, $row]),
+                'detalle_corto' => $corto !== '' ? $corto : null,
+                'veterinario' => $row->veterinario?->name,
+                'acciones' => $this->timelineAcciones(
+                    $paciente,
+                    'control',
+                    (string) $row->id,
+                    'el control',
+                    'Control',
+                    $row->veterinario?->name,
+                    $row->atendido_at->toIso8601String(),
+                ),
+            ];
+        }
+    }
+
     private function appendDesparasitaciones(array &$timeline, Paciente $paciente, mixed $user): void
     {
         if (! $user instanceof User || ! Schema::hasTable('desparasitaciones')) {
@@ -1927,6 +2007,7 @@ class PacienteController extends Controller
             'grooming' => 'el servicio de grooming',
             'hotel' => 'la estancia de hotel',
             'laboratorio' => 'el examen de laboratorio',
+            'control' => 'el control',
             default => 'el registro clínico',
         };
     }
@@ -1982,7 +2063,7 @@ class PacienteController extends Controller
             return null;
         }
 
-        $nuevo = in_array($kind, ['desparasitacion', 'antipulga', 'triaje', 'defuncion'], true);
+        $nuevo = in_array($kind, ['desparasitacion', 'antipulga', 'triaje', 'defuncion', 'control'], true);
         if ($nuevo && ($user->can('historias-clinicas.delete') || $user->can('vacunaciones.delete'))) {
             return route('clinica.pacientes.historial.eliminar', [
                 'paciente' => $paciente,
@@ -2121,6 +2202,7 @@ class PacienteController extends Controller
         $query = match ($kind) {
             'desparasitacion' => Desparasitacion::query(),
             'antipulga' => Antipulga::query(),
+            'control' => ControlClinico::query(),
             'defuncion' => Defuncion::query(),
             'triaje' => Triaje::query(),
             'cita' => Cita::query(),

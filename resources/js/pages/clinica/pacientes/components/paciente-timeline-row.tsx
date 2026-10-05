@@ -5,6 +5,7 @@ import {
     CalendarDays,
     ChevronDown,
     Clock,
+    ClipboardCheck,
     ClipboardList,
     FileDown,
     FilePenLine,
@@ -75,6 +76,7 @@ type TimelineRowProps = {
     consultaOpeningId?: string | null;
     onOpenConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onOpenAplicacion?: (item: Extract<TimelineItem, { kind: 'aplicacion' }>) => void;
+    onOpenControl?: (item: Extract<TimelineItem, { kind: 'control' }>) => void;
     onOpenDesparasitacion?: (item: Extract<TimelineItem, { kind: 'desparasitacion' }>) => void;
     onOpenAntipulga?: (item: Extract<TimelineItem, { kind: 'antipulga' }>) => void;
     onOpenDefuncion?: (item: Extract<TimelineItem, { kind: 'defuncion' }>) => void;
@@ -476,6 +478,19 @@ function itemTheme(item: TimelineItem) {
         };
     }
 
+    if (item.kind === 'control') {
+        return {
+            stripe: 'bg-gradient-to-b from-teal-400 to-teal-600',
+            dot: 'border-teal-400/70 bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-teal-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(20,184,166,0.16)]',
+            ringPulse: 'bg-teal-500/50',
+            iconBg: 'bg-gradient-to-br from-teal-500/20 to-teal-500/5',
+            iconText: 'text-teal-800 dark:text-teal-200',
+            cardHover: 'hover:border-teal-500/35 hover:shadow-teal-500/10',
+            Icon: ClipboardCheck,
+        };
+    }
+
     if (item.kind === 'desparasitacion' || item.kind === 'antipulga') {
         return {
             stripe: 'bg-gradient-to-b from-lime-400 to-lime-600',
@@ -539,6 +554,7 @@ export function PacienteTimelineRow({
     consultaOpeningId = null,
     onOpenConsulta,
     onOpenAplicacion,
+    onOpenControl,
     onOpenDesparasitacion,
     onOpenAntipulga,
     onOpenDefuncion,
@@ -647,7 +663,8 @@ export function PacienteTimelineRow({
 
     const fichaInline =
         !isPublic &&
-        ((item.kind === 'desparasitacion' && Boolean(onOpenDesparasitacion)) ||
+        ((item.kind === 'control' && Boolean(onOpenControl)) ||
+            (item.kind === 'desparasitacion' && Boolean(onOpenDesparasitacion)) ||
             (item.kind === 'antipulga' && Boolean(onOpenAntipulga)) ||
             (item.kind === 'defuncion' && Boolean(onOpenDefuncion)) ||
             (item.kind === 'triaje' && Boolean(onOpenTriaje)));
@@ -671,6 +688,12 @@ export function PacienteTimelineRow({
 
         if (item.kind === 'aplicacion') {
             onOpenAplicacion?.(item);
+
+            return;
+        }
+
+        if (item.kind === 'control') {
+            onOpenControl?.(item);
 
             return;
         }
@@ -817,6 +840,8 @@ export function PacienteTimelineRow({
                                             'bg-indigo-500/12 text-indigo-800 dark:text-indigo-200',
                                         item.kind === 'cita' &&
                                             'bg-blue-500/12 text-blue-800 dark:text-blue-200',
+                                        item.kind === 'control' &&
+                                            'bg-teal-500/12 text-teal-900 dark:text-teal-100',
                                         item.kind === 'desparasitacion' &&
                                             'bg-lime-500/12 text-lime-900 dark:text-lime-100',
                                         item.kind === 'antipulga' &&

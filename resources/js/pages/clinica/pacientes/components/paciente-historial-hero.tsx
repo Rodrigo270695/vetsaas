@@ -7,6 +7,7 @@ import {
     CalendarPlus,
     Cat,
     ChevronDown,
+    ClipboardCheck,
     ClipboardList,
     Dog,
     ExternalLink,
@@ -54,6 +55,7 @@ type Props = {
         historial_pdf: string | null;
         historial_whatsapp?: string | null;
         laboratorio_rapido?: string | null;
+        nueva_control?: string | null;
         nueva_desparasitacion?: string | null;
         nueva_antipulga?: string | null;
         nueva_defuncion?: string | null;
@@ -90,6 +92,7 @@ type Props = {
 
 export type HistorialNuevoAccion =
     | 'consulta'
+    | 'control'
     | 'cita'
     | 'vacuna'
     | 'desparasitacion'
@@ -208,6 +211,14 @@ export function PacienteHistorialHero({
             });
         }
 
+        if (links.nueva_control) {
+            items.push({
+                id: 'control',
+                label: t('historial.nuevo_control'),
+                icon: ClipboardCheck,
+            });
+        }
+
         if (citasModule && permisos.citas_crear) {
             items.push({
                 id: 'cita',
@@ -315,6 +326,7 @@ export function PacienteHistorialHero({
         hotelModule,
         laboratorioModule,
         links.laboratorio_rapido,
+        links.nueva_control,
         links.nueva_desparasitacion,
         links.nueva_antipulga,
         links.nueva_defuncion,

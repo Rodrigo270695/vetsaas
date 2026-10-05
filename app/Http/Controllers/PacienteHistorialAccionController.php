@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Antipulga;
+use App\Models\ControlClinico;
 use App\Models\Defuncion;
 use App\Models\Desparasitacion;
 use App\Models\DocumentoAutorizacionPlantilla;
@@ -103,6 +104,7 @@ final class PacienteHistorialAccionController extends Controller
             'antipulga' => Antipulga::query(),
             'triaje' => Triaje::query(),
             'defuncion' => Defuncion::query(),
+            'control' => ControlClinico::query(),
             default => abort(404),
         };
 
