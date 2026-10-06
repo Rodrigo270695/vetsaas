@@ -11,24 +11,41 @@ use Illuminate\Http\Request;
  */
 final class TicketAnchoMm
 {
-    /** @var list<string> */
-    public const ALLOWED = ['56', '58', '80'];
+    /** Rollos que se compran. 72 mm es el cabezal de un rollo de 80, no una opción. */
+    public const ALLOWED = ['56', '57', '58', '80'];
 
     public const DEFAULT = '58';
 
     public static function normalize(?string $value, ?string $fallback = null): string
     {
-        $candidate = $value !== null ? trim($value) : '';
-        if (in_array($candidate, self::ALLOWED, true)) {
+        $candidate = self::canonicalize($value);
+        if ($candidate !== null) {
             return $candidate;
         }
 
-        $fb = $fallback !== null ? trim($fallback) : '';
-        if (in_array($fb, self::ALLOWED, true)) {
+        $fb = self::canonicalize($fallback);
+        if ($fb !== null) {
             return $fb;
         }
 
         return self::DEFAULT;
+    }
+
+    /**
+     * 72 mm guardado antes era el cabezal del rollo de 80. Se lee como 80.
+     */
+    private static function canonicalize(?string $value): ?string
+    {
+        $candidate = $value !== null ? trim($value) : '';
+        if ($candidate === '72') {
+            return '80';
+        }
+
+        if (in_array($candidate, self::ALLOWED, true)) {
+            return $candidate;
+        }
+
+        return null;
     }
 
     public static function fromRequest(Request $request, ?string $configValue): string
@@ -40,17 +57,17 @@ final class TicketAnchoMm
 
     public static function isNarrow(string $ancho): bool
     {
-        return in_array($ancho, ['56', '58'], true);
+        return in_array(self::normalize($ancho), ['56', '57', '58'], true);
     }
 
     /**
      * Ancho útil del cabezal. El rollo de 80 mm imprime unos 72 mm (576 puntos a 203 dpi);
-     * 58/56 mm imprimen unos 48 mm. Maquetar al ancho del rollo recorta ambos bordes.
+     * 56, 57 y 58 mm imprimen unos 48 mm. Maquetar al ancho del rollo recorta ambos bordes.
      */
     public static function printableMm(string $ancho): string
     {
         return match (self::normalize($ancho)) {
-            '56', '58' => '48',
+            '56', '57', '58' => '48',
             default => '72',
         };
     }
@@ -72,7 +89,7 @@ final class TicketAnchoMm
                 'footer' => 8,
                 'pad_x' => '1.5mm',
             ],
-            '58' => [
+            '57', '58' => [
                 'fs' => 10,
                 'fs_sm' => 9,
                 'fs_title' => 12,

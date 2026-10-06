@@ -31,9 +31,10 @@
     "ticket_ancho": {
         "label": "Ancho del rollo térmico",
         "56": "56 mm",
+        "57": "57 mm",
         "58": "58 mm",
         "80": "80 mm",
-        "hint": "Elige el ancho para esta impresión. Al volver a abrir se usará el valor de Configuración General."
+        "hint": "Al imprimir, este ancho queda como predeterminado de la clínica. La siguiente venta abre en ese rollo."
     },
     "feedback": {
         "no_results": "Sin resultados",

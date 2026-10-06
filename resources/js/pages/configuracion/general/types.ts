@@ -103,7 +103,7 @@ export type ClinicSetting = {
     igv_porcentaje: string;
     igv_afectacion: 'gravado' | 'exonerado' | 'inafecto';
     precio_incluye_igv: boolean;
-    ticket_ancho_mm: '56' | '58' | '80';
+    ticket_ancho_mm: '56' | '57' | '58' | '80';
     emite_comprobantes_sunat: boolean;
     // APISUNAT (integración por tenant)
     apisunat_mode: 'sandbox' | 'produccion';

@@ -11,12 +11,12 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { normalizeTicketAncho } from '@/lib/ticket-ancho';
+import { normalizeTicketAncho, persistPrintedTicketAncho, resolveTicketAncho } from '@/lib/ticket-ancho';
 import type { TicketAnchoMm } from '@/lib/ticket-ancho';
 
 export type ArqueoPrintFormato = 'a4' | TicketAnchoMm;
 
-const FORMATOS: readonly ArqueoPrintFormato[] = ['a4', '56', '58', '80'];
+const FORMATOS: readonly ArqueoPrintFormato[] = ['a4', '56', '57', '58', '80'];
 
 export type ArqueoPrintDialogProps = {
     open: boolean;
@@ -38,7 +38,7 @@ function buildArqueoPreviewUrl(baseUrl: string, formato: ArqueoPrintFormato, bus
 }
 
 /**
- * Vista previa e impresión del arqueo: A4 (reporte) o ticket 56/58/80 mm (resumen).
+ * Vista previa e impresión del arqueo: A4 (reporte) o ticket 56/57/58/80 mm (resumen).
  */
 export function ArqueoPrintDialog({
     open,
@@ -75,6 +75,18 @@ export function ArqueoPrintDialog({
             win.focus();
             win.print();
         }
+
+        if (formato === 'a4') {
+            return;
+        }
+
+        const current = resolveTicketAncho(normalizeTicketAncho(configAncho));
+
+        if (formato === current) {
+            return;
+        }
+
+        void persistPrintedTicketAncho(formato);
     };
 
     const hintKey =

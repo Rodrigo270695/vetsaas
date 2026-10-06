@@ -31,9 +31,10 @@
     "ticket_ancho": {
         "label": "Thermal roll width",
         "56": "56 mm",
+        "57": "57 mm",
         "58": "58 mm",
         "80": "80 mm",
-        "hint": "Choose the width for this print. Reopening will use the value from General Settings."
+        "hint": "Printing saves this width as the clinic default. The next sale opens on that roll."
     },
     "feedback": {
         "no_results": "No results",

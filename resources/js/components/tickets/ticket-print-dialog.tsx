@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import {
     buildTicketPreviewUrl,
     normalizeTicketAncho,
+    persistPrintedTicketAncho,
     resolveTicketAncho,
     TICKET_ANCHO_OPTIONS,
 } from '@/lib/ticket-ancho';
@@ -36,8 +37,8 @@ export type TicketPrintDialogProps = {
 
 /**
  * Modal de vista previa e impresión de ticket térmico.
- * Permite elegir 56 / 58 / 80 mm en cada impresión.
- * Cada apertura usa como base la configuración vigente del tenant.
+ * Rollos: 56, 57, 58 y 80 mm. Al imprimir, ese ancho queda como
+ * predeterminado de la clínica para la siguiente venta.
  */
 export function TicketPrintDialog({
     open,
@@ -90,6 +91,15 @@ export function TicketPrintDialog({
             win.focus();
             win.print();
         }
+
+        const chosen = ancho;
+        const current = resolveTicketAncho(normalizeTicketAncho(configAncho));
+
+        if (chosen === current) {
+            return;
+        }
+
+        void persistPrintedTicketAncho(chosen);
     };
 
     const handleOpenChange = (next: boolean) => {

@@ -67,5 +67,5 @@ export type CajaSesionesIndexProps = {
     sesion_filtro_ui: CajaSesionFiltroUi;
     stats: CajaSesionStats;
     sin_sedes: boolean;
-    ticket_ancho_mm: '56' | '58' | '80';
+    ticket_ancho_mm: '56' | '57' | '58' | '80';
 };

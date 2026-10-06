@@ -1532,6 +1532,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware(['tenant.required', 'permission:config-general.update'])
             ->match(['put', 'patch'], 'general', [ClinicSettingController::class, 'update'])
             ->name('general.update');
+        Route::middleware('tenant.required')
+            ->post('ticket-ancho', [ClinicSettingController::class, 'rememberTicketAncho'])
+            ->name('ticket-ancho.remember');
 
         Route::middleware(['tenant.required', 'permission:config-general.view'])
             ->get('suscripcion', [ClinicSubscriptionController::class, 'show'])

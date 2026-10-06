@@ -44,6 +44,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { adoptTicketAncho, normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { toastManager } from '@/lib/toast';
 import general from '@/routes/configuracion/general';
 import { LogoUploader } from './components/logo-uploader';
@@ -140,7 +141,7 @@ type FormState = {
     igv_porcentaje: string;
     igv_afectacion: 'gravado' | 'exonerado' | 'inafecto';
     precio_incluye_igv: boolean;
-    ticket_ancho_mm: '56' | '58' | '80';
+    ticket_ancho_mm: '56' | '57' | '58' | '80';
     emite_comprobantes_sunat: boolean;
     // APISUNAT
     apisunat_token: string;
@@ -230,12 +231,7 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
             ? setting.igv_afectacion
             : 'gravado',
     precio_incluye_igv: setting.precio_incluye_igv,
-    ticket_ancho_mm:
-        setting.ticket_ancho_mm === '56' ||
-        setting.ticket_ancho_mm === '58' ||
-        setting.ticket_ancho_mm === '80'
-            ? setting.ticket_ancho_mm
-            : '58',
+    ticket_ancho_mm: normalizeTicketAncho(setting.ticket_ancho_mm),
     emite_comprobantes_sunat: setting.emite_comprobantes_sunat,
     apisunat_token: '',
     apisunat_mode: setting.apisunat_mode ?? 'sandbox',
@@ -530,6 +526,7 @@ export default function Index({
                 setActiveTab(resolveErrorTab(errs));
             },
             onSuccess: () => {
+                adoptTicketAncho(normalizeTicketAncho(data.ticket_ancho_mm));
                 setErrors({});
                 setRecentlySuccessful(true);
 
@@ -2085,7 +2082,7 @@ export default function Index({
                                         onValueChange={(v) =>
                                             setData(
                                                 'ticket_ancho_mm',
-                                                v as '56' | '58' | '80',
+                                                v as '56' | '57' | '58' | '80',
                                             )
                                         }
                                         disabled={!canUpdate}
@@ -2096,6 +2093,9 @@ export default function Index({
                                         <SelectContent>
                                             <SelectItem value="56">
                                                 {t('fields.ticket_ancho_mm_56')}
+                                            </SelectItem>
+                                            <SelectItem value="57">
+                                                {t('fields.ticket_ancho_mm_57')}
                                             </SelectItem>
                                             <SelectItem value="58">
                                                 {t('fields.ticket_ancho_mm_58')}

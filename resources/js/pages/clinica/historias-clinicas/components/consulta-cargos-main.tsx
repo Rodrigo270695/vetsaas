@@ -131,7 +131,7 @@ export type ConsultaCargosMainProps = {
     clinic_billing: {
         igv_porcentaje: number;
         precio_incluye_igv: boolean;
-        ticket_ancho_mm: '56' | '58' | '80';
+        ticket_ancho_mm: '56' | '57' | '58' | '80';
     };
     cobro: {
         venta_id: string | null;

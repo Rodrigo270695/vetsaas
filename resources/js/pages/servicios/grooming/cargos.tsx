@@ -170,7 +170,7 @@ type Props = {
         moneda: string;
         igv_porcentaje: number;
         precio_incluye_igv: boolean;
-        ticket_ancho_mm: '56' | '58' | '80';
+        ticket_ancho_mm: '56' | '57' | '58' | '80';
     };
 };
 

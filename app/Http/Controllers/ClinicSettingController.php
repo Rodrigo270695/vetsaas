@@ -12,11 +12,14 @@ use App\Support\Caja\TicketAnchoMm;
 use App\Support\Pdf\SignatureImageProcessor;
 use App\Support\PlanCapabilities;
 use App\Tenancy\TenantManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -409,5 +412,31 @@ class ClinicSettingController extends Controller
                 'email' => $setting->actualizadoPor->email,
             ] : null,
         ];
+    }
+
+    /**
+     * Guarda el ancho con el que se acaba de imprimir, para que la
+     * siguiente venta de esta clínica abra en ese rollo. No exige
+     * config-general.update: quien imprime el ticket (caja, pre-cuenta)
+     * también deja el predeterminado del tenant.
+     */
+    public function rememberTicketAncho(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ticket_ancho_mm' => ['required', 'string', Rule::in(TicketAnchoMm::ALLOWED)],
+        ]);
+
+        $ancho = TicketAnchoMm::normalize($data['ticket_ancho_mm']);
+        $setting = ClinicSetting::current();
+
+        if ((string) $setting->ticket_ancho_mm !== $ancho) {
+            $setting->ticket_ancho_mm = $ancho;
+            $setting->updated_by_id = Auth::id();
+            $setting->save();
+        }
+
+        return response()->json([
+            'ticket_ancho_mm' => $ancho,
+        ]);
     }
 }

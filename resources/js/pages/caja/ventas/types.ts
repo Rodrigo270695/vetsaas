@@ -231,7 +231,7 @@ export type VentaShowProps = {
     clinica: {
         igv_porcentaje: string;
         igv_afectacion?: 'gravado' | 'exonerado' | 'inafecto';
-        ticket_ancho_mm: '56' | '58' | '80';
+        ticket_ancho_mm: '56' | '57' | '58' | '80';
         emite_comprobantes_sunat: boolean;
         apisunat_configurado: boolean;
         apisunat_mode?: 'sandbox' | 'produccion';
