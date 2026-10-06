@@ -20,6 +20,12 @@ it('prioriza el query param ancho sobre la configuración', function (): void {
     expect(TicketAnchoMm::fromRequest($request, '80'))->toBe('56');
 });
 
+it('usa el ancho útil del cabezal y no el del rollo', function (): void {
+    expect(TicketAnchoMm::printableMm('80'))->toBe('72')
+        ->and(TicketAnchoMm::printableMm('58'))->toBe('48')
+        ->and(TicketAnchoMm::printableMm('56'))->toBe('48');
+});
+
 it('ajusta tipografía según ancho estrecho', function (): void {
     expect(TicketAnchoMm::typography('56')['fs'])->toBe(10)
         ->and(TicketAnchoMm::typography('58')['fs'])->toBe(10)

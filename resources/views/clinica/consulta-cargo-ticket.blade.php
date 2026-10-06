@@ -7,7 +7,7 @@
     @php($tf = \App\Support\Caja\TicketAnchoMm::typography($ancho_mm))
     <style>
         :root {
-            --paper: {{ $ancho_mm }}mm;
+            --paper: {{ \App\Support\Caja\TicketAnchoMm::printableMm($ancho_mm) }}mm;
             --fs: {{ $tf['fs'] }}px;
             --fs-sm: {{ $tf['fs_sm'] }}px;
             --fs-title: {{ $tf['fs_title'] }}px;
@@ -27,6 +27,7 @@
         body {
             width: var(--paper);
             max-width: var(--paper);
+            overflow: hidden;
             font-family: Arial, Helvetica, sans-serif;
             font-size: var(--fs);
             font-weight: 500;
@@ -63,6 +64,7 @@
         .row-strong { font-weight: 600; }
         table {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             font-size: var(--fs-sm);
         }
@@ -70,6 +72,7 @@
             text-align: left;
             vertical-align: top;
             padding: 2px 0;
+            overflow-wrap: anywhere;
             word-break: break-word;
         }
         th { border-bottom: 1px solid #000; }

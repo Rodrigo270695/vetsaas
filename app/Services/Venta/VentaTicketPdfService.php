@@ -144,8 +144,8 @@ final class VentaTicketPdfService
         }
         $data['tf'] = TicketAnchoMm::typography((string) $data['ancho_mm']);
 
-        $anchoMmFloat = (float) $data['ancho_mm'];
-        // Ancho del rollo en puntos (DomPDF). El contenido respeta @page margin + .pad en la vista.
+        $anchoMmFloat = (float) TicketAnchoMm::printableMm((string) $data['ancho_mm']);
+        // Ancho útil del cabezal, no el del rollo: 80 mm de papel imprimen ~72 mm.
         $widthPt = $anchoMmFloat * 72 / 25.4;
         $lineCount = count($data['lineas']);
         $heightPt = max(480.0, 140.0 + ($lineCount * 28.0) + 360.0);

@@ -44,6 +44,18 @@ final class TicketAnchoMm
     }
 
     /**
+     * Ancho útil del cabezal. El rollo de 80 mm imprime unos 72 mm (576 puntos a 203 dpi);
+     * 58/56 mm imprimen unos 48 mm. Maquetar al ancho del rollo recorta ambos bordes.
+     */
+    public static function printableMm(string $ancho): string
+    {
+        return match (self::normalize($ancho)) {
+            '56', '58' => '48',
+            default => '72',
+        };
+    }
+
+    /**
      * Tamaños tipográficos según ancho de rollo.
      *
      * @return array{fs: int, fs_sm: int, fs_title: int, fs_total: int, logo_max: int, footer: int, pad_x: string}
@@ -76,7 +88,7 @@ final class TicketAnchoMm
                 'fs_total' => 14,
                 'logo_max' => 14,
                 'footer' => 9,
-                'pad_x' => '2.5mm',
+                'pad_x' => '1.5mm',
             ],
         };
     }

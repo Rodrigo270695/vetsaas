@@ -75,7 +75,7 @@ final class CajaSesionArqueoPdfService
 
         $ancho = TicketAnchoMm::normalize($formato, (string) ($cfg?->ticket_ancho_mm ?? TicketAnchoMm::DEFAULT));
         $tf = TicketAnchoMm::typography($ancho);
-        $widthPt = ((float) $ancho) * 72 / 25.4;
+        $widthPt = ((float) TicketAnchoMm::printableMm((string) $ancho)) * 72 / 25.4;
         $metodosCount = is_array($arqueo['metodos'] ?? null) ? count($arqueo['metodos']) : 0;
         $billeterasCount = is_array($arqueo['billeteras'] ?? null) ? count($arqueo['billeteras']) : 0;
         $heightPt = max(460.0, 300.0 + ($metodosCount * 24.0) + ($billeterasCount * 52.0) + 180.0);

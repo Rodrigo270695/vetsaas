@@ -7,7 +7,7 @@
     @php($tf = \App\Support\Caja\TicketAnchoMm::typography($ancho_mm))
     <style>
         :root {
-            --paper: {{ $ancho_mm }}mm;
+            --paper: {{ \App\Support\Caja\TicketAnchoMm::printableMm($ancho_mm) }}mm;
             --fs: {{ $tf['fs'] }}px;
             --fs-sm: {{ $tf['fs_sm'] }}px;
             --fs-title: {{ $tf['fs_title'] }}px;
@@ -27,6 +27,7 @@
         body {
             width: var(--paper);
             max-width: var(--paper);
+            overflow: hidden;
             font-family: Arial, Helvetica, sans-serif;
             font-size: var(--fs);
             font-weight: 500;
@@ -86,6 +87,7 @@
         }
         .meta {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             font-size: var(--fs);
             margin: 0 0 2px;
@@ -99,13 +101,15 @@
             color: #000;
             font-size: var(--fs-sm);
             font-weight: 500;
-            width: 36%;
+            width: 38%;
             padding-right: 3px;
-            white-space: nowrap;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
         .meta .val {
             font-weight: 600;
             text-align: right;
+            overflow-wrap: anywhere;
             word-break: break-word;
         }
         .meta-section {
@@ -123,6 +127,7 @@
         }
         table.items {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             font-size: var(--fs-sm);
             margin-top: 2px;
@@ -132,6 +137,7 @@
             text-align: left;
             vertical-align: top;
             padding: 2px 0;
+            overflow-wrap: anywhere;
             word-break: break-word;
         }
         table.items th {
@@ -142,10 +148,10 @@
         table.items .num {
             text-align: right;
             white-space: nowrap;
-            width: 22%;
+            width: 30%;
         }
         table.items .col-qty {
-            width: 18%;
+            width: 16%;
         }
         table.items tfoot td {
             padding-top: 3px;
