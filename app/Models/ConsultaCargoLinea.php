@@ -29,6 +29,22 @@ class ConsultaCargoLinea extends Model
 
     public const TIPO_OTRO = 'otro';
 
+    /**
+     * Solo una línea de producto conserva el id. Servicio y otro no descuentan stock.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    public static function productoIdDeFila(array $row): ?string
+    {
+        if (($row['tipo_linea'] ?? '') !== self::TIPO_PRODUCTO) {
+            return null;
+        }
+
+        $id = $row['producto_id'] ?? null;
+
+        return is_string($id) && $id !== '' ? $id : null;
+    }
+
     protected $table = 'consulta_cargo_lineas';
 
     protected $fillable = [

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
+use App\Support\ConsultaCargo\ConsultaCargoSedeStock;
 use App\Support\ConsultaCargo\ConsultaCargoStockSync;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
 use Illuminate\Http\JsonResponse;
@@ -244,7 +245,7 @@ class HotelCargoController extends Controller
                 ConsultaCargoLinea::query()->create([
                     'consulta_cargo_id' => $cargo->id,
                     'tipo_linea' => $row['tipo_linea'],
-                    'producto_id' => $row['producto_id'] ?? null,
+                    'producto_id' => ConsultaCargoLinea::productoIdDeFila($row),
                     'concepto' => $row['concepto'],
                     'cantidad' => $row['cantidad'],
                     'precio_unitario' => $row['precio_unitario'],
@@ -305,8 +306,12 @@ class HotelCargoController extends Controller
             $cfg->igvPorcentajeEfectivo(),
         );
 
-        $sedeId = (string) ($hotelEstancia->sede_id ?? '');
-        if ($sedeId === '') {
+        $sedeId = ConsultaCargoSedeStock::resolver(
+            $hotelEstancia->sede_id,
+            $lineasIn,
+            (string) ($user?->tenant_id ?? ''),
+        );
+        if (ConsultaCargoSedeStock::bloqueaConfirmacion($sedeId, $lineasIn)) {
             return redirect()
                 ->route('servicios.hotel.cargos.show', $hotelEstancia)
                 ->with('error', __('consulta-cargos.flash.sin_sede_stock'));
@@ -329,7 +334,7 @@ class HotelCargoController extends Controller
                     ConsultaCargoLinea::query()->create([
                         'consulta_cargo_id' => $cargo->id,
                         'tipo_linea' => $row['tipo_linea'],
-                        'producto_id' => $row['producto_id'] ?? null,
+                        'producto_id' => ConsultaCargoLinea::productoIdDeFila($row),
                         'concepto' => $row['concepto'],
                         'cantidad' => $row['cantidad'],
                         'precio_unitario' => $row['precio_unitario'],

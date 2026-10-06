@@ -249,7 +249,7 @@ class VacunacionCargoController extends Controller
                 ConsultaCargoLinea::query()->create([
                     'consulta_cargo_id' => $cargo->id,
                     'tipo_linea' => $row['tipo_linea'],
-                    'producto_id' => $row['producto_id'] ?? null,
+                    'producto_id' => ConsultaCargoLinea::productoIdDeFila($row),
                     'concepto' => $row['concepto'],
                     'cantidad' => $row['cantidad'],
                     'precio_unitario' => $row['precio_unitario'],
@@ -360,7 +360,7 @@ class VacunacionCargoController extends Controller
                     ConsultaCargoLinea::query()->create([
                         'consulta_cargo_id' => $cargo->id,
                         'tipo_linea' => $row['tipo_linea'],
-                        'producto_id' => $row['producto_id'] ?? null,
+                        'producto_id' => ConsultaCargoLinea::productoIdDeFila($row),
                         'concepto' => $row['concepto'],
                         'cantidad' => $row['cantidad'],
                         'precio_unitario' => $row['precio_unitario'],

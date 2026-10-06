@@ -7,7 +7,7 @@ return [
         'solo_borrador' => 'Solo se puede editar mientras el estado es borrador.',
         'ya_cobrado_no_editable' => 'Esta pre-cuenta ya fue cobrada en caja y no se puede editar.',
         'sin_lineas' => 'Añade al menos una línea antes de confirmar.',
-        'sin_sede_stock' => 'No hay sede activa para descontar inventario. Indica la sede en la vacunación o abre caja.',
+        'sin_sede_stock' => 'No hay sede para descontar el producto. Asigna la sede al registro o abre caja en esa sede.',
         'stock_insuficiente' => 'Stock insuficiente para confirmar los productos de la consulta.',
         'eliminado' => 'Pre-cuenta eliminada. Si había stock descontado, fue revertido.',
         'sin_precuenta_eliminar' => 'No hay pre-cuenta pendiente para eliminar.',

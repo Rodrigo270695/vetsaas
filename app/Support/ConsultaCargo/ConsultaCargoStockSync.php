@@ -17,17 +17,19 @@ final class ConsultaCargoStockSync
 
     public static function debeDescontar(ConsultaCargoLinea $linea, ?string $sedeId): bool
     {
+        if ($linea->tipo_linea !== ConsultaCargoLinea::TIPO_PRODUCTO) {
+            return false;
+        }
+
+        if ($linea->producto_id === null || $linea->producto_id === '') {
+            return false;
+        }
+
         if ($sedeId === null || $sedeId === '') {
             return false;
         }
 
-        if ($linea->tipo_linea !== ConsultaCargoLinea::TIPO_PRODUCTO || $linea->producto_id === null) {
-            return false;
-        }
-
-        $cant = (float) (string) $linea->cantidad;
-
-        return $cant > 0;
+        return (float) (string) $linea->cantidad > 0;
     }
 
     /**
@@ -38,6 +40,10 @@ final class ConsultaCargoStockSync
         string $sedeId,
         ?string $userId,
     ): array {
+        if (! self::debeDescontar($linea, $sedeId)) {
+            return [];
+        }
+
         $linea->loadMissing('cargo:id,consulta_id');
 
         $cantidad = number_format((float) (string) $linea->cantidad, 3, '.', '');
