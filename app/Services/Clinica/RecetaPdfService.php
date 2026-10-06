@@ -21,6 +21,9 @@ final class RecetaPdfService
      */
     public function render(Receta $receta): array
     {
+        // WhatsApp precarga al paciente solo con el nombre. Sin esto, loadMissing
+        // no vuelve a leer raza, sexo, edad ni el resto y el PDF sale a medias.
+        $receta->unsetRelation('paciente');
         $receta->loadMissing([
             'paciente.propietario:id,nombres,apellidos,razon_social,numero_documento,direccion',
             'lineas' => fn ($q) => $q->orderBy('orden'),

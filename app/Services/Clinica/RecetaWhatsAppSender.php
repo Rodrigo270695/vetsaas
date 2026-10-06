@@ -43,7 +43,7 @@ final class RecetaWhatsAppSender
             throw new RuntimeException('La sesión WhatsApp de la clínica no está conectada.');
         }
 
-        $receta->loadMissing(['paciente:id,nombre', 'lineas']);
+        $receta->loadMissing(['paciente', 'lineas']);
 
         $clinicName = $this->messages->clinicDisplayName($clinic);
         $petName = $receta->paciente?->nombre ?? 'tu mascota';
