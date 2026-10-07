@@ -14,6 +14,10 @@ use Tests\Support\RefreshDatabaseWithPgsqlSafety;
 uses(RefreshDatabaseWithPgsqlSafety::class, CreatesTestTenant::class);
 
 beforeEach(function (): void {
+    if (! AgendaOwnerRsvpService::ENABLED) {
+        $this->markTestSkipped('Confirmación por WhatsApp pausada.');
+    }
+
     if (DB::getDriverName() !== 'pgsql') {
         $this->markTestSkipped('RSVP de agenda usa schemas tenant (PostgreSQL).');
     }

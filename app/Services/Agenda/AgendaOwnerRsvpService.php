@@ -27,6 +27,12 @@ final class AgendaOwnerRsvpService
 {
     public const VIA_PROPIETARIO = 'propietario';
 
+    /**
+     * Pausado: un SI/NO por WhatsApp no cambia citas, grooming ni hotel
+     * y no envía «Confirmamos…» / «Cancelamos…». El código sigue aquí.
+     */
+    public const ENABLED = false;
+
     public function __construct(
         private readonly ClinicBotClientResolver $clients,
     ) {}
@@ -36,6 +42,10 @@ final class AgendaOwnerRsvpService
      */
     public function tryHandle(string $phone, string $body, ?string $waChatId = null): ?array
     {
+        if (! self::ENABLED) {
+            return null;
+        }
+
         $intent = AgendaRsvpIntent::parse($body);
         if ($intent === null) {
             return null;
