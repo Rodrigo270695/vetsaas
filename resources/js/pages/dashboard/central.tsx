@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { Activity, Building2, Server } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
+import { DashboardAccesosRapidos } from '@/components/dashboard/dashboard-accesos-rapidos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
@@ -19,6 +20,8 @@ export default function DashboardCentral() {
                     title={t('central.title')}
                     description={t('central.description')}
                 />
+
+                <DashboardAccesosRapidos />
 
                 <Card className="max-w-2xl">
                     <CardHeader>

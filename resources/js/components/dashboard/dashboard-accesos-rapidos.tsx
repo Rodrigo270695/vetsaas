@@ -21,6 +21,17 @@ const DEFAULT_HREFS = [
     '/inventario/alertas',
 ];
 
+const CENTRAL_DEFAULT_HREFS = [
+    '/plataforma/operaciones',
+    '/plataforma/tenants',
+    '/plataforma/planes',
+    '/plataforma/suscripciones',
+    '/plataforma/cobros',
+    '/plataforma/reportes',
+    '/plataforma/chat-soporte',
+    '/plataforma/salesbot-conversations',
+];
+
 const TONES = [
     'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300',
     'bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-300',
@@ -106,7 +117,10 @@ export function DashboardAccesosRapidos() {
         setSaved(readSaved(userId));
     }, [userId]);
 
-    const defaults = DEFAULT_HREFS.filter((href) => catalog.some((item) => item.href === href));
+    const preferredDefaults = catalog.some((item) => item.href.startsWith('/plataforma/'))
+        ? CENTRAL_DEFAULT_HREFS
+        : DEFAULT_HREFS;
+    const defaults = preferredDefaults.filter((href) => catalog.some((item) => item.href === href));
     const selectedHrefs = saved ?? (defaults.length > 0 ? defaults : catalog.slice(0, 8).map((item) => item.href));
     const shown = catalog.filter((item) => selectedHrefs.includes(item.href));
 
