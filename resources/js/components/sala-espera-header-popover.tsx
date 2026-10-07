@@ -8,6 +8,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePermission } from '@/hooks/use-permission';
 import {
     SALA_ESPERA_CHANGED_EVENT,
@@ -177,21 +178,25 @@ function AlertasStockHeaderIcons() {
                 const Icon = item.icon;
 
                 return (
-                    <Button
-                        key={item.key}
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className={cn('relative size-8 shrink-0 cursor-pointer sm:size-9', item.tone)}
-                        asChild
-                    >
-                        <Link href={item.href} aria-label={label} title={label}>
-                            <Icon className="size-4" strokeWidth={2.25} />
-                            <span className={cn('absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white', item.badge)}>
-                                {badge}
-                            </span>
-                        </Link>
-                    </Button>
+                    <Tooltip key={item.key}>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className={cn('relative size-8 shrink-0 cursor-pointer sm:size-9', item.tone)}
+                                asChild
+                            >
+                                <Link href={item.href} aria-label={label}>
+                                    <Icon className="size-4" strokeWidth={2.25} />
+                                    <span className={cn('absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white', item.badge)}>
+                                        {badge}
+                                    </span>
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">{label}</TooltipContent>
+                    </Tooltip>
                 );
             })}
         </>
@@ -327,34 +332,43 @@ export function SalaEsperaHeaderIcons() {
     return (
         <>
             {canVista ? (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="relative size-8 shrink-0 cursor-pointer text-amber-700 hover:bg-amber-50 hover:text-amber-800 sm:size-9 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                    asChild
-                >
-                    <Link
-                        href="/clinica/sala-espera"
-                        aria-label={t('sala_espera.ver_sala')}
-                        title={t('sala_espera.ver_sala')}
-                    >
-                        <Timer className="size-4" strokeWidth={2.25} />
-                    </Link>
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="relative size-8 shrink-0 cursor-pointer text-amber-700 hover:bg-amber-50 hover:text-amber-800 sm:size-9 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                            asChild
+                        >
+                            <Link
+                                href="/clinica/sala-espera"
+                                aria-label={t('sala_espera.ver_sala')}
+                            >
+                                <Timer className="size-4" strokeWidth={2.25} />
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">{t('sala_espera.ver_sala')}</TooltipContent>
+                </Tooltip>
             ) : null}
             {canCitas ? (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="relative size-8 shrink-0 cursor-pointer text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 sm:size-9 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                    asChild
-                >
-                    <Link href="/clinica/citas" aria-label={t('sala_espera.ir_citas')} title={t('sala_espera.ir_citas')}>
-                        <CalendarDays className="size-4" strokeWidth={2.25} />
-                    </Link>
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="relative size-8 shrink-0 cursor-pointer text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 sm:size-9 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                            asChild
+                        >
+                            <Link href="/clinica/citas" aria-label={t('sala_espera.ir_citas')}>
+                                <CalendarDays className="size-4" strokeWidth={2.25} />
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">{t('sala_espera.ir_citas')}</TooltipContent>
+                </Tooltip>
             ) : null}
             <AlertasStockHeaderIcons />
             {canConsulta && visibles.consulta ? (
@@ -468,7 +482,9 @@ function SalaEsperaTipoPopover({ tipo }: { tipo: 'consulta' | 'grooming' }) {
                 }
             }}
         >
-            <PopoverTrigger asChild>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
                 <Button
                     type="button"
                     variant="ghost"
@@ -496,7 +512,14 @@ function SalaEsperaTipoPopover({ tipo }: { tipo: 'consulta' | 'grooming' }) {
                         </span>
                     ) : null}
                 </Button>
-            </PopoverTrigger>
+                    </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                    {isGrooming
+                        ? t('sala_espera.title_grooming')
+                        : t('sala_espera.title_consulta')}
+                </TooltipContent>
+            </Tooltip>
             <PopoverContent
                 align="end"
                 className="flex w-[22rem] max-h-[min(28rem,70vh)] flex-col overflow-hidden p-0"
