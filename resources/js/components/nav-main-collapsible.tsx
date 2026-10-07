@@ -252,7 +252,7 @@ export function NavMainCollapsible({
                             isActive={isCurrentUrl(item.href)}
                             data-bounce-active={isCurrentUrl(item.href) ? 'true' : undefined}
                             tooltip={{ children: item.title }}
-                            className="font-medium transition-all data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                            className="font-medium transition-all data-[active=true]:bg-primary/10 data-[active=true]:text-primary group-data-[collapsible=icon]:data-[active=true]:bg-transparent"
                         >
                             <Link
                                 href={item.href}
@@ -412,7 +412,10 @@ function NavCollapsedGroup({
                 <DropdownMenuTrigger asChild>
                     <SidebarMenuButton
                         data-bounce-active={hasActiveChild ? 'true' : undefined}
-                        className="cursor-pointer font-medium transition-all hover:bg-primary/8 data-[state=open]:bg-primary/10 data-[state=open]:text-primary"
+                        className={cn(
+                            'cursor-pointer font-medium transition-all hover:bg-primary/8 data-[state=open]:bg-primary/10 data-[state=open]:text-primary',
+                            hasActiveChild && 'text-primary',
+                        )}
                     >
                         {group.icon && <group.icon />}
                         <span>{group.title}</span>
