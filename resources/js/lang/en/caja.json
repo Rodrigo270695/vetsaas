@@ -125,6 +125,7 @@
             "title": "Cash reconciliation & close",
             "description": "Review sales, expenses and payment methods. Match counted cash and each wallet against expected amounts.",
             "submit": "Confirm closing",
+            "submit_error": "The register could not be closed. Check the amounts and try again.",
             "cancel": "Cancel",
             "loading_arqueo": "Calculating reconciliation…",
             "arqueo_error": "Could not load reconciliation. You can still close with counted cash.",

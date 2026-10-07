@@ -125,6 +125,7 @@
             "title": "Arqueo y cierre de caja",
             "description": "Revisa ventas, egresos y métodos. Cuadra el efectivo y el saldo de cada billetera contra lo esperado.",
             "submit": "Confirmar cierre",
+            "submit_error": "No se pudo cerrar la caja. Revisa los montos e inténtalo de nuevo.",
             "cancel": "Cancelar",
             "loading_arqueo": "Calculando arqueo…",
             "arqueo_error": "No se pudo cargar el arqueo. Puedes cerrar igual con el efectivo contado.",

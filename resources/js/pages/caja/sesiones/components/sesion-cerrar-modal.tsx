@@ -7,6 +7,7 @@ import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { toastManager } from '@/lib/toast';
 import caja from '@/routes/caja';
 import { arqueo as arqueoRoute } from '@/routes/caja/sesiones';
 import type { QueryParams } from '@/wayfinder';
@@ -136,6 +137,15 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
                 clearErrors();
                 setArqueo(null);
             },
+            onError: (formErrors) => {
+                const message = Object.values(formErrors).find(
+                    (value): value is string => typeof value === 'string' && value.trim() !== '',
+                );
+
+                toastManager.error({
+                    title: message ?? t('sesiones.dialog_cerrar.submit_error'),
+                });
+            },
         });
     };
 
@@ -164,6 +174,17 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
             }
         >
             <div className="flex w-full min-w-0 flex-col gap-5">
+                {Object.values(errors).some((value) => typeof value === 'string' && value.trim() !== '') ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                        <span>
+                            {Object.values(errors).find(
+                                (value): value is string => typeof value === 'string' && value.trim() !== '',
+                            )}
+                        </span>
+                    </div>
+                ) : null}
+
                 {loadingArqueo ? (
                     <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
                         <Loader2 className="size-4 animate-spin" />

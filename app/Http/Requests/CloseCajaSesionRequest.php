@@ -16,7 +16,10 @@ class CloseCajaSesionRequest extends FormRequest
     {
         return [
             'saldo_cierre_efectivo' => ['required', 'numeric', 'min:0'],
-            ...CajaBilleteras::validationRules('saldos_cierre', true),
+            // El esperado de Yape/Plin/transferencia puede quedar bajo cero
+            // si los egresos de ese canal superan lo cobrado. El modal
+            // precarga ese número; min:0 rechazaba el cierre en silencio.
+            ...CajaBilleteras::validationRules('saldos_cierre', true, allowNegative: true),
             'notas' => ['nullable', 'string', 'max:2000'],
         ];
     }

@@ -30,18 +30,22 @@ final class CajaBilleteras
     /**
      * @return array<string, array<int, mixed>>
      */
-    public static function validationRules(string $prefix, bool $required): array
+    public static function validationRules(string $prefix, bool $required, bool $allowNegative = false): array
     {
         $rules = [
             $prefix => [$required ? 'required' : 'nullable', 'array'],
         ];
 
         foreach (self::CODIGOS as $codigo) {
-            $rules[$prefix.'.'.$codigo] = [
+            $amount = [
                 $required ? 'required' : 'nullable',
                 'numeric',
-                'min:0',
             ];
+            if (! $allowNegative) {
+                $amount[] = 'min:0';
+            }
+
+            $rules[$prefix.'.'.$codigo] = $amount;
         }
 
         return $rules;
