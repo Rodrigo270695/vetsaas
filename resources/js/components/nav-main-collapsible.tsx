@@ -9,6 +9,13 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
@@ -277,6 +284,22 @@ export function NavMainCollapsible({
                         0,
                     );
 
+                    if (iconCollapsed) {
+                        return (
+                            <NavCollapsedGroup
+                                key={group.title}
+                                group={group}
+                                hasActiveChild={hasActiveChild}
+                                siblingHrefs={siblingHrefs}
+                                isNavItemActive={isNavItemActive}
+                                groupBadge={groupBadge}
+                                isBotIaNovedadPromo={isBotIaNovedadPromo}
+                                novedadBadgeLabel={t('items.bot_ia_novedad_badge')}
+                                onNavigate={closeMobileSidebar}
+                            />
+                        );
+                    }
+
                     return (
                     <Collapsible
                         key={group.title}
@@ -346,6 +369,107 @@ export function NavMainCollapsible({
                 })}
             </SidebarMenu>
         </SidebarGroup>
+    );
+}
+
+type NavCollapsedGroupProps = {
+    group: NavGroup;
+    hasActiveChild: boolean;
+    groupBadge: number;
+    siblingHrefs: NavItem['href'][];
+    isNavItemActive: (href: NavItem['href'], siblingHrefs: NavItem['href'][]) => boolean;
+    isBotIaNovedadPromo: (item: NavItem) => boolean;
+    novedadBadgeLabel: string;
+    onNavigate: () => void;
+};
+
+/**
+ * Grupo del sidebar colapsado: el clic abre un panel a la derecha
+ * con los ítems, al estilo del menú de usuario.
+ */
+function NavCollapsedGroup({
+    group,
+    hasActiveChild,
+    groupBadge,
+    siblingHrefs,
+    isNavItemActive,
+    isBotIaNovedadPromo,
+    novedadBadgeLabel,
+    onNavigate,
+}: NavCollapsedGroupProps) {
+    return (
+        <SidebarMenuItem className="relative">
+            {groupBadge > 0 ? (
+                <span
+                    aria-label={`${groupBadge} sin leer`}
+                    className="pointer-events-none absolute top-0.5 right-0.5 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-0.5 text-[0.6rem] font-bold text-white shadow-sm"
+                >
+                    {groupBadge > 99 ? '99+' : groupBadge}
+                </span>
+            ) : null}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                        data-bounce-active={hasActiveChild ? 'true' : undefined}
+                        className="cursor-pointer font-medium transition-all hover:bg-primary/8 data-[state=open]:bg-primary/10 data-[state=open]:text-primary"
+                    >
+                        {group.icon && <group.icon />}
+                        <span>{group.title}</span>
+                    </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    className="max-h-[min(24rem,var(--radix-dropdown-menu-content-available-height))] w-64 overflow-y-auto rounded-lg"
+                    side="right"
+                    align="start"
+                    sideOffset={8}
+                >
+                    <DropdownMenuLabel className="px-2 py-1.5 text-sm font-semibold text-foreground">
+                        {group.title}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {group.items.map((item) => {
+                        const active = isNavItemActive(item.href, siblingHrefs);
+                        const novedad = isBotIaNovedadPromo(item) && !active;
+
+                        return (
+                            <DropdownMenuItem
+                                key={item.title}
+                                asChild
+                                className={cn(
+                                    'cursor-pointer',
+                                    novedad && 'text-foreground',
+                                    active && 'bg-primary/10 text-primary focus:bg-primary/10 focus:text-primary',
+                                )}
+                            >
+                                <Link href={item.href} onClick={onNavigate}>
+                                    {item.icon ? (
+                                        <item.icon
+                                            className={cn(
+                                                novedad && 'text-violet-600',
+                                                active && 'text-primary',
+                                            )}
+                                        />
+                                    ) : null}
+                                    <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                                    {typeof item.badgeCount === 'number' && item.badgeCount > 0 ? (
+                                        <Badge className="h-5 min-w-5 shrink-0 justify-center rounded-full bg-emerald-600 px-1.5 text-[0.65rem] font-semibold text-white hover:bg-emerald-600">
+                                            {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                                        </Badge>
+                                    ) : novedad ? (
+                                        <Badge
+                                            variant="outline"
+                                            className="h-5 shrink-0 border-violet-500/30 bg-violet-500/15 px-1.5 text-[0.65rem] font-semibold text-violet-700 dark:text-violet-300"
+                                        >
+                                            {novedadBadgeLabel}
+                                        </Badge>
+                                    ) : null}
+                                </Link>
+                            </DropdownMenuItem>
+                        );
+                    })}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </SidebarMenuItem>
     );
 }
 
