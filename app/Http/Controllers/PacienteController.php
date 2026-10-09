@@ -20,6 +20,7 @@ use App\Models\Antipulga;
 use App\Models\ControlClinico;
 use App\Models\Defuncion;
 use App\Models\Triaje;
+use App\Support\Clinica\HistorialTimelineResumen;
 use App\Support\Clinica\TriajeCatalogo;
 use App\Models\Desparasitacion;
 use App\Models\ConsultaCargo;
@@ -1521,6 +1522,7 @@ class PacienteController extends Controller
                 'estado' => 'registrada',
                 'href' => route('clinica.pacientes.controles.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
+                'resumen' => HistorialTimelineResumen::control($row),
                 'veterinario' => $row->veterinario?->name,
                 'acciones' => $this->timelineAcciones(
                     $paciente,
@@ -1575,6 +1577,7 @@ class PacienteController extends Controller
                 'estado' => 'registrada',
                 'href' => route('clinica.pacientes.desparasitaciones.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
+                'resumen' => HistorialTimelineResumen::antiparasitario($row),
                 'veterinario' => $row->veterinario?->name,
                 'acciones' => $this->timelineAcciones(
                     $paciente,
@@ -1634,6 +1637,7 @@ class PacienteController extends Controller
                 'estado' => 'registrada',
                 'href' => route('clinica.pacientes.antipulgas.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
+                'resumen' => HistorialTimelineResumen::antiparasitario($row),
                 'veterinario' => $row->veterinario?->name,
                 'acciones' => $this->timelineAcciones(
                     $paciente,
@@ -1702,6 +1706,7 @@ class PacienteController extends Controller
                 'estado' => $firmada ? 'firmada' : ($pendiente ? 'pendiente' : 'registrada'),
                 'href' => route('clinica.pacientes.defunciones.edit', [$paciente, $row]),
                 'detalle_corto' => $corto !== '' ? $corto : null,
+                'resumen' => HistorialTimelineResumen::defuncion($row),
                 'veterinario' => $row->veterinario?->name,
                 'acciones' => $this->timelineAcciones(
                     $paciente,
@@ -1755,6 +1760,11 @@ class PacienteController extends Controller
                 'estado' => 'registrada',
                 'href' => route('clinica.pacientes.triajes.edit', [$paciente, $row]),
                 'detalle_corto' => TriajeCatalogo::resumen($hallazgos),
+                'resumen' => HistorialTimelineResumen::triaje(
+                    $hallazgos,
+                    is_array($row->recomendaciones) ? $row->recomendaciones : [],
+                    $row,
+                ),
                 'veterinario' => $row->veterinario?->name,
                 'acciones' => $this->timelineAcciones(
                     $paciente,
@@ -1812,6 +1822,10 @@ class PacienteController extends Controller
                     fn ($q) => $q->whereNull('origen_id'),
                 )
                 ->where('estado', '!=', PedidoLaboratorio::ESTADO_CANCELADO)
+                ->with([
+                    'lineas' => fn ($q) => $q->orderBy('orden'),
+                    'veterinario:id,name',
+                ])
                 ->withCount('lineas')
                 ->orderByDesc('solicitado_at')
                 ->limit(100)
@@ -1821,7 +1835,7 @@ class PacienteController extends Controller
                 if ($at === null) {
                     continue;
                 }
-                $timeline[] = $this->timelineEventPayload(
+                $evento = $this->timelineEventPayload(
                     $paciente,
                     'laboratorio',
                     (string) $p->id,
@@ -1833,6 +1847,9 @@ class PacienteController extends Controller
                     $this->pedidoLaboratorioHistorialUrl($user, $p, $tz),
                     $p->lineas_count > 0 ? ((int) $p->lineas_count).' examen(es)' : null,
                 );
+                $evento['resumen'] = HistorialTimelineResumen::laboratorio($p);
+                $evento['veterinario'] = $p->veterinario?->name;
+                $timeline[] = $evento;
             }
         }
 
@@ -1841,11 +1858,12 @@ class PacienteController extends Controller
                 ->where('paciente_id', $paciente->id)
                 ->whereNull('consulta_id')
                 ->where('estado', '!=', Cirugia::ESTADO_CANCELADA)
+                ->with('veterinario:id,name')
                 ->orderByDesc('programada_at')
                 ->limit(100)
                 ->get();
             foreach ($cirugias as $c) {
-                $timeline[] = $this->timelineEventPayload(
+                $evento = $this->timelineEventPayload(
                     $paciente,
                     'cirugia',
                     (string) $c->id,
@@ -1855,6 +1873,9 @@ class PacienteController extends Controller
                     $this->cirugiaHistorialUrl($user, $c, $tz),
                     $this->timelineTextPreview($c->observaciones, 160),
                 );
+                $evento['resumen'] = HistorialTimelineResumen::cirugia($c);
+                $evento['veterinario'] = $c->veterinario?->name;
+                $timeline[] = $evento;
             }
         }
 
@@ -1863,11 +1884,12 @@ class PacienteController extends Controller
                 ->where('paciente_id', $paciente->id)
                 ->whereNull('consulta_id')
                 ->where('estado', '!=', Internamiento::ESTADO_CANCELADO)
+                ->with('veterinario:id,name')
                 ->orderByDesc('ingreso_at')
                 ->limit(100)
                 ->get();
             foreach ($internamientos as $i) {
-                $timeline[] = $this->timelineEventPayload(
+                $evento = $this->timelineEventPayload(
                     $paciente,
                     'internamiento',
                     (string) $i->id,
@@ -1877,6 +1899,9 @@ class PacienteController extends Controller
                     $this->internamientoHistorialUrl($user, $i, $tz),
                     $this->timelineTextPreview($i->ubicacion, 120),
                 );
+                $evento['resumen'] = HistorialTimelineResumen::internamiento($i, $tz);
+                $evento['veterinario'] = $i->veterinario?->name;
+                $timeline[] = $evento;
             }
         }
 
@@ -1888,7 +1913,7 @@ class PacienteController extends Controller
             $turnos = GroomingTurno::query()
                 ->where('paciente_id', $paciente->id)
                 ->whereNotIn('estado', [GroomingTurno::ESTADO_CANCELADA, GroomingTurno::ESTADO_NO_ASISTIO])
-                ->with('groomingServicio')
+                ->with(['groomingServicio', 'responsable:id,name'])
                 ->orderByDesc('inicio_at')
                 ->limit(100)
                 ->get();
@@ -1897,7 +1922,7 @@ class PacienteController extends Controller
                     continue;
                 }
                 $titulo = trim((string) $t->servicio_label);
-                $timeline[] = $this->timelineEventPayload(
+                $evento = $this->timelineEventPayload(
                     $paciente,
                     'grooming',
                     (string) $t->id,
@@ -1907,6 +1932,9 @@ class PacienteController extends Controller
                     route('servicios.grooming', ['editar_grooming_turno' => $t->id]),
                     $this->timelineTextPreview($t->notas, 160),
                 );
+                $evento['resumen'] = HistorialTimelineResumen::grooming($t);
+                $evento['veterinario'] = $t->responsable?->name;
+                $timeline[] = $evento;
             }
         }
 
@@ -1918,6 +1946,7 @@ class PacienteController extends Controller
             $estancias = HotelEstancia::query()
                 ->where('paciente_id', $paciente->id)
                 ->whereNotIn('estado', [HotelEstancia::ESTADO_CANCELADA, HotelEstancia::ESTADO_NO_PRESENTO])
+                ->with('responsable:id,name')
                 ->orderByDesc('ingreso_at')
                 ->limit(100)
                 ->get();
@@ -1926,7 +1955,7 @@ class PacienteController extends Controller
                     continue;
                 }
                 $titulo = trim((string) ($e->tipo_detalle ?: $e->tipo_estancia));
-                $timeline[] = $this->timelineEventPayload(
+                $evento = $this->timelineEventPayload(
                     $paciente,
                     'hotel',
                     (string) $e->id,
@@ -1936,6 +1965,9 @@ class PacienteController extends Controller
                     route('servicios.hotel', ['editar_hotel_estancia' => $e->id]),
                     $this->timelineTextPreview($e->notas, 160),
                 );
+                $evento['resumen'] = HistorialTimelineResumen::hotel($e, $tz);
+                $evento['veterinario'] = $e->responsable?->name;
+                $timeline[] = $evento;
             }
         }
 
@@ -1946,6 +1978,7 @@ class PacienteController extends Controller
         ) {
             $citas = Cita::query()
                 ->where('paciente_id', $paciente->id)
+                ->with('veterinario:id,name')
                 ->orderByDesc('inicio_at')
                 ->limit(100)
                 ->get();
@@ -1954,7 +1987,7 @@ class PacienteController extends Controller
                     continue;
                 }
                 $titulo = trim((string) ($cita->motivo ?? ''));
-                $timeline[] = $this->timelineEventPayload(
+                $evento = $this->timelineEventPayload(
                     $paciente,
                     'cita',
                     (string) $cita->id,
@@ -1964,6 +1997,9 @@ class PacienteController extends Controller
                     route('clinica.citas.index', ['editar_cita' => $cita->id]),
                     $this->timelineTextPreview($cita->notas, 160),
                 );
+                $evento['resumen'] = HistorialTimelineResumen::cita($cita);
+                $evento['veterinario'] = $cita->veterinario?->name;
+                $timeline[] = $evento;
             }
         }
     }

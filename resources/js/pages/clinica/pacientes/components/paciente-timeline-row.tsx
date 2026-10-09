@@ -53,6 +53,7 @@ import type {
     TimelineConsultaVinculos,
     TimelineEventItem,
     TimelineItem,
+    TimelineResumenBloque,
     TimelineLabLinea,
     TimelinePlanLinea,
     TimelinePlanMedicacion,
@@ -223,6 +224,48 @@ function CobroPill({
             </DropdownMenuContent>
         </DropdownMenu>
     );
+}
+
+const ESCALA_ANAMNESIS = new Set(['disminuido', 'normal', 'aumentado']);
+
+function textoResumenBloque(
+    bloque: TimelineResumenBloque,
+    t: (k: string, o?: Record<string, string | number>) => string,
+): { label: string; text: string } | null {
+    if (bloque.key === 'hallazgo' && bloque.seccion && bloque.opciones && bloque.opciones.length > 0) {
+        const text = bloque.opciones
+            .map((opcion) => t(`triaje.opciones.${bloque.seccion}.${opcion}`, { defaultValue: opcion }))
+            .join(', ');
+
+        return {
+            label: t(`triaje.secciones.${bloque.seccion}`, { defaultValue: bloque.seccion }),
+            text,
+        };
+    }
+
+    if (bloque.key === 'recomendaciones' && bloque.opciones && bloque.opciones.length > 0) {
+        return {
+            label: t('historial.bloque.recomendaciones'),
+            text: bloque.opciones
+                .map((opcion) => t(`triaje.recomendacion.${opcion}`, { defaultValue: opcion }))
+                .join('\n'),
+        };
+    }
+
+    const raw = (bloque.text ?? '').trim();
+    if (raw === '') {
+        return null;
+    }
+
+    const text =
+        (bloque.key === 'apetito' || bloque.key === 'ingesta') && ESCALA_ANAMNESIS.has(raw)
+            ? t(`desparasitacion.${raw}`, { defaultValue: raw })
+            : raw;
+
+    return {
+        label: t(`historial.bloque.${bloque.key}`, { defaultValue: bloque.key }),
+        text,
+    };
 }
 
 function SoapBlock({ label, text }: { label: string; text: string | null }) {
@@ -631,12 +674,16 @@ export function PacienteTimelineRow({
         return t('historial.cat_vacuna');
     };
 
+    const resumenEvento =
+        item.kind !== 'consulta' && item.kind !== 'aplicacion' ? (item.resumen ?? null) : null;
+    const constantesEvento = resumenEvento?.constantes ?? null;
+
     const hayResumen =
         item.kind === 'consulta'
             ? consultaDetalleTieneContenido(item.detalle)
             : item.kind === 'aplicacion'
               ? aplicacionDetalleTieneContenido(item.detalle)
-              : Boolean(item.detalle_corto);
+              : Boolean(resumenEvento && resumenEvento.bloques.length > 0);
 
     const vinculosCount =
         item.kind === 'consulta'
@@ -952,6 +999,45 @@ export function PacienteTimelineRow({
                                             icon={Wind}
                                             label={t('historial.det_fr')}
                                             value={`${item.detalle.fr_rpm}`}
+                                            tone="teal"
+                                        />
+                                    ) : null}
+                                </div>
+                            ) : constantesEvento &&
+                              (constantesEvento.peso_kg ||
+                                  constantesEvento.temperatura_c ||
+                                  constantesEvento.fc_lpm != null ||
+                                  constantesEvento.fr_rpm != null) ? (
+                                <div className="flex flex-wrap gap-1 pt-0.5">
+                                    {constantesEvento.peso_kg ? (
+                                        <VitalChip
+                                            icon={Activity}
+                                            label={t('historial.det_peso')}
+                                            value={`${constantesEvento.peso_kg} kg`}
+                                            tone="sky"
+                                        />
+                                    ) : null}
+                                    {constantesEvento.temperatura_c ? (
+                                        <VitalChip
+                                            icon={Thermometer}
+                                            label={t('historial.det_temp')}
+                                            value={`${constantesEvento.temperatura_c} °C`}
+                                            tone="rose"
+                                        />
+                                    ) : null}
+                                    {constantesEvento.fc_lpm != null ? (
+                                        <VitalChip
+                                            icon={Heart}
+                                            label={t('historial.det_fc')}
+                                            value={`${constantesEvento.fc_lpm}`}
+                                            tone="violet"
+                                        />
+                                    ) : null}
+                                    {constantesEvento.fr_rpm != null ? (
+                                        <VitalChip
+                                            icon={Wind}
+                                            label={t('historial.det_fr')}
+                                            value={`${constantesEvento.fr_rpm}`}
                                             tone="teal"
                                         />
                                     ) : null}
@@ -1308,6 +1394,44 @@ export function PacienteTimelineRow({
                                             </p>
                                         </div>
                                     ) : null}
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    ) : null}
+
+                    {item.kind !== 'consulta' && item.kind !== 'aplicacion' && hayResumen && resumenEvento ? (
+                        <Collapsible open={resumenAbierto} onOpenChange={setResumenAbierto} className="mt-2">
+                            <CollapsibleTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 gap-1 px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    <ChevronDown
+                                        className={cn('size-3.5 transition-transform', resumenAbierto && 'rotate-180')}
+                                    />
+                                    {resumenAbierto ? t('historial.ocultar_resumen') : t('historial.ver_resumen')}
+                                </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div className="mt-2 grid gap-2 rounded-lg border border-border/60 bg-muted/25 p-2.5 sm:grid-cols-2">
+                                    {resumenEvento.bloques.map((bloque, bloqueIndex) => {
+                                        const pintado = textoResumenBloque(bloque, t);
+
+                                        return pintado ? (
+                                            <div
+                                                key={`${bloque.key}-${bloque.seccion ?? bloqueIndex}`}
+                                                className={
+                                                    pintado.text.length > 90 || pintado.text.includes('\n')
+                                                        ? 'sm:col-span-2'
+                                                        : undefined
+                                                }
+                                            >
+                                                <SoapBlock label={pintado.label} text={pintado.text} />
+                                            </div>
+                                        ) : null;
+                                    })}
                                 </div>
                             </CollapsibleContent>
                         </Collapsible>

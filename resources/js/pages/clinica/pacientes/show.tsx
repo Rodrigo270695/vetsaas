@@ -203,6 +203,25 @@ export type TimelineAcciones = {
     autorizacion_url: string | null;
 };
 
+export type TimelineResumenBloque = {
+    key: string;
+    text?: string | null;
+    seccion?: string;
+    opciones?: string[];
+};
+
+export type TimelineResumenConstantes = {
+    peso_kg?: string | null;
+    temperatura_c?: string | null;
+    fc_lpm?: number | null;
+    fr_rpm?: number | null;
+};
+
+export type TimelineResumen = {
+    bloques: TimelineResumenBloque[];
+    constantes?: TimelineResumenConstantes | null;
+};
+
 export type TimelineEventItem = {
     kind: TimelineEventKind;
     id: string;
@@ -212,6 +231,7 @@ export type TimelineEventItem = {
     href: string;
     detalle_corto?: string | null;
     detalle_url?: string | null;
+    resumen?: TimelineResumen | null;
     archivos?: TimelineLabLinea[];
     veterinario?: string | null;
     acciones?: TimelineAcciones | null;
