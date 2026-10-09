@@ -7,6 +7,7 @@ namespace App\Support\OpenWa;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
+use App\Services\OpenWa\OpenWaRateLimitedException;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 
 final class TenantWhatsAppPresenter
@@ -37,10 +38,18 @@ final class TenantWhatsAppPresenter
 
         if (
             $session instanceof TenantWhatsAppSession
+            && ! $this->client->isRateLimited()
             && ! ($session->isReady() && $session->isSyncedRecently(15))
             && ! $session->isSyncedRecently(3)
         ) {
-            $session = $this->sync->pullRemoteStatus($session);
+            try {
+                $session = $this->sync->pullRemoteStatus($session);
+            } catch (OpenWaRateLimitedException $e) {
+                $session->forceFill([
+                    'last_error' => $e->getMessage(),
+                    'last_synced_at' => now(),
+                ])->save();
+            }
         }
 
         return [
