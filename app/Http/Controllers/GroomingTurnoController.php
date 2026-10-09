@@ -96,6 +96,10 @@ class GroomingTurnoController extends Controller
                     'responsable:id,name',
                     'sede:id,nombre,codigo',
                     'fotos',
+                    'cargo',
+                    'adelantoVenta:id,metodo_pago,estado,fel_estado,caja_sesion_id',
+                    'adelantoVenta.cajaSesion:id,estado',
+                    'adelantoVenta.pagos:id,venta_id',
                 ])
                 ->whereKey($editarRaw);
 
@@ -129,6 +133,9 @@ class GroomingTurnoController extends Controller
                 'groomingServicio:id,nombre',
                 'fotos',
                 'cargo',
+                'adelantoVenta:id,metodo_pago,estado,fel_estado,caja_sesion_id',
+                'adelantoVenta.cajaSesion:id,estado',
+                'adelantoVenta.pagos:id,venta_id',
             ]);
 
         ConsultaCargoCobroEstado::withCobradosCount($query);
@@ -194,8 +201,9 @@ class GroomingTurnoController extends Controller
             $row['url_cobrar'] = $puedeEnlaceCobrar ? $turno->urlCobrarEnCaja() : null;
             $row['puede_adelanto'] = $puedeEnlaceCobrar && $turno->permiteAdelanto();
             $row['estado_cobro'] = $turno->estadoCobro();
+            unset($row['adelanto_venta']);
 
-            return $row;
+            return array_merge($row, $turno->datosAdelantoParaUi($puedeEnlaceCobrar));
         });
 
         $totalEnRango = GroomingTurno::query()
@@ -222,6 +230,22 @@ class GroomingTurnoController extends Controller
             ->orderBy('nombre')
             ->limit(100)
             ->get(['id', 'nombre', 'codigo']);
+
+        if ($turnoAbrirEditar instanceof GroomingTurno) {
+            $turnoAbrirEditar->loadMissing([
+                'cargo',
+                'adelantoVenta:id,metodo_pago,estado,fel_estado,caja_sesion_id',
+                'adelantoVenta.cajaSesion:id,estado',
+                'adelantoVenta.pagos:id,venta_id',
+            ]);
+            foreach ($turnoAbrirEditar->datosAdelantoParaUi($puedeEnlaceCobrar) as $key => $value) {
+                $turnoAbrirEditar->setAttribute($key, $value);
+            }
+            $turnoAbrirEditar->setAttribute(
+                'puede_adelanto',
+                $puedeEnlaceCobrar && $turnoAbrirEditar->permiteAdelanto(),
+            );
+        }
 
         $catalogoPersonalizado = GroomingCatalogoMode::usaCatalogoPersonalizado();
         $notificationSetting = ClinicSetting::current();
@@ -368,9 +392,22 @@ class GroomingTurnoController extends Controller
         UpdateGroomingTurnoRequest $request,
         GroomingTurno $groomingTurno,
         GroomingProcesoWhatsAppSender $sender,
+        VentaCheckoutService $checkout,
     ): RedirectResponse {
-        $data = GroomingTurnoServicioRules::normalizarParaPersistencia($request->validated());
+        $validated = $request->validated();
+        $adelantoMonto = $validated['adelanto_monto'] ?? null;
+        $adelantoMetodo = $validated['adelanto_metodo_pago'] ?? null;
+        $adelantoRecibido = $validated['adelanto_monto_recibido'] ?? null;
+        unset(
+            $validated['adelanto_monto'],
+            $validated['adelanto_metodo_pago'],
+            $validated['adelanto_monto_recibido'],
+        );
+
+        $data = GroomingTurnoServicioRules::normalizarParaPersistencia($validated);
         $data['updated_by_id'] = Auth::id();
+        $teniaAdelanto = $groomingTurno->tieneAdelanto();
+        $conAdelanto = is_numeric($adelantoMonto) && (float) $adelantoMonto >= 0.01;
 
         $inicioAnterior = $groomingTurno->inicio_at?->copy();
         $groomingTurno->fill($data);
@@ -384,7 +421,36 @@ class GroomingTurnoController extends Controller
             $groomingTurno->confirmed_via = null;
             $groomingTurno->owner_responded_at = null;
         }
-        $groomingTurno->save();
+
+        DB::transaction(function () use (
+            $groomingTurno,
+            $conAdelanto,
+            $teniaAdelanto,
+            $adelantoMonto,
+            $adelantoMetodo,
+            $adelantoRecibido,
+            $checkout,
+            $request,
+        ): void {
+            $groomingTurno->save();
+
+            if (! $conAdelanto) {
+                return;
+            }
+
+            $payload = [
+                'monto' => $adelantoMonto,
+                'metodo_pago' => $adelantoMetodo,
+                'monto_recibido' => $adelantoRecibido,
+                'notas' => null,
+            ];
+
+            if ($teniaAdelanto) {
+                $checkout->corregirAdelantoGrooming($groomingTurno, $payload, $request->user());
+            } else {
+                $checkout->registrarAdelantoGrooming($groomingTurno, $payload, $request->user());
+            }
+        });
 
         $redirect = redirect()
             ->route('servicios.grooming', $request->only([
@@ -392,21 +458,33 @@ class GroomingTurnoController extends Controller
             ]));
 
         if (! $inicioCambio) {
-            return $redirect->with('success', __('grooming.flash.updated'));
+            return $redirect->with(
+                'success',
+                $conAdelanto ? __('grooming.flash.updated_adelanto') : __('grooming.flash.updated'),
+            );
         }
 
         $wa = $this->tryNotifyAgenda($groomingTurno, $sender, 'reprogramado');
         app(ServicioAgendaReminderScanner::class)->enqueueGroomingIfDue($groomingTurno);
 
         if ($wa === 'ok') {
-            return $redirect->with('success', __('grooming.flash.updated_whatsapp'));
+            return $redirect->with(
+                'success',
+                $conAdelanto ? __('grooming.flash.updated_adelanto_whatsapp') : __('grooming.flash.updated_whatsapp'),
+            );
         }
 
         if ($wa === 'fail') {
-            return $redirect->with('warning', __('grooming.flash.updated_sin_whatsapp'));
+            return $redirect->with(
+                'warning',
+                $conAdelanto ? __('grooming.flash.updated_adelanto_sin_whatsapp') : __('grooming.flash.updated_sin_whatsapp'),
+            );
         }
 
-        return $redirect->with('success', __('grooming.flash.updated'));
+        return $redirect->with(
+            'success',
+            $conAdelanto ? __('grooming.flash.updated_adelanto') : __('grooming.flash.updated'),
+        );
     }
 
     public function destroy(Request $request, GroomingTurno $groomingTurno): RedirectResponse

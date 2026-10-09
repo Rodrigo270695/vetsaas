@@ -179,6 +179,52 @@ class GroomingTurno extends Model
     }
 
     /**
+     * Datos para corregir el adelanto desde el formulario del turno.
+     * Solo mientras la venta de anticipo siga en una caja abierta, sin comprobante
+     * emitido y sin el cobro final del servicio.
+     *
+     * @return array{adelanto_metodo_pago: ?string, adelanto_corregible: bool}
+     */
+    public function datosAdelantoParaUi(bool $puedeCobrar): array
+    {
+        $venta = $this->relationLoaded('adelantoVenta')
+            ? $this->adelantoVenta
+            : ($this->adelanto_venta_id !== null ? $this->adelantoVenta()->first() : null);
+
+        $sesion = null;
+        if ($venta !== null) {
+            $sesion = $venta->relationLoaded('cajaSesion')
+                ? $venta->cajaSesion
+                : ($venta->caja_sesion_id !== null ? $venta->cajaSesion()->first() : null);
+        }
+
+        $cargo = $this->relationLoaded('cargo') ? $this->cargo : $this->cargo()->first();
+        $cobroCerrado = $this->venta_id !== null || ($cargo !== null && $cargo->venta_id !== null);
+        $sesionAbierta = $sesion !== null && $sesion->estado === CajaSesion::ESTADO_ABIERTA;
+        $comprobanteLibre = $venta !== null && in_array($venta->fel_estado, [
+            Venta::FEL_SIN_CPE,
+            Venta::FEL_RECHAZADO,
+        ], true);
+        $pagada = $venta !== null && $venta->estado === Venta::ESTADO_PAGADO;
+        $pagoUnico = true;
+        if ($venta !== null) {
+            $pagos = $venta->relationLoaded('pagos') ? $venta->pagos->count() : $venta->pagos()->count();
+            $pagoUnico = $pagos === 1;
+        }
+
+        return [
+            'adelanto_metodo_pago' => is_string($venta?->metodo_pago) ? $venta->metodo_pago : null,
+            'adelanto_corregible' => $puedeCobrar
+                && $this->tieneAdelanto()
+                && $pagada
+                && $comprobanteLibre
+                && $sesionAbierta
+                && $pagoUnico
+                && ! $cobroCerrado,
+        ];
+    }
+
+    /**
      * Texto de línea de venta (concepto) según el tipo de servicio del turno.
      */
     public function descripcionParaVenta(): string

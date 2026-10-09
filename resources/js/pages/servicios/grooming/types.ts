@@ -98,6 +98,9 @@ export type GroomingTurnoRow = {
     venta_id: string | null;
     adelanto_venta_id?: string | null;
     adelanto_monto?: string | null;
+    adelanto_metodo_pago?: string | null;
+    /** true si la venta de anticipo sigue en una caja abierta y se puede corregir. */
+    adelanto_corregible?: boolean;
     adelanto_at?: string | null;
     /** URL POS precargada (solo si pre-cuenta confirmada y permisos). */
     url_cobrar?: string | null;

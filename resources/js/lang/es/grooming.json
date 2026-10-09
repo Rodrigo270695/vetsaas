@@ -34,6 +34,9 @@
         "notas": "Notas",
         "submit": "Cobrar adelanto",
         "hint": "Requiere sesión de caja abierta. Genera una venta de anticipo (no cierra el cobro del servicio).",
+        "title_corregir": "Corregir adelanto",
+        "hint_corregir": "Si el monto quedó mal, cámbialo aquí. Se actualiza la venta de anticipo mientras esa caja siga abierta.",
+        "hint_bloqueado": "Este adelanto ya no se puede cambiar: la caja está cerrada, el turno ya se cobró o el comprobante ya se emitió.",
         "badge": "Adelanto {{monto}}",
         "ya_registrado": "Adelanto cobrado"
     },

@@ -9,6 +9,9 @@ return [
         'created_sin_whatsapp' => 'Turno registrado, pero no se pudo notificar por WhatsApp.',
         'created_adelanto_sin_whatsapp' => 'Turno y adelanto registrados, pero no se pudo notificar por WhatsApp.',
         'updated' => 'Turno de grooming actualizado correctamente.',
+        'updated_adelanto' => 'Turno actualizado y adelanto corregido en caja.',
+        'updated_adelanto_whatsapp' => 'Turno y adelanto actualizados, y propietario notificado por WhatsApp.',
+        'updated_adelanto_sin_whatsapp' => 'Turno y adelanto actualizados, pero no se pudo notificar por WhatsApp.',
         'updated_whatsapp' => 'Turno actualizado y propietario notificado por WhatsApp.',
         'updated_sin_whatsapp' => 'Turno actualizado, pero no se pudo notificar por WhatsApp.',
         'deleted' => 'Turno de grooming eliminado correctamente.',
@@ -25,6 +28,7 @@ return [
     ],
     'validation' => [
         'adelanto_sin_permiso' => 'No tienes permiso para cobrar adelantos en caja.',
+        'adelanto_no_corregible' => 'Este adelanto ya no se puede cambiar: la caja está cerrada, el turno ya se cobró o el comprobante ya se emitió.',
     ],
     'observacion' => [
         'en_proceso' => 'En proceso',

@@ -34,6 +34,9 @@
         "notas": "Notes",
         "submit": "Collect deposit",
         "hint": "Requires an open cash session. Creates an advance sale (does not close the service charge).",
+        "title_corregir": "Correct deposit",
+        "hint_corregir": "If the amount was entered wrong, change it here. The advance sale is updated while that cash session stays open.",
+        "hint_bloqueado": "This deposit can no longer be changed: the cash session is closed, the appointment was already charged, or a receipt was already issued.",
         "badge": "Deposit {{monto}}",
         "ya_registrado": "Deposit collected"
     },

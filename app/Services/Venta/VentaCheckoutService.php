@@ -254,6 +254,177 @@ final class VentaCheckoutService
     }
 
     /**
+     * Corrige el monto o el método de un adelanto ya cobrado.
+     * Actualiza la venta de anticipo de la misma caja, sin crear otra.
+     *
+     * @param  array{monto: float|string, metodo_pago: string, monto_recibido?: float|string|null, notas?: string|null}  $validated
+     */
+    public function corregirAdelantoGrooming(
+        GroomingTurno $turno,
+        array $validated,
+        Authenticatable $user,
+    ): Venta {
+        $clinic = ClinicSetting::current();
+        $igvPct = $clinic->igvPorcentajeEfectivo();
+        $igvTipo = $clinic->igvAfectacion();
+        $precioIncluyeIgv = (bool) $clinic->precio_incluye_igv;
+
+        return DB::transaction(function () use ($turno, $validated, $user, $igvPct, $igvTipo, $precioIncluyeIgv): Venta {
+            $turnoLocked = GroomingTurno::query()
+                ->whereKey($turno->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $turnoLocked->load([
+                'cargo:id,grooming_turno_id,venta_id',
+            ]);
+
+            if (! $turnoLocked->tieneAdelanto() || $turnoLocked->venta_id !== null || $turnoLocked->cargo?->venta_id !== null) {
+                throw ValidationException::withMessages([
+                    'adelanto_monto' => __('grooming.validation.adelanto_no_corregible'),
+                ]);
+            }
+
+            $venta = Venta::query()
+                ->whereKey($turnoLocked->adelanto_venta_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $venta->load(['lineas', 'pagos']);
+
+            if ($venta->estado !== Venta::ESTADO_PAGADO
+                || ! in_array($venta->fel_estado, [Venta::FEL_SIN_CPE, Venta::FEL_RECHAZADO], true)
+                || $venta->lineas->count() !== 1
+                || $venta->pagos->count() !== 1) {
+                throw ValidationException::withMessages([
+                    'adelanto_monto' => __('grooming.validation.adelanto_no_corregible'),
+                ]);
+            }
+
+            $sesion = CajaSesion::query()
+                ->whereKey($venta->caja_sesion_id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($sesion === null || ! $sesion->estaAbierta()) {
+                throw ValidationException::withMessages([
+                    'adelanto_monto' => __('grooming.validation.adelanto_no_corregible'),
+                ]);
+            }
+
+            $monto = round((float) (string) $validated['monto'], 2);
+            if ($monto < 0.01) {
+                throw ValidationException::withMessages([
+                    'adelanto_monto' => __('caja.ventas.grooming.adelanto_monto_invalido'),
+                ]);
+            }
+
+            $linea = $venta->lineas->first();
+            $concepto = (string) ($linea?->descripcion_snapshot ?? '');
+            $cantidad = 1.0;
+            $precioLista = $monto;
+            if ($precioIncluyeIgv) {
+                $divisorIgv = 1 + ($igvPct / 100);
+                $lineGross = $monto;
+                $lineSub = $divisorIgv > 0 ? round($lineGross / $divisorIgv, 2) : $lineGross;
+                $puSinIgv = round($lineSub / $cantidad, 4);
+            } else {
+                $puSinIgv = round($precioLista, 4);
+                $lineSub = round($cantidad * $puSinIgv, 2);
+            }
+
+            $lineasCalc = [[
+                'producto_id' => null,
+                'tipo_linea' => 'servicio',
+                'consulta_cargo_linea_id' => null,
+                'descripcion_snapshot' => $concepto,
+                'igv_tipo_snapshot' => $igvTipo,
+                'cantidad' => $cantidad,
+                'precio_lista' => $precioLista,
+                'precio_unitario' => $puSinIgv,
+                'descuento_pct' => 0.0,
+                'subtotal' => $lineSub,
+                'promotion_id' => null,
+            ]];
+
+            $totales = VentaTotales::fromLineas($lineasCalc, $igvPct, $precioIncluyeIgv);
+            $total = (float) $totales['total'];
+
+            try {
+                $pagosLineas = VentaPagosResolver::fromValidated([
+                    'metodo_pago' => $validated['metodo_pago'],
+                    'monto_recibido' => $validated['monto_recibido'] ?? null,
+                    'pagos' => [[
+                        'metodo' => $validated['metodo_pago'],
+                        'monto' => $total,
+                        'monto_recibido' => $validated['monto_recibido'] ?? null,
+                    ]],
+                ], $total);
+            } catch (ValidationException $e) {
+                $recibido = $e->errors()['monto_recibido'][0]
+                    ?? $e->errors()['pagos.0.monto_recibido'][0]
+                    ?? null;
+                if (is_string($recibido)) {
+                    throw ValidationException::withMessages([
+                        'adelanto_monto_recibido' => $recibido,
+                    ]);
+                }
+
+                $first = collect($e->errors())->flatten()->first();
+
+                throw ValidationException::withMessages([
+                    'adelanto_monto' => is_string($first)
+                        ? $first
+                        : __('grooming.validation.adelanto_no_corregible'),
+                ]);
+            }
+
+            $metodo = VentaPagosResolver::metodoResumen($pagosLineas);
+            $efectivoSnap = VentaPagosResolver::efectivoSnapshot($pagosLineas);
+            $pago = $pagosLineas[0];
+
+            $venta->update([
+                'subtotal' => number_format((float) $totales['subtotal'], 2, '.', ''),
+                'igv_monto' => number_format((float) $totales['igv'], 2, '.', ''),
+                'total' => number_format($total, 2, '.', ''),
+                'metodo_pago' => $metodo,
+                'monto_recibido' => $efectivoSnap['monto_recibido'] !== null
+                    ? number_format($efectivoSnap['monto_recibido'], 2, '.', '')
+                    : null,
+                'vuelto' => $efectivoSnap['vuelto'] !== null
+                    ? number_format($efectivoSnap['vuelto'], 2, '.', '')
+                    : null,
+            ]);
+
+            $linea?->update([
+                'igv_tipo_snapshot' => $igvTipo,
+                'cantidad' => number_format($cantidad, 3, '.', ''),
+                'precio_unitario' => number_format($puSinIgv, 4, '.', ''),
+                'descuento_pct' => '0.00',
+                'subtotal' => number_format($lineSub, 2, '.', ''),
+            ]);
+
+            $venta->pagos->first()?->update([
+                'metodo' => $pago['metodo'],
+                'monto' => number_format($pago['monto'], 2, '.', ''),
+                'monto_recibido' => $pago['monto_recibido'] !== null
+                    ? number_format($pago['monto_recibido'], 2, '.', '')
+                    : null,
+                'vuelto' => $pago['vuelto'] !== null
+                    ? number_format($pago['vuelto'], 2, '.', '')
+                    : null,
+            ]);
+
+            $turnoLocked->update([
+                'adelanto_monto' => number_format($monto, 2, '.', ''),
+                'updated_by_id' => $user->getAuthIdentifier(),
+            ]);
+
+            return $venta->fresh(['lineas', 'pagos']);
+        });
+    }
+
+    /**
      * Registra una venta pagada, líneas, correlativo y salidas de inventario.
      *
      * @param  array<string, mixed>  $validated

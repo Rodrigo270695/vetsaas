@@ -1174,7 +1174,16 @@ class PacienteController extends Controller
                 $user->can('grooming.view'),
                 Schema::hasTable('grooming_turnos'),
                 GroomingTurno::query()->where('paciente_id', $paciente->id)->whereKey($id),
-                ['paciente.propietario', 'responsable:id,name', 'sede:id,nombre,codigo', 'groomingServicio'],
+                [
+                    'paciente.propietario',
+                    'responsable:id,name',
+                    'sede:id,nombre,codigo',
+                    'groomingServicio',
+                    'cargo',
+                    'adelantoVenta:id,metodo_pago,estado,fel_estado,caja_sesion_id',
+                    'adelantoVenta.cajaSesion:id,estado',
+                    'adelantoVenta.pagos:id,venta_id',
+                ],
             ),
             'hotel' => $this->registroTimeline(
                 $user->can('hotel.view'),
@@ -1190,6 +1199,14 @@ class PacienteController extends Controller
             ),
             default => abort(404),
         };
+
+        if ($registro instanceof GroomingTurno) {
+            $puedeCobrar = ($user->can('ventas.create') ?? false) && ($user->can('grooming.view') ?? false);
+            foreach ($registro->datosAdelantoParaUi($puedeCobrar) as $key => $value) {
+                $registro->setAttribute($key, $value);
+            }
+            $registro->setAttribute('puede_adelanto', $puedeCobrar && $registro->permiteAdelanto());
+        }
 
         return response()->json(['registro' => $registro]);
     }

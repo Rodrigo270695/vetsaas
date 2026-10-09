@@ -122,6 +122,13 @@ function emptyForm(
 }
 
 function fromTurno(t: GroomingTurnoRow, defaultResponsableId: string | null): FormShape {
+    const monto = t.adelanto_monto != null && Number(t.adelanto_monto) >= 0.01
+        ? Number(t.adelanto_monto).toFixed(2)
+        : '';
+    const metodo = t.adelanto_metodo_pago && ADELANTO_METODOS.includes(t.adelanto_metodo_pago as (typeof ADELANTO_METODOS)[number])
+        ? t.adelanto_metodo_pago
+        : 'efectivo';
+
     return {
         paciente_id: t.paciente_id,
         inicio_at: parseIsoToDatetimeLocal(t.inicio_at),
@@ -133,10 +140,49 @@ function fromTurno(t: GroomingTurnoRow, defaultResponsableId: string | null): Fo
         notas: t.notas ?? '',
         responsable_id: t.responsable_id ?? defaultResponsableId,
         sede_id: t.sede_id,
-        adelanto_monto: '',
-        adelanto_metodo_pago: 'efectivo',
+        adelanto_monto: monto,
+        adelanto_metodo_pago: metodo,
         adelanto_monto_recibido: '',
     };
+}
+
+function appendAdelanto(
+    base: Record<string, unknown>,
+    raw: FormShape,
+    turnoActual: GroomingTurnoRow | null,
+): void {
+    const adelantoRaw = raw.adelanto_monto.trim().replace(',', '.');
+    const adelantoNum = adelantoRaw === '' ? NaN : Number(adelantoRaw);
+    const actual = turnoActual?.adelanto_monto != null && turnoActual.adelanto_monto !== ''
+        ? Number(turnoActual.adelanto_monto)
+        : null;
+    const tiene = actual != null && !Number.isNaN(actual) && actual >= 0.01;
+
+    if (tiene && turnoActual?.adelanto_corregible === false) {
+        return;
+    }
+
+    if (Number.isNaN(adelantoNum) || adelantoNum < 0.01) {
+        return;
+    }
+
+    const metodoActual = turnoActual?.adelanto_metodo_pago || 'efectivo';
+    const montoIgual = tiene && Math.abs(adelantoNum - (actual ?? 0)) < 0.005;
+    const metodoIgual = raw.adelanto_metodo_pago === metodoActual;
+    const recibidoRaw = raw.adelanto_monto_recibido.trim().replace(',', '.');
+    const recibidoNum = recibidoRaw === '' || Number.isNaN(Number(recibidoRaw))
+        ? null
+        : Number(Number(recibidoRaw).toFixed(2));
+
+    if (tiene && montoIgual && metodoIgual && (recibidoNum == null || raw.adelanto_metodo_pago !== 'efectivo')) {
+        return;
+    }
+
+    base.adelanto_monto = Number(adelantoNum.toFixed(2));
+    base.adelanto_metodo_pago = raw.adelanto_metodo_pago;
+    if (raw.adelanto_metodo_pago === 'efectivo') {
+        base.adelanto_monto_recibido = recibidoNum;
+    }
 }
 
 export function GroomingFormModal({
@@ -183,6 +229,11 @@ export function GroomingFormModal({
 
     const isEdit = turno !== null;
     const lockPaciente = isEdit || Boolean(prefill?.paciente_id);
+    const tieneAdelanto = isEdit && turno != null && Number(turno.adelanto_monto ?? 0) >= 0.01;
+    const puedeCorregirAdelanto = tieneAdelanto && turno?.adelanto_corregible !== false;
+    const puedeAgregarAdelanto = isEdit && !tieneAdelanto && turno?.puede_adelanto === true;
+    const mostrarAdelanto = !isEdit || puedeCorregirAdelanto || puedeAgregarAdelanto;
+    const adelantoBloqueado = tieneAdelanto && turno?.adelanto_corregible === false;
 
     const servicioHint = useMemo(() => {
         if (!data.servicio) {
@@ -218,15 +269,7 @@ export function GroomingFormModal({
                 ...(fromAgenda ? { from_agenda: true } : {}),
             };
 
-            const adelantoRaw = r.adelanto_monto.trim().replace(',', '.');
-            const adelantoNum = adelantoRaw === '' ? NaN : Number(adelantoRaw);
-            if (!Number.isNaN(adelantoNum) && adelantoNum >= 0.01) {
-                base.adelanto_monto = Number(adelantoNum.toFixed(2));
-                base.adelanto_metodo_pago = r.adelanto_metodo_pago;
-                const recibidoRaw = r.adelanto_monto_recibido.trim().replace(',', '.');
-                base.adelanto_monto_recibido =
-                    recibidoRaw === '' ? null : Number(Number(recibidoRaw).toFixed(2));
-            }
+            appendAdelanto(base, r, turno);
 
             if (catalogoPersonalizado) {
                 base.grooming_servicio_id = r.grooming_servicio_id;
@@ -242,7 +285,7 @@ export function GroomingFormModal({
             return base;
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [catalogoPersonalizado, fromAgenda]);
+    }, [catalogoPersonalizado, fromAgenda, turno]);
 
     useEffect(() => {
         if (!open) {
@@ -304,15 +347,7 @@ export function GroomingFormModal({
             sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
         };
 
-        const adelantoRaw = raw.adelanto_monto.trim().replace(',', '.');
-        const adelantoNum = adelantoRaw === '' ? NaN : Number(adelantoRaw);
-        if (!Number.isNaN(adelantoNum) && adelantoNum >= 0.01) {
-            base.adelanto_monto = Number(adelantoNum.toFixed(2));
-            base.adelanto_metodo_pago = raw.adelanto_metodo_pago;
-            const recibidoRaw = raw.adelanto_monto_recibido.trim().replace(',', '.');
-            base.adelanto_monto_recibido =
-                recibidoRaw === '' ? null : Number(Number(recibidoRaw).toFixed(2));
-        }
+        appendAdelanto(base, raw, null);
 
         if (catalogoPersonalizado) {
             base.grooming_servicio_id = raw.grooming_servicio_id;
@@ -604,11 +639,29 @@ export function GroomingFormModal({
                     />
                 </FormField>
 
-                {!isEdit ? (
+                {adelantoBloqueado ? (
+                    <div className="grid gap-1 rounded-lg border border-border/70 bg-muted/30 p-3">
+                        <p className="text-sm font-medium text-foreground">
+                            {t('adelanto.badge', {
+                                monto: Number(turno?.adelanto_monto ?? 0).toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                }),
+                            })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{t('adelanto.hint_bloqueado')}</p>
+                    </div>
+                ) : null}
+
+                {mostrarAdelanto ? (
                     <div className="grid gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                         <div>
-                            <p className="text-sm font-medium text-foreground">{t('adelanto.title')}</p>
-                            <p className="text-xs text-muted-foreground">{t('adelanto.hint')}</p>
+                            <p className="text-sm font-medium text-foreground">
+                                {puedeCorregirAdelanto ? t('adelanto.title_corregir') : t('adelanto.title')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {puedeCorregirAdelanto ? t('adelanto.hint_corregir') : t('adelanto.hint')}
+                            </p>
                         </div>
                         <FormField
                             id="gf-adelanto-monto"

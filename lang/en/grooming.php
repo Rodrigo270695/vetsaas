@@ -9,6 +9,9 @@ return [
         'created_sin_whatsapp' => 'Appointment saved, but WhatsApp notification failed.',
         'created_adelanto_sin_whatsapp' => 'Appointment and deposit saved, but WhatsApp notification failed.',
         'updated' => 'Grooming appointment updated successfully.',
+        'updated_adelanto' => 'Appointment updated and deposit corrected at the register.',
+        'updated_adelanto_whatsapp' => 'Appointment and deposit updated, and the owner was notified via WhatsApp.',
+        'updated_adelanto_sin_whatsapp' => 'Appointment and deposit updated, but WhatsApp notification failed.',
         'updated_whatsapp' => 'Appointment updated and owner notified via WhatsApp.',
         'updated_sin_whatsapp' => 'Appointment updated, but WhatsApp notification failed.',
         'deleted' => 'Grooming appointment deleted successfully.',
@@ -25,6 +28,7 @@ return [
     ],
     'validation' => [
         'adelanto_sin_permiso' => 'You do not have permission to collect deposits at the register.',
+        'adelanto_no_corregible' => 'This deposit can no longer be changed: the cash session is closed, the appointment was already charged, or a receipt was already issued.',
     ],
     'observacion' => [
         'en_proceso' => 'In progress',
