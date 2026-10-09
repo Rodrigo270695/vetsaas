@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -355,17 +356,80 @@ class ProductoInventarioController extends Controller
 
     public function update(ProductoInventarioRequest $request, Producto $producto): RedirectResponse
     {
-        $producto->update([
-            ...Arr::except($request->validated(), [
-                'stock_inicial_sede_id',
-                'stock_inicial_cantidad',
-                'numero_lote',
-                'fecha_vencimiento',
-            ]),
-            'updated_by_id' => Auth::id(),
-        ]);
+        $validated = $request->validated();
+        $lotes = is_array($validated['lotes'] ?? null) ? $validated['lotes'] : [];
+
+        DB::transaction(function () use ($producto, $validated, $lotes): void {
+            $producto->update([
+                ...Arr::except($validated, [
+                    'stock_inicial_sede_id',
+                    'stock_inicial_cantidad',
+                    'numero_lote',
+                    'fecha_vencimiento',
+                    'lotes',
+                ]),
+                'updated_by_id' => Auth::id(),
+            ]);
+
+            $this->corregirLotes($producto, $lotes);
+        });
 
         return back()->with('success', 'Producto actualizado correctamente.');
+    }
+
+    /**
+     * Corrige número y vencimiento de lotes ya existentes. No mueve cantidades.
+     *
+     * @param  list<array{id?: mixed, numero_lote?: mixed, fecha_vencimiento?: mixed}>  $lotes
+     */
+    private function corregirLotes(Producto $producto, array $lotes): void
+    {
+        foreach ($lotes as $index => $row) {
+            $id = is_string($row['id'] ?? null) ? $row['id'] : '';
+            $lote = ProductoLote::query()
+                ->whereKey($id)
+                ->where('producto_id', $producto->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($lote === null) {
+                throw ValidationException::withMessages([
+                    "lotes.{$index}.id" => 'Ese lote ya no pertenece a este producto.',
+                ]);
+            }
+
+            $numero = InventarioLoteService::normalizarNumeroLote(
+                is_string($row['numero_lote'] ?? null) ? $row['numero_lote'] : null,
+            );
+            $vencimiento = is_string($row['fecha_vencimiento'] ?? null) && $row['fecha_vencimiento'] !== ''
+                ? $row['fecha_vencimiento']
+                : null;
+
+            $duplicado = ProductoLote::query()
+                ->where('producto_id', $producto->id)
+                ->where('sede_id', $lote->sede_id)
+                ->where('numero_lote', $numero)
+                ->whereKeyNot($lote->id)
+                ->where(function ($q) use ($vencimiento): void {
+                    if ($vencimiento === null) {
+                        $q->whereNull('fecha_vencimiento');
+                    } else {
+                        $q->whereDate('fecha_vencimiento', $vencimiento);
+                    }
+                })
+                ->exists();
+
+            if ($duplicado) {
+                throw ValidationException::withMessages([
+                    "lotes.{$index}.fecha_vencimiento" => 'Ya hay otro lote con ese número y vencimiento en la misma sede.',
+                ]);
+            }
+
+            $lote->update([
+                'numero_lote' => $numero,
+                'fecha_vencimiento' => $vencimiento,
+            ]);
+        }
     }
 
     public function destroy(Producto $producto): RedirectResponse

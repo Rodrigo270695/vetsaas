@@ -125,7 +125,10 @@
         "stock_inicial_cantidad": "Cantidad inicial",
         "numero_lote": "Lote",
         "numero_lote_placeholder": "Opcional",
-        "fecha_vencimiento": "Vencimiento"
+        "fecha_vencimiento": "Vencimiento",
+        "lote_corregir_title": "Lote y vencimiento",
+        "lote_corregir_hint": "Si la fecha o el lote quedaron mal, cámbialos aquí. La cantidad en stock no se modifica.",
+        "lote_corregir_stock": "Stock {{cantidad}} · {{sede}}"
     },
     "unidades_dialog": {
         "title": "Unidades de medida personalizadas",

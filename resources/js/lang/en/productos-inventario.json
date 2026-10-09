@@ -125,7 +125,10 @@
         "stock_inicial_cantidad": "Initial quantity",
         "numero_lote": "Batch",
         "numero_lote_placeholder": "Optional",
-        "fecha_vencimiento": "Expiry"
+        "fecha_vencimiento": "Expiry",
+        "lote_corregir_title": "Batch and expiry",
+        "lote_corregir_hint": "If the date or batch was entered wrong, change it here. Stock quantity stays the same.",
+        "lote_corregir_stock": "Stock {{cantidad}} · {{sede}}"
     },
     "unidades_dialog": {
         "title": "Custom units of measure",

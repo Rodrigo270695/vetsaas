@@ -65,6 +65,10 @@ class ProductoInventarioRequest extends FormRequest
             'stock_inicial_cantidad' => ['nullable', 'numeric', 'min:0.001', 'max:999999999.999'],
             'numero_lote' => ['nullable', 'string', 'max:128'],
             'fecha_vencimiento' => ['nullable', 'date'],
+            'lotes' => ['nullable', 'array', 'max:40'],
+            'lotes.*.id' => ['required', 'uuid'],
+            'lotes.*.numero_lote' => ['nullable', 'string', 'max:128'],
+            'lotes.*.fecha_vencimiento' => ['nullable', 'date'],
         ];
 
         if ($producto instanceof Producto) {
@@ -73,6 +77,13 @@ class ProductoInventarioRequest extends FormRequest
                 $rules['stock_inicial_cantidad'],
                 $rules['numero_lote'],
                 $rules['fecha_vencimiento'],
+            );
+        } else {
+            unset(
+                $rules['lotes'],
+                $rules['lotes.*.id'],
+                $rules['lotes.*.numero_lote'],
+                $rules['lotes.*.fecha_vencimiento'],
             );
         }
 
@@ -127,6 +138,27 @@ class ProductoInventarioRequest extends FormRequest
         $this->merge([
             'fecha_vencimiento' => $venc === '' ? null : $venc,
         ]);
+
+        $lotes = $this->input('lotes');
+        if (! is_array($lotes)) {
+            return;
+        }
+
+        $limpios = [];
+        foreach ($lotes as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $num = trim((string) ($row['numero_lote'] ?? ''));
+            $fecha = trim((string) ($row['fecha_vencimiento'] ?? ''));
+            $limpios[] = [
+                'id' => $row['id'] ?? null,
+                'numero_lote' => $num === '' ? null : mb_substr($num, 0, 128),
+                'fecha_vencimiento' => $fecha === '' ? null : $fecha,
+            ];
+        }
+
+        $this->merge(['lotes' => $limpios]);
     }
 
     public function withValidator(Validator $validator): void

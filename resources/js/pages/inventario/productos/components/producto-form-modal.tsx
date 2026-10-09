@@ -42,8 +42,17 @@ type FormData = {
     stock_inicial_cantidad: string;
     numero_lote: string;
     fecha_vencimiento: string;
+    lotes: LoteCorreccion[];
     medicamento: boolean;
     activo: boolean;
+};
+
+type LoteCorreccion = {
+    id: string;
+    numero_lote: string;
+    fecha_vencimiento: string;
+    cantidad: string;
+    sede_nombre: string;
 };
 
 const empty: FormData = {
@@ -61,6 +70,7 @@ const empty: FormData = {
     stock_inicial_cantidad: '',
     numero_lote: '',
     fecha_vencimiento: '',
+    lotes: [],
     medicamento: false,
     activo: true,
 };
@@ -118,6 +128,13 @@ export function ProductoFormModal({
             stock_inicial_cantidad: '',
             numero_lote: '',
             fecha_vencimiento: '',
+            lotes: (producto.lotes ?? []).map((lote) => ({
+                id: lote.id,
+                numero_lote: lote.numero_lote ?? '',
+                fecha_vencimiento: lote.fecha_vencimiento ?? '',
+                cantidad: lote.cantidad,
+                sede_nombre: lote.sede_nombre ?? lote.sede_codigo ?? '',
+            })),
             medicamento: producto.medicamento,
             activo: producto.activo,
         });
@@ -326,6 +343,68 @@ export function ProductoFormModal({
                             />
                         </FormField>
                     </div>
+
+                    {isEdit && data.lotes.length > 0 ? (
+                        <div className="space-y-3 rounded-lg border border-border p-3">
+                            <div>
+                                <p className="text-sm font-medium text-foreground">{t('form.lote_corregir_title')}</p>
+                                <p className="text-xs text-muted-foreground">{t('form.lote_corregir_hint')}</p>
+                            </div>
+                            {data.lotes.map((lote, index) => (
+                                <div key={lote.id} className="grid gap-4 sm:grid-cols-2">
+                                    <p className="text-xs text-muted-foreground sm:col-span-2">
+                                        {t('form.lote_corregir_stock', {
+                                            cantidad: lote.cantidad,
+                                            sede: lote.sede_nombre !== '' ? lote.sede_nombre : '—',
+                                        })}
+                                    </p>
+                                    <FormField
+                                        id={`prod-lote-${lote.id}`}
+                                        label={t('form.numero_lote')}
+                                        error={errors[`lotes.${index}.numero_lote`]}
+                                        className="min-w-0"
+                                    >
+                                        <Input
+                                            id={`prod-lote-${lote.id}`}
+                                            value={lote.numero_lote}
+                                            onChange={(e) => {
+                                                const next = data.lotes.map((row) =>
+                                                    row.id === lote.id ? { ...row, numero_lote: e.target.value } : row,
+                                                );
+                                                setData('lotes', next);
+                                            }}
+                                            disabled={processing}
+                                            maxLength={128}
+                                            className="h-10"
+                                            placeholder={t('form.numero_lote_placeholder')}
+                                        />
+                                    </FormField>
+                                    <FormField
+                                        id={`prod-venc-${lote.id}`}
+                                        label={t('form.fecha_vencimiento')}
+                                        error={errors[`lotes.${index}.fecha_vencimiento`]}
+                                        className="min-w-0"
+                                    >
+                                        <Input
+                                            id={`prod-venc-${lote.id}`}
+                                            type="date"
+                                            value={lote.fecha_vencimiento}
+                                            onChange={(e) => {
+                                                const next = data.lotes.map((row) =>
+                                                    row.id === lote.id
+                                                        ? { ...row, fecha_vencimiento: e.target.value }
+                                                        : row,
+                                                );
+                                                setData('lotes', next);
+                                            }}
+                                            disabled={processing}
+                                            className="h-10"
+                                        />
+                                    </FormField>
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
 
                     {!isEdit ? (
                         <div className="space-y-3 rounded-lg border border-border p-3">
