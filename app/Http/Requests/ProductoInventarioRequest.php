@@ -71,14 +71,7 @@ class ProductoInventarioRequest extends FormRequest
             'lotes.*.fecha_vencimiento' => ['nullable', 'date'],
         ];
 
-        if ($producto instanceof Producto) {
-            unset(
-                $rules['stock_inicial_sede_id'],
-                $rules['stock_inicial_cantidad'],
-                $rules['numero_lote'],
-                $rules['fecha_vencimiento'],
-            );
-        } else {
+        if (! $producto instanceof Producto) {
             unset(
                 $rules['lotes'],
                 $rules['lotes.*.id'],

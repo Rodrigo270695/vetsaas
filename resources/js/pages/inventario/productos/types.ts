@@ -44,6 +44,8 @@ export type Producto = {
     lote_vencimiento?: string | null;
     /** Todos los lotes con cantidad > 0 (todas las sedes), orden FEFO. */
     lotes?: ProductoLoteFila[];
+    /** Misma lista, con nombre que no choca con la relación del modelo. */
+    lotes_stock?: ProductoLoteFila[];
     categoria: ProductoCategoria;
     creado_por: ProductoAuditUser;
     actualizado_por: ProductoAuditUser;

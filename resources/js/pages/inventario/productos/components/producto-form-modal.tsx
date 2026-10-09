@@ -124,11 +124,14 @@ export function ProductoFormModal({
             precio_venta: producto.precio_venta ?? '',
             precio_compra: producto.precio_compra ?? '',
             stock_minimo: producto.stock_minimo != null && producto.stock_minimo !== '' ? String(producto.stock_minimo) : '',
-            stock_inicial_sede_id: '',
+            stock_inicial_sede_id:
+                defaultSedeId && defaultSedeId !== ''
+                    ? defaultSedeId
+                    : resolveDefaultSedeIdOrEmpty(sedeOptions),
             stock_inicial_cantidad: '',
             numero_lote: '',
-            fecha_vencimiento: '',
-            lotes: (producto.lotes ?? []).map((lote) => ({
+            fecha_vencimiento: producto.lote_vencimiento ?? '',
+            lotes: (producto.lotes_stock ?? producto.lotes ?? []).map((lote) => ({
                 id: lote.id,
                 numero_lote: lote.numero_lote ?? '',
                 fecha_vencimiento: lote.fecha_vencimiento ?? '',
@@ -406,7 +409,7 @@ export function ProductoFormModal({
                         </div>
                     ) : null}
 
-                    {!isEdit ? (
+                    {!isEdit || data.lotes.length === 0 ? (
                         <div className="space-y-3 rounded-lg border border-border p-3">
                             <div>
                                 <p className="text-sm font-medium text-foreground">{t('form.stock_inicial_title')}</p>

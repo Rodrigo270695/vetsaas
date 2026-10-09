@@ -354,12 +354,30 @@ class ProductoInventarioController extends Controller
         return $slug;
     }
 
-    public function update(ProductoInventarioRequest $request, Producto $producto): RedirectResponse
-    {
+    public function update(
+        ProductoInventarioRequest $request,
+        Producto $producto,
+        InventarioLoteService $inventarioLoteService,
+    ): RedirectResponse {
         $validated = $request->validated();
         $lotes = is_array($validated['lotes'] ?? null) ? $validated['lotes'] : [];
+        $stockSedeId = $validated['stock_inicial_sede_id'] ?? null;
+        $stockCantidad = $validated['stock_inicial_cantidad'] ?? null;
+        $numeroLote = $validated['numero_lote'] ?? null;
+        $fechaVencimiento = $validated['fecha_vencimiento'] ?? null;
+        $userId = Auth::id();
 
-        DB::transaction(function () use ($producto, $validated, $lotes): void {
+        DB::transaction(function () use (
+            $producto,
+            $validated,
+            $lotes,
+            $stockSedeId,
+            $stockCantidad,
+            $numeroLote,
+            $fechaVencimiento,
+            $userId,
+            $inventarioLoteService,
+        ): void {
             $producto->update([
                 ...Arr::except($validated, [
                     'stock_inicial_sede_id',
@@ -368,10 +386,43 @@ class ProductoInventarioController extends Controller
                     'fecha_vencimiento',
                     'lotes',
                 ]),
-                'updated_by_id' => Auth::id(),
+                'updated_by_id' => $userId,
             ]);
 
             $this->corregirLotes($producto, $lotes);
+
+            $hayDatoLote = (is_string($numeroLote) && $numeroLote !== '')
+                || (is_string($fechaVencimiento) && $fechaVencimiento !== '');
+
+            if ($stockSedeId !== null && $stockCantidad !== null) {
+                $inventarioLoteService->registrarEntrada(
+                    (string) $producto->id,
+                    (string) $stockSedeId,
+                    (string) $stockCantidad,
+                    is_string($numeroLote) ? $numeroLote : null,
+                    is_string($fechaVencimiento) ? $fechaVencimiento : null,
+                    'Stock inicial al editar producto',
+                    $userId !== null ? (string) $userId : null,
+                );
+            } elseif ($lotes === [] && $hayDatoLote) {
+                if (! is_string($stockSedeId) || $stockSedeId === '') {
+                    throw ValidationException::withMessages([
+                        'stock_inicial_sede_id' => 'Elige la sede del lote.',
+                    ]);
+                }
+
+                ProductoLote::query()->create([
+                    'producto_id' => $producto->id,
+                    'sede_id' => $stockSedeId,
+                    'numero_lote' => InventarioLoteService::normalizarNumeroLote(
+                        is_string($numeroLote) ? $numeroLote : null,
+                    ),
+                    'fecha_vencimiento' => is_string($fechaVencimiento) && $fechaVencimiento !== ''
+                        ? $fechaVencimiento
+                        : null,
+                    'cantidad' => 0,
+                ]);
+            }
         });
 
         return back()->with('success', 'Producto actualizado correctamente.');
@@ -455,7 +506,9 @@ class ProductoInventarioController extends Controller
 
         $lotes = ProductoLote::query()
             ->whereIn('producto_id', $ids)
-            ->where('cantidad', '>', 0)
+            ->where(function ($q): void {
+                $q->where('cantidad', '>', 0)->orWhereNotNull('fecha_vencimiento');
+            })
             ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
             ->orderBy('created_at')
             ->get(['id', 'producto_id', 'sede_id', 'numero_lote', 'fecha_vencimiento', 'cantidad']);
@@ -470,8 +523,10 @@ class ProductoInventarioController extends Controller
         foreach ($productos as $producto) {
             $grupo = $byProducto->get((string) $producto->id) ?? collect();
 
+            $conStock = $grupo->filter(static fn (ProductoLote $item): bool => (float) (string) $item->cantidad > 0)->values();
+
             /** @var ProductoLote|null $lote */
-            $lote = $grupo->first();
+            $lote = $conStock->first() ?? $grupo->first();
             $numero = $lote !== null ? (string) $lote->numero_lote : null;
             if ($numero === InventarioLoteService::LOTE_SIN_ESPECIFICAR) {
                 $numero = null;
@@ -483,9 +538,7 @@ class ProductoInventarioController extends Controller
                 $lote?->fecha_vencimiento?->format('Y-m-d'),
             );
 
-            $producto->setAttribute(
-                'lotes',
-                $grupo->map(static function (ProductoLote $item) use ($sedes): array {
+            $filas = $grupo->map(static function (ProductoLote $item) use ($sedes): array {
                     $num = (string) $item->numero_lote;
                     if ($num === InventarioLoteService::LOTE_SIN_ESPECIFICAR) {
                         $num = null;
@@ -501,8 +554,11 @@ class ProductoInventarioController extends Controller
                         'sede_nombre' => $sede?->nombre,
                         'sede_codigo' => $sede?->codigo,
                     ];
-                })->values()->all(),
-            );
+                })->values()->all();
+
+            // `lotes` choca con la relación del modelo; `lotes_stock` es el que usa el formulario.
+            $producto->setAttribute('lotes', $filas);
+            $producto->setAttribute('lotes_stock', $filas);
         }
     }
 }
