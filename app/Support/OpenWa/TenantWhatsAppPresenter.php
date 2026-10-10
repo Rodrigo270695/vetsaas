@@ -67,7 +67,7 @@ final class TenantWhatsAppPresenter
                 'connected_at' => $session->connected_at?->toIso8601String(),
                 'last_synced_at' => $session->last_synced_at?->toIso8601String(),
                 'last_error' => $session->last_error,
-                'is_ready' => $session->isReady() && $session->isSyncedRecently(15),
+                'is_ready' => $session->isReady(),
             ],
         ];
     }

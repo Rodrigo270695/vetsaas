@@ -81,6 +81,14 @@ class TenantWhatsAppController extends Controller
             ->where('tenant_id', $tenant->id)
             ->first();
 
+        if ($session instanceof TenantWhatsAppSession && $session->isReady()) {
+            return response()->json([
+                'ready' => true,
+                'phone' => $session->phone,
+                'status' => $session->status,
+            ]);
+        }
+
         if ($client->isRateLimited()) {
             if (! $session instanceof TenantWhatsAppSession || trim((string) $session->openwa_session_id) === '') {
                 return $this->qrRateLimited($session);

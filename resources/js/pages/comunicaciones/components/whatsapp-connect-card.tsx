@@ -142,7 +142,15 @@ export function WhatsAppConnectCard({
             {
                 preserveScroll: true,
                 onFinish: () => setSyncing(false),
-                onSuccess: () => {
+                onSuccess: (page) => {
+                    const ready = (page.props as { whatsapp?: WhatsAppProps }).whatsapp?.session?.is_ready === true;
+                    if (ready) {
+                        setQrCode(null);
+                        setQrError(null);
+                        setQrMessage(null);
+                        stopPoll();
+                        return;
+                    }
                     void fetchQr();
                     stopPoll();
                     pollRef.current = setInterval(() => {
