@@ -36,6 +36,11 @@ final class TenantWhatsAppPresenter
             ->where('tenant_id', $tenant->id)
             ->first();
 
+        if ($session instanceof TenantWhatsAppSession
+            && OpenWaRateLimitedException::matches((string) $session->last_error)) {
+            $session->forceFill(['last_error' => null])->save();
+        }
+
         if (
             $session instanceof TenantWhatsAppSession
             && ! $this->client->isRateLimited()
@@ -44,11 +49,8 @@ final class TenantWhatsAppPresenter
         ) {
             try {
                 $session = $this->sync->pullRemoteStatus($session);
-            } catch (OpenWaRateLimitedException $e) {
-                $session->forceFill([
-                    'last_error' => $e->getMessage(),
-                    'last_synced_at' => now(),
-                ])->save();
+            } catch (OpenWaRateLimitedException) {
+                // La cola se muestra con el último estado. El 429 no es un fallo de esta clínica.
             }
         }
 

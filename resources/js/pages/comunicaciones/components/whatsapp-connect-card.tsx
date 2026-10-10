@@ -65,11 +65,16 @@ export function WhatsAppConnectCard({
     const [disconnectOpen, setDisconnectOpen] = useState(false);
     const [testOpen, setTestOpen] = useState(false);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const waitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const stopPoll = useCallback(() => {
         if (pollRef.current !== null) {
             clearInterval(pollRef.current);
             pollRef.current = null;
+        }
+        if (waitRef.current !== null) {
+            clearTimeout(waitRef.current);
+            waitRef.current = null;
         }
     }, []);
 
@@ -88,7 +93,18 @@ export function WhatsAppConnectCard({
                 status?: string;
                 error?: string;
                 message?: string;
+                retry_after?: number;
             };
+            if (typeof data.retry_after === 'number' && data.retry_after > 0) {
+                stopPoll();
+                setQrStatus(data.status ?? null);
+                setQrError(null);
+                setQrMessage(data.message ?? 'WhatsApp está ocupado. Espera un minuto.');
+                waitRef.current = setTimeout(() => {
+                    void fetchQr();
+                }, data.retry_after * 1000);
+                return;
+            }
             setQrStatus(data.status ?? null);
             setQrMessage(data.message ?? null);
             setQrError(data.error ?? (res.ok ? null : 'No se pudo obtener el código QR.'));
@@ -131,7 +147,7 @@ export function WhatsAppConnectCard({
                     stopPoll();
                     pollRef.current = setInterval(() => {
                         void fetchQr();
-                    }, 4000);
+                    }, 8000);
                 },
                 onError: () => {
                     setQrMessage(null);

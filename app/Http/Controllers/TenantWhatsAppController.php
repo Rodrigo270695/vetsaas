@@ -7,6 +7,7 @@ use App\Models\TenantWhatsAppSession;
 use App\Services\Notifications\NotificationQueueService;
 use App\Services\Notifications\WhatsAppNotificationDispatcher;
 use App\Services\OpenWa\OpenWaClient;
+use App\Services\OpenWa\OpenWaRateLimitedException;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
 use App\Support\WhatsApp\WhatsAppChatId;
@@ -76,38 +77,32 @@ class TenantWhatsAppController extends Controller
         $tenant = $tenants->current()?->tenant;
         abort_if($tenant === null, 404);
 
-        $session = $sync->ensureForTenant($tenant, wakeForLink: true);
-        abort_if($session === null, 422, 'No se pudo crear la sesión de WhatsApp.');
+        $session = TenantWhatsAppSession::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
 
-        $session = $sync->enableAutoReconnect($session);
+        if ($client->isRateLimited()) {
+            if (! $session instanceof TenantWhatsAppSession || trim((string) $session->openwa_session_id) === '') {
+                return $this->qrRateLimited($session);
+            }
 
-        if (! $session->isReady()) {
+            return $this->qrFromSession($client, $session);
+        }
+
+        $needsEngine = ! $session instanceof TenantWhatsAppSession
+            || in_array((string) $session->status, ['created', 'disconnected', 'failed', ''], true);
+
+        if ($needsEngine) {
             try {
-                $remote = $client->getSession($session->openwa_session_id);
-                $status = (string) ($remote['status'] ?? $session->status);
-
-                // Solo despertar si está caída. NO reiniciar en initializing/authenticating:
-                // eso corta Baileys antes de emitir el QR.
-                if (in_array($status, ['created', 'disconnected', 'failed'], true)) {
-                    $client->tryStartIfDown($session->openwa_session_id, $status);
-                }
-            } catch (\Throwable) {
-                // Continúa e intenta obtener QR o refrescar estado.
+                $session = $sync->ensureForTenant($tenant, wakeForLink: true) ?? $session;
+            } catch (OpenWaRateLimitedException) {
+                return $this->qrRateLimited($session);
             }
         }
 
-        try {
-            $session = $sync->refresh($session);
-        } catch (\Throwable $e) {
-            report($e);
+        abort_if($session === null, 422, 'No se pudo crear la sesión de WhatsApp.');
 
-            return response()->json([
-                'ready' => false,
-                'status' => $session->status,
-                'qr_code' => null,
-                'error' => 'No se pudo sincronizar la sesión con OpenWA. Revisa OPENWA_API_KEY.',
-            ], 503);
-        }
+        $session = $sync->enableAutoReconnect($session);
 
         if ($session->isReady()) {
             return response()->json([
@@ -117,19 +112,38 @@ class TenantWhatsAppController extends Controller
             ]);
         }
 
+        return $this->qrFromSession($client, $session);
+    }
+
+    private function qrFromSession(OpenWaClient $client, TenantWhatsAppSession $session): JsonResponse
+    {
         try {
             $qr = $client->getQrCode($session->openwa_session_id);
             $qrCode = $qr['qrCode'] ?? null;
+            $status = (string) ($qr['status'] ?? $session->status);
+
+            if ($status !== '' && $status !== (string) $session->status) {
+                $session->forceFill([
+                    'status' => $status,
+                    'last_synced_at' => now(),
+                ])->save();
+            }
+
+            if ($client->isRateLimited() && ($status === 'ready' || filled($qrCode))) {
+                $client->clearRateLimited();
+            }
 
             return response()->json([
-                'ready' => false,
-                'status' => (string) ($qr['status'] ?? $session->status),
+                'ready' => $status === 'ready',
+                'status' => $status,
                 'qr_code' => is_string($qrCode) && $qrCode !== '' ? $qrCode : null,
                 'session_id' => $session->openwa_session_id,
                 'message' => filled($qrCode)
                     ? null
                     : 'Esperando código QR de WhatsApp…',
             ]);
+        } catch (OpenWaRateLimitedException) {
+            return $this->qrRateLimited($session);
         } catch (\Throwable $e) {
             report($e);
 
@@ -145,6 +159,18 @@ class TenantWhatsAppController extends Controller
                 'error' => $waiting ? null : 'No se pudo obtener el código QR.',
             ], $waiting ? 200 : 503);
         }
+    }
+
+    private function qrRateLimited(?TenantWhatsAppSession $session): JsonResponse
+    {
+        return response()->json([
+            'ready' => false,
+            'status' => $session?->status,
+            'qr_code' => null,
+            'session_id' => $session?->openwa_session_id,
+            'retry_after' => 60,
+            'message' => 'WhatsApp está ocupado. Espera un minuto; el código aparece solo. No recargues la página.',
+        ]);
     }
 
     public function logout(

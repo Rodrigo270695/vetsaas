@@ -45,6 +45,10 @@ final class TenantWhatsAppSessionSync
             ->where('tenant_id', $tenant->id)
             ->first();
 
+        if ($this->client->isRateLimited()) {
+            return $local;
+        }
+
         try {
             $knownId = trim((string) ($local?->openwa_session_id ?? ''));
             $remote = $knownId !== '' ? $this->client->tryGetSession($knownId) : null;
@@ -52,15 +56,8 @@ final class TenantWhatsAppSessionSync
             if ($remote === null && $wakeForLink) {
                 $remote = $this->client->createSession($tenant->slug);
             }
-        } catch (OpenWaRateLimitedException $e) {
-            if ($local instanceof TenantWhatsAppSession) {
-                $local->forceFill([
-                    'last_error' => $e->getMessage(),
-                    'last_synced_at' => now(),
-                ])->save();
-            }
-
-            throw $e;
+        } catch (OpenWaRateLimitedException) {
+            return $local;
         } catch (\Throwable $e) {
             if ($local instanceof TenantWhatsAppSession) {
                 $local->forceFill([
