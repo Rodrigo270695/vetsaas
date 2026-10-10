@@ -81,12 +81,18 @@ export default function AuthSplitLayout({
 
                 <article className="relative z-10 mx-auto w-full max-w-md">
                     {isLogin ? (
-                        <div className="-mb-4 flex justify-center sm:-mb-3">
+                        <div className="-mb-5 flex items-end justify-center gap-1 sm:-mb-4">
                             <Mascot
                                 directions="/mascots/pug-directions.webp"
                                 reactions="/mascots/pug-reactions.webp"
-                                size={84}
+                                size={76}
                                 label="pug"
+                            />
+                            <Mascot
+                                directions="/mascots/cat-directions.webp"
+                                reactions="/mascots/cat-reactions.webp"
+                                size={76}
+                                label="gato"
                             />
                         </div>
                     ) : null}
