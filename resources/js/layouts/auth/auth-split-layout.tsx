@@ -1,4 +1,5 @@
 import { usePage } from '@inertiajs/react';
+import { Mascot } from 'page-mascot';
 import AuthAuroraBackground from '@/components/auth/auth-aurora-background';
 import AuthBentoOrbit from '@/components/auth/auth-bento-orbit';
 import AuthFooter from '@/components/auth/auth-footer';
@@ -72,6 +73,16 @@ export default function AuthSplitLayout({
                 <AuthBentoOrbit />
 
                 <article className="relative z-10 mx-auto w-full max-w-md">
+                    {page.component === 'auth/login' ? (
+                        <div className="mb-2 flex justify-center">
+                            <Mascot
+                                directions="/mascots/pug-directions.webp"
+                                reactions="/mascots/pug-reactions.webp"
+                                size={112}
+                                label="pug"
+                            />
+                        </div>
+                    ) : null}
                     <AuthGreeting
                         title={tenantTitle}
                         description={tenantDescription}
