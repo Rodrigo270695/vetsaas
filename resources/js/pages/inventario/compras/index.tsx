@@ -446,7 +446,7 @@ export default function Index({
                                     activeFiltersCount > 0 ? t('empty.no_results_description') : t('empty.no_records_description')
                                 }
                                 action={
-                                    activeFiltersCount === 0 && canCreate && (productoOptions.length > 0 || canCreateProducto) ? (
+                                    activeFiltersCount === 0 && canCreate ? (
                                         <Button type="button" onClick={() => setModalOpen(true)} className="cursor-pointer gap-2">
                                             <Plus className="size-4" strokeWidth={2.5} />
                                             {t('actions.create_first')}

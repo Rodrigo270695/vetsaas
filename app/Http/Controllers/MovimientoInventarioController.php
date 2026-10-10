@@ -6,7 +6,6 @@ use App\Exports\MovimientosInventarioXlsxExport;
 use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Requests\MovimientoInventarioStoreRequest;
 use App\Models\MovimientoInventario;
-use App\Models\Producto;
 use App\Models\Sede;
 use App\Services\Inventario\InventarioLoteService;
 use App\Support\Inventario\MovimientoNotasVista;
@@ -91,12 +90,6 @@ class MovimientoInventarioController extends Controller
             return $m;
         });
 
-        $productoOptions = Producto::query()
-            ->whereNull('deleted_at')
-            ->orderBy('nombre')
-            ->limit(400)
-            ->get(['id', 'nombre', 'sku']);
-
         return Inertia::render('inventario/movimientos/index', [
             'movimientos' => $movimientos,
             'filters' => [
@@ -115,7 +108,7 @@ class MovimientoInventarioController extends Controller
                 'coincidencias' => $movimientos->total(),
             ],
             'sedeOptions' => $ctx['sedes_activas'],
-            'productoOptions' => $productoOptions,
+            'productoOptions' => [],
             'sinSedes' => false,
         ]);
     }

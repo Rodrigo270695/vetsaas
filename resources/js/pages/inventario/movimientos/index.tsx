@@ -395,7 +395,7 @@ export default function Index({
                                     type="button"
                                     className="cursor-pointer gap-2"
                                     onClick={() => setModalOpen(true)}
-                                    disabled={sinSedes || productoOptions.length === 0}
+                                    disabled={sinSedes}
                                 >
                                     <ClipboardList className="size-4" strokeWidth={2.5} />
                                     <span className="hidden sm:inline">{t('actions.new')}</span>

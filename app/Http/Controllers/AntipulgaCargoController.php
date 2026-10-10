@@ -11,6 +11,7 @@ use App\Models\ConsultaCargo;
 use App\Models\ConsultaCargoLinea;
 use App\Models\Antipulga;
 use App\Models\Producto;
+use App\Support\Inventario\ProductoCatalogoSearch;
 use App\Support\Clinica\RecetaFichaLineas;
 use App\Models\Sede;
 use App\Models\User;
@@ -188,21 +189,14 @@ class AntipulgaCargoController extends Controller
         $this->ensurePuedeBuscarProductos($request);
 
         $q = trim((string) $request->query('q', ''));
-        $items = Producto::query()
-            ->where('activo', true)
-            ->when($q !== '', function ($query) use ($q): void {
-                $escaped = addcslashes(mb_strtolower($q, 'UTF-8'), '%_\\');
-                $term = '%'.$escaped.'%';
-                $query->where(function ($inner) use ($term): void {
-                    $inner->whereRaw('LOWER(nombre) LIKE ?', [$term])
-                        ->orWhereRaw('LOWER(COALESCE(sku, \'\')) LIKE ?', [$term]);
-                });
-            })
-            ->orderBy('nombre')
-            ->limit(25)
-            ->get(['id', 'nombre', 'sku', 'unidad', 'precio_venta']);
 
-        return response()->json(['data' => $items]);
+        return response()->json([
+            'data' => ProductoCatalogoSearch::filas(
+                $q,
+                soloActivos: true,
+                columnas: ['id', 'nombre', 'sku', 'unidad', 'precio_venta'],
+            ),
+        ]);
     }
 
     public function serviciosBuscar(Request $request): JsonResponse

@@ -73,7 +73,7 @@ class ConsultaPlanTratamientoController extends Controller
                         ->where('es.sede_id', '=', $sedeId);
                 })
                 ->orderBy('productos.nombre')
-                ->limit(25)
+                ->limit(100)
                 ->get([
                     'productos.id',
                     'productos.nombre',
@@ -84,7 +84,7 @@ class ConsultaPlanTratamientoController extends Controller
         } else {
             $items = (clone $base)
                 ->orderBy('productos.nombre')
-                ->limit(25)
+                ->limit(100)
                 ->get(['productos.id', 'productos.nombre', 'productos.sku', 'productos.unidad']);
             foreach ($items as $p) {
                 $p->setAttribute('stock_sede', '0');

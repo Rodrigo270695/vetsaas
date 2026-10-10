@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ProductoCatalogoCombobox } from '@/components/inventario/producto-catalogo-combobox';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import {
@@ -159,16 +160,16 @@ export function PromotionFormModal({
         [groomingServiceOptions, t],
     );
 
-    const productComboboxOptions = useMemo<readonly ComboboxOption[]>(
-        () => [
-            { value: '', label: t('form.producto_none') },
-            ...productOptions.map((p) => ({
-                value: p.id,
-                label: p.sku ? `${p.nombre} (${p.sku})` : p.nombre,
-            })),
-        ],
-        [productOptions, t],
-    );
+    const productSeeds = useMemo(() => {
+        const fromPromotion = promotion?.producto;
+        if (fromPromotion) {
+            return [{ id: fromPromotion.id, nombre: fromPromotion.nombre, sku: fromPromotion.sku }];
+        }
+
+        const selected = productOptions.find((p) => p.id === data.producto_id);
+
+        return selected ? [{ id: selected.id, nombre: selected.nombre, sku: selected.sku }] : [];
+    }, [promotion?.producto, productOptions, data.producto_id]);
 
     const isPct = data.discount_type === 'pct_line' || data.discount_type === 'pct_sale';
     const showGroomingService = data.scope === 'grooming';
@@ -353,12 +354,14 @@ export function PromotionFormModal({
                         error={errors.producto_id}
                         className={gridFieldClass}
                     >
-                        <Combobox
+                        <ProductoCatalogoCombobox
                             id="promo-producto"
-                            options={productComboboxOptions}
-                            value={data.producto_id ?? ''}
-                            onChange={(v) => setData('producto_id', v === '' ? null : v)}
+                            value={data.producto_id}
+                            onChange={(id) => setData('producto_id', id)}
+                            seeds={productSeeds}
+                            soloActivos
                             placeholder={t('form.producto_none')}
+                            searchPlaceholder={t('form.producto_none')}
                         />
                     </FormField>
                 ) : null}

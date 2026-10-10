@@ -7,7 +7,7 @@ use App\Http\Requests\UpdateRecetaRequest;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\Paciente;
-use App\Models\Producto;
+use App\Support\Inventario\ProductoCatalogoSearch;
 use App\Models\Receta;
 use App\Models\RecetaLinea;
 use App\Models\Sede;
@@ -243,22 +243,15 @@ class RecetaController extends Controller
     public function productosMedicamento(Request $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));
-        $items = Producto::query()
-            ->where('activo', true)
-            ->where('medicamento', true)
-            ->when($q !== '', function ($query) use ($q): void {
-                $escaped = addcslashes(mb_strtolower($q, 'UTF-8'), '%_\\');
-                $term = '%'.$escaped.'%';
-                $query->where(function ($inner) use ($term): void {
-                    $inner->whereRaw('LOWER(nombre) LIKE ?', [$term])
-                        ->orWhereRaw('LOWER(COALESCE(sku, \'\')) LIKE ?', [$term]);
-                });
-            })
-            ->orderBy('nombre')
-            ->limit(25)
-            ->get(['id', 'nombre', 'sku', 'unidad']);
 
-        return response()->json(['data' => $items]);
+        return response()->json([
+            'data' => ProductoCatalogoSearch::filas(
+                $q,
+                soloActivos: true,
+                soloMedicamentos: true,
+                columnas: ['id', 'nombre', 'sku', 'unidad'],
+            ),
+        ]);
     }
 
     /**

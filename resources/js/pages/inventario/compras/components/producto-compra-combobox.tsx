@@ -1,6 +1,5 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import { ProductoCatalogoCombobox } from '@/components/inventario/producto-catalogo-combobox';
 import type { ProductoOptionCompra } from '../types';
 
 type ProductoCompraComboboxProps = {
@@ -26,25 +25,16 @@ export function ProductoCompraCombobox({
 }: ProductoCompraComboboxProps) {
     const { t } = useTranslation(['compras-inventario']);
 
-    const options = useMemo<readonly ComboboxOption[]>(
-        () =>
-            productoOptions.map((p) => ({
-                value: p.id,
-                label: p.sku ? `${p.nombre} (${p.sku})` : p.nombre,
-            })),
-        [productoOptions],
-    );
-
     const handleCreateOption = (query: string) => {
         onRequestCreate?.(query.trim());
     };
 
     return (
-        <Combobox
+        <ProductoCatalogoCombobox
             id={id}
-            options={options}
             value={value}
-            onChange={onChange}
+            onChange={(productoId) => onChange(productoId)}
+            seeds={productoOptions}
             placeholder={t('modal.linea_producto_placeholder')}
             searchPlaceholder={t('modal.linea_producto_search')}
             emptyMessage={

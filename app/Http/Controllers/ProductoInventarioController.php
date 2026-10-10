@@ -13,6 +13,7 @@ use App\Models\ProductoLote;
 use App\Models\Sede;
 use App\Services\Inventario\InventarioLoteService;
 use App\Services\Inventario\ProductoInventarioImportService;
+use App\Support\Inventario\ProductoCatalogoSearch;
 use App\Support\Inventario\UnidadMedidaOpciones;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +44,19 @@ class ProductoInventarioController extends Controller
     ];
 
     private const ESTADO_OPTIONS = ['todas', 'activa', 'inactiva'];
+
+    public function opciones(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        return response()->json([
+            'data' => ProductoCatalogoSearch::opciones(
+                $q,
+                $request->boolean('solo_activos'),
+                $request->boolean('solo_medicamentos'),
+            ),
+        ]);
+    }
 
     public function index(Request $request): Response
     {

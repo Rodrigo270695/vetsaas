@@ -4,11 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
-import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import { ProductoCatalogoCombobox } from '@/components/inventario/producto-catalogo-combobox';
 import { Input } from '@/components/ui/input';
 import type {
     ClinicaPaqueteProductoAsignado,
-    ClinicaPaqueteProductoCatalogo,
     ClinicaPaqueteProductosResponse,
 } from '../types';
 
@@ -36,7 +35,6 @@ export function ClinicaPaqueteProductosModal({ open, onOpenChange, servicio, can
 
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [catalogo, setCatalogo] = useState<ClinicaPaqueteProductoCatalogo[]>([]);
     const [rows, setRows] = useState<RowState[]>([]);
 
     useEffect(() => {
@@ -56,7 +54,6 @@ export function ClinicaPaqueteProductosModal({ open, onOpenChange, servicio, can
                 res.ok ? (res.json() as Promise<ClinicaPaqueteProductosResponse>) : Promise.reject(res),
             )
             .then((data) => {
-                setCatalogo(data.catalogo ?? []);
                 setRows(
                     (data.asignados ?? []).map((a: ClinicaPaqueteProductoAsignado) => ({
                         producto_id: a.producto_id,
@@ -68,7 +65,6 @@ export function ClinicaPaqueteProductosModal({ open, onOpenChange, servicio, can
             })
             .catch((err) => {
                 if (err?.name !== 'AbortError') {
-                    setCatalogo([]);
                     setRows([]);
                 }
             })
@@ -77,35 +73,19 @@ export function ClinicaPaqueteProductosModal({ open, onOpenChange, servicio, can
         return () => controller.abort();
     }, [open, servicio]);
 
-    const usedIds = useMemo(() => new Set(rows.map((r) => r.producto_id)), [rows]);
+    const usedIds = useMemo(() => rows.map((r) => r.producto_id), [rows]);
 
-    const options = useMemo<ComboboxOption[]>(
-        () =>
-            catalogo
-                .filter((c) => !usedIds.has(c.id))
-                .map((c) => ({
-                    value: c.id,
-                    label: c.sku ? `${c.nombre} · ${c.sku}` : c.nombre,
-                })),
-        [catalogo, usedIds],
-    );
-
-    const addFromCombobox = (value: string | null) => {
-        if (!value) {
-            return;
-        }
-
-        const existing = catalogo.find((c) => c.id === value);
-        if (!existing || usedIds.has(existing.id)) {
+    const addFromCombobox = (value: string | null, hit: { id: string; nombre: string; sku: string | null } | null) => {
+        if (!value || !hit || usedIds.includes(value)) {
             return;
         }
 
         setRows((prev) => [
             ...prev,
             {
-                producto_id: existing.id,
-                nombre: existing.nombre,
-                sku: existing.sku ?? null,
+                producto_id: hit.id,
+                nombre: hit.nombre,
+                sku: hit.sku,
                 cantidad: '1',
             },
         ]);
@@ -176,15 +156,16 @@ export function ClinicaPaqueteProductosModal({ open, onOpenChange, servicio, can
             <div className="grid gap-5">
                 <div className="space-y-1.5">
                     <p className="text-sm font-medium text-foreground">{t('paquete.add_label')}</p>
-                    <Combobox
-                        options={options}
+                    <ProductoCatalogoCombobox
                         value={null}
                         onChange={addFromCombobox}
+                        soloActivos
+                        soloMedicamentos
+                        excludeIds={usedIds}
                         placeholder={t('paquete.add_placeholder')}
                         searchPlaceholder={t('paquete.search_placeholder')}
                         emptyMessage={t('paquete.empty_catalog')}
                         clearable={false}
-                        creatable={false}
                         disabled={!canUpdate}
                     />
                 </div>

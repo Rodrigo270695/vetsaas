@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ControlClinico;
 use App\Models\Paciente;
-use App\Models\Producto;
+use App\Support\Inventario\ProductoCatalogoSearch;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -91,21 +91,10 @@ final class ControlClinicoController extends Controller
         $this->authorizeWrite($request, true);
 
         $q = trim((string) $request->query('q', ''));
-        $items = Producto::query()
-            ->where('activo', true)
-            ->when($q !== '', function ($query) use ($q): void {
-                $escaped = addcslashes(mb_strtolower($q, 'UTF-8'), '%_\\');
-                $term = '%'.$escaped.'%';
-                $query->where(function ($inner) use ($term): void {
-                    $inner->whereRaw('LOWER(nombre) LIKE ?', [$term])
-                        ->orWhereRaw('LOWER(COALESCE(sku, \'\')) LIKE ?', [$term]);
-                });
-            })
-            ->orderBy('nombre')
-            ->limit(20)
-            ->get(['id', 'nombre', 'sku']);
 
-        return response()->json(['data' => $items]);
+        return response()->json([
+            'data' => ProductoCatalogoSearch::filas($q, soloActivos: true),
+        ]);
     }
 
     /**

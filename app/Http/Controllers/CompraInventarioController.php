@@ -8,7 +8,6 @@ use App\Http\Requests\CompraInventarioStoreRequest;
 use App\Models\Compra;
 use App\Models\CompraLinea;
 use App\Models\MovimientoInventario;
-use App\Models\Producto;
 use App\Models\Proveedor;
 use App\Models\Sede;
 use App\Services\Inventario\InventarioLoteService;
@@ -48,11 +47,7 @@ class CompraInventarioController extends Controller
             ->orderBy('razon_social')
             ->get(['id', 'ruc', 'razon_social']);
 
-        $productoOptions = Producto::query()
-            ->whereNull('deleted_at')
-            ->orderBy('nombre')
-            ->limit(400)
-            ->get(['id', 'nombre', 'sku']);
+        $productoOptions = [];
 
         $unidadOptions = UnidadMedidaOpciones::forProductoForm();
         $canCreateProducto = $request->user()?->can('productos.create') ?? false;

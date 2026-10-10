@@ -11,6 +11,7 @@ export type Promotion = {
     condition_type: string;
     grooming_service_slug: string | null;
     producto_id: string | null;
+    producto?: { id: string; nombre: string; sku: string | null } | null;
     auto_apply: boolean;
     is_active: boolean;
     valid_from: string | null;

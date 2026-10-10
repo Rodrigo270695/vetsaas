@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\Producto;
 use App\Models\ServicioClinico;
 use App\Models\ServicioClinicoProducto;
 use Illuminate\Http\JsonResponse;
@@ -23,18 +22,7 @@ class ServicioClinicoProductoController extends Controller
     {
         $this->ensureTables();
 
-        $catalogo = Producto::query()
-            ->where('activo', true)
-            ->where('medicamento', true)
-            ->orderBy('nombre')
-            ->limit(500)
-            ->get(['id', 'nombre', 'sku'])
-            ->map(fn (Producto $p): array => [
-                'id' => $p->id,
-                'nombre' => $p->nombre,
-                'sku' => $p->sku,
-            ])
-            ->all();
+        $catalogo = [];
 
         $asignados = $servicioClinico->productosPaquete()
             ->with('producto:id,nombre,sku')

@@ -1045,6 +1045,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
 
     // ===== Inventario =====
     Route::prefix('inventario')->name('inventario.')->group(function () {
+        Route::middleware('permission:productos.view|movimientos-stock.view|movimientos-stock.create|compras.view|compras.create|ventas.create|descuentos.view|descuentos.create|descuentos.update|tarifas.view|tarifas.update|consulta-cargos.view|consulta-cargos.manage|recetas.view|recetas.create|vacunaciones.view')
+            ->get('productos/opciones', [ProductoInventarioController::class, 'opciones'])
+            ->name('productos.opciones');
         Route::middleware('permission:productos.view')
             ->get('productos', [ProductoInventarioController::class, 'index'])
             ->name('productos.index');

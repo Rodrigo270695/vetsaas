@@ -4,7 +4,7 @@ import { useEffect, useMemo, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
-import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import { ProductoCatalogoCombobox } from '@/components/inventario/producto-catalogo-combobox';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -91,21 +91,12 @@ export function MovimientoFormModal({
         }
     }, [data.tipo, puedeTrasladar, setData]);
 
-    const productoComboboxOptions = useMemo<readonly ComboboxOption[]>(
-        () =>
-            productoOptions.map((p) => ({
-                value: p.id,
-                label: p.sku ? `${p.nombre} (${p.sku})` : p.nombre,
-            })),
-        [productoOptions],
-    );
-
     const destinoOptions = useMemo(
         () => sedeOptions.filter((s) => s.id !== data.sede_id),
         [sedeOptions, data.sede_id],
     );
 
-    const sinOpciones = sedeOptions.length === 0 || productoOptions.length === 0;
+    const sinOpciones = sedeOptions.length === 0;
     const esTraslado = data.tipo === 'traslado';
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -226,15 +217,15 @@ export function MovimientoFormModal({
                     required
                     className="min-w-0"
                 >
-                    <Combobox
+                    <ProductoCatalogoCombobox
                         id="mov-producto"
-                        options={productoComboboxOptions}
                         value={data.producto_id}
-                        onChange={(v) => setData('producto_id', v)}
+                        onChange={(id) => setData('producto_id', id)}
                         placeholder={t('modal.producto_placeholder')}
                         searchPlaceholder={t('modal.producto_search')}
                         emptyMessage={t('modal.producto_empty')}
                         disabled={processing || sinOpciones}
+                        seeds={productoOptions}
                         clearable={false}
                         aria-invalid={Boolean(errors.producto_id)}
                     />

@@ -1512,7 +1512,7 @@ class VentaController extends Controller
                         ->where('es.sede_id', '=', $sedeId);
                 })
                 ->orderBy('productos.nombre')
-                ->limit(40)
+                ->limit(100)
                 ->get([
                     'productos.id',
                     'productos.nombre',
@@ -1525,7 +1525,7 @@ class VentaController extends Controller
         } else {
             $productos = $query
                 ->orderBy('productos.nombre')
-                ->limit(40)
+                ->limit(100)
                 ->get(['productos.id', 'productos.nombre', 'productos.sku', 'productos.codigo_barras', 'productos.precio_venta', 'productos.unidad']);
 
             foreach ($productos as $p) {
