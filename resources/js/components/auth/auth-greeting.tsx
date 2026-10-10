@@ -4,6 +4,8 @@ import { TypingAnimation } from '@/components/ui/typing-animation';
 type AuthGreetingProps = {
     title?: string;
     description?: string;
+    /** Menos aire entre el saludo y el formulario (login con mascota). */
+    compact?: boolean;
     /** Forzar saludo (útil para tests). Si no, se calcula por hora local. */
     overrideGreeting?: string;
 };
@@ -22,6 +24,7 @@ function pickGreeting(hour: number): string {
 export default function AuthGreeting({
     title,
     description,
+    compact = false,
     overrideGreeting,
 }: AuthGreetingProps) {
     const greeting = useMemo(
@@ -34,7 +37,13 @@ export default function AuthGreeting({
     const headlineDelay = 280 + greetingLine.length * typeSpeed;
 
     return (
-        <header className="mb-8 space-y-3 text-center sm:mb-10">
+        <header
+            className={
+                compact
+                    ? 'mb-5 space-y-1.5 text-center sm:mb-6 sm:space-y-2'
+                    : 'mb-8 space-y-3 text-center sm:mb-10'
+            }
+        >
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[0.7rem] font-medium tracking-wider text-muted-foreground uppercase backdrop-blur">
                 <span className="relative flex size-1.5">
                     <span className="absolute inline-flex size-1.5 animate-ping rounded-full bg-success/60" />
@@ -44,7 +53,11 @@ export default function AuthGreeting({
             </span>
             <h1
                 key={`${greeting}-${headline}`}
-                className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+                className={
+                    compact
+                        ? 'text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl'
+                        : 'text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl'
+                }
             >
                 <TypingAnimation typeSpeed={typeSpeed} delay={180}>
                     {greetingLine}

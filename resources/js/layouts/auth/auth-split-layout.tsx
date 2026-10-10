@@ -45,6 +45,7 @@ export default function AuthSplitLayout({
     const tenant = page.props.tenant as TenantShared | null;
     const branding = useClinicBranding();
     const skipFormCard = PAGES_WITH_OWN_CARD.has(page.component);
+    const isLogin = page.component === 'auth/login';
 
     // Branding contextual: si estamos en un subdominio de tenant
     // (mi-clinica.localhost), el título / descripción del saludo se
@@ -69,21 +70,28 @@ export default function AuthSplitLayout({
                 logoKey={branding?.updated_at ?? undefined}
             />
 
-            <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-8 sm:py-12 lg:py-16">
+            <main
+                className={
+                    isLogin
+                        ? 'relative z-10 flex flex-1 items-start justify-center px-4 pt-0 pb-6 sm:items-center sm:py-4 lg:py-6'
+                        : 'relative z-10 flex flex-1 items-center justify-center px-4 py-8 sm:py-12 lg:py-16'
+                }
+            >
                 <AuthBentoOrbit />
 
                 <article className="relative z-10 mx-auto w-full max-w-md">
-                    {page.component === 'auth/login' ? (
-                        <div className="mb-2 flex justify-center">
+                    {isLogin ? (
+                        <div className="-mb-4 flex justify-center sm:-mb-3">
                             <Mascot
                                 directions="/mascots/pug-directions.webp"
                                 reactions="/mascots/pug-reactions.webp"
-                                size={112}
+                                size={84}
                                 label="pug"
                             />
                         </div>
                     ) : null}
                     <AuthGreeting
+                        compact={isLogin}
                         title={tenantTitle}
                         description={tenantDescription}
                     />
