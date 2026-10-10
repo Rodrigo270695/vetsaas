@@ -224,7 +224,7 @@ export function WhatsAppConnectCard({
                     </p>
                 ) : null}
 
-                {session?.last_error ? (
+                {!isReady && session?.last_error ? (
                     <p className="text-sm text-destructive">{session.last_error}</p>
                 ) : null}
 

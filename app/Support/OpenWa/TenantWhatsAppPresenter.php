@@ -36,8 +36,11 @@ final class TenantWhatsAppPresenter
             ->where('tenant_id', $tenant->id)
             ->first();
 
-        if ($session instanceof TenantWhatsAppSession
-            && OpenWaRateLimitedException::matches((string) $session->last_error)) {
+        if (
+            $session instanceof TenantWhatsAppSession
+            && $session->isReady()
+            && OpenWaClient::isTransientGatewayError((string) $session->last_error)
+        ) {
             $session->forceFill(['last_error' => null])->save();
         }
 

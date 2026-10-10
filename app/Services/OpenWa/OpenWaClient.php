@@ -25,6 +25,20 @@ final class OpenWaClient
     }
 
     /**
+     * OpenWA no contestó (timeout, 429, gateway). No es un desacople de la sesión.
+     */
+    public static function isTransientGatewayError(string $message): bool
+    {
+        return OpenWaRateLimitedException::matches($message)
+            || str_contains($message, 'Error de red con OpenWA')
+            || str_contains($message, 'Operation timed out')
+            || str_contains($message, 'cURL error 28')
+            || str_contains($message, 'HTTP 502')
+            || str_contains($message, 'HTTP 503')
+            || str_contains($message, 'HTTP 504');
+    }
+
+    /**
      * ¿El proceso OpenWA atiende HTTP? Timeout muy corto; si está congelado, false.
      */
     public function ping(): bool
@@ -111,6 +125,12 @@ final class OpenWaClient
             return $this->getSession($sessionId, $timeout);
         } catch (OpenWaRateLimitedException $e) {
             throw $e;
+        } catch (RuntimeException $e) {
+            if (self::isTransientGatewayError($e->getMessage())) {
+                throw $e;
+            }
+
+            return null;
         } catch (\Throwable) {
             return null;
         }

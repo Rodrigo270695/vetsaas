@@ -42,7 +42,10 @@ final class PlatformWhatsAppSessionSync
                 $remote = $this->client->createSession($name);
             }
         } catch (\Throwable $e) {
-            if ($local instanceof PlatformWhatsAppSession) {
+            if (
+                $local instanceof PlatformWhatsAppSession
+                && ! ($local->isReady() && OpenWaClient::isTransientGatewayError($e->getMessage()))
+            ) {
                 $local->forceFill([
                     'last_error' => $e->getMessage(),
                     'last_synced_at' => now(),

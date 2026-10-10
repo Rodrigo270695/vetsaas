@@ -59,7 +59,10 @@ final class TenantWhatsAppSessionSync
         } catch (OpenWaRateLimitedException) {
             return $local;
         } catch (\Throwable $e) {
-            if ($local instanceof TenantWhatsAppSession) {
+            if (
+                $local instanceof TenantWhatsAppSession
+                && ! ($local->isReady() && OpenWaClient::isTransientGatewayError($e->getMessage()))
+            ) {
                 $local->forceFill([
                     'last_error' => $e->getMessage(),
                     'last_synced_at' => now(),

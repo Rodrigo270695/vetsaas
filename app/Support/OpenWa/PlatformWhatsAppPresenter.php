@@ -34,6 +34,14 @@ final class PlatformWhatsAppPresenter
             ->where('openwa_session_name', $this->sync->sessionName())
             ->first();
 
+        if (
+            $session instanceof PlatformWhatsAppSession
+            && $session->isReady()
+            && OpenWaClient::isTransientGatewayError((string) $session->last_error)
+        ) {
+            $session->forceFill(['last_error' => null])->save();
+        }
+
         return [
             'enabled' => true,
             'configured' => true,
