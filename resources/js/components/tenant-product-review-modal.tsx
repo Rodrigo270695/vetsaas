@@ -84,7 +84,9 @@ export function TenantProductReviewModal() {
     }>();
 
     const prompt = page.props.product_review_prompt ?? null;
-    const required = prompt?.required === true;
+    const dismissCount = Math.max(0, prompt?.dismiss_count ?? 0);
+    const skipsLeft = Math.max(0, 3 - dismissCount);
+    const required = prompt?.required === true || skipsLeft === 0;
     const gate = page.props.clinic_location_gate;
     const onboardingForAdmin = Boolean(
         (gate?.needs_sede || gate?.needs_gps) && gate?.can_edit_sedes,
@@ -115,12 +117,13 @@ export function TenantProductReviewModal() {
 
     const closeWithoutSaving = () => {
         if (form.processing || required) {
+            setOpen(true);
             return;
         }
-        setOpen(false);
         form.post('/tenant/product-review/dismiss', {
             preserveScroll: true,
             preserveState: true,
+            onError: () => setOpen(true),
         });
     };
 
@@ -177,8 +180,8 @@ export function TenantProductReviewModal() {
                         </DialogTitle>
                         <DialogDescription className="text-sm leading-relaxed">
                             {required
-                                ? 'Ya pospusiste esto tres veces. Publica tu reseña para seguir; se verá en orvae.pe como '
-                                : 'Puedes posponer hasta tres veces. La reseña se verá en orvae.pe como '}
+                                ? 'Ya usaste las 3 veces para omitir la reseña. Publícala para seguir; se verá en orvae.pe como '
+                                : `Puedes omitirla ${skipsLeft} ${skipsLeft === 1 ? 'vez' : 'veces'} más. Se verá en orvae.pe como `}
                             <span className="font-medium text-foreground">{previewLine}</span>
                             {prompt.author_name ? (
                                 <>
@@ -239,7 +242,7 @@ export function TenantProductReviewModal() {
                                 disabled={form.processing}
                                 onClick={closeWithoutSaving}
                             >
-                                Ahora no
+                                Ahora no ({skipsLeft} de 3)
                             </Button>
                         )}
                         <Button type="submit" disabled={form.processing}>
