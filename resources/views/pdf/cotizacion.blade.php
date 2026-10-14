@@ -11,6 +11,9 @@
     /** @var string $clinicRazonSocial */
     /** @var string $monedaSimbolo */
     /** @var string $atendidoPor */
+    /** @var string $textoSobrePrimario */
+    /** @var string $textoSobreSecundario */
+    /** @var string $tintaPrimario */
     $money = fn ($n): string => $monedaSimbolo.' '.number_format((float) $n, 2, '.', ',');
     $qty = function ($n): string {
         $s = number_format((float) $n, 3, '.', '');
@@ -36,7 +39,7 @@
         .header { width: 100%; }
         .header td { vertical-align: top; }
         .logo { max-width: 90px; max-height: 80px; }
-        .clinic-name { font-size: 15px; font-weight: bold; margin: 0; color: {{ $colorPrimario }}; }
+        .clinic-name { font-size: 15px; font-weight: bold; margin: 0; color: {{ $tintaPrimario }}; }
         .clinic-sede { font-size: 11px; font-weight: bold; margin: 2px 0 0; }
         .clinic-line { font-size: 9.5px; margin: 2px 0 0; color: #374151; }
         .doc-box {
@@ -49,7 +52,7 @@
         .doc-box .ruc { font-size: 10px; font-weight: bold; }
         .doc-box .title {
             background: {{ $colorPrimario }};
-            color: #fff;
+            color: {{ $textoSobrePrimario }};
             font-size: 12px;
             font-weight: bold;
             letter-spacing: 0.08em;
@@ -64,7 +67,7 @@
         .items { width: 100%; margin-top: 14px; }
         .items th {
             background: {{ $colorSecundario }};
-            color: #111827;
+            color: {{ $textoSobreSecundario }};
             font-size: 9.5px;
             text-transform: uppercase;
             text-align: left;
@@ -81,7 +84,7 @@
             font-size: 13px;
             font-weight: bold;
             border-top: 1.5px solid {{ $colorPrimario }};
-            color: {{ $colorPrimario }};
+            color: {{ $tintaPrimario }};
             padding-top: 6px;
         }
         .notes { margin-top: 18px; border-left: 3px solid {{ $colorPrimario }}; padding: 6px 10px; background: #f9fafb; }
