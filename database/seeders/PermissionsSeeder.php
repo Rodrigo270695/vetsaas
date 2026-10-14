@@ -66,6 +66,7 @@ class PermissionsSeeder extends Seeder
         // ───── Caja ─────
         'caja-sesiones' => ['view', 'open', 'close', 'egreso'],
         'ventas' => ['view', 'create', 'update', 'delete'],
+        'cotizaciones' => ['view', 'create', 'update', 'delete'],
         'pagos' => ['view', 'create', 'refund'],
         'descuentos' => ['view', 'create', 'update', 'delete'],
 

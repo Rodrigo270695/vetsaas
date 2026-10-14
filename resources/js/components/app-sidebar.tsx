@@ -289,6 +289,12 @@ export function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'ventas.view',
                         },
                         {
+                            title: t('items.cotizaciones'),
+                            href: '/caja/cotizaciones',
+                            icon: FileText,
+                            permission: ['cotizaciones.view', 'ventas.view'],
+                        },
+                        {
                             title: t('items.pagos'),
                             href: '/caja/pagos',
                             icon: CreditCard,

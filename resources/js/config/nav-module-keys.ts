@@ -22,6 +22,7 @@ export const NAV_HREF_MODULE_KEYS: Record<string, string> = {
     '/inventario/compras': 'compras',
     '/caja/sesiones': 'caja_sesiones',
     '/caja/ventas': 'ventas',
+    '/caja/cotizaciones': 'ventas',
     '/caja/pagos': 'pagos',
     '/caja/descuentos': 'descuentos',
     '/facturacion/documentos': 'documentos',

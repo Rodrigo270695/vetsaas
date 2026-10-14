@@ -21,6 +21,7 @@ use App\Http\Controllers\ConsultaCargoController;
 use App\Http\Controllers\ConsultaDictationController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\ConsultaPlanTratamientoController;
+use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoAccessGeoController;
 use App\Http\Controllers\DemoAccessLeadController;
@@ -1279,6 +1280,57 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:ventas.create')
             ->post('ventas/preview-promotions', [PromotionController::class, 'preview'])
             ->name('ventas.preview-promotions');
+        Route::middleware('permission:cotizaciones.view|ventas.view')
+            ->get('cotizaciones', [CotizacionController::class, 'index'])
+            ->name('cotizaciones.index');
+        Route::middleware('permission:cotizaciones.create|ventas.create')
+            ->get('cotizaciones/nueva', [CotizacionController::class, 'create'])
+            ->name('cotizaciones.create');
+        Route::middleware('permission:cotizaciones.create|ventas.create')
+            ->post('cotizaciones', [CotizacionController::class, 'store'])
+            ->name('cotizaciones.store');
+        Route::middleware('permission:cotizaciones.create|cotizaciones.update|ventas.create')
+            ->get('cotizaciones/buscar-propietarios', [CotizacionController::class, 'buscarPropietarios'])
+            ->name('cotizaciones.buscar-propietarios');
+        Route::middleware('permission:cotizaciones.create|cotizaciones.update|ventas.create')
+            ->get('cotizaciones/propietarios/{propietario}', [CotizacionController::class, 'propietario'])
+            ->whereUuid('propietario')
+            ->name('cotizaciones.propietario');
+        Route::middleware('permission:cotizaciones.create|cotizaciones.update|ventas.create')
+            ->get('cotizaciones/buscar-productos', [CotizacionController::class, 'buscarProductos'])
+            ->name('cotizaciones.buscar-productos');
+        Route::middleware('permission:cotizaciones.create|cotizaciones.update|ventas.create')
+            ->get('cotizaciones/buscar-servicios', [CotizacionController::class, 'buscarServicios'])
+            ->name('cotizaciones.buscar-servicios');
+        Route::middleware('permission:cotizaciones.update|ventas.create')
+            ->get('cotizaciones/{cotizacion}/editar', [CotizacionController::class, 'edit'])
+            ->whereUuid('cotizacion')
+            ->name('cotizaciones.edit');
+        Route::middleware('permission:cotizaciones.update|ventas.create')
+            ->put('cotizaciones/{cotizacion}', [CotizacionController::class, 'update'])
+            ->whereUuid('cotizacion')
+            ->name('cotizaciones.update');
+        Route::middleware('permission:cotizaciones.update|ventas.create')
+            ->post('cotizaciones/{cotizacion}/estado', [CotizacionController::class, 'estado'])
+            ->whereUuid('cotizacion')
+            ->name('cotizaciones.estado');
+        Route::middleware('permission:cotizaciones.delete|ventas.delete')
+            ->delete('cotizaciones/{cotizacion}', [CotizacionController::class, 'destroy'])
+            ->whereUuid('cotizacion')
+            ->name('cotizaciones.destroy');
+        Route::middleware('permission:cotizaciones.view|ventas.view')
+            ->get('cotizaciones/{cotizacion}/pdf', [CotizacionController::class, 'pdf'])
+            ->whereUuid('cotizacion')
+            ->name('cotizaciones.pdf');
+        Route::middleware('permission:cotizaciones.view|ventas.view')
+            ->post('cotizaciones/{cotizacion}/enviar-whatsapp', [CotizacionController::class, 'enviarWhatsApp'])
+            ->whereUuid('cotizacion')
+            ->name('cotizaciones.enviar-whatsapp');
+        Route::middleware('permission:cotizaciones.view|ventas.view')
+            ->post('cotizaciones/{cotizacion}/enviar-correo', [CotizacionController::class, 'enviarCorreo'])
+            ->whereUuid('cotizacion')
+            ->name('cotizaciones.enviar-correo');
+
         Route::middleware('permission:descuentos.view')
             ->get('descuentos', [PromotionController::class, 'index'])
             ->name('descuentos.index');

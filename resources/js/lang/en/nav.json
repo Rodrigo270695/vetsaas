@@ -44,6 +44,7 @@
         "compras": "Purchases",
         "sesiones": "Cash sessions",
         "ventas": "Sales",
+        "cotizaciones": "Quotes",
         "pagos": "Payments",
         "descuentos": "Discounts",
         "documentos": "Issued receipts",
