@@ -19,6 +19,8 @@ use InvalidArgumentException;
  */
 final class ManualSubscriptionRenewalService
 {
+    private const DUPLICATE_WINDOW_MINUTES = 10;
+
     public function __construct(
         private readonly SubscriptionRenewalService $renewals,
     ) {}
@@ -71,12 +73,13 @@ final class ManualSubscriptionRenewalService
 
             $transactionId = 'manual-renewal:'.hash(
                 'sha256',
-                $method.'|'.$normalizedReference,
+                $method.'|'.$normalizedReference.'|'.$idempotencyKey,
             );
             $existingPayment = SubscriptionPayment::query()
                 ->where('subscription_id', $subscription->id)
                 ->where('pasarela_transaction_id', $transactionId)
-                ->first();
+                ->first()
+                ?? $this->recentSameReference($subscription, $method, $normalizedReference);
 
             if ($existingPayment instanceof SubscriptionPayment) {
                 return [
@@ -134,5 +137,34 @@ final class ManualSubscriptionRenewalService
                 'already_processed' => false,
             ];
         }, 3);
+    }
+
+    /**
+     * La misma referencia puede repetirse entre meses (p. ej. «yape»).
+     * Solo cuenta como doble registro si se envió hace pocos minutos.
+     */
+    private function recentSameReference(
+        Subscription $subscription,
+        string $method,
+        string $normalizedReference,
+    ): ?SubscriptionPayment {
+        return SubscriptionPayment::query()
+            ->where('subscription_id', $subscription->id)
+            ->where('pasarela', 'manual')
+            ->where('created_at', '>=', now()->subMinutes(self::DUPLICATE_WINDOW_MINUTES))
+            ->orderByDesc('created_at')
+            ->get()
+            ->first(function (SubscriptionPayment $payment) use ($method, $normalizedReference): bool {
+                $raw = $payment->pasarela_response['raw'] ?? [];
+                if (! is_array($raw) || ($raw['method'] ?? null) !== $method) {
+                    return false;
+                }
+
+                $reference = mb_strtolower(
+                    trim((string) preg_replace('/\s+/', ' ', (string) ($raw['reference'] ?? ''))),
+                );
+
+                return $reference === $normalizedReference;
+            });
     }
 }

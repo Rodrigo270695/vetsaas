@@ -141,4 +141,70 @@ it('registra una renovación manual procesada una sola vez y avanza el período'
         ->and($payment->pasarela_response['raw']['method'] ?? null)->toBe('yape')
         ->and($payment->internal_note)->toBe('Pago confirmado por WhatsApp.')
         ->and(SubscriptionPayment::query()->count())->toBe(1);
+
+    Carbon::setTestNow();
+});
+
+it('permite repetir la misma referencia manual en la siguiente renovación', function (): void {
+    Carbon::setTestNow('2026-07-01 10:00:00');
+
+    $plan = Plan::query()->create([
+        'codigo' => 'pro-manual-repeat',
+        'nombre' => 'Pro manual repeat',
+        'descripcion' => null,
+        'precio_mensual' => '39.90',
+        'precio_anual' => null,
+        'trial_days' => 0,
+        'orden' => 83,
+        'es_publico' => true,
+        'activo' => true,
+    ]);
+    $tenant = Tenant::query()->create([
+        'slug' => 'renewrepeat-'.Str::lower(Str::random(6)),
+        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
+        'razon_social' => 'Clínica Referencia Repetida',
+        'email_admin' => Str::lower(Str::random(8)).'@repeat.test',
+        'estado' => 'active',
+    ]);
+    $subscription = Subscription::withoutEvents(fn (): Subscription => Subscription::query()->create([
+        'tenant_id' => $tenant->id,
+        'plan_id' => $plan->id,
+        'estado' => 'active',
+        'ciclo' => 'mensual',
+        'current_period_start' => Carbon::parse('2026-06-05'),
+        'current_period_end' => Carbon::parse('2026-07-05'),
+        'proximo_cobro_at' => Carbon::parse('2026-07-05'),
+        'precio_pactado' => '39.90',
+    ]));
+    $actor = User::factory()->create([
+        'tenant_id' => null,
+        'email' => Str::lower(Str::random(8)).'@platform.test',
+    ]);
+
+    $service = app(ManualSubscriptionRenewalService::class);
+    $service->renew(
+        subscriptionId: (string) $subscription->id,
+        amount: 39.90,
+        method: 'yape',
+        idempotencyKey: (string) Str::uuid(),
+        actor: $actor,
+        reference: 'yape',
+    );
+
+    Carbon::setTestNow('2026-08-05 09:00:00');
+
+    $next = $service->renew(
+        subscriptionId: (string) $subscription->id,
+        amount: 39.90,
+        method: 'yape',
+        idempotencyKey: (string) Str::uuid(),
+        actor: $actor,
+        reference: 'yape',
+    );
+
+    expect($next['already_processed'])->toBeFalse()
+        ->and(SubscriptionPayment::query()->count())->toBe(2)
+        ->and($subscription->fresh()?->current_period_end?->toDateString())->toBe('2026-09-05');
+
+    Carbon::setTestNow();
 });
