@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\SalesConversation;
 use App\Services\Google\GoogleCalendarMeetService;
 use App\Services\Sales\SalesBotService;
+use App\Support\Sales\OrvaeSalesHubClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -108,6 +109,10 @@ final class SalesBotConversationController extends Controller
             ],
             'stats' => $stats,
             'googleCalendar' => $this->googleCalendar->status(),
+            'orvae' => [
+                'configured' => app(OrvaeSalesHubClient::class)->isConfigured(),
+                'url' => route('plataforma.salesbot-conversations.orvae.index'),
+            ],
         ]);
     }
 

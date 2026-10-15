@@ -41,6 +41,7 @@ import { toastManager } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
 import salesbotConversations from '@/routes/plataforma/salesbot-conversations';
 import type { Paginated } from '@/types';
+import { OrvaeConversationsPanel } from './components/orvae-conversations-panel';
 
 type Conversation = {
     id: string;
@@ -92,6 +93,7 @@ type Props = {
         has_client: boolean;
         email: string | null;
     };
+    orvae?: { configured: boolean; url: string };
 };
 
 const DEFAULT_PER_PAGE = 15;
@@ -530,7 +532,9 @@ export default function SalesBotConversationsIndex({
     filters,
     stats,
     googleCalendar,
+    orvae,
 }: Props) {
+    const [view, setView] = useState<'historial' | 'orvae'>('historial');
     const { t } = useTranslation(['salesbot-conversations', 'common']);
     const { can } = usePermission();
     const canUpdate = can('salesbot-knowledge.update');
@@ -923,6 +927,33 @@ export default function SalesBotConversationsIndex({
             <Head title="Conversaciones del bot" />
 
             <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
+                {orvae ? (
+                    <div className="flex gap-1 self-start rounded-lg border bg-card p-1" role="tablist">
+                        {(
+                            [
+                                ['historial', 'Historial VetSaaS'],
+                                ['orvae', 'ORVAE en vivo'],
+                            ] as const
+                        ).map(([key, label]) => (
+                            <Button
+                                key={key}
+                                type="button"
+                                role="tab"
+                                aria-selected={view === key}
+                                size="sm"
+                                variant={view === key ? 'default' : 'ghost'}
+                                onClick={() => setView(key)}
+                            >
+                                {label}
+                            </Button>
+                        ))}
+                    </div>
+                ) : null}
+
+                {view === 'orvae' && orvae ? (
+                    <OrvaeConversationsPanel configured={orvae.configured} url={orvae.url} />
+                ) : (
+                <>
                 <PageHeader
                     title="Conversaciones del bot"
                     description={
@@ -1010,6 +1041,8 @@ export default function SalesBotConversationsIndex({
                         />
                     }
                 />
+                </>
+                )}
 
                 <FormModal
                     open={engageTarget !== null}

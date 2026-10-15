@@ -87,6 +87,7 @@ use App\Http\Controllers\ReporteVentasController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalaEsperaController;
 use App\Http\Controllers\SalesBotConversationController;
+use App\Http\Controllers\SalesBotOrvaeConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
 use App\Http\Controllers\SalesBotMeetingController;
 use App\Http\Controllers\SedeController;
@@ -2109,6 +2110,13 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.view')
             ->get('salesbot-conversations', [SalesBotConversationController::class, 'index'])
             ->name('salesbot-conversations.index');
+        Route::middleware('permission:salesbot-knowledge.view')
+            ->get('salesbot-conversations/orvae', [SalesBotOrvaeConversationController::class, 'index'])
+            ->name('salesbot-conversations.orvae.index');
+        Route::middleware('permission:salesbot-knowledge.view')
+            ->get('salesbot-conversations/orvae/{conversation}', [SalesBotOrvaeConversationController::class, 'show'])
+            ->whereUuid('conversation')
+            ->name('salesbot-conversations.orvae.show');
         Route::middleware('permission:salesbot-knowledge.view')
             ->get('salesbot-meetings', [SalesBotMeetingController::class, 'index'])
             ->name('salesbot-meetings.index');

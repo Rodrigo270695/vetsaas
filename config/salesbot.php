@@ -124,6 +124,8 @@ return [
             'vacunas', 'paciente', 'perro', 'gato',
         ],
         'refresh_url' => env('ORVAE_KNOWLEDGE_REFRESH_URL'),
+        // Opcional: por defecto se deduce de refresh_url (…/saleshub/conversations).
+        'conversations_url' => env('ORVAE_SALESHUB_CONVERSATIONS_URL'),
     ],
 
 ];
