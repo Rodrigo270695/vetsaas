@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AlmaPetWebhookController;
 use App\Http\Controllers\Api\ClinicBotWebhookController;
 use App\Http\Controllers\Api\Internal\SaasProvisionController;
+use App\Http\Controllers\Api\Internal\SalesKnowledgeController;
 use App\Http\Controllers\Api\Public\TenantShowcaseController;
 use App\Http\Controllers\Api\Public\VetSaaSMarketingController;
 use App\Http\Controllers\Api\SalesBotWebhookController;
@@ -126,4 +127,7 @@ Route::prefix('internal/saas')
 
         Route::get('showcase', [SaasProvisionController::class, 'showcase'])
             ->name('api.internal.saas.showcase');
+
+        Route::get('salesbot-knowledge', SalesKnowledgeController::class)
+            ->name('api.internal.saas.salesbot-knowledge');
     });

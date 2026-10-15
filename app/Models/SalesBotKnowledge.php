@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Sales\OrvaeKnowledgeNotifier;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * @property int         $id
- * @property string      $product       "vetsaas" | "aula-virtual" | "inventario"
- * @property string      $section       "plan" | "modulo" | "faq" | "objecion" | "novedad" | "general"
- * @property string      $slug          "plan-pro" | "modulo-grooming"
- * @property string      $title
- * @property string      $content
- * @property array|null  $meta
- * @property int         $sort_order
- * @property bool        $is_active
+ * @property int $id
+ * @property string $product "vetsaas" | "aula-virtual" | "inventario"
+ * @property string $section "plan" | "modulo" | "faq" | "objecion" | "novedad" | "general"
+ * @property string $slug "plan-pro" | "modulo-grooming"
+ * @property string $title
+ * @property string $content
+ * @property array|null $meta
+ * @property int $sort_order
+ * @property bool $is_active
  */
 final class SalesBotKnowledge extends Model
 {
@@ -37,9 +38,9 @@ final class SalesBotKnowledge extends Model
     protected function casts(): array
     {
         return [
-            'meta'       => 'array',
+            'meta' => 'array',
             'sort_order' => 'integer',
-            'is_active'  => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -82,11 +83,11 @@ final class SalesBotKnowledge extends Model
             $sections = [];
             foreach ($entries->groupBy('section') as $section => $items) {
                 $sectionTitle = match ($section) {
-                    'plan'      => 'PLANES Y PRECIOS',
-                    'modulo'    => 'MÓDULOS Y FUNCIONALIDADES',
-                    'faq'       => 'PREGUNTAS FRECUENTES',
-                    'objecion'  => 'CÓMO MANEJAR OBJECIONES',
-                    default     => strtoupper($section),
+                    'plan' => 'PLANES Y PRECIOS',
+                    'modulo' => 'MÓDULOS Y FUNCIONALIDADES',
+                    'faq' => 'PREGUNTAS FRECUENTES',
+                    'objecion' => 'CÓMO MANEJAR OBJECIONES',
+                    default => strtoupper($section),
                 };
 
                 $block = "## {$sectionTitle}\n\n";
@@ -110,5 +111,7 @@ final class SalesBotKnowledge extends Model
         Cache::forget("salesbot_knowledge_{$product}_no_plans");
         Cache::forget("salesbot_plans_{$product}");
         Cache::forget("salesbot_novedades_{$product}");
+
+        OrvaeKnowledgeNotifier::changed($product);
     }
 }

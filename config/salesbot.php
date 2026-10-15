@@ -110,4 +110,20 @@ return [
     'message_debounce_seconds' => (int) env('SALESBOT_MESSAGE_DEBOUNCE_SECONDS', 4),
     'message_debounce_max_messages' => (int) env('SALESBOT_MESSAGE_DEBOUNCE_MAX_MESSAGES', 12),
 
+    /*
+    | Datos que ORVAE (Centro de Ventas) lee de GET /api/internal/saas/salesbot-knowledge.
+    | refresh_url: ORVAE invalida su caché cuando cambia el conocimiento.
+    */
+    'orvae' => [
+        'resumen' => 'Sistema en la nube para clínicas veterinarias: historias clínicas, agenda, '
+            .'peluquería, inventario, caja y facturación electrónica SUNAT, con recordatorios por WhatsApp.',
+        'publico' => 'Clínicas veterinarias, consultorios, pet shops y centros de grooming en Perú.',
+        'palabras_clave' => [
+            'vetsaas', 'veterinaria', 'veterinario', 'clínica veterinaria', 'consultorio veterinario',
+            'mascota', 'mascotas', 'grooming', 'peluquería canina', 'pet shop', 'historia clínica',
+            'vacunas', 'paciente', 'perro', 'gato',
+        ],
+        'refresh_url' => env('ORVAE_KNOWLEDGE_REFRESH_URL'),
+    ],
+
 ];

@@ -40,6 +40,21 @@ final class OrvaeProvisionTestHelper
     }
 
     /**
+     * @return array<string, string>
+     */
+    public static function signedGetServerVars(string $secret, string $idempotencyKey = 'test:get'): array
+    {
+        $timestamp = (string) now()->timestamp;
+
+        return self::headersToServerVars([
+            'Accept' => 'application/json',
+            'X-Orvae-Timestamp' => $timestamp,
+            'X-Orvae-Signature' => 'sha256='.hash_hmac('sha256', $timestamp.'.', $secret),
+            'X-Idempotency-Key' => $idempotencyKey,
+        ]);
+    }
+
+    /**
      * @param  array<string, string>  $headers
      * @return array<string, string>
      */
