@@ -7,6 +7,8 @@ namespace App\Http\Controllers;
 use App\Models\ControlClinico;
 use App\Models\Paciente;
 use App\Support\Inventario\ProductoCatalogoSearch;
+use App\Support\Servicios\ServicioClinicoCatalogoSearch;
+use Illuminate\Validation\Rule;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -97,6 +99,17 @@ final class ControlClinicoController extends Controller
         ]);
     }
 
+    public function serviciosBuscar(Request $request, Paciente $paciente): JsonResponse
+    {
+        $this->authorizeWrite($request, true);
+
+        $q = trim((string) $request->query('q', ''));
+
+        return response()->json([
+            'data' => ServicioClinicoCatalogoSearch::opciones($q, soloActivos: true),
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -148,6 +161,7 @@ final class ControlClinicoController extends Controller
                 : route('clinica.pacientes.controles.update', [$paciente, $row]),
             'method' => $row === null ? 'post' : 'put',
             'productos_url' => route('clinica.pacientes.controles.productos', $paciente),
+            'servicios_url' => route('clinica.pacientes.controles.servicios', $paciente),
             'volver_url' => route('clinica.pacientes.show', $paciente),
         ];
     }
@@ -198,7 +212,7 @@ final class ControlClinicoController extends Controller
             'diagnosticos' => ['nullable', 'array', 'max:30'],
             'diagnosticos.*' => ['nullable', 'string', 'max:200'],
             'examenes' => ['nullable', 'array', 'max:30'],
-            'examenes.*.producto_id' => ['nullable', 'uuid'],
+            'examenes.*.servicio_clinico_id' => ['nullable', 'uuid', Rule::exists('servicios_clinicos', 'id')],
             'examenes.*.nombre' => ['nullable', 'string', 'max:200'],
             'examenes.*.especificaciones' => ['nullable', 'string', 'max:500'],
             'examenes.*.rol' => ['nullable', 'in:principal,complementario'],
@@ -234,7 +248,7 @@ final class ControlClinicoController extends Controller
             }
         }
 
-        $lineas = static function (array $rows, bool $conCantidad) use ($blank): array {
+        $lineasProducto = static function (array $rows, bool $conCantidad) use ($blank): array {
             $out = [];
             foreach ($rows as $linea) {
                 $nombre = $blank($linea['nombre'] ?? null);
@@ -256,6 +270,24 @@ final class ControlClinicoController extends Controller
             return $out;
         };
 
+        $lineasExamenes = static function (array $rows) use ($blank): array {
+            $out = [];
+            foreach ($rows as $linea) {
+                $nombre = $blank($linea['nombre'] ?? null);
+                if ($nombre === null) {
+                    continue;
+                }
+                $out[] = [
+                    'servicio_clinico_id' => $blank($linea['servicio_clinico_id'] ?? null),
+                    'nombre' => $nombre,
+                    'especificaciones' => $blank($linea['especificaciones'] ?? null),
+                    'rol' => ($linea['rol'] ?? 'principal') === 'complementario' ? 'complementario' : 'principal',
+                ];
+            }
+
+            return $out;
+        };
+
         return [
             'atendido_at' => Carbon::parse((string) $data['atendido_at'], $tz),
             'motivo' => $blank($data['motivo'] ?? null) ?? 'Control',
@@ -271,9 +303,9 @@ final class ControlClinicoController extends Controller
             'examen_clinico' => $blank($data['examen_clinico'] ?? null),
             'examen_detalle' => $blank($data['examen_detalle'] ?? null),
             'diagnosticos' => $diagnosticos,
-            'examenes' => $lineas($data['examenes'] ?? [], false),
-            'tratamiento' => $lineas($data['tratamiento'] ?? [], true),
-            'receta' => $lineas($data['receta'] ?? [], true),
+            'examenes' => $lineasExamenes($data['examenes'] ?? []),
+            'tratamiento' => $lineasProducto($data['tratamiento'] ?? [], true),
+            'receta' => $lineasProducto($data['receta'] ?? [], true),
             'comentarios' => $blank($data['comentarios'] ?? null),
         ];
     }

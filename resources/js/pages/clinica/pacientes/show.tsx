@@ -313,6 +313,7 @@ type Props = {
         control?: {
             store_url: string;
             productos_url: string;
+            servicios_url: string;
             atendido_at: string;
         } | null;
         nueva_desparasitacion?: string | null;

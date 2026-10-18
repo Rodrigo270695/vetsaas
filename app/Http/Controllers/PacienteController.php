@@ -527,6 +527,7 @@ class PacienteController extends Controller
                     ? [
                         'store_url' => route('clinica.pacientes.controles.store', $paciente),
                         'productos_url' => route('clinica.pacientes.controles.productos', $paciente),
+                        'servicios_url' => route('clinica.pacientes.controles.servicios', $paciente),
                         'atendido_at' => now()->timezone((string) config('app.timezone', 'America/Lima'))->format('Y-m-d\TH:i'),
                     ]
                     : null,

@@ -12,11 +12,18 @@ import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { ConstantesCompactas, soloNumero } from './components/constantes-compactas';
 
-type Linea = {
+type LineaProducto = {
     producto_id: string | null;
     nombre: string;
     especificaciones: string;
     cantidad: string;
+    rol: 'principal' | 'complementario';
+};
+
+type LineaExamen = {
+    servicio_clinico_id: string | null;
+    nombre: string;
+    especificaciones: string;
     rol: 'principal' | 'complementario';
 };
 
@@ -35,9 +42,9 @@ type Registro = {
     examen_clinico: string | null;
     examen_detalle: string | null;
     diagnosticos: string[];
-    examenes: Partial<Linea>[];
-    tratamiento: Partial<Linea>[];
-    receta: Partial<Linea>[];
+    examenes: Partial<LineaExamen>[];
+    tratamiento: Partial<LineaProducto>[];
+    receta: Partial<LineaProducto>[];
     comentarios: string | null;
     veterinario?: string | null;
 };
@@ -50,11 +57,13 @@ type Props = {
     guardar_url: string;
     method: 'post' | 'put';
     productos_url: string;
+    servicios_url: string;
     onVolver: () => void;
     onRegistrarCita?: () => void;
 };
 
-type Sugerencia = { id: string; nombre: string; sku: string | null };
+type SugerenciaProducto = { id: string; nombre: string; sku: string | null };
+type SugerenciaServicio = { id: string; nombre: string; categoria: string | null };
 
 function str(value: string | number | null | undefined): string {
     return value == null ? '' : String(value);
@@ -65,9 +74,9 @@ function RolSelect({
     disabled,
     onChange,
 }: {
-    value: Linea['rol'];
+    value: 'principal' | 'complementario';
     disabled: boolean;
-    onChange: (rol: Linea['rol']) => void;
+    onChange: (rol: 'principal' | 'complementario') => void;
 }) {
     const { t } = useTranslation('pacientes');
 
@@ -88,7 +97,7 @@ function RolSelect({
     );
 }
 
-function lineaDesde(raw: Partial<Linea> | undefined): Linea {
+function lineaProductoDesde(raw: Partial<LineaProducto> | undefined): LineaProducto {
     return {
         producto_id: raw?.producto_id ?? null,
         nombre: raw?.nombre ?? '',
@@ -98,7 +107,16 @@ function lineaDesde(raw: Partial<Linea> | undefined): Linea {
     };
 }
 
-function BuscadorLineas({
+function lineaExamenDesde(raw: Partial<LineaExamen> & { producto_id?: string | null } | undefined): LineaExamen {
+    return {
+        servicio_clinico_id: raw?.servicio_clinico_id ?? null,
+        nombre: raw?.nombre ?? '',
+        especificaciones: raw?.especificaciones ?? '',
+        rol: raw?.rol === 'complementario' ? 'complementario' : 'principal',
+    };
+}
+
+function BuscadorLineasProducto({
     titulo,
     productosUrl,
     lineas,
@@ -108,15 +126,15 @@ function BuscadorLineas({
 }: {
     titulo: string;
     productosUrl: string;
-    lineas: Linea[];
+    lineas: LineaProducto[];
     disabled: boolean;
     conCantidad: boolean;
-    onChange: (lineas: Linea[]) => void;
+    onChange: (lineas: LineaProducto[]) => void;
 }) {
     const { t } = useTranslation('pacientes');
     const [buscar, setBuscar] = useState('');
     const [rol, setRol] = useState<'principal' | 'complementario'>('principal');
-    const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
+    const [sugerencias, setSugerencias] = useState<SugerenciaProducto[]>([]);
 
     useEffect(() => {
         const q = buscar.trim();
@@ -132,7 +150,7 @@ function BuscadorLineas({
                 credentials: 'same-origin',
             })
                 .then((res) => res.json())
-                .then((body: { data?: Sugerencia[] }) => setSugerencias(body.data ?? []))
+                .then((body: { data?: SugerenciaProducto[] }) => setSugerencias(body.data ?? []))
                 .catch(() => setSugerencias([]));
         }, 250);
 
@@ -270,6 +288,163 @@ function BuscadorLineas({
     );
 }
 
+function BuscadorLineasExamen({
+    titulo,
+    serviciosUrl,
+    lineas,
+    disabled,
+    onChange,
+}: {
+    titulo: string;
+    serviciosUrl: string;
+    lineas: LineaExamen[];
+    disabled: boolean;
+    onChange: (lineas: LineaExamen[]) => void;
+}) {
+    const { t } = useTranslation('pacientes');
+    const [buscar, setBuscar] = useState('');
+    const [rol, setRol] = useState<'principal' | 'complementario'>('principal');
+    const [sugerencias, setSugerencias] = useState<SugerenciaServicio[]>([]);
+
+    useEffect(() => {
+        const q = buscar.trim();
+        if (q.length < 1) {
+            setSugerencias([]);
+
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            void fetch(`${serviciosUrl}?q=${encodeURIComponent(q)}`, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            })
+                .then((res) => res.json())
+                .then((body: { data?: SugerenciaServicio[] }) => setSugerencias(body.data ?? []))
+                .catch(() => setSugerencias([]));
+        }, 250);
+
+        return () => window.clearTimeout(timer);
+    }, [buscar, serviciosUrl]);
+
+    const agregar = (nombre: string, servicioClinicoId: string | null) => {
+        const limpio = nombre.trim();
+        if (limpio === '') {
+            return;
+        }
+
+        onChange([
+            ...lineas,
+            {
+                servicio_clinico_id: servicioClinicoId,
+                nombre: limpio,
+                especificaciones: '',
+                rol,
+            },
+        ]);
+        setBuscar('');
+        setSugerencias([]);
+    };
+
+    return (
+        <section className="rounded-xl border bg-card px-3 py-2.5">
+            <h2 className="mb-2 text-sm font-semibold">{titulo}</h2>
+            <div className="relative mb-2 flex gap-2">
+                <div className="relative min-w-0 flex-1">
+                    <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+                    <Input
+                        value={buscar}
+                        disabled={disabled}
+                        placeholder={t('control.buscar')}
+                        className="bg-amber-50/80 pl-8 dark:bg-amber-950/20"
+                        onChange={(event) => setBuscar(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                agregar(buscar, null);
+                            }
+                        }}
+                    />
+                    {sugerencias.length > 0 ? (
+                        <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md">
+                            {sugerencias.map((item) => (
+                                <li key={item.id}>
+                                    <button
+                                        type="button"
+                                        className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                                        onClick={() => agregar(item.nombre, item.id)}
+                                    >
+                                        {item.nombre}
+                                        {item.categoria ? (
+                                            <span className="ml-2 text-muted-foreground">{item.categoria}</span>
+                                        ) : null}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : null}
+                </div>
+                <RolSelect value={rol} disabled={disabled} onChange={setRol} />
+            </div>
+            {lineas.length === 0 ? null : (
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] text-left text-sm">
+                        <thead className="text-xs text-muted-foreground">
+                            <tr>
+                                <th className="pb-2 font-medium">{t('control.concepto')}</th>
+                                <th className="pb-2 font-medium">{t('control.especificaciones')}</th>
+                                <th className="pb-2 font-medium">{t('control.principal')}</th>
+                                <th className="pb-2" />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {lineas.map((linea, index) => (
+                                <tr key={`${linea.servicio_clinico_id ?? 'n'}-${index}`} className="align-top">
+                                    <td className="py-1 pr-2 font-medium">{linea.nombre}</td>
+                                    <td className="py-1 pr-2">
+                                        <Input
+                                            value={linea.especificaciones}
+                                            disabled={disabled}
+                                            onChange={(event) => {
+                                                const next = [...lineas];
+                                                next[index] = { ...linea, especificaciones: event.target.value };
+                                                onChange(next);
+                                            }}
+                                        />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <RolSelect
+                                            value={linea.rol}
+                                            disabled={disabled}
+                                            onChange={(rol) => {
+                                                const next = [...lineas];
+                                                next[index] = { ...linea, rol };
+                                                onChange(next);
+                                            }}
+                                        />
+                                    </td>
+                                    <td className="py-1">
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            disabled={disabled}
+                                            aria-label={t('control.quitar')}
+                                            onClick={() => onChange(lineas.filter((_, i) => i !== index))}
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </section>
+    );
+}
+
 export function ControlForm({
     registro,
     atendido_at,
@@ -277,6 +452,7 @@ export function ControlForm({
     guardar_url,
     method,
     productos_url,
+    servicios_url,
     onVolver,
     onRegistrarCita,
 }: Props) {
@@ -299,9 +475,9 @@ export function ControlForm({
         examen_clinico: registro?.examen_clinico ?? '',
         examen_detalle: registro?.examen_detalle ?? '',
         diagnosticos: registro?.diagnosticos ?? [],
-        examenes: (registro?.examenes ?? []).map((linea) => lineaDesde(linea)),
-        tratamiento: (registro?.tratamiento ?? []).map((linea) => lineaDesde(linea)),
-        receta: (registro?.receta ?? []).map((linea) => lineaDesde(linea)),
+        examenes: (registro?.examenes ?? []).map((linea) => lineaExamenDesde(linea)),
+        tratamiento: (registro?.tratamiento ?? []).map((linea) => lineaProductoDesde(linea)),
+        receta: (registro?.receta ?? []).map((linea) => lineaProductoDesde(linea)),
         comentarios: registro?.comentarios ?? '',
     });
 
@@ -493,15 +669,14 @@ export function ControlForm({
                     ) : null}
                 </section>
 
-                <BuscadorLineas
+                <BuscadorLineasExamen
                     titulo={t('control.examenes')}
-                    productosUrl={productos_url}
+                    serviciosUrl={servicios_url}
                     lineas={form.data.examenes}
                     disabled={!puede_editar}
-                    conCantidad={false}
                     onChange={(lineas) => form.setData('examenes', lineas)}
                 />
-                <BuscadorLineas
+                <BuscadorLineasProducto
                     titulo={t('control.tratamiento')}
                     productosUrl={productos_url}
                     lineas={form.data.tratamiento}
@@ -509,7 +684,7 @@ export function ControlForm({
                     conCantidad
                     onChange={(lineas) => form.setData('tratamiento', lineas)}
                 />
-                <BuscadorLineas
+                <BuscadorLineasProducto
                     titulo={t('control.receta')}
                     productosUrl={productos_url}
                     lineas={form.data.receta}
@@ -576,6 +751,7 @@ export function ControlForm({
 export type ControlCreateLinks = {
     store_url: string;
     productos_url: string;
+    servicios_url: string;
     atendido_at: string;
 };
 
@@ -673,6 +849,7 @@ export function ControlEmbed({
             guardar_url={create.store_url}
             method="post"
             productos_url={create.productos_url}
+            servicios_url={create.servicios_url}
             onVolver={onVolver}
             onRegistrarCita={onRegistrarCita}
         />

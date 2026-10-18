@@ -534,6 +534,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->get('pacientes/{paciente}/controles/productos-buscar', [\App\Http\Controllers\ControlClinicoController::class, 'productosBuscar'])
                 ->name('pacientes.controles.productos');
             Route::middleware($controlPerm)
+                ->get('pacientes/{paciente}/controles/servicios-buscar', [\App\Http\Controllers\ControlClinicoController::class, 'serviciosBuscar'])
+                ->name('pacientes.controles.servicios');
+            Route::middleware($controlPerm)
                 ->get('pacientes/{paciente}/controles/{control}', [\App\Http\Controllers\ControlClinicoController::class, 'edit'])
                 ->name('pacientes.controles.edit');
             Route::middleware($controlPerm)
