@@ -238,6 +238,7 @@
         "search_min": "Type at least 2 characters.",
         "minutos": "{{count}} min",
         "espera_live": "{{time}}",
+        "tiempo_espera": "Time in waiting room: {{time}}",
         "turno": "Ticket",
         "hc": "Record",
         "owner": "Owner",

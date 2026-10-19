@@ -238,6 +238,7 @@
         "search_min": "Escribe al menos 2 caracteres.",
         "minutos": "{{count}} min",
         "espera_live": "{{time}}",
+        "tiempo_espera": "Tiempo en sala: {{time}}",
         "turno": "Turno",
         "hc": "Historia",
         "owner": "Tutor",

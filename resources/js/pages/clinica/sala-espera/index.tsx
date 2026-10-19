@@ -228,21 +228,27 @@ function esperaFinMs(item: SalaItem, now: Date, fecha: string, hoy: string): num
 function formatWait(item: SalaItem, now: Date, fecha: string, hoy: string): string {
     const enviadoAt = item.enviado_at;
     if (!enviadoAt) {
-        return `${item.minutos_espera}:00`;
+        return formatWaitFallback(item.minutos_espera);
     }
     const start = Date.parse(enviadoAt);
     if (Number.isNaN(start)) {
-        return `${item.minutos_espera}:00`;
+        return formatWaitFallback(item.minutos_espera);
     }
     const totalSec = Math.max(0, Math.floor((esperaFinMs(item, now, fecha, hoy) - start) / 1000));
+
+    return formatWaitSeconds(totalSec);
+}
+
+function formatWaitSeconds(totalSec: number): string {
     const hours = Math.floor(totalSec / 3600);
     const minutes = Math.floor((totalSec % 3600) / 60);
     const seconds = totalSec % 60;
-    if (hours > 0) {
-        return `${hours}:${pad2(minutes)}:${pad2(seconds)}`;
-    }
 
-    return `${minutes}:${pad2(seconds)}`;
+    return `${hours}:${pad2(minutes)}:${pad2(seconds)}`;
+}
+
+function formatWaitFallback(minutos: number): string {
+    return formatWaitSeconds(Math.max(0, minutos) * 60);
 }
 
 function formatIngreso(enviadoAt: string | null | undefined, fallbackHora: string, locale: string): string {
@@ -773,8 +779,11 @@ export default function SalaEsperaIndex({
         <>
             <Head title={t('sala_espera.title')} />
 
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
-                <header className="relative overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-r from-sky-50 via-card to-violet-50 px-4 py-5 shadow-sm md:flex-row md:items-center md:justify-between md:px-6 dark:from-sky-950/40 dark:via-card dark:to-violet-950/30">
+            <div
+                data-fixed-viewport
+                className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6"
+            >
+                <header className="relative shrink-0 overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-r from-sky-50 via-card to-violet-50 px-4 py-5 shadow-sm md:flex-row md:items-center md:justify-between md:px-6 dark:from-sky-950/40 dark:via-card dark:to-violet-950/30">
                     <div className="pointer-events-none absolute -top-16 -left-10 size-40 rounded-full bg-sky-400/15 blur-3xl" />
                     <div className="pointer-events-none absolute -right-10 -bottom-20 size-44 rounded-full bg-violet-400/15 blur-3xl" />
                     <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -935,8 +944,11 @@ export default function SalaEsperaIndex({
                         </div>
                     ) : null}
 
-                    {board.can_consulta || board.can_grooming ? (
+                </header>
+
+                {board.can_consulta || board.can_grooming ? (
                     <ColaPanel
+                        className="min-h-0 flex-1"
                         emptyLabel={t('sala_espera.empty')}
                         accent="sky"
                         queue={salaVista}
@@ -967,8 +979,7 @@ export default function SalaEsperaIndex({
                         usuarios={usuarios}
                         onAsignar={(item, tratanteId) => void assign(item, tratanteId)}
                     />
-                    ) : null}
-                </header>
+                ) : null}
 
                 <Dialog open={quitar !== null} onOpenChange={(open) => !open && setQuitar(null)}>
                     <DialogContent className="max-w-md">
@@ -1005,7 +1016,11 @@ export default function SalaEsperaIndex({
     );
 }
 
+const COLA_SCROLL_CLASS =
+    'min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable]';
+
 function ColaPanel({
+    className,
     emptyLabel,
     accent,
     queue,
@@ -1022,6 +1037,7 @@ function ColaPanel({
     usuarios,
     onAsignar,
 }: {
+    className?: string;
     emptyLabel: string;
     accent: 'sky' | 'violet';
     queue: SalaQueue;
@@ -1110,12 +1126,27 @@ function ColaPanel({
     );
 
     return (
-        <section className="relative mt-5 border-t border-sky-500/15 pt-4 dark:border-white/10">
-            <div className="grid items-start gap-5 lg:grid-cols-2 lg:gap-0">
-                <div className="min-w-0 space-y-5 lg:border-r lg:border-border/70 lg:pr-5">
-                    {enVivo.map((group) => (group.key === 'espera' || group.items.length > 0 ? renderGrupo(group) : null))}
+        <section
+            className={cn(
+                'relative flex min-h-0 flex-col rounded-2xl border border-border/60 bg-card/40 px-3 py-3 shadow-sm md:px-4',
+                className,
+            )}
+        >
+            <div className="grid min-h-0 flex-1 grid-rows-2 gap-4 lg:grid-cols-2 lg:grid-rows-1 lg:gap-0 lg:items-stretch">
+                <div className="flex min-h-0 min-w-0 flex-col lg:border-r lg:border-border/70 lg:pr-4">
+                    <div className={COLA_SCROLL_CLASS}>
+                        <div className="space-y-5 pb-1">
+                            {enVivo.map((group) =>
+                                group.key === 'espera' || group.items.length > 0 ? renderGrupo(group) : null,
+                            )}
+                        </div>
+                    </div>
                 </div>
-                <div className="min-w-0 lg:pl-5">{historial ? renderGrupo(historial) : null}</div>
+                <div className="flex min-h-0 min-w-0 flex-col lg:pl-4">
+                    <div className={COLA_SCROLL_CLASS}>
+                        <div className="pb-1">{historial ? renderGrupo(historial) : null}</div>
+                    </div>
+                </div>
             </div>
         </section>
     );
@@ -1157,6 +1188,7 @@ function TurnoCard({
     const waited = waitSeconds(item, now, fecha, hoy);
     const longWait = !paused && waited >= 20 * 60;
     const enHistorial = estado === 'atendido' || estado === 'cancelado';
+    const tiempoEspera = formatWait(item, now, fecha, hoy);
 
     return (
         <article
@@ -1247,8 +1279,9 @@ function TurnoCard({
                                       ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
                                       : 'bg-muted text-muted-foreground',
                             )}
+                            title={t('sala_espera.tiempo_espera', { time: tiempoEspera })}
                         >
-                            {formatWait(item, now, fecha, hoy)}
+                            {tiempoEspera}
                         </span>
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
