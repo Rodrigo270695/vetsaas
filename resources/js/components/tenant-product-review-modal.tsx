@@ -20,8 +20,6 @@ export type ProductReviewPrompt = {
     role_label: string;
     author_name: string;
     role_line: string;
-    required?: boolean;
-    dismiss_count?: number;
 };
 
 const PLACEHOLDER =
@@ -84,9 +82,6 @@ export function TenantProductReviewModal() {
     }>();
 
     const prompt = page.props.product_review_prompt ?? null;
-    const dismissCount = Math.max(0, prompt?.dismiss_count ?? 0);
-    const skipsLeft = Math.max(0, 3 - dismissCount);
-    const required = prompt?.required === true || skipsLeft === 0;
     const gate = page.props.clinic_location_gate;
     const onboardingForAdmin = Boolean(
         (gate?.needs_sede || gate?.needs_gps) && gate?.can_edit_sedes,
@@ -111,18 +106,19 @@ export function TenantProductReviewModal() {
         }
         const t = window.setTimeout(() => setOpen(true), 600);
         return () => window.clearTimeout(t);
-    }, [canShow, prompt?.role_line, required]);
+    }, [canShow, prompt?.role_line]);
 
     const previewLine = useMemo(() => prompt?.role_line ?? '', [prompt]);
 
     const closeWithoutSaving = () => {
-        if (form.processing || required) {
+        if (form.processing) {
             setOpen(true);
             return;
         }
         form.post('/tenant/product-review/dismiss', {
             preserveScroll: true,
             preserveState: true,
+            onSuccess: () => setOpen(false),
             onError: () => setOpen(true),
         });
     };
@@ -151,25 +147,7 @@ export function TenantProductReviewModal() {
                 }
             }}
         >
-            <DialogContent
-                hideCloseButton={required}
-                className="max-w-lg gap-0 overflow-hidden p-0 sm:max-w-lg"
-                onPointerDownOutside={(event) => {
-                    if (required) {
-                        event.preventDefault();
-                    }
-                }}
-                onInteractOutside={(event) => {
-                    if (required) {
-                        event.preventDefault();
-                    }
-                }}
-                onEscapeKeyDown={(event) => {
-                    if (required) {
-                        event.preventDefault();
-                    }
-                }}
-            >
+            <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:max-w-lg">
                 <div className="border-b border-border/70 bg-linear-to-br from-primary/8 via-background to-background px-6 pb-5 pt-6">
                     <DialogHeader className="space-y-2 text-left">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
@@ -179,9 +157,7 @@ export function TenantProductReviewModal() {
                             ¿Cómo está siendo VetSaaS en {prompt.clinic_name}?
                         </DialogTitle>
                         <DialogDescription className="text-sm leading-relaxed">
-                            {required
-                                ? 'Ya usaste las 3 veces para omitir la reseña. Publícala para seguir; se verá en orvae.pe como '
-                                : `Puedes omitirla ${skipsLeft} ${skipsLeft === 1 ? 'vez' : 'veces'} más. Se verá en orvae.pe como `}
+                            Es opcional. Si publicas, se verá en orvae.pe como{' '}
                             <span className="font-medium text-foreground">{previewLine}</span>
                             {prompt.author_name ? (
                                 <>
@@ -231,20 +207,14 @@ export function TenantProductReviewModal() {
                     </div>
 
                     <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-                        {required ? (
-                            <p className="text-xs text-muted-foreground sm:max-w-56">
-                                Esta ventana no se cierra hasta que publiques la reseña.
-                            </p>
-                        ) : (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                disabled={form.processing}
-                                onClick={closeWithoutSaving}
-                            >
-                                Ahora no ({skipsLeft} de 3)
-                            </Button>
-                        )}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={form.processing}
+                            onClick={closeWithoutSaving}
+                        >
+                            Ahora no
+                        </Button>
                         <Button type="submit" disabled={form.processing}>
                             Publicar reseña
                         </Button>

@@ -36,7 +36,6 @@ it('expone el prompt de reseña a cada usuario de la clínica hasta que envía',
             ->where('product_review_prompt.clinic_name', 'Test Clinic')
             ->where('product_review_prompt.role_label', 'Administración')
             ->where('product_review_prompt.role_line', 'Administración de Test Clinic')
-            ->where('product_review_prompt.required', false)
         );
 });
 
@@ -128,11 +127,10 @@ it('muestra el aviso a recepcion y al resto del equipo, no solo al admin', funct
         ->assertInertia(fn ($page) => $page
             ->where('product_review_prompt.role_label', 'Recepcionista')
             ->where('product_review_prompt.role_line', 'Recepcionista de Test Clinic')
-            ->where('product_review_prompt.required', false)
         );
 });
 
-it('tras tres cierres el aviso es obligatorio y no se puede posponer', function (): void {
+it('permite seguir posponiendo después de varios cierres', function (): void {
     Carbon::setTestNow(Carbon::parse('2026-08-01 10:00:00', 'America/Lima'));
 
     $this->actingAs($this->testTenantAdmin);
@@ -147,14 +145,11 @@ it('tras tres cierres el aviso es obligatorio y no se puede posponer', function 
     expect($row)->not->toBeNull()
         ->and((int) $row->prompt_dismiss_count)->toBe(3);
 
-    $this->get('http://'.$this->testTenantHost.'/dashboard')
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('product_review_prompt.required', true)
-        );
+    Carbon::setTestNow(Carbon::parse('2026-09-15 10:00:00', 'America/Lima'));
 
-    $this->post('http://'.$this->testTenantHost.'/tenant/product-review/dismiss')
-        ->assertStatus(422);
+    $this->post('http://'.$this->testTenantHost.'/tenant/product-review/dismiss')->assertRedirect();
+
+    expect((int) $row->fresh()->prompt_dismiss_count)->toBe(4);
 
     Carbon::setTestNow();
 });

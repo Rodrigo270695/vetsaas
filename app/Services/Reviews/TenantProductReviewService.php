@@ -18,8 +18,6 @@ use Illuminate\Support\Str;
 final class TenantProductReviewService
 {
     public const DISMISS_COOLDOWN_DAYS = 14;
-
-    public const MAX_FREE_DISMISSES = 3;
     /** @var array<string, string> */
     public const ROLE_LABELS = [
         'admin_clinica' => 'Administración',
@@ -38,15 +36,11 @@ final class TenantProductReviewService
         $clinic = $this->clinicDisplayName($tenant);
         $role = $this->roleLabelFor($user);
 
-        $dismissCount = $this->dismissCount($this->rowFor($user));
-
         return [
             'clinic_name' => $clinic,
             'role_label' => $role,
             'author_name' => $this->authorDisplayName($user),
             'role_line' => $this->roleLine($role, $clinic),
-            'required' => $dismissCount >= self::MAX_FREE_DISMISSES,
-            'dismiss_count' => $dismissCount,
         ];
     }
 
@@ -67,10 +61,6 @@ final class TenantProductReviewService
         $row = $this->rowFor($user);
         if ($row !== null && $row->isSubmitted()) {
             return false;
-        }
-
-        if ($this->dismissCount($row) >= self::MAX_FREE_DISMISSES) {
-            return true;
         }
 
         $today = $this->todayForTenant($tenant);
@@ -96,12 +86,6 @@ final class TenantProductReviewService
         if ($row->isSubmitted()) {
             return;
         }
-
-        abort_if(
-            $this->dismissCount($row) >= self::MAX_FREE_DISMISSES,
-            422,
-            'Ya pospusiste la reseña tres veces. Publícala para continuar.',
-        );
 
         $row->tenant_id = $tenant->id;
         $row->prompt_dismissed_on = $this->todayForTenant($tenant);
