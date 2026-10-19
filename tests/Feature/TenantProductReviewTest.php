@@ -154,6 +154,22 @@ it('permite seguir posponiendo después de varios cierres', function (): void {
     Carbon::setTestNow();
 });
 
+it('no expone en marketing reseñas por debajo de 4 estrellas', function (): void {
+    TenantProductReview::query()->create([
+        'tenant_id' => $this->testTenant->id,
+        'user_id' => $this->testTenantAdmin->id,
+        'rating' => 1,
+        'comment' => 'me estan obligando a comentar no me parece',
+        'author_name' => 'Test User',
+        'role_label' => 'Administración',
+        'clinic_name' => 'Test Clinic',
+        'submitted_at' => now(),
+        'published' => true,
+    ]);
+
+    expect(app(TenantProductReviewService::class)->publicReviews())->toBe([]);
+});
+
 it('atribuye recepcionista de la clínica con nombre y apellido', function (): void {
     $previousTeam = getPermissionsTeamId();
     setPermissionsTeamId((string) $this->testTenant->id);

@@ -18,6 +18,9 @@ use Illuminate\Support\Str;
 final class TenantProductReviewService
 {
     public const DISMISS_COOLDOWN_DAYS = 14;
+
+    /** Mínimo de estrellas para testimonios en orvae.pe / marketing público. */
+    public const MIN_PUBLIC_RATING = 4;
     /** @var array<string, string> */
     public const ROLE_LABELS = [
         'admin_clinica' => 'Administración',
@@ -154,7 +157,7 @@ final class TenantProductReviewService
             ->with('tenant:id,slug,nombre_comercial,razon_social')
             ->whereNotNull('submitted_at')
             ->where('published', true)
-            ->where('rating', '>=', 1)
+            ->where('rating', '>=', self::MIN_PUBLIC_RATING)
             ->orderByDesc('submitted_at')
             ->limit($limit)
             ->get()
