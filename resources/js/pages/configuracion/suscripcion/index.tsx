@@ -46,6 +46,9 @@ type SubscriptionSummary = {
     proximo_cobro_at: string | null;
     renewal_anchor_at: string | null;
     renewal_anchor_source: string;
+    grace_ends_at: string | null;
+    in_grace_period: boolean;
+    billing_grace_days: number;
     days_until_renewal: number | null;
     urgency: 'ok' | 'yellow' | 'amber' | 'red' | 'danger' | 'muted';
     renewal_url: string | null;
@@ -196,23 +199,36 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
     const summary = subscription;
     const locale = i18n.language;
 
+    const inGrace = summary?.in_grace_period === true;
+
     const daysLabel = useMemo(() => {
         const days = summary?.days_until_renewal;
         if (days === null || days === undefined) return null;
+        if (inGrace) {
+            if (days === 0) return t('hero.grace_ends_today');
+            if (days < 0) {
+                return t('days_until.past', { count: Math.abs(days) });
+            }
+            return t('days_until.grace', { count: days });
+        }
         if (days === 0) return t('days_until.today');
         if (days < 0) {
             return t('days_until.past', { count: Math.abs(days) });
         }
         return t('days_until.future', { count: days });
-    }, [summary?.days_until_renewal, t]);
+    }, [summary?.days_until_renewal, inGrace, t]);
 
     const alertMessage = summary
-        ? t(`alerts.${summary.urgency}`)
+        ? inGrace
+            ? t('alerts.grace', {
+                  days: summary.billing_grace_days ?? 3,
+              })
+            : t(`alerts.${summary.urgency}`)
         : t('alerts.muted');
 
     const planNombre = summary?.plan?.nombre ?? t('empty_plan');
     const estadoLabel = summary
-        ? t(`estados.${summary.estado}`)
+        ? t(`estados.${inGrace ? 'grace' : summary.estado}`)
         : t('estados.unknown');
     const cicloLabel =
         summary?.ciclo !== null && summary?.ciclo !== undefined
@@ -223,7 +239,9 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
     const highlightDates = dateValueClass(urgency);
     const renewalDate = formatDate(summary?.renewal_anchor_at ?? null, locale, true);
     const proximoCobro = formatDate(summary?.proximo_cobro_at ?? null, locale, true);
+    const graceEnds = formatDate(summary?.grace_ends_at ?? null, locale, true);
     const daysCount = summary?.days_until_renewal;
+    const graceDaysTotal = summary?.billing_grace_days ?? 3;
 
     const billing = summary?.renewal_billing;
     const paymentTotal = useMemo(() => {
@@ -293,7 +311,7 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader title={t('title')} description={t('description')} />
 
-                {summary && summary.urgency !== 'ok' && (
+                {summary && (summary.urgency !== 'ok' || inGrace) && (
                     <Alert className={cn('py-2.5', urgencyAlertClass(summary.urgency))}>
                         <AlertCircle className="size-4" />
                         <AlertDescription className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -319,6 +337,11 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                         <Sparkles className="size-3" />
                                         {t('hero.badge')}
                                     </span>
+                                    {inGrace ? (
+                                        <span className="rounded-full bg-amber-400/25 px-2 py-0.5 text-[10px] font-semibold ring-1 ring-amber-200/40">
+                                            {t('hero.grace_banner')}
+                                        </span>
+                                    ) : null}
                                     <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium ring-1 ring-white/20">
                                         {estadoLabel}
                                     </span>
@@ -350,7 +373,26 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
 
                             <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
                                 <div className="rounded-lg bg-black/15 px-3 py-2 text-center ring-1 ring-white/15 sm:text-right">
-                                    {daysCount !== null && daysCount >= 0 ? (
+                                    {inGrace &&
+                                    daysCount !== null &&
+                                    daysCount !== undefined &&
+                                    daysCount >= 0 ? (
+                                        <>
+                                            <p className="text-2xl font-bold tabular-nums leading-none">
+                                                {daysCount}
+                                            </p>
+                                            <p className="mt-0.5 text-[11px] text-white/80">
+                                                {daysCount === 0
+                                                    ? t('hero.grace_ends_today')
+                                                    : t('hero.grace_days_label')}
+                                            </p>
+                                            <p className="text-[10px] text-white/60">
+                                                {t('alerts.grace', {
+                                                    days: graceDaysTotal,
+                                                })}
+                                            </p>
+                                        </>
+                                    ) : daysCount !== null && daysCount >= 0 ? (
                                         <>
                                             <p className="text-2xl font-bold tabular-nums leading-none">
                                                 {daysCount}
@@ -366,7 +408,11 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                             {daysLabel ?? renewalDate}
                                         </p>
                                     )}
-                                    <p className="text-[11px] text-white/65">{proximoCobro}</p>
+                                    <p className="text-[11px] text-white/65">
+                                        {inGrace
+                                            ? `${t('fields.grace_ends')}: ${graceEnds}`
+                                            : proximoCobro}
+                                    </p>
                                 </div>
 
                                 {summary.renewal_url ? (
@@ -486,6 +532,13 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                     value={renewalDate}
                                     valueClassName={highlightDates}
                                 />
+                                {inGrace ? (
+                                    <InfoRow
+                                        label={t('fields.grace_ends')}
+                                        value={graceEnds}
+                                        valueClassName={highlightDates}
+                                    />
+                                ) : null}
                             </PanelSection>
                         </div>
 

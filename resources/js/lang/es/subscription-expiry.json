@@ -15,6 +15,9 @@
         "one_day": "Vence mañana",
         "today": "Vence hoy",
         "expired": "Vencido hace {{count}} día(s)",
+        "grace_remaining": "En periodo de gracia ({{count}} día(s))",
+        "grace_last_day": "En periodo de gracia (último día)",
+        "grace_info": "Período de gracia: {{days}} días tras el cobro",
         "muted": "Sin fecha"
     },
     "columns": {

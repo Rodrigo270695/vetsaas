@@ -2,12 +2,13 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatBadge } from '@/components/data-page';
 import {
-    daysUntilRenewal,
     resolveExpiryAnchor,
+    resolveSubscriptionExpiryLabel,
     resolveSubscriptionUrgency,
     urgencyBadgeVariant,
     urgencyDotClass,
     type SubscriptionExpiryInput,
+    type SubscriptionExpiryLabel,
 } from '@/lib/subscription-expiry';
 
 type SubscriptionExpiryBadgeProps = {
@@ -24,6 +25,33 @@ const formatDate = (value: Date): string =>
         year: 'numeric',
     });
 
+function labelFromKey(t: (key: string, opts?: Record<string, unknown>) => string, spec: SubscriptionExpiryLabel): string {
+    switch (spec.key) {
+        case 'muted':
+            return t('labels.muted');
+        case 'grace_last_day':
+            return t('labels.grace_last_day');
+        case 'grace_remaining':
+            return t('labels.grace_remaining', { count: spec.count });
+        case 'grace_info':
+            return t('labels.grace_info', { days: spec.days });
+        case 'expired':
+            return t('labels.expired', { count: spec.count });
+        case 'today':
+            return t('labels.today');
+        case 'one_day':
+            return t('labels.one_day');
+        case 'within_3':
+            return t('labels.within_3', { count: spec.count });
+        case 'within_7':
+            return t('labels.within_7', { count: spec.count });
+        case 'ok':
+            return t('labels.ok', { count: spec.count });
+        default:
+            return t('labels.muted');
+    }
+}
+
 export function SubscriptionExpiryBadge({
     subscription,
     showDate = true,
@@ -31,17 +59,17 @@ export function SubscriptionExpiryBadge({
 }: SubscriptionExpiryBadgeProps) {
     const { t } = useTranslation('subscription-expiry');
 
-    const { urgency, days, anchor } = useMemo(() => {
+    const { urgency, anchor, label } = useMemo(() => {
         const resolvedAnchor = resolveExpiryAnchor(subscription);
-        const resolvedDays = daysUntilRenewal(resolvedAnchor);
         const resolvedUrgency = resolveSubscriptionUrgency(subscription);
+        const labelSpec = resolveSubscriptionExpiryLabel(subscription);
 
         return {
             urgency: resolvedUrgency,
-            days: resolvedDays,
             anchor: resolvedAnchor,
+            label: labelFromKey(t, labelSpec),
         };
-    }, [subscription]);
+    }, [subscription, t]);
 
     if (!subscription) {
         return (
@@ -50,21 +78,6 @@ export function SubscriptionExpiryBadge({
             </span>
         );
     }
-
-    const label =
-        days === null
-            ? t('labels.muted')
-            : days < 0
-              ? t('labels.expired', { count: Math.abs(days) })
-              : days === 0
-                ? t('labels.today')
-                : days === 1
-                  ? t('labels.one_day')
-                  : days <= 3
-                    ? t('labels.within_3', { count: days })
-                    : days <= 7
-                      ? t('labels.within_7', { count: days })
-                      : t('labels.ok', { count: days });
 
     return (
         <div className={className}>

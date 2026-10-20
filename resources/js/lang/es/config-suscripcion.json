@@ -18,7 +18,8 @@
         "period_end": "Fin del período",
         "proximo_cobro": "Próximo cobro",
         "trial_end": "Fin del período de prueba",
-        "renewal_anchor": "Próximo vencimiento"
+        "renewal_anchor": "Próximo vencimiento",
+        "grace_ends": "Fin del periodo de gracia"
     },
     "estados": {
         "trial": "En prueba",
@@ -37,12 +38,14 @@
     "days_until": {
         "past": "Venció hace {{count}} día(s)",
         "today": "Vence hoy",
-        "future": "Faltan {{count}} día(s)"
+        "future": "Faltan {{count}} día(s)",
+        "grace": "Quedan {{count}} día(s) de gracia"
     },
     "alerts": {
         "ok": "Tu suscripción está al día. Revisa la fecha de próximo cobro para planificar la renovación.",
         "yellow": "Tu próximo cobro está en los próximos 7 días. Te recomendamos revisar tu plan y renovar a tiempo.",
         "amber": "Quedan pocos días para el próximo cobro. Renueva pronto para evitar interrupciones.",
+        "grace": "El cobro ya venció, pero sigues en periodo de gracia ({{days}} días tras el vencimiento). Renueva antes del fin de gracia para no perder el acceso.",
         "red": "Tu suscripción vence muy pronto o ya venció. Renueva cuanto antes para mantener el acceso.",
         "danger": "Tu suscripción requiere atención inmediata. Contacta soporte o renueva tu plan.",
         "muted": "Si tienes dudas sobre tu plan o fechas, contacta al soporte de Orvae."
@@ -61,7 +64,10 @@
     "hero": {
         "badge": "Suscripción VetSaaS",
         "days_label": "días para el próximo cobro",
+        "grace_days_label": "días de gracia restantes",
+        "grace_banner": "Periodo de gracia",
         "due_today": "El cobro vence hoy",
+        "grace_ends_today": "Último día de gracia",
         "total_breakdown": "Plan {{plan}} + complementos {{addons}}",
         "total_breakdown_named": "Plan {{plan}} + {{addons}}"
     },

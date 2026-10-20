@@ -268,6 +268,7 @@ final class CobrosListPresenter
             'current_period_end' => optional($subscription->current_period_end)?->toIso8601String(),
             'grace_ends_at' => optional($subscription->grace_ends_at)?->toIso8601String(),
             'proximo_cobro_at' => optional($subscription->proximo_cobro_at)?->toIso8601String(),
+            'billing_grace_days' => \App\Support\Subscriptions\BillingGrace::days(),
             'plan' => self::planRef($subscription),
         ];
     }

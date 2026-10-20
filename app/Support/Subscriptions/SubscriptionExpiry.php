@@ -24,8 +24,11 @@ final class SubscriptionExpiry
      */
     public static function anchorWithSource(Subscription $subscription, ?Tenant $tenant = null): array
     {
-        if ($subscription->estado === 'grace' && $subscription->grace_ends_at !== null) {
-            return [$subscription->grace_ends_at->copy(), 'grace_ends_at'];
+        if (self::isInGracePeriod($subscription, $tenant)) {
+            $graceEnd = self::effectiveGraceEndsAt($subscription, $tenant);
+            if ($graceEnd !== null) {
+                return [$graceEnd, 'grace_ends_at'];
+            }
         }
 
         if ($subscription->estado === 'trial') {
@@ -45,6 +48,64 @@ final class SubscriptionExpiry
         $fallback = self::toCarbon($subscription->trial_ends_at ?? $tenant?->trial_ends_at);
 
         return [$fallback, $fallback !== null ? 'trial_ends_at' : null];
+    }
+
+    public static function periodEndAnchor(Subscription $subscription, ?Tenant $tenant = null): ?CarbonInterface
+    {
+        if ($subscription->estado === 'trial') {
+            return self::toCarbon($subscription->trial_ends_at ?? $tenant?->trial_ends_at);
+        }
+
+        if ($subscription->proximo_cobro_at !== null) {
+            return $subscription->proximo_cobro_at->copy();
+        }
+
+        if ($subscription->current_period_end !== null) {
+            return $subscription->current_period_end->copy();
+        }
+
+        return null;
+    }
+
+    public static function effectiveGraceEndsAt(Subscription $subscription, ?Tenant $tenant = null): ?CarbonInterface
+    {
+        if ($subscription->grace_ends_at !== null) {
+            return $subscription->grace_ends_at->copy();
+        }
+
+        $periodEnd = self::periodEndAnchor($subscription, $tenant);
+        if ($periodEnd === null) {
+            return null;
+        }
+
+        if (! now()->gt($periodEnd)) {
+            return null;
+        }
+
+        return BillingGrace::endsAtFrom($periodEnd);
+    }
+
+    public static function isInGracePeriod(Subscription $subscription, ?Tenant $tenant = null): bool
+    {
+        if (in_array($subscription->estado, ['suspended', 'cancelled'], true)) {
+            return false;
+        }
+
+        $graceEnd = self::effectiveGraceEndsAt($subscription, $tenant);
+        if ($graceEnd === null) {
+            return false;
+        }
+
+        if ($subscription->estado === 'grace') {
+            return ! now()->gt($graceEnd);
+        }
+
+        $periodEnd = self::periodEndAnchor($subscription, $tenant);
+        if ($periodEnd === null) {
+            return false;
+        }
+
+        return now()->gt($periodEnd) && ! now()->gt($graceEnd);
     }
 
     public static function anchor(Subscription $subscription, ?Tenant $tenant = null): ?CarbonInterface
@@ -101,6 +162,20 @@ final class SubscriptionExpiry
 
     public static function urgencyFor(Subscription $subscription, ?Tenant $tenant = null): string
     {
+        if (self::isInGracePeriod($subscription, $tenant)) {
+            $daysUntil = self::daysUntil(self::effectiveGraceEndsAt($subscription, $tenant));
+
+            if ($daysUntil === null) {
+                return 'muted';
+            }
+
+            if ($daysUntil < 0) {
+                return 'red';
+            }
+
+            return $daysUntil <= 1 ? 'amber' : 'amber';
+        }
+
         $daysUntil = self::daysUntil(self::anchor($subscription, $tenant));
 
         return self::urgency($subscription->estado, $daysUntil);

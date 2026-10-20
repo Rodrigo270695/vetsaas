@@ -18,7 +18,8 @@
         "period_end": "Period end",
         "proximo_cobro": "Next charge",
         "trial_end": "Trial end",
-        "renewal_anchor": "Next due date"
+        "renewal_anchor": "Next due date",
+        "grace_ends": "Grace period end"
     },
     "estados": {
         "trial": "Trial",
@@ -37,12 +38,14 @@
     "days_until": {
         "past": "Expired {{count}} day(s) ago",
         "today": "Due today",
-        "future": "{{count}} day(s) remaining"
+        "future": "{{count}} day(s) remaining",
+        "grace": "{{count}} grace day(s) left"
     },
     "alerts": {
         "ok": "Your subscription is up to date. Check the next charge date to plan renewal.",
         "yellow": "Your next charge is within 7 days. Review your plan and renew on time.",
         "amber": "Only a few days left until the next charge. Renew soon to avoid interruptions.",
+        "grace": "Your charge is overdue, but you are still in the grace period ({{days}} days after the due date). Renew before grace ends to keep access.",
         "red": "Your subscription expires very soon or has expired. Renew as soon as possible.",
         "danger": "Your subscription needs immediate attention. Contact support or renew your plan.",
         "muted": "If you have questions about your plan or dates, contact Orvae support."
@@ -61,7 +64,10 @@
     "hero": {
         "badge": "VetSaaS subscription",
         "days_label": "days until next charge",
+        "grace_days_label": "grace days remaining",
+        "grace_banner": "Grace period",
         "due_today": "Charge due today",
+        "grace_ends_today": "Last grace day",
         "total_breakdown": "Plan {{plan}} + add-ons {{addons}}",
         "total_breakdown_named": "Plan {{plan}} + {{addons}}"
     },

@@ -24,7 +24,110 @@ export type SubscriptionExpiryInput = {
     current_period_end?: string | null;
     grace_ends_at?: string | null;
     proximo_cobro_at?: string | null;
+    billing_grace_days?: number;
 };
+
+const DEFAULT_GRACE_DAYS = 3;
+
+function pickDate(value?: string | null): Date | null {
+    if (!value) {
+        return null;
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfDay(date: Date): Date {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function graceDays(subscription: SubscriptionExpiryInput): number {
+    const n = subscription.billing_grace_days;
+    if (typeof n === 'number' && n >= 1) {
+        return Math.floor(n);
+    }
+    return DEFAULT_GRACE_DAYS;
+}
+
+export function periodEndAnchor(
+    subscription: SubscriptionExpiryInput | null | undefined,
+): Date | null {
+    if (!subscription) {
+        return null;
+    }
+
+    if (subscription.estado === 'trial') {
+        return pickDate(subscription.trial_ends_at);
+    }
+
+    return (
+        pickDate(subscription.proximo_cobro_at) ??
+        pickDate(subscription.current_period_end)
+    );
+}
+
+export function effectiveGraceEndsAt(
+    subscription: SubscriptionExpiryInput | null | undefined,
+): Date | null {
+    if (!subscription) {
+        return null;
+    }
+
+    const explicit = pickDate(subscription.grace_ends_at);
+    if (explicit) {
+        return explicit;
+    }
+
+    const periodEnd = periodEndAnchor(subscription);
+    if (!periodEnd) {
+        return null;
+    }
+
+    const today = startOfDay(new Date());
+    if (today.getTime() <= startOfDay(periodEnd).getTime()) {
+        return null;
+    }
+
+    const end = new Date(periodEnd);
+    end.setDate(end.getDate() + graceDays(subscription));
+
+    return end;
+}
+
+export function isInGracePeriod(
+    subscription: SubscriptionExpiryInput | null | undefined,
+): boolean {
+    if (!subscription) {
+        return false;
+    }
+
+    if (subscription.estado === 'suspended' || subscription.estado === 'cancelled') {
+        return false;
+    }
+
+    const graceEnd = effectiveGraceEndsAt(subscription);
+    if (!graceEnd) {
+        return false;
+    }
+
+    const today = startOfDay(new Date());
+    const graceDay = startOfDay(graceEnd);
+
+    if (subscription.estado === 'grace') {
+        return today.getTime() <= graceDay.getTime();
+    }
+
+    const periodEnd = periodEndAnchor(subscription);
+    if (!periodEnd) {
+        return false;
+    }
+
+    const periodDay = startOfDay(periodEnd);
+
+    return today.getTime() > periodDay.getTime() && today.getTime() <= graceDay.getTime();
+}
 
 export function resolveExpiryAnchor(
     subscription: SubscriptionExpiryInput | null | undefined,
@@ -33,36 +136,28 @@ export function resolveExpiryAnchor(
         return null;
     }
 
-    const pick = (value?: string | null): Date | null => {
-        if (!value) return null;
-        const date = new Date(value);
-        return Number.isNaN(date.getTime()) ? null : date;
-    };
-
-    if (subscription.estado === 'grace') {
-        const grace = pick(subscription.grace_ends_at);
-        if (grace) return grace;
+    if (isInGracePeriod(subscription)) {
+        return effectiveGraceEndsAt(subscription);
     }
 
     if (subscription.estado === 'trial') {
-        return pick(subscription.trial_ends_at);
+        return pickDate(subscription.trial_ends_at);
     }
 
     return (
-        pick(subscription.proximo_cobro_at) ??
-        pick(subscription.current_period_end) ??
-        pick(subscription.trial_ends_at)
+        pickDate(subscription.proximo_cobro_at) ??
+        pickDate(subscription.current_period_end) ??
+        pickDate(subscription.trial_ends_at)
     );
 }
 
 export function daysUntilRenewal(anchor: Date | null): number | null {
-    if (!anchor) return null;
+    if (!anchor) {
+        return null;
+    }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const target = new Date(anchor);
-    target.setHours(0, 0, 0, 0);
+    const today = startOfDay(new Date());
+    const target = startOfDay(anchor);
 
     const diffMs = target.getTime() - today.getTime();
 
@@ -72,6 +167,7 @@ export function daysUntilRenewal(anchor: Date | null): number | null {
 export function resolveUrgency(
     estado: string,
     daysUntil: number | null,
+    inGrace = false,
 ): SubscriptionUrgency {
     if (estado === 'suspended' || estado === 'cancelled') {
         return 'danger';
@@ -79,6 +175,14 @@ export function resolveUrgency(
 
     if (daysUntil === null) {
         return 'muted';
+    }
+
+    if (inGrace) {
+        if (daysUntil < 0) {
+            return 'red';
+        }
+
+        return 'amber';
     }
 
     if (daysUntil < 0) {
@@ -107,10 +211,68 @@ export function resolveSubscriptionUrgency(
         return 'muted';
     }
 
+    const inGrace = isInGracePeriod(subscription);
     const anchor = resolveExpiryAnchor(subscription);
     const days = daysUntilRenewal(anchor);
 
-    return resolveUrgency(subscription.estado, days);
+    return resolveUrgency(subscription.estado, days, inGrace);
+}
+
+export type SubscriptionExpiryLabel =
+    | { key: 'muted' }
+    | { key: 'grace_last_day' }
+    | { key: 'grace_remaining'; count: number }
+    | { key: 'grace_info'; days: number }
+    | { key: 'expired'; count: number }
+    | { key: 'today' }
+    | { key: 'one_day' }
+    | { key: 'within_3'; count: number }
+    | { key: 'within_7'; count: number }
+    | { key: 'ok'; count: number };
+
+export function resolveSubscriptionExpiryLabel(
+    subscription: SubscriptionExpiryInput | null | undefined,
+): SubscriptionExpiryLabel {
+    if (!subscription) {
+        return { key: 'muted' };
+    }
+
+    const inGrace = isInGracePeriod(subscription);
+    const anchor = resolveExpiryAnchor(subscription);
+    const days = daysUntilRenewal(anchor);
+
+    if (days === null) {
+        return { key: 'muted' };
+    }
+
+    if (inGrace) {
+        if (days < 0) {
+            return { key: 'expired', count: Math.abs(days) };
+        }
+        if (days === 0) {
+            return { key: 'grace_last_day' };
+        }
+
+        return { key: 'grace_remaining', count: days };
+    }
+
+    if (days < 0) {
+        return { key: 'expired', count: Math.abs(days) };
+    }
+    if (days === 0) {
+        return { key: 'today' };
+    }
+    if (days === 1) {
+        return { key: 'one_day' };
+    }
+    if (days <= 3) {
+        return { key: 'within_3', count: days };
+    }
+    if (days <= 7) {
+        return { key: 'within_7', count: days };
+    }
+
+    return { key: 'ok', count: days };
 }
 
 export function urgencyBadgeVariant(

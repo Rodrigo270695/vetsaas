@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Support\Subscriptions;
 
+use App\Models\Subscription;
 use App\Support\Subscriptions\SubscriptionExpiry;
 use Carbon\Carbon;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -62,5 +63,31 @@ class SubscriptionExpiryTest extends TestCase
         $this->assertStringContainsString('grace_ends_at', $sql);
         $this->assertStringContainsString('trial_ends_at', $sql);
         $this->assertStringContainsString('proximo_cobro_at', $sql);
+    }
+
+    public function test_active_con_cobro_vencido_y_gracia_futura_esta_en_periodo_de_gracia(): void
+    {
+        $subscription = new Subscription([
+            'estado' => 'active',
+            'proximo_cobro_at' => Carbon::parse('2026-06-22 15:44:00'),
+            'grace_ends_at' => Carbon::parse('2026-06-25 15:44:00'),
+        ]);
+
+        $this->assertTrue(SubscriptionExpiry::isInGracePeriod($subscription));
+        $this->assertSame('grace_ends_at', SubscriptionExpiry::anchorWithSource($subscription)[1]);
+        $this->assertSame(0, SubscriptionExpiry::daysUntil(SubscriptionExpiry::anchor($subscription)));
+        $this->assertSame('amber', SubscriptionExpiry::urgencyFor($subscription));
+    }
+
+    public function test_active_antes_del_cobro_no_esta_en_gracia_aunque_tenga_grace_ends_at(): void
+    {
+        $subscription = new Subscription([
+            'estado' => 'active',
+            'proximo_cobro_at' => Carbon::parse('2026-06-28 12:00:00'),
+            'grace_ends_at' => Carbon::parse('2026-07-01 12:00:00'),
+        ]);
+
+        $this->assertFalse(SubscriptionExpiry::isInGracePeriod($subscription));
+        $this->assertSame('proximo_cobro_at', SubscriptionExpiry::anchorWithSource($subscription)[1]);
     }
 }

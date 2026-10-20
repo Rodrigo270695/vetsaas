@@ -64,8 +64,10 @@ final class TenantSubscriptionSummary
             return self::withoutSubscription($tenant);
         }
 
+        $inGrace = SubscriptionExpiry::isInGracePeriod($subscription, $tenant);
         $anchor = SubscriptionExpiry::anchor($subscription, $tenant);
         $daysUntil = SubscriptionExpiry::daysUntil($anchor);
+        $graceEndsAt = SubscriptionExpiry::effectiveGraceEndsAt($subscription, $tenant);
         $renewalUrl = app(SubscriptionRenewalUrl::class)->for($tenant, $subscription);
 
         $plan = $subscription->plan;
@@ -87,10 +89,13 @@ final class TenantSubscriptionSummary
             'current_period_start' => self::iso($subscription->current_period_start),
             'current_period_end' => self::iso($subscription->current_period_end),
             'proximo_cobro_at' => self::iso($subscription->proximo_cobro_at),
+            'grace_ends_at' => self::iso($graceEndsAt),
+            'in_grace_period' => $inGrace,
+            'billing_grace_days' => BillingGrace::days(),
             'renewal_anchor_at' => self::iso($anchor),
             'renewal_anchor_source' => SubscriptionExpiry::anchorWithSource($subscription, $tenant)[1] ?? 'trial_ends_at',
             'days_until_renewal' => $daysUntil,
-            'urgency' => SubscriptionExpiry::urgency($subscription->estado, $daysUntil),
+            'urgency' => SubscriptionExpiry::urgencyFor($subscription, $tenant),
             'renewal_url' => $renewalUrl,
             'bot_ia' => SubscriptionBotIaAddon::payload($subscription),
             'renewal_billing' => SubscriptionRenewalBilling::payload($subscription, $tenant),

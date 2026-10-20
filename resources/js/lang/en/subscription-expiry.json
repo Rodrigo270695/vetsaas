@@ -15,6 +15,9 @@
         "one_day": "Expires tomorrow",
         "today": "Expires today",
         "expired": "Expired {{count}} day(s) ago",
+        "grace_remaining": "Grace period ({{count}} day(s) left)",
+        "grace_last_day": "Grace period (last day)",
+        "grace_info": "Grace period: {{days}} days after due date",
         "muted": "No date"
     },
     "columns": {
