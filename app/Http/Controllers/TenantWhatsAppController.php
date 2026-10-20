@@ -90,11 +90,7 @@ class TenantWhatsAppController extends Controller
         }
 
         if ($client->isRateLimited()) {
-            if (! $session instanceof TenantWhatsAppSession || trim((string) $session->openwa_session_id) === '') {
-                return $this->qrRateLimited($session);
-            }
-
-            return $this->qrFromSession($client, $session);
+            return $this->qrRateLimited($session);
         }
 
         $needsEngine = ! $session instanceof TenantWhatsAppSession
@@ -171,13 +167,20 @@ class TenantWhatsAppController extends Controller
 
     private function qrRateLimited(?TenantWhatsAppSession $session): JsonResponse
     {
+        $client = app(OpenWaClient::class);
+        $retryAfter = $client->rateLimitRetryAfterSeconds();
+
         return response()->json([
             'ready' => false,
             'status' => $session?->status,
             'qr_code' => null,
             'session_id' => $session?->openwa_session_id,
-            'retry_after' => 60,
-            'message' => 'WhatsApp está ocupado. Espera un minuto; el código aparece solo. No recargues la página.',
+            'retry_after' => $retryAfter,
+            'rate_limited' => true,
+            'message' => sprintf(
+                'OpenWA está limitando peticiones (demasiados intentos). Espera %d min sin pulsar Conectar; el QR volverá solo.',
+                max(1, (int) round($retryAfter / 60)),
+            ),
         ]);
     }
 

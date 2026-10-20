@@ -38,10 +38,10 @@ final class TenantWhatsAppPresenter
 
         if (
             $session instanceof TenantWhatsAppSession
-            && $session->isReady()
             && OpenWaClient::isTransientGatewayError((string) $session->last_error)
         ) {
             $session->forceFill(['last_error' => null])->save();
+            $session = $session->fresh();
         }
 
         if (
@@ -60,6 +60,10 @@ final class TenantWhatsAppPresenter
         return [
             'enabled' => true,
             'configured' => true,
+            'rate_limited' => $this->client->isRateLimited(),
+            'rate_limit_retry_after_seconds' => $this->client->isRateLimited()
+                ? $this->client->rateLimitRetryAfterSeconds()
+                : null,
             'session' => $session === null ? null : [
                 'id' => $session->id,
                 'openwa_session_id' => $session->openwa_session_id,

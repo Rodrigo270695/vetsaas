@@ -96,7 +96,8 @@
         "qr_ready": "Ready! You can send reminders now.",
         "relink_title": "Action required: re-link WhatsApp",
         "relink_body": "We updated the notification system. To keep sending reminders, queue messages, and the AI assistant, scan the QR code again with the clinic WhatsApp.",
-        "relink_steps": "Tap «Connect WhatsApp», wait for the QR code, and scan it from the clinic phone (Linked devices)."
+        "relink_steps": "Tap «Connect WhatsApp», wait for the QR code, and scan it from the clinic phone (Linked devices).",
+        "rate_limited": "The WhatsApp server is throttling requests (too many connection attempts). Do not tap Connect again for {{minutes}} minutes; then retry or ask support to restart the session from Platform."
     },
     "toast": {
         "load_error": "Could not load the message queue."

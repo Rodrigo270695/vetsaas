@@ -96,7 +96,8 @@
         "qr_ready": "¡Listo! Ya puedes enviar recordatorios.",
         "relink_title": "Acción requerida: volver a vincular WhatsApp",
         "relink_body": "Actualizamos el sistema de notificaciones. Para seguir enviando recordatorios, mensajes de la cola y el asistente IA, debes escanear de nuevo el código QR con el WhatsApp de la clínica.",
-        "relink_steps": "Pulsa «Conectar WhatsApp», espera el código QR y escanéalo desde el teléfono de la clínica (Dispositivos vinculados)."
+        "relink_steps": "Pulsa «Conectar WhatsApp», espera el código QR y escanéalo desde el teléfono de la clínica (Dispositivos vinculados).",
+        "rate_limited": "El servidor de WhatsApp está saturado (demasiados intentos de conexión). No pulses Conectar de nuevo durante {{minutes}} minutos; luego vuelve a intentar o pide a soporte que reinicie la sesión desde Plataforma."
     },
     "toast": {
         "load_error": "No se pudo cargar la cola de mensajes."

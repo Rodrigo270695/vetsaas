@@ -62,7 +62,7 @@ final class TenantWhatsAppSessionSync
         } catch (\Throwable $e) {
             if (
                 $local instanceof TenantWhatsAppSession
-                && ! ($local->isReady() && OpenWaClient::isTransientGatewayError($e->getMessage()))
+                && ! OpenWaClient::isTransientGatewayError($e->getMessage())
             ) {
                 $local->forceFill([
                     'last_error' => $e->getMessage(),
@@ -89,7 +89,8 @@ final class TenantWhatsAppSessionSync
         $touchedAt = OpenWaSessionStatusClock::touchedAt($local, $status);
 
         if (
-            $wakeForLink
+            ! $this->client->isRateLimited()
+            && $wakeForLink
             && in_array($status, ['initializing', 'authenticating'], true)
             && OpenWaReconnectPolicy::normalizeStatus($status, $touchedAt) === 'disconnected'
         ) {

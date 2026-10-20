@@ -25,6 +25,8 @@ export type WhatsAppSessionProps = {
 export type WhatsAppProps = {
     enabled: boolean;
     configured: boolean;
+    rate_limited?: boolean;
+    rate_limit_retry_after_seconds?: number | null;
     session: WhatsAppSessionProps | null;
 };
 
@@ -66,6 +68,7 @@ export function WhatsAppConnectCard({
     const [testOpen, setTestOpen] = useState(false);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const waitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pollMsRef = useRef(15_000);
 
     const stopPoll = useCallback(() => {
         if (pollRef.current !== null) {
@@ -94,12 +97,17 @@ export function WhatsAppConnectCard({
                 error?: string;
                 message?: string;
                 retry_after?: number;
+                rate_limited?: boolean;
             };
             if (typeof data.retry_after === 'number' && data.retry_after > 0) {
                 stopPoll();
+                pollMsRef.current = Math.max(pollMsRef.current, data.retry_after * 1000);
                 setQrStatus(data.status ?? null);
                 setQrError(null);
-                setQrMessage(data.message ?? 'WhatsApp está ocupado. Espera un minuto.');
+                setQrMessage(
+                    data.message ??
+                        'OpenWA está ocupado. Espera unos minutos sin pulsar Conectar otra vez.',
+                );
                 waitRef.current = setTimeout(() => {
                     void fetchQr();
                 }, data.retry_after * 1000);
@@ -155,7 +163,7 @@ export function WhatsAppConnectCard({
                     stopPoll();
                     pollRef.current = setInterval(() => {
                         void fetchQr();
-                    }, 8000);
+                    }, pollMsRef.current);
                 },
                 onError: () => {
                     setQrMessage(null);
@@ -181,6 +189,10 @@ export function WhatsAppConnectCard({
 
     const session = whatsapp.session;
     const isReady = session?.is_ready === true;
+    const serverRateLimited = whatsapp.rate_limited === true;
+    const rateLimitMinutes = whatsapp.rate_limit_retry_after_seconds
+        ? Math.max(1, Math.round(whatsapp.rate_limit_retry_after_seconds / 60))
+        : 4;
 
     return (
         <Card>
@@ -202,7 +214,15 @@ export function WhatsAppConnectCard({
                                   : t('whatsapp.status_pending')
                         }
                         value=""
-                        variant={isReady ? 'success' : session?.last_error ? 'danger' : 'warning'}
+                        variant={
+                            isReady
+                                ? 'success'
+                                : serverRateLimited
+                                  ? 'warning'
+                                  : session?.last_error
+                                    ? 'danger'
+                                    : 'warning'
+                        }
                     />
                 </div>
             </CardHeader>
@@ -224,7 +244,13 @@ export function WhatsAppConnectCard({
                     </p>
                 ) : null}
 
-                {!isReady && session?.last_error ? (
+                {!isReady && serverRateLimited ? (
+                    <p className="text-sm text-amber-800 dark:text-amber-300">
+                        {t('whatsapp.rate_limited', { minutes: rateLimitMinutes })}
+                    </p>
+                ) : null}
+
+                {!isReady && !serverRateLimited && session?.last_error ? (
                     <p className="text-sm text-destructive">{session.last_error}</p>
                 ) : null}
 
@@ -259,7 +285,12 @@ export function WhatsAppConnectCard({
                 {canManage ? (
                     <div className="flex flex-wrap gap-2">
                         {!isReady ? (
-                            <Button type="button" size="sm" onClick={handleConnect} disabled={syncing || loadingQr}>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleConnect}
+                                disabled={syncing || loadingQr || serverRateLimited}
+                            >
                                 {syncing || loadingQr ? (
                                     <Loader2 className="mr-2 size-4 animate-spin" />
                                 ) : (

@@ -978,6 +978,11 @@ final class OpenWaClient
         Cache::forget('openwa:rate-limited');
     }
 
+    public function rateLimitRetryAfterSeconds(): int
+    {
+        return max(60, (int) config('openwa.rate_limit_cooldown_seconds', 240));
+    }
+
     public function markRateLimited(): void
     {
         $seconds = max(60, (int) config('openwa.rate_limit_cooldown_seconds', 240));
