@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\Subscriptions\TenantSubscriptionAccess;
 use App\Support\OpenWa\OpenWaReconnectPolicy;
+use App\Support\OpenWa\OpenWaSessionStatusClock;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -170,7 +171,9 @@ final class OpenWaReconnectCoordinator
                 (bool) $platform->auto_reconnect,
                 filled($platform->phone),
                 trim((string) $platform->openwa_session_id) !== '',
-                $platform->last_synced_at ?? $platform->updated_at,
+                OpenWaSessionStatusClock::touchedAt($platform, (string) $platform->status)
+                    ?? $platform->status_changed_at
+                    ?? $platform->created_at,
             )
         ) {
             $queue[] = ['kind' => 'platform', 'id' => (string) $platform->id];
@@ -195,7 +198,9 @@ final class OpenWaReconnectCoordinator
                     (bool) $session->auto_reconnect,
                     filled($session->phone),
                     trim((string) $session->openwa_session_id) !== '',
-                    $session->last_synced_at ?? $session->updated_at,
+                    OpenWaSessionStatusClock::touchedAt($session, (string) $session->status)
+                        ?? $session->status_changed_at
+                        ?? $session->created_at,
                 );
             })
             ->sortBy(fn (Tenant $tenant): string => (string) (
@@ -241,11 +246,13 @@ final class OpenWaReconnectCoordinator
     {
         $status = (string) ($remote['status'] ?? $session->status);
         $sessionId = trim((string) ($remote['id'] ?? $session->openwa_session_id));
+        $newStatus = $status !== '' ? $status : (string) $session->status;
 
         $session->forceFill([
             'openwa_session_id' => $sessionId !== '' ? $sessionId : $session->openwa_session_id,
             'openwa_session_name' => (string) ($remote['name'] ?? $session->openwa_session_name),
-            'status' => $status !== '' ? $status : $session->status,
+            'status' => $newStatus,
+            'status_changed_at' => OpenWaSessionStatusClock::nextChangedAt($session, $newStatus),
             'phone' => isset($remote['phone']) ? (string) $remote['phone'] : $session->phone,
             'push_name' => isset($remote['pushName']) ? (string) $remote['pushName'] : $session->push_name,
             'connected_at' => filled($remote['connectedAt'] ?? null)

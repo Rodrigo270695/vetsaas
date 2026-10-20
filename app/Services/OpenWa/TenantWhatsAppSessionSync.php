@@ -7,6 +7,7 @@ namespace App\Services\OpenWa;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Support\OpenWa\OpenWaReconnectPolicy;
+use App\Support\OpenWa\OpenWaSessionStatusClock;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -85,12 +86,25 @@ final class TenantWhatsAppSessionSync
         $wantsReconnect = $local === null || (bool) ($local->auto_reconnect ?? true);
         $lastError = null;
         $hadPhone = filled($remote['phone'] ?? null) || filled($local?->phone);
+        $touchedAt = OpenWaSessionStatusClock::touchedAt($local, $status);
+
+        if (
+            $wakeForLink
+            && in_array($status, ['initializing', 'authenticating'], true)
+            && OpenWaReconnectPolicy::normalizeStatus($status, $touchedAt) === 'disconnected'
+        ) {
+            $this->releaseStuckBoot($sessionId);
+            $remote = $this->client->tryGetSession($sessionId) ?? $remote;
+            $status = (string) ($remote['status'] ?? 'disconnected');
+            $touchedAt = null;
+        }
 
         $shouldStart = OpenWaReconnectPolicy::shouldStartEngine(
             $status,
             $wantsReconnect,
             $wakeForLink,
             $hadPhone,
+            $touchedAt,
         );
 
         if ($shouldStart) {
@@ -109,6 +123,7 @@ final class TenantWhatsAppSessionSync
             'openwa_session_id' => $sessionId,
             'openwa_session_name' => (string) ($remote['name'] ?? $tenant->slug),
             'status' => $status,
+            'status_changed_at' => OpenWaSessionStatusClock::nextChangedAt($local, $status),
             'phone' => isset($remote['phone']) ? (string) $remote['phone'] : null,
             'push_name' => isset($remote['pushName']) ? (string) $remote['pushName'] : null,
             'connected_at' => filled($remote['connectedAt'] ?? null)
@@ -187,7 +202,9 @@ final class TenantWhatsAppSessionSync
                 $wantsReconnect,
                 false,
                 $hadPhone,
-                $session->last_synced_at ?? $session->updated_at,
+                OpenWaSessionStatusClock::touchedAt($session, $status)
+                    ?? $session->status_changed_at
+                    ?? $session->created_at,
             )
         ) {
             $this->client->tryStartIfDown(
@@ -246,8 +263,11 @@ final class TenantWhatsAppSessionSync
      */
     private function fillFromRemote(TenantWhatsAppSession $session, array $remote): TenantWhatsAppSession
     {
+        $newStatus = (string) ($remote['status'] ?? $session->status);
+
         $session->forceFill([
-            'status' => (string) ($remote['status'] ?? $session->status),
+            'status' => $newStatus,
+            'status_changed_at' => OpenWaSessionStatusClock::nextChangedAt($session, $newStatus),
             'phone' => isset($remote['phone']) ? (string) $remote['phone'] : $session->phone,
             'push_name' => isset($remote['pushName']) ? (string) $remote['pushName'] : $session->push_name,
             'connected_at' => filled($remote['connectedAt'] ?? null)
@@ -295,5 +315,19 @@ final class TenantWhatsAppSessionSync
         }
 
         return $session->fresh();
+    }
+
+    private function releaseStuckBoot(string $sessionId): void
+    {
+        try {
+            $this->client->stopSession($sessionId);
+        } catch (\Throwable $e) {
+            Log::warning('OpenWA stop during stuck boot recovery', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->client->forgetSessionListCache();
     }
 }

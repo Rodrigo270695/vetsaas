@@ -6,6 +6,8 @@ namespace App\Services\OpenWa;
 
 use App\Models\PlatformWhatsAppSession;
 use App\Support\OpenWa\OpenWaReconnectPolicy;
+use App\Support\OpenWa\OpenWaSessionStatusClock;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 
 final class PlatformWhatsAppSessionSync
@@ -69,11 +71,33 @@ final class PlatformWhatsAppSessionSync
         $lastError = null;
         $hadPhone = filled($remote['phone'] ?? null) || filled($local?->phone);
 
+        $touchedAt = OpenWaSessionStatusClock::touchedAt($local, $status);
+
+        if (
+            $wakeForLink
+            && in_array($status, ['initializing', 'authenticating'], true)
+            && OpenWaReconnectPolicy::normalizeStatus($status, $touchedAt) === 'disconnected'
+        ) {
+            try {
+                $this->client->stopSession($sessionId);
+            } catch (\Throwable $e) {
+                Log::warning('OpenWA platform stop during stuck boot recovery', [
+                    'session_id' => $sessionId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            $this->client->forgetSessionListCache();
+            $remote = $this->client->tryGetSession($sessionId) ?? $remote;
+            $status = (string) ($remote['status'] ?? 'disconnected');
+            $touchedAt = null;
+        }
+
         $shouldStart = OpenWaReconnectPolicy::shouldStartEngine(
             $status,
             $wantsReconnect,
             $wakeForLink,
             $hadPhone,
+            $touchedAt,
         );
 
         if ($shouldStart) {
@@ -91,6 +115,7 @@ final class PlatformWhatsAppSessionSync
             'openwa_session_id' => $sessionId,
             'openwa_session_name' => (string) ($remote['name'] ?? $name),
             'status' => $status,
+            'status_changed_at' => OpenWaSessionStatusClock::nextChangedAt($local, $status),
             'phone' => isset($remote['phone']) ? (string) $remote['phone'] : null,
             'push_name' => isset($remote['pushName']) ? (string) $remote['pushName'] : null,
             'connected_at' => filled($remote['connectedAt'] ?? null)
@@ -115,8 +140,11 @@ final class PlatformWhatsAppSessionSync
     {
         $remote = $this->client->getSession($session->openwa_session_id);
 
+        $newStatus = (string) ($remote['status'] ?? $session->status);
+
         $session->forceFill([
-            'status' => (string) ($remote['status'] ?? $session->status),
+            'status' => $newStatus,
+            'status_changed_at' => OpenWaSessionStatusClock::nextChangedAt($session, $newStatus),
             'phone' => isset($remote['phone']) ? (string) $remote['phone'] : $session->phone,
             'push_name' => isset($remote['pushName']) ? (string) $remote['pushName'] : $session->push_name,
             'connected_at' => filled($remote['connectedAt'] ?? null)

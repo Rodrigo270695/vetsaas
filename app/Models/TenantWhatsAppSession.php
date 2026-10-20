@@ -20,6 +20,7 @@ class TenantWhatsAppSession extends Model
         'openwa_session_id',
         'openwa_session_name',
         'status',
+        'status_changed_at',
         'phone',
         'push_name',
         'connected_at',
@@ -32,6 +33,7 @@ class TenantWhatsAppSession extends Model
     {
         return [
             'connected_at' => 'datetime',
+            'status_changed_at' => 'datetime',
             'last_synced_at' => 'datetime',
             'auto_reconnect' => 'boolean',
         ];
