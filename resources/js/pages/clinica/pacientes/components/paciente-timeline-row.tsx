@@ -10,6 +10,7 @@ import {
     FileDown,
     FilePenLine,
     FlaskConical,
+    Pill,
     Heart,
     HeartOff,
     Home,
@@ -82,6 +83,7 @@ type TimelineRowProps = {
     onOpenAntipulga?: (item: Extract<TimelineItem, { kind: 'antipulga' }>) => void;
     onOpenDefuncion?: (item: Extract<TimelineItem, { kind: 'defuncion' }>) => void;
     onOpenTriaje?: (item: Extract<TimelineItem, { kind: 'triaje' }>) => void;
+    onOpenReceta?: (item: Extract<TimelineItem, { kind: 'receta' }>) => void;
     onOpenRegistro?: (item: TimelineEventItem) => void;
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
@@ -521,6 +523,19 @@ function itemTheme(item: TimelineItem) {
         };
     }
 
+    if (item.kind === 'receta') {
+        return {
+            stripe: 'bg-gradient-to-b from-violet-400 to-violet-600',
+            dot: 'border-violet-400/70 bg-gradient-to-br from-violet-400 to-violet-600 text-white shadow-violet-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(139,92,246,0.16)]',
+            ringPulse: 'bg-violet-500/50',
+            iconBg: 'bg-gradient-to-br from-violet-500/20 to-violet-500/5',
+            iconText: 'text-violet-700 dark:text-violet-300',
+            cardHover: 'hover:border-violet-500/35 hover:shadow-violet-500/10',
+            Icon: Pill,
+        };
+    }
+
     if (item.kind === 'control') {
         return {
             stripe: 'bg-gradient-to-b from-teal-400 to-teal-600',
@@ -602,6 +617,7 @@ export function PacienteTimelineRow({
     onOpenAntipulga,
     onOpenDefuncion,
     onOpenTriaje,
+    onOpenReceta,
     onOpenRegistro,
     onShareConsulta,
     onUploadLaboratorio,
@@ -897,13 +913,17 @@ export function PacienteTimelineRow({
                                             'bg-slate-500/12 text-slate-800 dark:text-slate-100',
                                         item.kind === 'triaje' &&
                                             'bg-violet-500/12 text-violet-800 dark:text-violet-100',
+                                        item.kind === 'receta' &&
+                                            'bg-violet-500/12 text-violet-800 dark:text-violet-200',
                                     )}
                                 >
                                     {item.kind === 'consulta'
                                         ? t('historial.badge_consulta')
                                         : item.kind === 'aplicacion'
                                           ? t('historial.badge_aplicacion')
-                                          : t(`historial.badge_${item.kind}`)}
+                                          : item.kind === 'receta'
+                                            ? t('historial.badge_receta')
+                                            : t(`historial.badge_${item.kind}`)}
                                 </Badge>
                                 {item.kind === 'consulta' ? (
                                     item.cerrada ? (
@@ -918,6 +938,10 @@ export function PacienteTimelineRow({
                                 ) : item.kind === 'aplicacion' ? (
                                     <Badge variant="secondary" className="text-[0.65rem] font-medium">
                                         {categoriaEtiqueta(item.categoria)}
+                                    </Badge>
+                                ) : item.kind === 'receta' ? (
+                                    <Badge variant="secondary" className="text-[0.65rem] font-medium">
+                                        {t(`recetas:estado.${item.estado}`, { defaultValue: item.estado })}
                                     </Badge>
                                 ) : (
                                     <Badge variant="secondary" className="text-[0.65rem] font-medium capitalize">
@@ -960,8 +984,43 @@ export function PacienteTimelineRow({
                             </div>
                             {item.kind !== 'consulta' &&
                             item.kind !== 'aplicacion' &&
+                            item.kind !== 'receta' &&
                             item.detalle_corto ? (
                                 <p className="text-xs text-muted-foreground">{item.detalle_corto}</p>
+                            ) : null}
+
+                            {item.kind === 'receta' && item.lineas.length > 0 ? (
+                                <ul className="mt-1 space-y-1.5">
+                                    {item.lineas.map((linea) => (
+                                        <li
+                                            key={linea.id}
+                                            className="rounded-md border border-violet-500/15 bg-violet-500/5 px-2.5 py-2 text-xs"
+                                        >
+                                            <p className="font-medium text-foreground">
+                                                {linea.nombre_medicamento}
+                                            </p>
+                                            {linea.posologia ? (
+                                                <p className="mt-0.5 text-muted-foreground">
+                                                    {linea.posologia}
+                                                    {linea.duracion_dias != null
+                                                        ? ` · ${t('historial.receta_dias', { count: linea.duracion_dias })}`
+                                                        : ''}
+                                                </p>
+                                            ) : null}
+                                            {linea.instrucciones ? (
+                                                <p className="mt-0.5 text-muted-foreground">
+                                                    {linea.instrucciones}
+                                                </p>
+                                            ) : null}
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : null}
+
+                            {item.kind === 'receta' && item.observaciones ? (
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                                    {item.observaciones}
+                                </p>
                             ) : null}
 
                             {item.kind === 'consulta' &&
@@ -1164,6 +1223,34 @@ export function PacienteTimelineRow({
                                                     <FileDown className="size-3.5" strokeWidth={2.25} />
                                                     PDF
                                                 </a>
+                                            </Button>
+                                        ) : null}
+                                    </>
+                                ) : null}
+                                {item.kind === 'receta' ? (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 gap-1.5 px-2.5 text-xs"
+                                            asChild
+                                        >
+                                            <a href={item.pdf_url} target="_blank" rel="noopener noreferrer">
+                                                <FileDown className="size-3.5" strokeWidth={2.25} />
+                                                PDF
+                                            </a>
+                                        </Button>
+                                        {item.puede_editar && onOpenReceta ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="secondary"
+                                                className="h-8 gap-1.5 px-2.5 text-xs"
+                                                onClick={() => onOpenReceta(item)}
+                                            >
+                                                <FilePenLine className="size-3.5" strokeWidth={2.25} />
+                                                {t('historial.receta_editar')}
                                             </Button>
                                         ) : null}
                                     </>
@@ -1465,6 +1552,7 @@ function VinculosBlock({
                         badge: t(`recetas:estado.${r.estado}`, { defaultValue: r.estado }),
                         meta: t('historial.vinculos_meds', { count: r.lineas_count }),
                         url: publicMode ? '' : r.url,
+                        pdf_url: publicMode ? '' : r.pdf_url,
                     }))}
                     t={t}
                 />
@@ -1615,7 +1703,7 @@ function VinculoList({
     t,
 }: {
     title: string;
-    items: { id: string; badge: string; meta: string; url: string }[];
+    items: { id: string; badge: string; meta: string; url: string; pdf_url?: string }[];
     t: (k: string) => string;
 }) {
     return (
@@ -1633,11 +1721,32 @@ function VinculoList({
                             </Badge>
                             <span className="truncate text-[0.7rem] text-muted-foreground">{item.meta}</span>
                         </div>
-                        {item.url ? (
-                            <Button type="button" variant="link" size="sm" className="h-6 shrink-0 px-1 text-xs" asChild>
-                                <a href={item.url}>{t('historial.vinculos_abrir')}</a>
-                            </Button>
-                        ) : null}
+                        <div className="flex shrink-0 items-center gap-1">
+                            {item.pdf_url ? (
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    size="sm"
+                                    className="h-6 px-1 text-xs"
+                                    asChild
+                                >
+                                    <a href={item.pdf_url} target="_blank" rel="noopener noreferrer">
+                                        PDF
+                                    </a>
+                                </Button>
+                            ) : null}
+                            {item.url ? (
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    size="sm"
+                                    className="h-6 shrink-0 px-1 text-xs"
+                                    asChild
+                                >
+                                    <a href={item.url}>{t('historial.vinculos_abrir')}</a>
+                                </Button>
+                            ) : null}
+                        </div>
                     </li>
                 ))}
             </ul>

@@ -240,6 +240,36 @@ class RecetaController extends Controller
         ]);
     }
 
+    public function showJson(Request $request, Receta $receta): JsonResponse
+    {
+        abort_unless($request->user()?->can('recetas.view') ?? false, 403);
+
+        $canAudit = $request->user()?->can('audit-trail.view') ?? false;
+
+        $query = Receta::query()
+            ->whereKey($receta->id)
+            ->withCount('lineas')
+            ->with([
+                'paciente.propietario:id,nombres,apellidos,razon_social,telefono,telefono_alt',
+                'consulta:id,atendido_at,cerrada_at,historia_clinica_id',
+                'consulta.historiaClinica:id,paciente_id',
+                'veterinario:id,name',
+                'sede:id,nombre,codigo',
+                'lineas' => fn ($q) => $q->orderBy('orden')->with('producto:id,nombre,sku,unidad'),
+            ]);
+
+        if ($canAudit) {
+            $query->with([
+                'creadoPor:id,name,email',
+                'actualizadoPor:id,name,email',
+            ]);
+        }
+
+        $model = $query->firstOrFail();
+
+        return response()->json(['receta' => $model]);
+    }
+
     public function productosMedicamento(Request $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));

@@ -39,6 +39,7 @@ use App\Models\PedidoLaboratorio;
 use App\Models\PedidoLaboratorioLinea;
 use App\Models\Propietario;
 use App\Models\Receta;
+use App\Models\RecetaLinea;
 use App\Models\Sede;
 use App\Models\ServicioClinico;
 use App\Models\User;
@@ -1467,6 +1468,7 @@ class PacienteController extends Controller
         $this->appendDefunciones($timeline, $paciente, $user);
         $this->appendTriajes($timeline, $paciente, $user);
         $this->appendStandaloneTimelineEvents($timeline, $paciente, $user, $tz);
+        $this->appendRecetasTimeline($timeline, $paciente, $user);
         $this->pegarArchivosEnFicha($timeline, $paciente, $tz);
 
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
@@ -2198,7 +2200,7 @@ class PacienteController extends Controller
 
     /**
      * @param  Collection<int, Receta>  $recetas
-     * @return list<array{id: string, estado: string, lineas_count: int, url: string}>
+     * @return list<array{id: string, estado: string, lineas_count: int, url: string, pdf_url: string}>
      */
     private function timelineRecetasVinculo(?Authenticatable $user, $recetas, string $tz): array
     {
@@ -2213,10 +2215,68 @@ class PacienteController extends Controller
                 'estado' => $r->estado,
                 'lineas_count' => (int) ($r->lineas_count ?? 0),
                 'url' => $this->recetaHistorialUrl($user, $r, $tz),
+                'pdf_url' => route('clinica.recetas.pdf', $r),
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $timeline
+     */
+    private function appendRecetasTimeline(array &$timeline, Paciente $paciente, ?Authenticatable $user): void
+    {
+        if ($user === null || ! Schema::hasTable('recetas') || ! $user->can('recetas.view')) {
+            return;
+        }
+
+        $tenant = app(TenantManager::class)->current()?->tenant;
+        if (! TenantModuleAccess::isEnabled($tenant, 'recetas')) {
+            return;
+        }
+
+        $recetas = Receta::query()
+            ->where('paciente_id', $paciente->id)
+            ->with([
+                'lineas' => fn ($q) => $q->orderBy('orden'),
+                'veterinario:id,name',
+            ])
+            ->orderByDesc('emitida_at')
+            ->limit(200)
+            ->get();
+
+        foreach ($recetas as $r) {
+            $nombres = $r->lineas
+                ->pluck('nombre_medicamento')
+                ->map(fn ($n) => trim((string) $n))
+                ->filter()
+                ->values();
+            $titulo = $nombres->isNotEmpty()
+                ? Str::limit($nombres->implode(', '), 140)
+                : 'Receta';
+
+            $timeline[] = [
+                'kind' => 'receta',
+                'id' => $r->id,
+                'ocurrido_at' => $r->emitida_at->toIso8601String(),
+                'titulo' => $titulo,
+                'estado' => $r->estado,
+                'veterinario' => $r->veterinario?->name,
+                'consulta_id' => $r->consulta_id,
+                'pdf_url' => route('clinica.recetas.pdf', $r),
+                'puede_editar' => $user->can('recetas.update'),
+                'lineas' => $r->lineas->map(fn (RecetaLinea $ln): array => [
+                    'id' => $ln->id,
+                    'nombre_medicamento' => $ln->nombre_medicamento,
+                    'posologia' => $ln->posologia,
+                    'duracion_dias' => $ln->duracion_dias,
+                    'instrucciones' => $ln->instrucciones,
+                ])->all(),
+                'observaciones' => $this->timelineTextPreview($r->observaciones, 600),
+                'examenes_complementarios' => $this->timelineTextPreview($r->examenes_complementarios, 400),
+            ];
+        }
     }
 
     private function recetaHistorialUrl(Authenticatable $user, Receta $r, string $tz): string

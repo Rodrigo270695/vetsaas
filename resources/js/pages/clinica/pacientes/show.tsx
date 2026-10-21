@@ -47,7 +47,12 @@ import type {
     SedeLaboratorioOpcion,
 } from '../laboratorio/types';
 import { RecetaFormModal } from '../recetas/components/receta-form-modal';
-import type { ConsultaRecetaOpcion, PacienteRecetaOpcion, SedeRecetaOpcion } from '../recetas/types';
+import type {
+    ConsultaRecetaOpcion,
+    PacienteRecetaOpcion,
+    RecetaRow,
+    SedeRecetaOpcion,
+} from '../recetas/types';
 import { dateKeyInAppTimezone } from '../historias-clinicas/format-atendido';
 import type { Paciente, PropietarioOpcion } from '../propietarios/types';
 import { VacunaFormModal } from '../vacunaciones/components/vacuna-form-modal';
@@ -93,8 +98,22 @@ export type HistorialArchivoSubido = {
     archivo_kind: 'pdf' | 'image' | 'other';
 };
 
+export type TimelineRecetaLinea = {
+    id: string;
+    nombre_medicamento: string;
+    posologia: string | null;
+    duracion_dias: number | null;
+    instrucciones: string | null;
+};
+
 export type TimelineConsultaVinculos = {
-    recetas: readonly { id: string; estado: string; lineas_count: number; url: string }[];
+    recetas: readonly {
+        id: string;
+        estado: string;
+        lineas_count: number;
+        url: string;
+        pdf_url: string;
+    }[];
     laboratorio: readonly {
         id: string;
         estado: string;
@@ -269,6 +288,20 @@ export type TimelineItem =
           registro?: VacunaAplicadaRow;
           detalle: TimelineAplicacionDetalle;
       }
+    | {
+          kind: 'receta';
+          id: string;
+          ocurrido_at: string;
+          titulo: string;
+          estado: string;
+          veterinario: string | null | undefined;
+          consulta_id: string | null;
+          pdf_url: string;
+          puede_editar: boolean;
+          lineas: readonly TimelineRecetaLinea[];
+          observaciones: string | null;
+          examenes_complementarios: string | null;
+      }
     | TimelineEventItem;
 
 export function timelineLane(kind: TimelineItem['kind']): 'clinico' | 'servicio' {
@@ -413,6 +446,7 @@ export default function PacienteShow({
     const [citaOpen, setCitaOpen] = useState(false);
     const [citaEdit, setCitaEdit] = useState<CitaRow | null>(null);
     const [recetaOpen, setRecetaOpen] = useState(false);
+    const [recetaEdit, setRecetaEdit] = useState<RecetaRow | null>(null);
     const [cirugiaOpen, setCirugiaOpen] = useState(false);
     const [cirugiaEdit, setCirugiaEdit] = useState<CirugiaRow | null>(null);
     const [hospitalOpen, setHospitalOpen] = useState(false);
@@ -555,6 +589,31 @@ export default function PacienteShow({
             return isNewDay;
         });
     }, [visibleTimeline, appTz]);
+
+    const openReceta = useCallback(async (item: Extract<TimelineItem, { kind: 'receta' }>) => {
+        if (!item.puede_editar) {
+            window.open(item.pdf_url, '_blank', 'noopener,noreferrer');
+            return;
+        }
+
+        try {
+            const res = await fetch(clinica.recetas.showJson.url({ receta: item.id }), {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+            if (!res.ok) {
+                throw new Error('fetch failed');
+            }
+            const body = (await res.json()) as { receta: RecetaRow };
+            setRecetaEdit(body.receta);
+            setRecetaOpen(true);
+        } catch {
+            window.open(item.pdf_url, '_blank', 'noopener,noreferrer');
+        }
+    }, []);
 
     const openVacunaRegistro = useCallback((item: Extract<TimelineItem, { kind: 'aplicacion' }>) => {
         if (item.registro) {
@@ -758,6 +817,7 @@ export default function PacienteShow({
                         }
 
                         if (accion === 'receta') {
+                            setRecetaEdit(null);
                             setRecetaOpen(true);
                             return;
                         }
@@ -982,6 +1042,7 @@ export default function PacienteShow({
                                             setTriajePanel(null);
                                             setDefuncionPanel({ mode: 'edit', url: registro.href });
                                         }}
+                                        onOpenReceta={openReceta}
                                         onOpenTriaje={(registro) => {
                                             setControlPanel(null);
                                             setDesparasitacionPanel(null);
@@ -1165,9 +1226,14 @@ export default function PacienteShow({
 
             <RecetaFormModal
                 open={recetaOpen}
-                onOpenChange={setRecetaOpen}
-                receta={null}
-                prefillPacienteId={paciente.id}
+                onOpenChange={(open) => {
+                    setRecetaOpen(open);
+                    if (!open) {
+                        setRecetaEdit(null);
+                    }
+                }}
+                receta={recetaEdit}
+                prefillPacienteId={recetaEdit === null ? paciente.id : undefined}
                 pacientesOpciones={pacientes_opciones as readonly PacienteRecetaOpcion[]}
                 sedesOpciones={sedes_opciones as readonly SedeRecetaOpcion[]}
                 consultasOpciones={consultas_opciones}

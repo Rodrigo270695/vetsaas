@@ -13,6 +13,7 @@
     "platform": {
         "title": "Sesión de plataforma",
         "ready": "Lista",
+        "ready_db": "Lista (BD)",
         "not_ready": "No lista",
         "phone": "Teléfono",
         "synced": "Última sync"
@@ -47,8 +48,11 @@
         "reconnect": "Auto-reconnect",
         "actions": "Acciones"
     },
+    "cooldown_badge": "Cooldown 429",
     "status": {
         "ready": "Lista",
+        "ready_db": "Lista (BD)",
+        "ready_db_hint": "Última sync en base de datos dice ready. Con cooldown 429, OpenWA no confirma en vivo; la clínica puede seguir viendo avisos hasta que baje el límite.",
         "disconnected": "Desconectada",
         "failed": "Fallida",
         "qr_ready": "QR listo",

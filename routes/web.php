@@ -767,6 +767,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->get('recetas/{receta}/pdf', [RecetaController::class, 'pdf'])
                 ->name('recetas.pdf');
             Route::middleware('permission:recetas.view')
+                ->get('recetas/{receta}/json', [RecetaController::class, 'showJson'])
+                ->name('recetas.show-json');
+            Route::middleware('permission:recetas.view')
                 ->post('recetas/{receta}/enviar-whatsapp', [RecetaController::class, 'enviarWhatsApp'])
                 ->name('recetas.enviar-whatsapp');
             Route::middleware('permission:recetas.view')

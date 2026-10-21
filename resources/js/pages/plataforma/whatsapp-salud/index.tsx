@@ -287,6 +287,7 @@ export default function PlataformaWhatsAppSaludIndex({
                 cell: (row) => {
                     const key = statusKey(row);
                     const ready = key === 'ready';
+                    const readyDuringCooldown = ready && stats.rate_limited;
                     const bad =
                         key === 'failed' ||
                         key === 'disconnected' ||
@@ -298,16 +299,34 @@ export default function PlataformaWhatsAppSaludIndex({
                                 variant="outline"
                                 className={cn(
                                     ready &&
+                                        !readyDuringCooldown &&
                                         'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
+                                    readyDuringCooldown &&
+                                        'border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200',
                                     bad &&
                                         'border-destructive/40 bg-destructive/10 text-destructive',
                                     !ready &&
                                         !bad &&
                                         'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-300',
                                 )}
+                                title={
+                                    readyDuringCooldown
+                                        ? t('status.ready_db_hint')
+                                        : undefined
+                                }
                             >
-                                {t(`status.${key}`, { defaultValue: key })}
+                                {readyDuringCooldown
+                                    ? t('status.ready_db')
+                                    : t(`status.${key}`, { defaultValue: key })}
                             </Badge>
+                            {readyDuringCooldown ? (
+                                <Badge
+                                    variant="outline"
+                                    className="border-destructive/40 bg-destructive/10 text-destructive"
+                                >
+                                    {t('cooldown_badge')}
+                                </Badge>
+                            ) : null}
                             {row.stale ? (
                                 <Badge variant="outline" className="text-muted-foreground">
                                     {t('stale_badge')}
@@ -503,11 +522,25 @@ export default function PlataformaWhatsAppSaludIndex({
                                 label={t('platform.title')}
                                 value={
                                     platform.ready
-                                        ? t('platform.ready')
+                                        ? stats.rate_limited
+                                            ? t('platform.ready_db')
+                                            : t('platform.ready')
                                         : t('platform.not_ready')
                                 }
-                                variant={platform.ready ? 'success' : 'warning'}
+                                variant={
+                                    platform.ready && !stats.rate_limited
+                                        ? 'success'
+                                        : 'warning'
+                                }
                             />
+                            {platform.ready && stats.rate_limited ? (
+                                <Badge
+                                    variant="outline"
+                                    className="border-destructive/40 bg-destructive/10 text-destructive"
+                                >
+                                    {t('cooldown_badge')}
+                                </Badge>
+                            ) : null}
                             {platform.phone ? (
                                 <StatBadge
                                     icon={Phone}

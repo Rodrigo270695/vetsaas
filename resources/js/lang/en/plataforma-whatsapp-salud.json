@@ -13,6 +13,7 @@
     "platform": {
         "title": "Platform session",
         "ready": "Ready",
+        "ready_db": "Ready (DB)",
         "not_ready": "Not ready",
         "phone": "Phone",
         "synced": "Last sync"
@@ -47,8 +48,11 @@
         "reconnect": "Auto-reconnect",
         "actions": "Actions"
     },
+    "cooldown_badge": "429 cooldown",
     "status": {
         "ready": "Ready",
+        "ready_db": "Ready (DB)",
+        "ready_db_hint": "Local DB last sync says ready. During a 429 cooldown OpenWA is not queried live; the clinic may still see warnings until the limit clears.",
         "disconnected": "Disconnected",
         "failed": "Failed",
         "qr_ready": "QR ready",
