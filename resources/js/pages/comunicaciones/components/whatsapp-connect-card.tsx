@@ -83,6 +83,23 @@ export function WhatsAppConnectCard({
 
     useEffect(() => () => stopPoll(), [stopPoll]);
 
+    const serverRateLimited = whatsapp.rate_limited === true;
+    const rateLimitSeconds = whatsapp.rate_limit_retry_after_seconds ?? 240;
+
+    useEffect(() => {
+        if (!serverRateLimited) {
+            return;
+        }
+
+        stopPoll();
+        const ms = Math.max(60, rateLimitSeconds) * 1000;
+        const timer = window.setTimeout(() => {
+            router.reload({ only: ['whatsapp'] });
+        }, ms);
+
+        return () => window.clearTimeout(timer);
+    }, [rateLimitSeconds, serverRateLimited, stopPoll]);
+
     const fetchQr = useCallback(async () => {
         setLoadingQr(true);
         try {
@@ -189,10 +206,7 @@ export function WhatsAppConnectCard({
 
     const session = whatsapp.session;
     const isReady = session?.is_ready === true;
-    const serverRateLimited = whatsapp.rate_limited === true;
-    const rateLimitMinutes = whatsapp.rate_limit_retry_after_seconds
-        ? Math.max(1, Math.round(whatsapp.rate_limit_retry_after_seconds / 60))
-        : 4;
+    const rateLimitMinutes = Math.max(1, Math.round(rateLimitSeconds / 60));
 
     return (
         <Card>

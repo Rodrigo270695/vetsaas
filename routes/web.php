@@ -1860,6 +1860,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('whatsapp-salud/sync', [PlataformaWhatsAppHealthController::class, 'sync'])
             ->middleware('throttle:4,1')
             ->name('whatsapp-salud.sync');
+        Route::middleware('permission:plataforma-tenants.whatsapp-restart')
+            ->post('whatsapp-salud/clear-cooldown', [PlataformaWhatsAppHealthController::class, 'clearCooldown'])
+            ->middleware('throttle:6,1')
+            ->name('whatsapp-salud.clear-cooldown');
 
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('apiperu', [PlataformaApiPeruController::class, 'index'])

@@ -55,4 +55,17 @@ class PlataformaWhatsAppHealthController extends Controller
             $output !== '' ? $output : 'Sincronización WhatsApp lanzada.',
         );
     }
+
+    /**
+     * Quita el aviso global 429 sin llamar a OpenWA (útil si el cooldown ya pasó en el gateway).
+     */
+    public function clearCooldown(OpenWaClient $client): RedirectResponse
+    {
+        $client->clearRateLimited();
+
+        return back()->with(
+            'success',
+            'Cooldown 429 liberado en VetSaaS. Espera 1–2 minutos antes de reiniciar sesiones o conectar desde la clínica.',
+        );
+    }
 }

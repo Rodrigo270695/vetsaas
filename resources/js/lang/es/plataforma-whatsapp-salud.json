@@ -7,6 +7,8 @@
     "search_placeholder": "Buscar clínica, slug o teléfono…",
     "cache_note": "Esta pantalla no es OpenWA en vivo. El cron sincroniza un lote cada 5 min. «Listas» exige sync de menos de {{minutes}} min; si OpenWA tiene 2 conectadas y acá ves 12, esas 12 están desfasadas.",
     "rate_limited": "OpenWA está en cooldown 429. No reinicies sesiones hasta que baje el aviso; el cron también se pausa.",
+    "clear_cooldown": "Liberar aviso 429",
+    "clear_cooldown_confirm": "¿Quitar el aviso de cooldown 429 en VetSaaS? No llama a OpenWA. Espera 1–2 min antes de reiniciar sesiones o conectar desde la clínica.",
     "openwa_off": "OpenWA no está configurado en esta instancia.",
     "needs_qr_alert_title": "Hay clínicas que tienen que volver a escanear el QR",
     "needs_qr_alert": "{{count}} sesión(es) en QR o desconectada sin teléfono: el reconectado automático no alcanza; la clínica debe vincular otra vez.",

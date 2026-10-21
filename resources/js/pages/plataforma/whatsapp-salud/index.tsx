@@ -231,6 +231,14 @@ export default function PlataformaWhatsAppSaludIndex({
         );
     }, [t]);
 
+    const clearCooldown = useCallback(() => {
+        if (!window.confirm(t('clear_cooldown_confirm'))) {
+            return;
+        }
+
+        postAction(`${ROUTE_URL}/clear-cooldown`);
+    }, [postAction, t]);
+
     const hasPlatformSession = Boolean(
         platform.status ||
             platform.phone ||
@@ -491,6 +499,19 @@ export default function PlataformaWhatsAppSaludIndex({
                         <AlertTitle className="text-destructive">
                             {t('rate_limited')}
                         </AlertTitle>
+                        {canRestart ? (
+                            <AlertDescription className="mt-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-destructive/40 bg-background text-destructive hover:bg-destructive/10"
+                                    onClick={clearCooldown}
+                                >
+                                    {t('clear_cooldown')}
+                                </Button>
+                            </AlertDescription>
+                        ) : null}
                     </Alert>
                 ) : null}
 

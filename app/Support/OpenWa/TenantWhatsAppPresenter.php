@@ -44,11 +44,13 @@ final class TenantWhatsAppPresenter
             $session = $session->fresh();
         }
 
+        // Solo refrescar sesiones ya conectadas y con sync vieja. No golpear OpenWA en
+        // «pendiente de vincular»: cada visita a Cola saliente re-disparaba 429 en bucle.
         if (
             $session instanceof TenantWhatsAppSession
             && ! $this->client->isRateLimited()
-            && ! ($session->isReady() && $session->isSyncedRecently(15))
-            && ! $session->isSyncedRecently(3)
+            && $session->isReady()
+            && ! $session->isSyncedRecently(15)
         ) {
             try {
                 $session = $this->sync->pullRemoteStatus($session);
