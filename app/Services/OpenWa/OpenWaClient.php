@@ -976,11 +976,22 @@ final class OpenWaClient
     public function clearRateLimited(): void
     {
         Cache::forget('openwa:rate-limited');
+        Cache::forget('openwa:rate-limited-until');
     }
 
     public function rateLimitRetryAfterSeconds(): int
     {
-        return max(60, (int) config('openwa.rate_limit_cooldown_seconds', 240));
+        $default = max(60, (int) config('openwa.rate_limit_cooldown_seconds', 240));
+        if (! $this->isRateLimited()) {
+            return $default;
+        }
+
+        $until = Cache::get('openwa:rate-limited-until');
+        if (is_numeric($until)) {
+            return max(1, (int) $until - time());
+        }
+
+        return $default;
     }
 
     public function markRateLimited(): void
@@ -988,6 +999,7 @@ final class OpenWaClient
         $seconds = max(60, (int) config('openwa.rate_limit_cooldown_seconds', 240));
         // No renovar el plazo: si cada 429 lo reinicia, el QR nunca vuelve a salir.
         Cache::add('openwa:rate-limited', true, $seconds);
+        Cache::add('openwa:rate-limited-until', time() + $seconds, $seconds);
         $this->forgetSessionListCache();
     }
 

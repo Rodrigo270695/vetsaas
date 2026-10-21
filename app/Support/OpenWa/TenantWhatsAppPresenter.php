@@ -7,14 +7,10 @@ namespace App\Support\OpenWa;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
-use App\Services\OpenWa\OpenWaRateLimitedException;
-use App\Services\OpenWa\TenantWhatsAppSessionSync;
-
 final class TenantWhatsAppPresenter
 {
     public function __construct(
         private readonly OpenWaClient $client,
-        private readonly TenantWhatsAppSessionSync $sync,
     ) {}
 
     /**
@@ -42,21 +38,6 @@ final class TenantWhatsAppPresenter
         ) {
             $session->forceFill(['last_error' => null])->save();
             $session = $session->fresh();
-        }
-
-        // Solo refrescar sesiones ya conectadas y con sync vieja. No golpear OpenWA en
-        // «pendiente de vincular»: cada visita a Cola saliente re-disparaba 429 en bucle.
-        if (
-            $session instanceof TenantWhatsAppSession
-            && ! $this->client->isRateLimited()
-            && $session->isReady()
-            && ! $session->isSyncedRecently(15)
-        ) {
-            try {
-                $session = $this->sync->pullRemoteStatus($session);
-            } catch (OpenWaRateLimitedException) {
-                // La cola se muestra con el último estado. El 429 no es un fallo de esta clínica.
-            }
         }
 
         return [

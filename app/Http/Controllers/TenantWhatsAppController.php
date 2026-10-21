@@ -32,7 +32,6 @@ class TenantWhatsAppController extends Controller
 
             if ($session !== null) {
                 $session = $sync->enableAutoReconnect($session);
-                $session = $sync->ensureForTenant($tenant, wakeForLink: true) ?? $session;
             }
         } catch (\Throwable $e) {
             report($e);

@@ -60,7 +60,7 @@ final class OpenWaReconnectPolicy
         }
 
         if (in_array($status, self::DOWN_STATUSES, true)) {
-            return true;
+            return $wakeForLink || ($autoReconnect && $hadPhone);
         }
 
         if ($status === 'created') {
@@ -78,6 +78,11 @@ final class OpenWaReconnectPolicy
         ?CarbonInterface $touchedAt = null,
     ): bool {
         if (! $autoReconnect || ! $hasSessionId) {
+            return false;
+        }
+
+        // Arranque colgado: solo Conectar en clínica o reinicio desde plataforma (evita 429 en cron).
+        if (in_array($status, ['initializing', 'authenticating', 'qr_ready'], true)) {
             return false;
         }
 

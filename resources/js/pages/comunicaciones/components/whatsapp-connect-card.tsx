@@ -118,7 +118,6 @@ export function WhatsAppConnectCard({
             };
             if (typeof data.retry_after === 'number' && data.retry_after > 0) {
                 stopPoll();
-                pollMsRef.current = Math.max(pollMsRef.current, data.retry_after * 1000);
                 setQrStatus(data.status ?? null);
                 setQrError(null);
                 setQrMessage(
@@ -126,7 +125,7 @@ export function WhatsAppConnectCard({
                         'OpenWA está ocupado. Espera unos minutos sin pulsar Conectar otra vez.',
                 );
                 waitRef.current = setTimeout(() => {
-                    void fetchQr();
+                    router.reload({ only: ['whatsapp'] });
                 }, data.retry_after * 1000);
                 return;
             }

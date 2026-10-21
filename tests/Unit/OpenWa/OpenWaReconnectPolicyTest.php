@@ -9,8 +9,13 @@ it('no arranca el motor si la sesión ya está viva', function (string $status):
         ->and(OpenWaReconnectPolicy::isLive($status))->toBeTrue();
 })->with(['ready', 'initializing', 'authenticating', 'qr_ready']);
 
-it('arranca sesiones caídas con auto-reconnect', function (string $status): void {
+it('arranca sesiones caídas con auto-reconnect si ya hubo teléfono', function (string $status): void {
     expect(OpenWaReconnectPolicy::shouldStartEngine($status, true, false, true))->toBeTrue();
+})->with(['disconnected', 'failed']);
+
+it('no arranca sesiones caídas sin teléfono salvo pedido explícito de QR', function (string $status): void {
+    expect(OpenWaReconnectPolicy::shouldStartEngine($status, true, false, false))->toBeFalse()
+        ->and(OpenWaReconnectPolicy::shouldStartEngine($status, true, true, false))->toBeTrue();
 })->with(['disconnected', 'failed']);
 
 it('no arranca una sesión created sin teléfono ni pedido de QR', function (): void {
@@ -34,8 +39,9 @@ it('encola disconnected con auto-reconnect', function (): void {
     expect(OpenWaReconnectPolicy::shouldEnqueueAutoReconnect('disconnected', true, true, true))->toBeTrue();
 });
 
-it('trata initializing viejo como caído y lo reconecta', function (): void {
+it('trata initializing viejo como caído pero no lo encola en cron', function (): void {
     $stale = now()->subMinutes(10);
     expect(OpenWaReconnectPolicy::isLive('initializing', $stale))->toBeFalse()
-        ->and(OpenWaReconnectPolicy::shouldEnqueueAutoReconnect('initializing', true, true, true, $stale))->toBeTrue();
+        ->and(OpenWaReconnectPolicy::shouldEnqueueAutoReconnect('initializing', true, true, true, $stale))->toBeFalse()
+        ->and(OpenWaReconnectPolicy::shouldStartEngine('initializing', true, true, false, $stale))->toBeTrue();
 });
