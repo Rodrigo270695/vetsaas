@@ -302,6 +302,18 @@ class RecetaController extends Controller
         ]);
     }
 
+    public function publicPdf(Request $request, Receta $receta, RecetaPdfService $pdfService): Response
+    {
+        $file = $pdfService->render($receta);
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+        $filename = str_replace(['"', "\n", "\r"], '', $file['filename']);
+
+        return response($file['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition.'; filename="'.$filename.'"',
+        ]);
+    }
+
     public function enviarWhatsApp(
         Request $request,
         Receta $receta,

@@ -1552,7 +1552,7 @@ function VinculosBlock({
                         badge: t(`recetas:estado.${r.estado}`, { defaultValue: r.estado }),
                         meta: t('historial.vinculos_meds', { count: r.lineas_count }),
                         url: publicMode ? '' : r.url,
-                        pdf_url: publicMode ? '' : r.pdf_url,
+                        pdf_url: r.pdf_url ?? '',
                     }))}
                     t={t}
                 />

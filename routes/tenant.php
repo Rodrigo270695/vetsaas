@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\BootstrapLoginController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\PacienteController;
+use App\Http\Controllers\RecetaController;
 use App\Http\Controllers\Portal\PortalAuthController;
 use App\Http\Controllers\Portal\PortalHomeController;
 use App\Http\Controllers\Portal\PortalPushController;
@@ -60,6 +61,10 @@ Route::middleware(['tenant.required'])->group(function (): void {
                 ->name('aplicacion');
             Route::get('laboratorio/lineas/{linea}/archivo', [LaboratorioController::class, 'publicDownloadResultadoArchivo'])
                 ->name('laboratorio-archivo');
+            Route::get('recetas/{receta}.pdf', [RecetaController::class, 'publicPdf'])
+                ->name('receta');
+            Route::get('consultas/{consulta}/resultados/{resultado}', [ConsultaHistoriaController::class, 'publicResultado'])
+                ->name('consulta-resultado');
         });
 
     Route::middleware(['throttle:30,1'])

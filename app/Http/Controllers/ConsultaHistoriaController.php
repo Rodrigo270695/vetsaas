@@ -618,6 +618,18 @@ class ConsultaHistoriaController extends Controller
         abort_unless($request->user()?->can('historias-clinicas.view') ?? false, 403);
         abort_unless($resultado->consulta_id === $consulta->id, 404);
 
+        return $this->streamResultadoArchivo($consulta, $resultado);
+    }
+
+    public function publicResultado(Request $request, Consulta $consulta, ConsultaResultado $resultado): BinaryFileResponse
+    {
+        abort_unless($resultado->consulta_id === $consulta->id, 404);
+
+        return $this->streamResultadoArchivo($consulta, $resultado);
+    }
+
+    private function streamResultadoArchivo(Consulta $consulta, ConsultaResultado $resultado): BinaryFileResponse
+    {
         $tid = tenant_id();
         $path = $resultado->archivo_path;
         if (! is_string($tid) || $tid === '' || $path === '') {

@@ -46,14 +46,20 @@ export default function PublicHistorialClinico({
         [paciente.nombre, t],
     );
 
-    const timelineStats = useMemo(
-        () => ({
-            consultas: timeline.filter((i) => i.kind === 'consulta').length,
-            aplicaciones: timeline.filter((i) => i.kind === 'aplicacion').length,
+    const timelineStats = useMemo(() => {
+        const consultas = timeline.filter((i) => i.kind === 'consulta').length;
+        const aplicaciones = timeline.filter((i) => i.kind === 'aplicacion').length;
+        const servicios = timeline.filter(
+            (i) => i.kind !== 'consulta' && i.kind !== 'aplicacion',
+        ).length;
+
+        return {
+            consultas,
+            aplicaciones,
+            servicios,
             total: timeline.length,
-        }),
-        [timeline],
-    );
+        };
+    }, [timeline]);
 
     const timelineDateHeaders = useMemo(() => {
         const tz = appTz ?? 'UTC';
