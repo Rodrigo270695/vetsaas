@@ -95,7 +95,7 @@ final class RecetaPdfService
                 'peso' => $this->pesoTexto($peso),
                 'fechaAtencion' => $atencion->format('d-m-Y h:i:s A'),
                 'atendidoPor' => trim((string) ($receta->veterinario?->name ?? '')),
-                'motivo' => trim((string) ($receta->consulta?->motivo ?? '')),
+                'motivo' => $this->motivoAtencion($receta),
                 'indicaciones' => $this->indicaciones($receta),
                 'observacionesReceta' => trim((string) ($receta->observaciones ?? '')),
                 'examenes' => $examenes,
@@ -256,6 +256,16 @@ final class RecetaPdfService
         }
 
         return Carbon::parse((string) $value)->format('d/m/y');
+    }
+
+    private function motivoAtencion(Receta $receta): string
+    {
+        $propio = trim((string) ($receta->motivo_atencion ?? ''));
+        if ($propio !== '') {
+            return $propio;
+        }
+
+        return trim((string) ($receta->consulta?->motivo ?? ''));
     }
 
     private function pesoTexto(mixed $raw): string

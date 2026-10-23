@@ -210,7 +210,7 @@ class RecetaController extends Controller
             ])
             ->orderByDesc('atendido_at')
             ->limit(150)
-            ->get(['id', 'atendido_at', 'historia_clinica_id']);
+            ->get(['id', 'atendido_at', 'historia_clinica_id', 'motivo']);
 
         return Inertia::render('clinica/recetas/index', [
             'recetas' => $recetas,

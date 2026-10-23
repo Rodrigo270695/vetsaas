@@ -33,7 +33,7 @@ class StoreRecetaRequest extends FormRequest
                 $out[$key] = null;
             }
         }
-        foreach (['observaciones', 'examenes_complementarios', 'signos_alarma', 'consulta_control_at'] as $key) {
+        foreach (['motivo_atencion', 'observaciones', 'examenes_complementarios', 'signos_alarma', 'consulta_control_at'] as $key) {
             $value = $this->input($key);
             if ($value === null || (is_string($value) && trim($value) === '')) {
                 $out[$key] = null;
@@ -141,6 +141,7 @@ class StoreRecetaRequest extends FormRequest
             ],
             'emitida_at' => ['required', 'date'],
             'estado' => ['sometimes', 'string', Rule::in(Receta::ESTADOS_CREACION)],
+            'motivo_atencion' => ['nullable', 'string', 'max:2000'],
             'observaciones' => ['nullable', 'string', 'max:20000'],
             'examenes_complementarios' => ['nullable', 'string', 'max:5000'],
             'consulta_control_at' => ['nullable', 'date'],

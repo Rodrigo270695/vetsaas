@@ -75,6 +75,7 @@ type FormShape = {
     consulta_id: string;
     emitida_at: string;
     estado: string;
+    motivo_atencion: string;
     observaciones: string;
     examenes_complementarios: string;
     consulta_control_at: string;
@@ -104,6 +105,7 @@ function emptyForm(
         consulta_id: '',
         emitida_at: toDatetimeLocalValue(new Date()),
         estado: 'borrador',
+        motivo_atencion: '',
         observaciones: '',
         examenes_complementarios: '',
         consulta_control_at: '',
@@ -129,6 +131,7 @@ function fromReceta(r: RecetaRow, defaultVetId: string | null): FormShape {
         consulta_id: r.consulta_id ?? '',
         emitida_at: parseIsoToDatetimeLocal(r.emitida_at),
         estado: r.estado,
+        motivo_atencion: r.motivo_atencion ?? '',
         observaciones: r.observaciones ?? '',
         examenes_complementarios: r.examenes_complementarios ?? '',
         consulta_control_at: (r.consulta_control_at ?? '').slice(0, 10),
@@ -155,6 +158,7 @@ function formsEqual(a: FormShape, b: FormShape): boolean {
         a.consulta_id !== b.consulta_id ||
         a.emitida_at !== b.emitida_at ||
         a.estado !== b.estado ||
+        a.motivo_atencion !== b.motivo_atencion ||
         a.observaciones !== b.observaciones ||
         a.examenes_complementarios !== b.examenes_complementarios ||
         a.consulta_control_at !== b.consulta_control_at ||
@@ -238,6 +242,8 @@ export function RecetaFormModal({
                 consulta_id: r.consulta_id.trim() === '' ? null : r.consulta_id.trim(),
                 emitida_at: r.emitida_at,
                 estado: r.estado,
+                motivo_atencion:
+                    r.motivo_atencion.trim() === '' ? null : r.motivo_atencion.trim(),
                 observaciones: r.observaciones.trim() === '' ? null : r.observaciones.trim(),
                 examenes_complementarios:
                     r.examenes_complementarios.trim() === ''
@@ -308,6 +314,12 @@ export function RecetaFormModal({
     useEffect(() => {
         if (!data.consulta_id) {
             return;
+        }
+
+        const consulta = consultasFiltradas.find((c) => c.id === data.consulta_id);
+        const motivoConsulta = consulta?.motivo?.trim() ?? '';
+        if (motivoConsulta !== '' && data.motivo_atencion.trim() === '') {
+            setData('motivo_atencion', motivoConsulta);
         }
 
         const ok = consultasFiltradas.some((c) => c.id === data.consulta_id);
@@ -443,6 +455,8 @@ export function RecetaFormModal({
             consulta_id: raw.consulta_id.trim() === '' ? null : raw.consulta_id.trim(),
             emitida_at: raw.emitida_at,
             estado: raw.estado,
+            motivo_atencion:
+                raw.motivo_atencion.trim() === '' ? null : raw.motivo_atencion.trim(),
             observaciones: raw.observaciones.trim() === '' ? null : raw.observaciones.trim(),
             examenes_complementarios:
                 raw.examenes_complementarios.trim() === '' ? null : raw.examenes_complementarios.trim(),
@@ -675,6 +689,25 @@ export function RecetaFormModal({
                         noneLabel={t('form.sede_placeholder')}
                         controlClassName={controlClass}
                     />
+
+                    <FormField
+                        id="rf-motivo"
+                        label={t('form.motivo_atencion')}
+                        hint={t('form.motivo_atencion_hint')}
+                        error={errors.motivo_atencion as string | undefined}
+                        className="sm:col-span-2"
+                    >
+                        <Textarea
+                            id="rf-motivo"
+                            rows={2}
+                            placeholder={t('form.motivo_atencion_placeholder')}
+                            className="min-h-16 resize-none text-sm"
+                            value={data.motivo_atencion}
+                            onChange={(e) => setData('motivo_atencion', e.target.value)}
+                            aria-invalid={Boolean(errors.motivo_atencion)}
+                            disabled={processing}
+                        />
+                    </FormField>
 
                     <FormField
                         id="rf-control"

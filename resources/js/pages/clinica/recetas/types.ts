@@ -43,6 +43,7 @@ export type SedeRecetaOpcion = {
 export type ConsultaRecetaOpcion = {
     id: string;
     atendido_at: string;
+    motivo?: string | null;
     historia_clinica_id: string;
     historia_clinica?: {
         id: string;
@@ -70,6 +71,7 @@ export type RecetaRow = {
     sede_id: string | null;
     emitida_at: string;
     estado: string;
+    motivo_atencion?: string | null;
     observaciones: string | null;
     examenes_complementarios?: string | null;
     consulta_control_at?: string | null;
