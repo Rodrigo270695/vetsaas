@@ -603,15 +603,16 @@ export default function Index({
                             isSearching={isLoading}
                             placeholder={t('usuarios:search_placeholder')}
                         >
-                            <FilterChips
-                                ariaLabel={t('usuarios:filter_label')}
-                                value={filters.estado}
-                                onChange={(estado) => applyFilter({ estado })}
-                                options={estadoOptions}
-                            />
-                            <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+                            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3">
+                                <FilterChips
+                                    ariaLabel={t('usuarios:filter_label')}
+                                    value={filters.estado}
+                                    onChange={(estado) => applyFilter({ estado })}
+                                    options={estadoOptions}
+                                    className="w-auto"
+                                />
                                 {isCentralList && tenants_catalog.length > 0 ? (
-                                    <div className="min-w-0 w-full sm:w-auto sm:min-w-56 sm:max-w-xs">
+                                    <div className="min-w-0 sm:min-w-56 sm:max-w-xs">
                                         <Combobox
                                             id="filtro-tenant-usuarios"
                                             options={tenantComboboxOptions}
@@ -650,7 +651,7 @@ export default function Index({
                                     </div>
                                 ) : null}
                                 {roles_catalog.length > 0 ? (
-                                    <div className="min-w-0 w-full sm:w-auto sm:min-w-48 sm:max-w-72">
+                                    <div className="min-w-0 sm:min-w-48 sm:max-w-72">
                                         <Combobox
                                             id="filtro-rol-usuarios"
                                             options={roleComboboxOptions}
