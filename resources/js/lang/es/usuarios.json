@@ -21,14 +21,21 @@
     "search_placeholder": "Buscar por nombre, email o teléfono...",
     "filter_label": "Filtrar por estado",
     "filter_role_label": "Filtrar por rol",
+    "filter_role_search": "Buscar rol…",
+    "filter_role_empty": "Sin roles que coincidan",
+    "filter_tenant_label": "Filtrar por clínica",
+    "filter_tenant_search": "Buscar clínica…",
+    "filter_tenant_empty": "Sin clínicas que coincidan",
     "filters": {
         "all": "Todos",
         "active": "Activos",
         "inactive": "Suspendidos",
-        "all_roles": "Todos los roles"
+        "all_roles": "Todos los roles",
+        "all_tenants": "Todas las clínicas"
     },
     "columns": {
         "user": "Usuario",
+        "clinic": "Clínica",
         "phone": "Teléfono",
         "role": "Rol",
         "status": "Estado",
@@ -39,6 +46,7 @@
     "row": {
         "no_phone": "Sin teléfono",
         "no_role": "Sin rol",
+        "platform_account": "Plataforma",
         "no_login": "Nunca",
         "verified": "Verificado",
         "unverified": "No verificado",

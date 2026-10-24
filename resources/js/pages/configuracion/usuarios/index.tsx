@@ -32,6 +32,7 @@ import type {
     FilterChip,
 } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import {
     Tooltip,
     TooltipContent,
@@ -55,13 +56,19 @@ import type {
     UserFilters,
     UserRoleOption,
     UserStats,
+    UserTenantCatalogOption,
 } from './types';
+
+const TENANT_FILTER_ALL = '__all_tenants__';
+const ROLE_FILTER_ALL = '__all_roles__';
 
 type UsuariosIndexProps = {
     users: Paginated<User>;
     filters: UserFilters;
     stats: UserStats;
     roles_catalog: readonly UserRoleOption[];
+    list_scope?: 'central' | 'clinic';
+    tenants_catalog?: readonly UserTenantCatalogOption[];
 };
 
 /**
@@ -101,7 +108,10 @@ export default function Index({
     filters,
     stats,
     roles_catalog,
+    list_scope = 'clinic',
+    tenants_catalog = [],
 }: UsuariosIndexProps) {
+    const isCentralList = list_scope === 'central';
     const { t } = useTranslation(['usuarios', 'common']);
     const { can } = usePermission();
     const canCreate = can('usuarios.create');
@@ -131,10 +141,18 @@ export default function Index({
     } = useDataTablePage<{
         estado: UserEstadoFilter;
         rol: string | null;
+        tenant_id: string | null;
     }>({
         routeUrl: usuarios.index().url,
         initialFilters: filters,
-        only: ['users', 'filters', 'stats'],
+        only: [
+            'users',
+            'filters',
+            'stats',
+            'roles_catalog',
+            'tenants_catalog',
+            'list_scope',
+        ],
         errorMessage: t('toast.load_error'),
         storageKey: 'vetsaas.usuarios.prefs',
         defaults: {
@@ -186,6 +204,7 @@ export default function Index({
         if (filters.sort) count += 1;
         if (filters.estado !== DEFAULT_ESTADO) count += 1;
         if (filters.rol) count += 1;
+        if (filters.tenant_id) count += 1;
         if (filters.per_page !== DEFAULT_PER_PAGE) count += 1;
         return count;
     }, [
@@ -193,8 +212,60 @@ export default function Index({
         filters.sort,
         filters.estado,
         filters.rol,
+        filters.tenant_id,
         filters.per_page,
     ]);
+
+    const tenantComboboxOptions = useMemo<readonly ComboboxOption[]>(() => {
+        const base: ComboboxOption[] = [
+            {
+                value: TENANT_FILTER_ALL,
+                label: t('usuarios:filters.all_tenants'),
+            },
+        ];
+
+        for (const tenant of tenants_catalog) {
+            base.push({
+                value: tenant.id,
+                label: tenant.label,
+                keywords: tenant.slug,
+            });
+        }
+
+        return base;
+    }, [tenants_catalog, t]);
+
+    const roleComboboxOptions = useMemo<readonly ComboboxOption[]>(() => {
+        const base: ComboboxOption[] = [
+            {
+                value: ROLE_FILTER_ALL,
+                label: t('usuarios:filters.all_roles'),
+            },
+        ];
+
+        for (const role of roles_catalog) {
+            base.push({
+                value: role.name,
+                label: role.name,
+            });
+        }
+
+        return base;
+    }, [roles_catalog, t]);
+
+    const tenantLabel = (user: User): string => {
+        const tenant = user.tenant;
+        if (!tenant) {
+            return t('usuarios:row.platform_account');
+        }
+
+        const label =
+            tenant.razon_social?.trim() ||
+            tenant.nombre_comercial?.trim() ||
+            tenant.slug;
+
+        return label || tenant.slug;
+    };
 
     const exportUrl = useMemo(() => {
         const params = new URLSearchParams();
@@ -203,6 +274,7 @@ export default function Index({
         if (filters.direction) params.set('direction', filters.direction);
         if (filters.estado !== DEFAULT_ESTADO) params.set('estado', filters.estado);
         if (filters.rol) params.set('rol', filters.rol);
+        if (filters.tenant_id) params.set('tenant_id', filters.tenant_id);
 
         const qs = params.toString();
         return qs.length > 0
@@ -214,6 +286,7 @@ export default function Index({
         filters.direction,
         filters.estado,
         filters.rol,
+        filters.tenant_id,
     ]);
 
     /** Formatea un timestamp ISO a "dd MMM yyyy" usando el locale del navegador. */
@@ -274,6 +347,19 @@ export default function Index({
                     );
                 },
             },
+            ...(isCentralList
+                ? [
+                      {
+                          key: 'tenant',
+                          header: t('usuarios:columns.clinic'),
+                          cell: (user: User) => (
+                              <span className="line-clamp-2 text-xs text-foreground/90">
+                                  {tenantLabel(user)}
+                              </span>
+                          ),
+                      } satisfies DataTableColumn<User>,
+                  ]
+                : []),
             {
                 key: 'phone',
                 header: t('usuarios:columns.phone'),
@@ -292,15 +378,19 @@ export default function Index({
                 key: 'role',
                 header: t('usuarios:columns.role'),
                 cell: (user) => {
-                    const role = user.roles[0];
-                    if (!role) {
+                    if (user.roles.length === 0) {
                         return (
                             <span className="text-xs text-muted-foreground italic">
                                 {t('usuarios:row.no_role')}
                             </span>
                         );
                     }
-                    const isSuperadmin = role.name === 'superadmin';
+
+                    const names = user.roles.map((r) => r.name).join(', ');
+                    const isSuperadmin = user.roles.some(
+                        (r) => r.name === 'superadmin',
+                    );
+
                     return (
                         <div className="flex items-center gap-1.5">
                             <ShieldCheck
@@ -311,9 +401,7 @@ export default function Index({
                                 }
                                 strokeWidth={2.25}
                             />
-                            <span className="font-mono text-xs">
-                                {role.name}
-                            </span>
+                            <span className="font-mono text-xs">{names}</span>
                         </div>
                     );
                 },
@@ -401,6 +489,7 @@ export default function Index({
         openDocuments,
         openDelete,
         currentUserId,
+        isCentralList,
     ]);
 
     return (
@@ -520,6 +609,81 @@ export default function Index({
                                 onChange={(estado) => applyFilter({ estado })}
                                 options={estadoOptions}
                             />
+                            <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+                                {isCentralList && tenants_catalog.length > 0 ? (
+                                    <div className="min-w-0 w-full sm:w-auto sm:min-w-56 sm:max-w-xs">
+                                        <Combobox
+                                            id="filtro-tenant-usuarios"
+                                            options={tenantComboboxOptions}
+                                            value={
+                                                filters.tenant_id ??
+                                                TENANT_FILTER_ALL
+                                            }
+                                            onChange={(value) => {
+                                                if (
+                                                    value === null ||
+                                                    value === TENANT_FILTER_ALL
+                                                ) {
+                                                    applyFilter({
+                                                        tenant_id: null,
+                                                    });
+
+                                                    return;
+                                                }
+
+                                                applyFilter({
+                                                    tenant_id: value,
+                                                });
+                                            }}
+                                            placeholder={t(
+                                                'usuarios:filter_tenant_label',
+                                            )}
+                                            searchPlaceholder={t(
+                                                'usuarios:filter_tenant_search',
+                                            )}
+                                            emptyMessage={t(
+                                                'usuarios:filter_tenant_empty',
+                                            )}
+                                            disabled={isLoading}
+                                            className="h-10"
+                                        />
+                                    </div>
+                                ) : null}
+                                {roles_catalog.length > 0 ? (
+                                    <div className="min-w-0 w-full sm:w-auto sm:min-w-48 sm:max-w-72">
+                                        <Combobox
+                                            id="filtro-rol-usuarios"
+                                            options={roleComboboxOptions}
+                                            value={
+                                                filters.rol ?? ROLE_FILTER_ALL
+                                            }
+                                            onChange={(value) => {
+                                                if (
+                                                    value === null ||
+                                                    value === ROLE_FILTER_ALL
+                                                ) {
+                                                    applyFilter({ rol: null });
+
+                                                    return;
+                                                }
+
+                                                applyFilter({ rol: value });
+                                            }}
+                                            placeholder={t(
+                                                'usuarios:filter_role_label',
+                                            )}
+                                            searchPlaceholder={t(
+                                                'usuarios:filter_role_search',
+                                            )}
+                                            emptyMessage={t(
+                                                'usuarios:filter_role_empty',
+                                            )}
+                                            disabled={isLoading}
+                                            className="h-10"
+                                        />
+                                    </div>
+                                ) : null}
+                            </div>
                         </DataToolbar>
                     }
                     footer={
@@ -536,6 +700,7 @@ export default function Index({
                                         ? filters.estado
                                         : undefined,
                                 rol: filters.rol ?? undefined,
+                                tenant_id: filters.tenant_id ?? undefined,
                             }}
                         />
                     }

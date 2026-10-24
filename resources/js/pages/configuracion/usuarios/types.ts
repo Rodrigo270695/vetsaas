@@ -20,6 +20,19 @@ export type UserCreatedByRef = {
     name: string;
 };
 
+export type UserTenantRef = {
+    id: string;
+    slug: string;
+    razon_social: string | null;
+    nombre_comercial: string | null;
+};
+
+export type UserTenantCatalogOption = {
+    id: string;
+    slug: string;
+    label: string;
+};
+
 export type User = {
     /** UUID. La tabla `users` usa UUID v4 desde la primera migración. */
     id: string;
@@ -39,6 +52,8 @@ export type User = {
     updated_at: string;
     /** Roles asignados (a través de Spatie). */
     roles: readonly UserRoleRef[];
+    /** Clínica (solo en listado central / plataforma). */
+    tenant?: UserTenantRef | null;
     /** Usuario que dio de alta a este (puede ser null para el primer superadmin). */
     created_by: UserCreatedByRef | null;
 };
@@ -61,6 +76,8 @@ export type UserFilters = {
     estado: UserEstadoFilter;
     /** Nombre del rol filtrado (o null para "todos"). */
     rol: string | null;
+    /** UUID del tenant (solo panel central; null = todos). */
+    tenant_id: string | null;
 };
 
 /**

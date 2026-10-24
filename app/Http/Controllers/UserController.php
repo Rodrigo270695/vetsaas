@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Audit\PlatformSecurityAuditLogger;
 use App\Services\Integrations\ApiPeruDniService;
 use App\Support\Tenancy\ClinicAdminScope;
+use App\Support\Tenancy\PlatformUserDirectory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -69,7 +70,9 @@ class UserController extends Controller
         // Filtro adicional por rol (opcional). Vacío significa "todos".
         $rol = trim((string) $request->string('rol', ''));
 
-        $query = $this->buildBaseQuery($search, $estado, $rol);
+        $tenantId = trim((string) $request->string('tenant_id', ''));
+
+        $query = $this->buildBaseQuery($search, $estado, $rol, $tenantId);
 
         if ($sortValid) {
             $query->orderBy($sort, $directionValid ? $direction : 'asc');
@@ -78,28 +81,49 @@ class UserController extends Controller
             $query->orderByDesc('created_at');
         }
 
+        $with = ['createdBy:id,name'];
+        if (PlatformUserDirectory::isCentralList()) {
+            $with[] = 'tenant:id,slug,razon_social,nombre_comercial';
+        } else {
+            $with['roles'] = fn ($q) => $q->select(['id', 'name']);
+        }
+
         $users = $query
-            ->with([
-                'roles:id,name',
-                'createdBy:id,name',
-            ])
+            ->with($with)
             ->paginate($perPage)
             ->withQueryString();
 
-        // Listado plano de roles para el filtro segmentado / select del
-        // formulario. Lo mandamos sin permisos para no hinchar el payload.
-        $rolesCatalog = ClinicAdminScope::rolesQuery()
-            ->orderBy('name')
-            ->get(['id', 'name', 'description'])
-            ->map(fn (Role $r) => [
-                'id' => (int) $r->id,
-                'name' => $r->name,
-                'description' => $r->description,
-                'is_system' => $r->is_system,
-            ]);
+        PlatformUserDirectory::hydrateRoles($users);
+
+        // Listado plano de roles para el filtro / select del formulario.
+        $rolesCatalog = PlatformUserDirectory::isCentralList()
+            ? collect(PlatformUserDirectory::tenantRolesCatalog())->map(
+                fn (array $row): array => [
+                    'id' => 0,
+                    'name' => $row['name'],
+                    'description' => null,
+                    'is_system' => false,
+                ],
+            )
+            : ClinicAdminScope::rolesQuery()
+                ->orderBy('name')
+                ->get(['id', 'name', 'description'])
+                ->map(fn (Role $r) => [
+                    'id' => (int) $r->id,
+                    'name' => $r->name,
+                    'description' => $r->description,
+                    'is_system' => $r->is_system,
+                ]);
+
+        $statsBase = ClinicAdminScope::usersQuery();
+        if ($tenantId !== '' && PlatformUserDirectory::isCentralList()) {
+            PlatformUserDirectory::applyTenantFilter($statsBase, $tenantId);
+        }
 
         return Inertia::render('configuracion/usuarios/index', [
             'users' => $users,
+            'list_scope' => PlatformUserDirectory::isCentralList() ? 'central' : 'clinic',
+            'tenants_catalog' => PlatformUserDirectory::tenantsCatalog(),
             'filters' => [
                 'search' => $search,
                 'per_page' => $perPage,
@@ -107,11 +131,12 @@ class UserController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'estado' => $estado,
                 'rol' => $rol !== '' ? $rol : null,
+                'tenant_id' => $tenantId !== '' ? $tenantId : null,
             ],
             'stats' => [
-                'total' => ClinicAdminScope::usersQuery()->count(),
-                'activos' => ClinicAdminScope::usersQuery()->where('is_active', true)->count(),
-                'inactivos' => ClinicAdminScope::usersQuery()->where('is_active', false)->count(),
+                'total' => (clone $statsBase)->count(),
+                'activos' => (clone $statsBase)->where('is_active', true)->count(),
+                'inactivos' => (clone $statsBase)->where('is_active', false)->count(),
                 'coincidencias' => $users->total(),
             ],
             'roles_catalog' => $rolesCatalog,
@@ -431,17 +456,20 @@ class UserController extends Controller
         }
 
         $rol = trim((string) $request->string('rol', ''));
+        $tenantId = trim((string) $request->string('tenant_id', ''));
 
         $sort = (string) $request->string('sort', '');
         $direction = strtolower((string) $request->string('direction', 'desc'));
         $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
-        $query = $this->buildBaseQuery($search, $estado, $rol)
-            ->with([
-                'roles:id,name',
-                'createdBy:id,name',
-            ]);
+        $with = ['createdBy:id,name'];
+        if (! PlatformUserDirectory::isCentralList()) {
+            $with['roles'] = fn ($q) => $q->select(['id', 'name']);
+        }
+
+        $query = $this->buildBaseQuery($search, $estado, $rol, $tenantId)
+            ->with($with);
 
         if ($sortValid) {
             $query->orderBy($sort, $directionValid ? $direction : 'asc');
@@ -455,7 +483,7 @@ class UserController extends Controller
 
         return response()->streamDownload(
             function () use ($exporter, $query) {
-                $exporter->streamTo($query);
+                $exporter->streamTo($query, PlatformUserDirectory::isCentralList());
             },
             $filename,
             [
@@ -469,9 +497,11 @@ class UserController extends Controller
     /**
      * @return Builder<User>
      */
-    private function buildBaseQuery(string $search, string $estado, string $rol): Builder
+    private function buildBaseQuery(string $search, string $estado, string $rol, string $tenantId = ''): Builder
     {
         $query = ClinicAdminScope::usersQuery();
+
+        PlatformUserDirectory::applyTenantFilter($query, $tenantId);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -487,11 +517,7 @@ class UserController extends Controller
             $query->where('is_active', false);
         }
 
-        if ($rol !== '') {
-            $query->whereHas('roles', function ($q) use ($rol) {
-                $q->where('name', $rol);
-            });
-        }
+        PlatformUserDirectory::applyRoleFilter($query, $rol);
 
         return $query;
     }

@@ -3,7 +3,9 @@
 namespace App\Exports;
 
 use App\Models\User;
+use App\Support\Tenancy\PlatformUserDirectory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -70,10 +72,14 @@ class UsersXlsxExport
 
     /**
      * @param  Builder<User>  $query  Query ya filtrada por el controller.
-     *                                Debe eager-loadear `roles` y `createdBy`
-     *                                para evitar N+1 en el cursor.
+     *                                Debe eager-loadear `roles` (clínica) y `createdBy`.
+     * @param  bool  $hydrateRolesForCentral  En panel central los roles se hidratan por lote.
      */
-    public function streamTo(Builder $query, string $output = 'php://output'): void
+    public function streamTo(
+        Builder $query,
+        bool $hydrateRolesForCentral = false,
+        string $output = 'php://output',
+    ): void
     {
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
@@ -132,18 +138,32 @@ class UsersXlsxExport
         }
 
         $row = $dataStartRow;
+        $batch = [];
+
         /** @var User $user */
         foreach ($query->cursor() as $user) {
-            foreach ($this->columns as $index => $col) {
-                $colLetter = Coordinate::stringFromColumnIndex($index + 1);
-                $value = ($col['value'])($user);
-                $sheet->setCellValueExplicit(
-                    "{$colLetter}{$row}",
-                    $value,
-                    \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING,
-                );
+            $batch[] = $user;
+
+            if (count($batch) < 100) {
+                continue;
             }
-            $row++;
+
+            $row = $this->writeUserRows(
+                $sheet,
+                $batch,
+                $row,
+                $hydrateRolesForCentral,
+            );
+            $batch = [];
+        }
+
+        if ($batch !== []) {
+            $row = $this->writeUserRows(
+                $sheet,
+                $batch,
+                $row,
+                $hydrateRolesForCentral,
+            );
         }
 
         $lastDataRow = max($dataStartRow, $row - 1);
@@ -161,6 +181,35 @@ class UsersXlsxExport
 
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
+    }
+
+    /**
+     * @param  list<User>  $batch
+     */
+    private function writeUserRows(
+        Worksheet $sheet,
+        array $batch,
+        int $row,
+        bool $hydrateRolesForCentral,
+    ): int {
+        if ($hydrateRolesForCentral) {
+            PlatformUserDirectory::hydrateRoles(new Collection($batch));
+        }
+
+        foreach ($batch as $user) {
+            foreach ($this->columns as $index => $col) {
+                $colLetter = Coordinate::stringFromColumnIndex($index + 1);
+                $value = ($col['value'])($user);
+                $sheet->setCellValueExplicit(
+                    "{$colLetter}{$row}",
+                    $value,
+                    \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING,
+                );
+            }
+            $row++;
+        }
+
+        return $row;
     }
 
     private function styleTable(

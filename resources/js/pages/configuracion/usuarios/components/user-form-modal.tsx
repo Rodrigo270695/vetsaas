@@ -422,7 +422,7 @@ export function UserFormModal({
                             <SelectContent>
                                 {rolesCatalog.map((role) => (
                                     <SelectItem
-                                        key={role.id}
+                                        key={role.name}
                                         value={role.name}
                                         className="cursor-pointer"
                                     >
