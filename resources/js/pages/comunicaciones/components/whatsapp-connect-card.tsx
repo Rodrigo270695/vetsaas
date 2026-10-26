@@ -107,6 +107,23 @@ export function WhatsAppConnectCard({
                 headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin',
             });
+
+            const contentType = res.headers.get('content-type') ?? '';
+            if (!contentType.includes('application/json')) {
+                const hint =
+                    res.status === 502 || res.status === 503 || res.status === 504
+                        ? ' El servidor o OpenWA están saturados; espera 2–3 min y vuelve a intentar.'
+                        : '';
+                setQrError(
+                    res.ok
+                        ? 'Respuesta inesperada al pedir el QR.'
+                        : `No se pudo obtener el QR (HTTP ${res.status}).${hint}`,
+                );
+                setQrMessage(null);
+
+                return;
+            }
+
             const data = (await res.json()) as {
                 ready?: boolean;
                 qr_code?: string | null;
@@ -144,7 +161,9 @@ export function WhatsAppConnectCard({
             }
             // initializing / sin QR: el poll sigue hasta ready o hasta que haya QR
         } catch {
-            setQrError('Error de red al pedir el QR.');
+            setQrError(
+                'Error de red o tiempo de espera agotado al pedir el QR. Si Operaciones muestra carga alta, espera unos minutos sin pulsar Conectar otra vez.',
+            );
         } finally {
             setLoadingQr(false);
         }
