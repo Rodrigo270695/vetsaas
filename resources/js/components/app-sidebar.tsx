@@ -679,12 +679,6 @@ export function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             icon: Wallet,
                             permission: 'plataforma-cobros.view',
                         },
-                        {
-                            title: t('items.platform_pagos'),
-                            href: '/plataforma/pagos',
-                            icon: CreditCard,
-                            permission: 'plataforma-cobros.view',
-                        },
                     ],
                 },
                 {
