@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type { CitaRow } from '../types';
 import { motivoCitaVisible } from '../motivo-visible';
+import { citaEstadoBadgeClass } from '../cita-estado-styles';
 import { displayPacienteCita, displayPropietarioCita } from './citas-calendar';
 
 type Props = {
@@ -42,24 +43,6 @@ type ConsultaHcOption = {
 };
 
 type HcChoice = 'nueva' | string;
-
-function estadoBadgeClass(estado: string): string {
-    switch (estado) {
-        case 'en_atencion':
-            return 'border-sky-300 bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-100';
-        case 'completada':
-            return 'border-emerald-300 bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100';
-        case 'cancelada':
-        case 'no_asistio':
-            return 'border-rose-300 bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-100';
-        case 'programada':
-            return 'border-amber-300 bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100';
-        case 'confirmada':
-            return 'border-teal-300 bg-teal-100 text-teal-950 dark:bg-teal-950 dark:text-teal-100';
-        default:
-            return 'border-amber-300 bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100';
-    }
-}
 
 function DetailRow({
     icon: Icon,
@@ -237,7 +220,7 @@ export function CitaDetailModal({
                                 </DialogTitle>
                                 <Badge
                                     variant="outline"
-                                    className={cn('shrink-0 font-normal', estadoBadgeClass(cita.estado))}
+                                    className={cn('shrink-0 font-normal shadow-none', citaEstadoBadgeClass(cita.estado))}
                                 >
                                     {t(`citas:estado.${cita.estado}`, { defaultValue: cita.estado })}
                                 </Badge>

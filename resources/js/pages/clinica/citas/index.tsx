@@ -60,6 +60,8 @@ import type {
     VistaCita,
 } from './types';
 import { motivoCitaVisible } from './motivo-visible';
+import { citaEstadoBadgeClass } from './cita-estado-styles';
+import { cn } from '@/lib/utils';
 
 type Props = {
     citas: Paginated<CitaRow>;
@@ -91,28 +93,6 @@ type ModalState =
     | { type: 'cancel'; cita: CitaRow };
 
 const DEFAULT_PER_PAGE = 10;
-
-function estadoBadgeVariant(
-    estado: string,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-    if (estado === 'completada') {
-        return 'default';
-    }
-
-    if (estado === 'cancelada') {
-        return 'secondary';
-    }
-
-    if (estado === 'no_asistio') {
-        return 'destructive';
-    }
-
-    if (estado === 'confirmada') {
-        return 'default';
-    }
-
-    return 'outline';
-}
 
 export default function Index({
     citas: paginated,
@@ -442,8 +422,11 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <Badge
-                        variant={estadoBadgeVariant(row.estado)}
-                        className="text-[0.65rem] font-normal whitespace-nowrap"
+                        variant="outline"
+                        className={cn(
+                            'text-[0.65rem] font-normal whitespace-nowrap shadow-none',
+                            citaEstadoBadgeClass(row.estado),
+                        )}
                     >
                         {t(`estado.${row.estado}`, {
                             defaultValue: row.estado,
