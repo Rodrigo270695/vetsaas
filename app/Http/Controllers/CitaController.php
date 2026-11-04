@@ -153,6 +153,7 @@ class CitaController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('citas.motivo', 'ILIKE', "%{$search}%")
+                    ->orWhere('citas.sala_espera_motivo', 'ILIKE', "%{$search}%")
                     ->orWhere('citas.notas', 'ILIKE', "%{$search}%")
                     ->orWhereHas('paciente', function ($q2) use ($search) {
                         $q2->withTrashed()
@@ -747,6 +748,7 @@ class CitaController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('citas.motivo', 'ILIKE', "%{$search}%")
+                    ->orWhere('citas.sala_espera_motivo', 'ILIKE', "%{$search}%")
                     ->orWhere('citas.notas', 'ILIKE', "%{$search}%")
                     ->orWhereHas('paciente', function ($q2) use ($search) {
                         $q2->withTrashed()

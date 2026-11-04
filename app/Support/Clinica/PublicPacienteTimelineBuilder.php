@@ -629,7 +629,7 @@ final class PublicPacienteTimelineBuilder
                 if ($cita->inicio_at === null) {
                     continue;
                 }
-                $titulo = trim((string) ($cita->motivo ?? ''));
+                $titulo = trim((string) ($cita->motivoVisibleEnAgenda() ?? ''));
                 $event = self::eventRow(
                     'cita',
                     (string) $cita->id,

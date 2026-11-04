@@ -18,6 +18,7 @@ import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type { CitaRow } from '../types';
+import { motivoCitaVisible } from '../motivo-visible';
 import { displayPacienteCita, displayPropietarioCita } from './citas-calendar';
 
 type Props = {
@@ -284,13 +285,17 @@ export function CitaDetailModal({
                             />
                         ) : null}
 
-                        {cita.motivo?.trim() ? (
+                        {(() => {
+                            const motivo = motivoCitaVisible(cita);
+
+                            return motivo ? (
                             <DetailRow
                                 icon={User}
                                 label={t('citas:columns.motivo')}
-                                value={cita.motivo}
+                                value={motivo}
                             />
-                        ) : null}
+                            ) : null;
+                        })()}
 
                         {cita.notas?.trim() ? (
                             <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">

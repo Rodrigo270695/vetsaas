@@ -429,12 +429,9 @@ final class SalaEsperaHoyService
             abort_unless(Schema::hasColumn('citas', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
             $cita = Cita::query()->whereKey($id)->firstOrFail();
             $updates = $this->updatesDeEstado($cita, $estado, $now, $user);
-            if (
-                $estado === self::ESTADO_CANCELADO
-                && in_array((string) $cita->estado, Cita::ESTADOS_EN_ESPERA, true)
-                && (string) $cita->motivo === 'Sala de espera'
-            ) {
-                $updates['estado'] = Cita::ESTADO_CANCELADA;
+            $estadoClinico = $this->mapearEstadoClinicoCita($estado, $cita);
+            if ($estadoClinico !== null) {
+                $updates['estado'] = $estadoClinico;
             }
             $cita->forceFill($updates)->save();
 
@@ -443,7 +440,38 @@ final class SalaEsperaHoyService
 
         abort_unless(Schema::hasColumn('grooming_turnos', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
         $turno = GroomingTurno::query()->whereKey($id)->firstOrFail();
-        $turno->forceFill($this->updatesDeEstado($turno, $estado, $now, $user))->save();
+        $updates = $this->updatesDeEstado($turno, $estado, $now, $user);
+        $estadoClinico = $this->mapearEstadoClinicoGrooming($estado, $turno);
+        if ($estadoClinico !== null) {
+            $updates['estado'] = $estadoClinico;
+        }
+        $turno->forceFill($updates)->save();
+    }
+
+    private function mapearEstadoClinicoCita(string $estadoSala, Cita $cita): ?string
+    {
+        return match ($estadoSala) {
+            self::ESTADO_EN_ATENCION_SALA => Cita::ESTADO_EN_ATENCION,
+            self::ESTADO_ATENDIDO => Cita::ESTADO_COMPLETADA,
+            self::ESTADO_CANCELADO => Cita::ESTADO_CANCELADA,
+            self::ESTADO_CITADO, self::ESTADO_EN_ESPERA => $cita->estado === Cita::ESTADO_CONFIRMADA
+                ? Cita::ESTADO_CONFIRMADA
+                : Cita::ESTADO_PROGRAMADA,
+            default => null,
+        };
+    }
+
+    private function mapearEstadoClinicoGrooming(string $estadoSala, GroomingTurno $turno): ?string
+    {
+        return match ($estadoSala) {
+            self::ESTADO_EN_ATENCION_SALA => GroomingTurno::ESTADO_EN_PROCESO,
+            self::ESTADO_ATENDIDO => GroomingTurno::ESTADO_COMPLETADA,
+            self::ESTADO_CANCELADO => GroomingTurno::ESTADO_CANCELADA,
+            self::ESTADO_CITADO, self::ESTADO_EN_ESPERA => $turno->estado === GroomingTurno::ESTADO_CONFIRMADA
+                ? GroomingTurno::ESTADO_CONFIRMADA
+                : GroomingTurno::ESTADO_PROGRAMADA,
+            default => null,
+        };
     }
 
     /**
@@ -750,10 +778,8 @@ final class SalaEsperaHoyService
             return $sala;
         }
 
-        if ($tipo === self::TIPO_CONSULTA) {
-            $clinico = trim((string) ($record->motivo ?? ''));
-
-            return $clinico !== '' && $clinico !== 'Sala de espera' ? $clinico : null;
+        if ($tipo === self::TIPO_CONSULTA && $record instanceof Cita) {
+            return $record->motivoVisibleEnAgenda();
         }
 
         return null;

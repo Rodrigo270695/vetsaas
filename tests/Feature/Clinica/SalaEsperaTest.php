@@ -264,6 +264,45 @@ it('muestra la vista Inertia de sala de espera al admin de clínica', function (
         ->assertInertia(fn ($page) => $page->component('clinica/sala-espera/index'));
 });
 
+it('sincroniza el estado de la cita al cambiar estado en sala de espera', function (): void {
+    $citaId = app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): string {
+        $propietario = Propietario::query()->create([
+            'nombres' => 'Rodrigo',
+            'apellidos' => 'Granja',
+            'activo' => true,
+        ]);
+        $paciente = Paciente::query()->create([
+            'propietario_id' => $propietario->id,
+            'nombre' => 'Pelotito',
+            'activo' => true,
+        ]);
+
+        return (string) Cita::query()->create([
+            'paciente_id' => $paciente->id,
+            'inicio_at' => now()->subMinutes(2),
+            'duracion_minutos' => 15,
+            'estado' => Cita::ESTADO_PROGRAMADA,
+            'motivo' => 'Sala de espera',
+            'sala_espera_motivo' => 'tiene algo',
+            'sala_espera_enviado_at' => now()->subMinutes(2),
+            'sala_espera_estado' => 'en_atencion',
+        ])->id;
+    });
+
+    $this->actingAs($this->testTenantAdmin)
+        ->postJson('http://'.$this->testTenantHost.'/clinica/sala-espera/consulta/'.$citaId.'/estado', [
+            'estado' => 'atendido',
+        ])
+        ->assertOk();
+
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function () use ($citaId): void {
+        $cita = Cita::query()->whereKey($citaId)->firstOrFail();
+        expect($cita->estado)->toBe(Cita::ESTADO_COMPLETADA);
+        expect($cita->sala_espera_estado)->toBe('atendido');
+        expect($cita->motivoVisibleEnAgenda())->toBe('tiene algo');
+    });
+});
+
 it('niega la vista de sala de espera al veterinario', function (): void {
     $previousTeam = getPermissionsTeamId();
     setPermissionsTeamId((string) $this->testTenant->id);

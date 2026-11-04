@@ -225,8 +225,10 @@ final class HistorialTimelineResumen
 
     public static function cita(Cita $cita): ?array
     {
+        $motivo = $cita->motivoVisibleEnAgenda() ?? '';
+
         return self::armar([
-            ['key' => 'motivo', 'text' => (string) ($cita->motivo ?? '')],
+            ['key' => 'motivo', 'text' => $motivo],
             ['key' => 'notas', 'text' => (string) ($cita->notas ?? '')],
         ]);
     }

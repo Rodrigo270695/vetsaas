@@ -64,6 +64,7 @@ export type CitaRow = {
     duracion_minutos: number;
     estado: string;
     motivo: string | null;
+    sala_espera_motivo?: string | null;
     notas: string | null;
     created_at: string;
     updated_at: string;

@@ -62,6 +62,19 @@ class Cita extends Model
         return in_array($this->estado, self::ESTADOS_EN_ESPERA, true);
     }
 
+    /** Motivo clínico para agenda, HC y listados (no el marcador «Sala de espera»). */
+    public function motivoVisibleEnAgenda(): ?string
+    {
+        $sala = trim((string) ($this->sala_espera_motivo ?? ''));
+        if ($sala !== '') {
+            return $sala;
+        }
+
+        $motivo = trim((string) ($this->motivo ?? ''));
+
+        return $motivo !== '' && $motivo !== 'Sala de espera' ? $motivo : null;
+    }
+
     protected $table = 'citas';
 
     protected $fillable = [

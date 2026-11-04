@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { SALA_ESPERA_CHANGED_EVENT } from '@/hooks/use-sala-espera-realtime';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { toastManager } from '@/lib/toast';
@@ -58,6 +59,7 @@ import type {
     UsuarioCitaOpcion,
     VistaCita,
 } from './types';
+import { motivoCitaVisible } from './motivo-visible';
 
 type Props = {
     citas: Paginated<CitaRow>;
@@ -181,6 +183,14 @@ export default function Index({
         only: ['citas', 'citas_agenda', 'stats'],
         busy: isLoading,
     });
+
+    useEffect(() => {
+        const onSalaChanged = () => refreshNow();
+
+        window.addEventListener(SALA_ESPERA_CHANGED_EVENT, onSalaChanged);
+
+        return () => window.removeEventListener(SALA_ESPERA_CHANGED_EVENT, onSalaChanged);
+    }, [refreshNow]);
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
@@ -444,11 +454,15 @@ export default function Index({
             {
                 key: 'motivo',
                 header: t('columns.motivo'),
-                cell: (row) => (
+                cell: (row) => {
+                    const visible = motivoCitaVisible(row);
+
+                    return (
                     <span className="max-w-48 truncate text-sm text-muted-foreground">
-                        {row.motivo?.trim() ? row.motivo : '—'}
+                        {visible ?? '—'}
                     </span>
-                ),
+                    );
+                },
             },
             {
                 key: 'veterinario',
