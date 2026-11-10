@@ -524,6 +524,17 @@ export default function Index({
             onError: (errs) => {
                 setErrors(errs as Partial<Record<string, string>>);
                 setActiveTab(resolveErrorTab(errs));
+                const first = Object.values(errs)
+                    .flat()
+                    .find(
+                        (message): message is string =>
+                            typeof message === 'string' && message !== '',
+                    );
+                toastManager.error({
+                    title: 'No se guardaron los cambios',
+                    description:
+                        first ?? 'Revisa los campos marcados e inténtalo de nuevo.',
+                });
             },
             onSuccess: () => {
                 adoptTicketAncho(normalizeTicketAncho(data.ticket_ancho_mm));
@@ -1523,6 +1534,11 @@ export default function Index({
                                                 disabled={!canUpdate}
                                             />
                                         </div>
+                                        {errors.recordatorio_cita_dias_antes_opciones ? (
+                                            <p className="mt-2 text-xs text-destructive">
+                                                {errors.recordatorio_cita_dias_antes_opciones}
+                                            </p>
+                                        ) : null}
                                     </div>
                                 </div>
                                 <div className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
@@ -1617,6 +1633,11 @@ export default function Index({
                                                 disabled={!canUpdate}
                                             />
                                         </div>
+                                        {errors.recordatorio_agenda_servicios_dias_antes_opciones ? (
+                                            <p className="mt-2 text-xs text-destructive">
+                                                {errors.recordatorio_agenda_servicios_dias_antes_opciones}
+                                            </p>
+                                        ) : null}
                                     </div>
                                 </div>
                                 <div className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">

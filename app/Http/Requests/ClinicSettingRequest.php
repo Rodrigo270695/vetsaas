@@ -103,7 +103,7 @@ class ClinicSettingRequest extends FormRequest
             'notificar_hotel_bitacora_whatsapp_activo' => ['required', 'boolean'],
             'recordatorio_vacuna_activo' => ['required', 'boolean'],
             'recordatorio_vacuna_dias_antes' => ['nullable', 'integer', 'min:1', 'max:90'],
-            'recordatorio_vacuna_dias_antes_opciones' => ['required', 'array', 'min:1'],
+            'recordatorio_vacuna_dias_antes_opciones' => ['present', 'array'],
             'recordatorio_vacuna_dias_antes_opciones.*' => [
                 'integer',
                 'distinct',
@@ -230,6 +230,19 @@ class ClinicSettingRequest extends FormRequest
         if (! $this->exists('firma_digital_documentos')) {
             $this->merge(['firma_digital_documentos' => []]);
         }
+
+        // Un formulario multipart no envía los arreglos vacíos. Si el dueño
+        // desmarca todos los días, la clave no llega y `required` rechazaba
+        // el guardado entero sin dejar rastro en esos checks.
+        foreach ([
+            'recordatorio_cita_dias_antes_opciones',
+            'recordatorio_agenda_servicios_dias_antes_opciones',
+            'recordatorio_vacuna_dias_antes_opciones',
+        ] as $dias) {
+            if (! $this->exists($dias) || ! is_array($this->input($dias))) {
+                $this->merge([$dias => []]);
+            }
+        }
     }
 
     public function withValidator(Validator $validator): void
@@ -246,6 +259,16 @@ class ClinicSettingRequest extends FormRequest
                 $v->errors()->add(
                     'agenda_hora_fin',
                     'La última hora visible debe ser posterior a la primera.',
+                );
+            }
+
+            if (
+                $this->boolean('recordatorio_vacuna_activo')
+                && count((array) $this->input('recordatorio_vacuna_dias_antes_opciones')) < 1
+            ) {
+                $v->errors()->add(
+                    'recordatorio_vacuna_dias_antes_opciones',
+                    'Elige al menos un momento para el recordatorio de vacunas, o desactívalo.',
                 );
             }
 
