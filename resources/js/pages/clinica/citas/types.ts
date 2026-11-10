@@ -77,6 +77,10 @@ export type CitaRow = {
             apellidos: string | null;
             razon_social: string | null;
         };
+        historia_clinica?: {
+            id: string;
+            codigo: string | null;
+        } | null;
     } | null;
     veterinario: { id: string; name: string } | null;
     sede: { id: string; nombre: string; codigo: string } | null;

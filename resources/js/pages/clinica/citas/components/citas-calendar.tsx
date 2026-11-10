@@ -86,7 +86,9 @@ export function CitasCalendar({
                 inicio_at: cita.inicio_at,
                 duracion_minutos: cita.duracion_minutos,
                 title: displayPacienteCita(cita.paciente),
-                subtitle: cita.veterinario?.name ?? null,
+                subtitle: [cita.paciente?.historia_clinica?.codigo, cita.veterinario?.name]
+                    .filter(Boolean)
+                    .join(' · ') || null,
                 accentClass: getEstadoAccent(cita.estado),
                 tone: 'cita',
                 canDrag: canDragCita(cita, canUpdate),

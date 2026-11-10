@@ -26,6 +26,10 @@
                 <td>{{ $sexoTxt }}</td>
             </tr>
             <tr>
+                <td class="k">{{ __('carnet_vacunacion.label_hc') }}</td>
+                <td>{{ $paciente->historiaClinica?->codigo ?: '—' }}</td>
+            </tr>
+            <tr>
                 <td class="k">{{ __('carnet_vacunacion.label_microchip') }}</td>
                 <td>{{ $paciente->microchip ? $paciente->microchip : '—' }}</td>
             </tr>

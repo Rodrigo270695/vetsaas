@@ -135,6 +135,11 @@ export type Paciente = {
         id: string;
         nombre: string;
     } | null;
+    historia_clinica?: {
+        id: string;
+        codigo: string | null;
+        numero?: number | null;
+    } | null;
     creado_por: AuditUser;
     actualizado_por: AuditUser;
 };

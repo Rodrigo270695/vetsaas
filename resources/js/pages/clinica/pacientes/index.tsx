@@ -356,6 +356,18 @@ export default function Index({
                     </span>
                 ),
             },
+            {
+                key: 'codigo_hc',
+                header: t('columns.codigo_hc'),
+                cell: (p) =>
+                    p.historia_clinica?.codigo ? (
+                        <span className="font-mono text-xs font-semibold text-primary">
+                            {p.historia_clinica.codigo}
+                        </span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                    ),
+            },
             ...(modo_asesora
                 ? ([
                       {

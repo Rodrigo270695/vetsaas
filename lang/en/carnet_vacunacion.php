@@ -7,6 +7,7 @@ return [
     'section_owner' => 'Owner',
     'section_vaccines' => 'Application history',
     'label_name' => 'Name',
+    'label_hc' => 'Medical record code',
     'label_species' => 'Species / breed',
     'label_microchip' => 'Microchip',
     'label_sex' => 'Sex',

@@ -7,6 +7,7 @@ return [
     'section_owner' => 'Titular',
     'section_vaccines' => 'Historial de aplicaciones',
     'label_name' => 'Nombre',
+    'label_hc' => 'Código HC',
     'label_species' => 'Especie / raza',
     'label_microchip' => 'Microchip',
     'label_sex' => 'Sexo',

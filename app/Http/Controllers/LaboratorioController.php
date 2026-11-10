@@ -128,6 +128,7 @@ class LaboratorioController extends Controller
             ->withCount('lineas')
             ->with([
                 'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
+                'paciente.historiaClinica:id,paciente_id,codigo',
                 'consulta:id,atendido_at,historia_clinica_id',
                 'consulta.historiaClinica:id,paciente_id',
                 'veterinario:id,name',

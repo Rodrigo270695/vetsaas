@@ -55,6 +55,10 @@ class VentasXlsxExport
                 'value' => fn (Venta $v) => (string) ($v->paciente?->nombre ?? ''),
             ],
             [
+                'label' => 'Código HC',
+                'value' => fn (Venta $v) => (string) ($v->paciente?->historiaClinica?->codigo ?? ''),
+            ],
+            [
                 'label' => 'Sede',
                 'value' => fn (Venta $v) => (string) ($v->sede?->nombre ?? ''),
             ],
@@ -110,6 +114,7 @@ class VentasXlsxExport
      */
     public function streamTo(Builder $query, string $output = 'php://output'): void
     {
+        $query->with(['paciente.historiaClinica:id,paciente_id,codigo']);
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
             ->setCreator('VetSaaS')

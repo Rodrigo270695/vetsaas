@@ -51,6 +51,7 @@
         "foto": "Photo",
         "nombre": "Name",
         "propietario": "Owner",
+        "codigo_hc": "Record code",
         "clinica_asesorada": "Origin clinic",
         "especie": "Species / breed",
         "sexo": "Sex",
@@ -170,6 +171,7 @@
     "historial": {
         "title_suffix": "Clinical history",
         "description": "Owner: {{propietario}}",
+        "codigo_hc": "HC {{codigo}}",
         "back_list": "Back to patients",
         "action_editar": "Edit pet",
         "action_nueva_consulta": "New consultation",

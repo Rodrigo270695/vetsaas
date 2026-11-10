@@ -45,6 +45,7 @@ import { calcularEdadMascota } from '@/lib/edad-desde-fecha-nacimiento';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import clinica from '@/routes/clinica';
+import type { Paciente } from '../../propietarios/types';
 
 type Props = {
     paciente: Paciente;
@@ -452,6 +453,14 @@ export function PacienteHistorialHero({
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <h1 className="text-lg font-semibold tracking-tight text-foreground">{paciente.nombre}</h1>
+                            {paciente.historia_clinica?.codigo ? (
+                                <span
+                                    className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary"
+                                    title={t('historial.codigo_hc', { codigo: paciente.historia_clinica.codigo })}
+                                >
+                                    {paciente.historia_clinica.codigo}
+                                </span>
+                            ) : null}
                             {paciente.fallecido_at ? (
                                 <Badge className="border-slate-500/30 bg-slate-700 text-[0.65rem] font-semibold text-white">
                                     {t('historial.estado_fallecido')}

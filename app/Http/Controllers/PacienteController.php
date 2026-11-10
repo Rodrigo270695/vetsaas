@@ -115,7 +115,10 @@ class PacienteController extends Controller
 
         $canAudit = $request->user()?->can('audit-trail.view') ?? false;
 
-        $with = ['propietario:id,nombres,apellidos,razon_social'];
+        $with = [
+            'propietario:id,nombres,apellidos,razon_social',
+            'historiaClinica:id,paciente_id,codigo',
+        ];
         if ($modoAsesora) {
             $with[] = 'clinicaAsesorada:id,nombre';
         }
@@ -148,6 +151,9 @@ class PacienteController extends Controller
                 $q->where('pacientes.nombre', 'ILIKE', "%{$search}%")
                     ->orWhere('pacientes.especie', 'ILIKE', "%{$search}%")
                     ->orWhere('pacientes.microchip', 'ILIKE', "%{$search}%")
+                    ->orWhereHas('historiaClinica', function ($qHc) use ($search) {
+                        $qHc->where('codigo', 'ILIKE', "%{$search}%");
+                    })
                     ->orWhereHas('propietario', function ($q2) use ($search) {
                         $q2->where('nombres', 'ILIKE', "%{$search}%")
                             ->orWhere('apellidos', 'ILIKE', "%{$search}%")
@@ -222,6 +228,8 @@ class PacienteController extends Controller
         abort_unless($request->user()?->can('pacientes.view') ?? false, 403);
 
         $paciente->load(['propietario:id,nombres,apellidos,razon_social,telefono,tipo_documento,numero_documento,email']);
+        \App\Support\Clinica\HistoriaClinicaCodigo::ensure($paciente);
+        $paciente->load(['historiaClinica:id,paciente_id,codigo,numero']);
 
         $user = $request->user();
         $canVerConsultas = $user?->can('historias-clinicas.view') ?? false;
@@ -867,6 +875,7 @@ class PacienteController extends Controller
         ]);
 
         $this->applyFoto($paciente, $request, $tenants);
+        \App\Support\Clinica\HistoriaClinicaCodigo::ensure($paciente);
 
         return back()->with('success', 'Paciente registrado correctamente.');
     }
@@ -956,6 +965,9 @@ class PacienteController extends Controller
                 $q->where('pacientes.nombre', 'ILIKE', "%{$search}%")
                     ->orWhere('pacientes.especie', 'ILIKE', "%{$search}%")
                     ->orWhere('pacientes.microchip', 'ILIKE', "%{$search}%")
+                    ->orWhereHas('historiaClinica', function ($qHc) use ($search) {
+                        $qHc->where('codigo', 'ILIKE', "%{$search}%");
+                    })
                     ->orWhereHas('propietario', function ($q2) use ($search) {
                         $q2->where('nombres', 'ILIKE', "%{$search}%")
                             ->orWhere('apellidos', 'ILIKE', "%{$search}%")

@@ -44,6 +44,7 @@ class PropietariosXlsxExport
 
         $this->petColumns = [
             ['label' => 'Mascota', 'value' => fn (?Paciente $m) => (string) ($m?->nombre ?? '')],
+            ['label' => 'Código HC', 'value' => fn (?Paciente $m) => (string) ($m?->historiaClinica?->codigo ?? '')],
             ['label' => 'Especie', 'value' => fn (?Paciente $m) => (string) ($m?->especie ?? '')],
             ['label' => 'Raza', 'value' => fn (?Paciente $m) => (string) ($m?->raza ?? '')],
             ['label' => 'Sexo', 'value' => fn (?Paciente $m) => (string) ($m?->sexo ?? '')],
@@ -72,7 +73,7 @@ class PropietariosXlsxExport
     public function streamTo(Builder $query, string $output = 'php://output'): void
     {
         if ($this->includeMascotas) {
-            $query->with(['pacientes' => fn ($q) => $q->orderBy('nombre')]);
+            $query->with(['pacientes' => fn ($q) => $q->with('historiaClinica:id,paciente_id,codigo')->orderBy('nombre')]);
         }
 
         $spreadsheet = new Spreadsheet();

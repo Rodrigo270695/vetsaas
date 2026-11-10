@@ -75,9 +75,10 @@ export type PedidoLaboratorioRow = {
     observaciones: string | null;
     created_at: string;
     lineas_count: number;
-    paciente: {
+        paciente: {
         id: string;
         nombre: string;
+        historia_clinica?: { id: string; codigo: string | null } | null;
         propietario?: {
             id: string;
             nombres: string;

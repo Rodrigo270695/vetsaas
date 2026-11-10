@@ -40,6 +40,10 @@ class CitasXlsxExport
                 'value' => fn (Cita $c) => (string) ($c->paciente?->nombre ?? ''),
             ],
             [
+                'label' => 'Código HC',
+                'value' => fn (Cita $c) => (string) ($c->paciente?->historiaClinica?->codigo ?? ''),
+            ],
+            [
                 'label' => 'Propietario',
                 'value' => function (Cita $c): string {
                     $p = $c->paciente?->propietario;

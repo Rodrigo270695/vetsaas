@@ -51,6 +51,7 @@
         "foto": "Foto",
         "nombre": "Nombre",
         "propietario": "Propietario",
+        "codigo_hc": "Código HC",
         "clinica_asesorada": "Clínica de origen",
         "especie": "Especie / raza",
         "sexo": "Sexo",
@@ -170,6 +171,7 @@
     "historial": {
         "title_suffix": "Historial clínico",
         "description": "Titular: {{propietario}}",
+        "codigo_hc": "HC {{codigo}}",
         "back_list": "Volver a pacientes",
         "action_editar": "Editar mascota",
         "action_nueva_consulta": "Nueva consulta",

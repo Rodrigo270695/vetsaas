@@ -36,8 +36,8 @@ final class RecetaPdfService
 
         if (Schema::hasColumn('historias_clinicas', 'numero')) {
             $receta->loadMissing([
-                'consulta.historiaClinica:id,paciente_id,numero',
-                'paciente.historiaClinica:id,paciente_id,numero',
+                'consulta.historiaClinica:id,paciente_id,numero,codigo',
+                'paciente.historiaClinica:id,paciente_id,numero,codigo',
             ]);
         }
 
@@ -63,7 +63,9 @@ final class RecetaPdfService
         }
         $control = $receta->consulta_control_at ?? $receta->consulta?->planTratamiento?->fecha_fin;
         $historiaNumero = (string) (
-            $receta->consulta?->historiaClinica?->numero
+            $receta->consulta?->historiaClinica?->codigo
+            ?? $receta->paciente?->historiaClinica?->codigo
+            ?? $receta->consulta?->historiaClinica?->numero
             ?? $receta->paciente?->historiaClinica?->numero
             ?? ''
         );

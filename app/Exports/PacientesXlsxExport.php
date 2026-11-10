@@ -23,6 +23,7 @@ class PacientesXlsxExport
     {
         $this->columns = [
             ['label' => 'Nombre', 'value' => fn (Paciente $p) => (string) $p->nombre],
+            ['label' => 'Código HC', 'value' => fn (Paciente $p) => (string) ($p->historiaClinica?->codigo ?? '')],
             ['label' => 'Especie', 'value' => fn (Paciente $p) => (string) ($p->especie ?? '')],
             ['label' => 'Raza', 'value' => fn (Paciente $p) => (string) ($p->raza ?? '')],
             ['label' => 'Propietario', 'value' => fn (Paciente $p) => $p->propietario?->displayName() ?? ''],
@@ -36,7 +37,10 @@ class PacientesXlsxExport
     /** @param  Builder<Paciente>  $query */
     public function streamTo(Builder $query, string $output = 'php://output'): void
     {
-        $query->with(['propietario:id,nombres,apellidos,razon_social']);
+        $query->with([
+            'propietario:id,nombres,apellidos,razon_social',
+            'historiaClinica:id,paciente_id,codigo',
+        ]);
 
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()

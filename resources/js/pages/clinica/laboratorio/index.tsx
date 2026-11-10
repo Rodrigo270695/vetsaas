@@ -329,6 +329,11 @@ export default function Index({
                         <span className="truncate text-xs text-muted-foreground">
                             {displayPropietario(row.paciente.propietario)}
                         </span>
+                        {row.paciente.historia_clinica?.codigo ? (
+                            <span className="font-mono text-[0.65rem] font-semibold text-primary">
+                                {row.paciente.historia_clinica.codigo}
+                            </span>
+                        ) : null}
                     </div>
                 ),
             },

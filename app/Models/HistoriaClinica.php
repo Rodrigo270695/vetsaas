@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Clinica\HistoriaClinicaCodigo;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Schema;
  * @property string $id
  * @property string $paciente_id
  * @property ?int $numero
+ * @property ?string $codigo
  * @property ?string $created_by_id
  * @property ?string $updated_by_id
  */
@@ -26,6 +28,7 @@ class HistoriaClinica extends Model
     protected $fillable = [
         'paciente_id',
         'numero',
+        'codigo',
         'created_by_id',
         'updated_by_id',
     ];
@@ -40,11 +43,22 @@ class HistoriaClinica extends Model
     protected static function booted(): void
     {
         static::creating(function (HistoriaClinica $historia): void {
-            if ($historia->numero !== null || ! Schema::hasColumn($historia->getTable(), 'numero')) {
-                return;
+            if ($historia->numero === null && Schema::hasColumn($historia->getTable(), 'numero')) {
+                $historia->numero = ((int) static::query()->max('numero')) + 1;
             }
 
-            $historia->numero = ((int) static::query()->max('numero')) + 1;
+            if (
+                blank($historia->codigo)
+                && Schema::hasColumn($historia->getTable(), 'codigo')
+                && filled($historia->paciente_id)
+            ) {
+                $paciente = $historia->relationLoaded('paciente')
+                    ? $historia->paciente
+                    : Paciente::query()->find($historia->paciente_id);
+                if ($paciente instanceof Paciente) {
+                    $historia->codigo = HistoriaClinicaCodigo::generar($paciente, $historia);
+                }
+            }
         });
     }
 

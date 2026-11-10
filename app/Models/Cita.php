@@ -133,6 +133,7 @@ class Cita extends Model
                     'propietario' => static function (BelongsTo $propQuery): void {
                         $propQuery->withTrashed();
                     },
+                    'historiaClinica:id,paciente_id,codigo',
                 ]);
             },
             'veterinario:id,name',
