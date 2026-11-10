@@ -107,6 +107,7 @@ return [
             'sin_token' => 'Configure the Nubefact API route and token under Settings › General.',
             'emitida_ok' => 'Electronic receipt issued successfully.',
             'fecha_emision_fuera' => 'A :tipo date can be today or up to :dias days earlier.',
+            'fecha_emision_futura' => 'A date after today (Peru time) is not allowed.',
             'sandbox_prod' => [
                 'solo_emitidos' => 'Only issued receipts can be moved to production.',
                 'solo_sandbox' => 'This receipt is no longer in test mode.',

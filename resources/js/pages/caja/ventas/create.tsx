@@ -6,6 +6,7 @@ import {
     Calendar,
     ClipboardList,
     CreditCard,
+    Info,
     Loader2,
     Minus,
     PackagePlus,
@@ -37,16 +38,26 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-function fechaEmisionLocal(diasAtras = 0): string {
-    const d = new Date();
-    d.setHours(12, 0, 0, 0);
-    d.setDate(d.getDate() - diasAtras);
+const ZONA_PERU = 'America/Lima';
+
+function fechaPeru(diasAtras = 0): string {
+    const hoy = new Intl.DateTimeFormat('en-CA', {
+        timeZone: ZONA_PERU,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(new Date());
+    const [anio, mes, dia] = hoy.split('-').map(Number);
+    const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+    fecha.setUTCDate(fecha.getUTCDate() - diasAtras);
     const z = (n: number) => String(n).padStart(2, '0');
 
-    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+    return `${fecha.getUTCFullYear()}-${z(fecha.getUTCMonth() + 1)}-${z(fecha.getUTCDate())}`;
 }
 import AppLayout from '@/layouts/app-layout';
 import { PropietarioFormModal } from '@/pages/clinica/propietarios/components/propietario-form-modal';
@@ -233,7 +244,7 @@ export default function Create({
         propietario_id: '',
         paciente_id: null as string | null,
         tipo_comprobante_sunat: 0 as 0 | 1 | 2,
-        fecha_emision_sunat: fechaEmisionLocal(),
+        fecha_emision_sunat: fechaPeru(),
         consulta_id: null as string | null,
         consulta_cargo_id: null as string | null,
         consulta_cargo_ids: [] as string[],
@@ -1250,11 +1261,14 @@ export default function Create({
                                                         return;
                                                     }
                                                     const tipo = Number(v) as 0 | 1 | 2;
-                                                    let fecha = form.data.fecha_emision_sunat || fechaEmisionLocal();
+                                                    let fecha = form.data.fecha_emision_sunat || fechaPeru();
+                                                    const max = fechaPeru();
+                                                    if (fecha > max) {
+                                                        fecha = max;
+                                                    }
                                                     if (tipo === 1 || tipo === 2) {
-                                                        const min = tipo === 1 ? fechaEmisionLocal(3) : fechaEmisionLocal(5);
-                                                        const max = fechaEmisionLocal();
-                                                        if (fecha < min || fecha > max) {
+                                                        const min = tipo === 1 ? fechaPeru(3) : fechaPeru(5);
+                                                        if (fecha < min) {
                                                             fecha = max;
                                                         }
                                                     }
@@ -1281,14 +1295,48 @@ export default function Create({
                                                 ) : null}
                                             </ToggleGroup>
                                         </div>
-                                        <div className="w-36 shrink-0 space-y-1">
-                                            <Label
-                                                htmlFor="fecha_emision_sunat"
-                                                className="flex h-6 items-center gap-1 text-xs text-muted-foreground"
-                                            >
-                                                <Calendar className="size-3.5" aria-hidden />
-                                                {t('caja:ventas.create.fecha_emision')}
-                                            </Label>
+                                        <div className="w-[10.75rem] shrink-0 space-y-1">
+                                            <div className="flex h-6 items-center gap-1">
+                                                <Label
+                                                    htmlFor="fecha_emision_sunat"
+                                                    className="flex items-center gap-1 text-xs text-muted-foreground"
+                                                >
+                                                    <Calendar className="size-3.5" aria-hidden />
+                                                    {t('caja:ventas.create.fecha_emision')}
+                                                </Label>
+                                                <Popover>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <PopoverTrigger asChild>
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                                    aria-label={t('caja:ventas.create.fecha_emision_info')}
+                                                                >
+                                                                    <Info className="size-3.5" aria-hidden />
+                                                                </button>
+                                                            </PopoverTrigger>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="max-w-64 space-y-1 px-3 py-2 text-left leading-5">
+                                                            <p>{t('caja:ventas.create.fecha_emision_info_boleta')}</p>
+                                                            <p>{t('caja:ventas.create.fecha_emision_info_factura')}</p>
+                                                            <p>{t('caja:ventas.create.fecha_emision_info_ticket')}</p>
+                                                            <p>{t('caja:ventas.create.fecha_emision_info_futuro')}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                    <PopoverContent align="end" className="w-72 space-y-1.5 p-3 text-xs leading-5">
+                                                        <p className="font-medium text-foreground">
+                                                            {t('caja:ventas.create.fecha_emision_info')}
+                                                        </p>
+                                                        <p>{t('caja:ventas.create.fecha_emision_info_boleta')}</p>
+                                                        <p>{t('caja:ventas.create.fecha_emision_info_factura')}</p>
+                                                        <p>{t('caja:ventas.create.fecha_emision_info_ticket')}</p>
+                                                        <p className="text-muted-foreground">
+                                                            {t('caja:ventas.create.fecha_emision_info_futuro')}
+                                                        </p>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
                                             <div className="relative">
                                                 <Input
                                                     id="fecha_emision_sunat"
@@ -1296,16 +1344,12 @@ export default function Create({
                                                     className="h-9 bg-background px-2 text-xs tabular-nums scheme-light dark:scheme-dark"
                                                     min={
                                                         form.data.tipo_comprobante_sunat === 1
-                                                            ? fechaEmisionLocal(3)
+                                                            ? fechaPeru(3)
                                                             : form.data.tipo_comprobante_sunat === 2
-                                                              ? fechaEmisionLocal(5)
+                                                              ? fechaPeru(5)
                                                               : undefined
                                                     }
-                                                    max={
-                                                        form.data.tipo_comprobante_sunat === 0
-                                                            ? undefined
-                                                            : fechaEmisionLocal()
-                                                    }
+                                                    max={fechaPeru()}
                                                     value={form.data.fecha_emision_sunat}
                                                     aria-describedby="fecha_emision_sunat_hint"
                                                     onChange={(e) =>

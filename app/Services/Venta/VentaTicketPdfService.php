@@ -9,6 +9,7 @@ use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\Fel\FelFechaEmision;
 use App\Support\Caja\VentaTicketPolicy;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
@@ -76,8 +77,8 @@ final class VentaTicketPdfService
             return $t === '' ? null : $t;
         };
 
-        $fechaDocumento = $venta->fecha_emision_sunat?->timezone(config('app.timezone'));
-        $fechaPago = ($venta->fecha_pago ?? $venta->created_at)?->timezone(config('app.timezone'));
+        $fechaDocumento = $venta->fecha_emision_sunat?->timezone(FelFechaEmision::ZONA);
+        $fechaPago = ($venta->fecha_pago ?? $venta->created_at)?->timezone(FelFechaEmision::ZONA);
         $fechaCobro = '—';
         if ($fechaDocumento !== null && $fechaPago !== null && ! $fechaDocumento->isSameDay($fechaPago)) {
             $fechaCobro = $fechaDocumento->format('d/m/Y');

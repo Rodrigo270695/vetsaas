@@ -148,9 +148,18 @@ class StoreVentaRequest extends FormRequest
         $validator->after(function (Validator $v): void {
             $tipoSunat = $this->input('tipo_comprobante_sunat');
             $fechaSunat = $this->input('fecha_emision_sunat');
-            if (is_int($tipoSunat) && is_string($fechaSunat) && $fechaSunat !== '') {
-                if (FelFechaEmision::resolver($tipoSunat, $fechaSunat) === null) {
-                    $v->errors()->add('fecha_emision_sunat', FelFechaEmision::mensajeFueraDePlazo($tipoSunat));
+            if (is_string($fechaSunat) && $fechaSunat !== '') {
+                if (is_int($tipoSunat)) {
+                    if (FelFechaEmision::resolver($tipoSunat, $fechaSunat) === null) {
+                        $v->errors()->add(
+                            'fecha_emision_sunat',
+                            FelFechaEmision::esPosteriorAHoy($fechaSunat)
+                                ? __('caja.ventas.fel.fecha_emision_futura')
+                                : FelFechaEmision::mensajeFueraDePlazo($tipoSunat),
+                        );
+                    }
+                } elseif (FelFechaEmision::esPosteriorAHoy($fechaSunat)) {
+                    $v->errors()->add('fecha_emision_sunat', __('caja.ventas.fel.fecha_emision_futura'));
                 }
             }
 

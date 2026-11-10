@@ -17,6 +17,8 @@ use RuntimeException;
  */
 final class FelFechaEmision
 {
+    public const ZONA = 'America/Lima';
+
     public static function diasMaximos(int $tipo): int
     {
         return match ($tipo) {
@@ -28,7 +30,7 @@ final class FelFechaEmision
 
     public static function hoy(): CarbonInterface
     {
-        return now(config('app.timezone'))->startOfDay();
+        return now(self::ZONA)->startOfDay();
     }
 
     public static function minima(int $tipo): CarbonInterface
@@ -49,8 +51,8 @@ final class FelFechaEmision
 
         try {
             $elegida = $fecha instanceof CarbonInterface
-                ? $fecha->timezone((string) config('app.timezone'))->startOfDay()
-                : Carbon::parse((string) $fecha, (string) config('app.timezone'))->startOfDay();
+                ? $fecha->timezone(self::ZONA)->startOfDay()
+                : Carbon::parse((string) $fecha, self::ZONA)->startOfDay();
         } catch (\Throwable) {
             return null;
         }
@@ -60,6 +62,23 @@ final class FelFechaEmision
         }
 
         return $elegida;
+    }
+
+    public static function esPosteriorAHoy(mixed $fecha): bool
+    {
+        if ($fecha === null || $fecha === '') {
+            return false;
+        }
+
+        try {
+            $elegida = $fecha instanceof CarbonInterface
+                ? $fecha->timezone(self::ZONA)->startOfDay()
+                : Carbon::parse((string) $fecha, self::ZONA)->startOfDay();
+        } catch (\Throwable) {
+            return true;
+        }
+
+        return $elegida->gt(self::hoy());
     }
 
     public static function mensajeFueraDePlazo(int $tipo): string
@@ -82,7 +101,7 @@ final class FelFechaEmision
             throw new RuntimeException(self::mensajeFueraDePlazo($tipo));
         }
 
-        $ahora = now(config('app.timezone'));
+        $ahora = now(self::ZONA);
         if ($dia->isSameDay($ahora)) {
             return $ahora;
         }
