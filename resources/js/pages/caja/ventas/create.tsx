@@ -2367,7 +2367,7 @@ export default function Create({
                     </div>
                 </div>
 
-                <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 p-3 pr-36 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur-sm lg:hidden">
+                <div className="fixed inset-x-0 bottom-0 z-30 flex items-center border-t border-border/70 bg-background/95 px-3 pt-3 pr-[10.5rem] pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur-sm lg:hidden">
                     <Button
                         type="button"
                         className="h-11 w-full gap-2 text-sm font-semibold"

@@ -86,6 +86,7 @@ export function TenantChatDock() {
     const { unreadTotal, setUnreadTotal, setActiveConversationId } = useTenantChatUnread();
     const allowed = can('comunicaciones-chat.view');
     const onChatPage = page.url.startsWith('/comunicaciones/chat');
+    const cobroFijo = page.component === 'caja/ventas/create';
     const [open, setOpen] = useState(false);
     const [panelPresent, setPanelPresent] = useState(false);
     const [panelShown, setPanelShown] = useState(false);
@@ -644,6 +645,8 @@ export function TenantChatDock() {
                         type="button"
                         className={cn(
                             'pointer-events-auto mb-3 flex cursor-pointer items-center gap-2 rounded-full bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-700/25 transition-opacity duration-200 hover:bg-teal-700',
+                            cobroFijo &&
+                                'max-lg:mb-[max(0.75rem,env(safe-area-inset-bottom))] max-lg:h-11 max-lg:py-0',
                             panelShown && 'pointer-events-none opacity-0',
                         )}
                         onClick={showPanel}
