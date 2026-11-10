@@ -1114,9 +1114,6 @@ export default function Create({
                             <span className="max-w-[10rem] truncate sm:max-w-none">
                                 {t('caja:ventas.create.precuentas_cta')}
                             </span>
-                            <span className="rounded bg-white/20 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-white">
-                                {t('caja:ventas.create.precuentas_nuevo')}
-                            </span>
                         </Button>
                     ) : null}
                     {puede_vender && mi_sesion ? (
@@ -1192,7 +1189,7 @@ export default function Create({
                 ) : null}
 
                 {/* ── Layout POS ── */}
-                <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_min(360px,36%)] lg:items-start lg:gap-4">
+                <div className="flex flex-1 flex-col gap-3 p-3 pb-24 sm:p-4 sm:pb-24 lg:grid lg:grid-cols-[minmax(0,1fr)_min(360px,36%)] lg:items-start lg:gap-4 lg:pb-4">
 
                     {/* Columna izquierda: cliente + catálogo + carrito */}
                     <div className="flex min-w-0 flex-col gap-3">
@@ -1244,9 +1241,9 @@ export default function Create({
                                     ) : null}
                                 </div>
 
-                                <div className="w-full shrink-0 space-y-1 lg:w-[24rem]">
-                                    <div className="flex items-end gap-2">
-                                        <div className="min-w-0 flex-1 space-y-1">
+                                <div className="w-full shrink-0 space-y-2 lg:w-[24rem]">
+                                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
+                                        <div className="w-full min-w-0 space-y-1 lg:flex-1">
                                             <Label className="flex h-6 items-center text-xs text-muted-foreground">
                                                 {t('caja:ventas.create.tipo_comprobante')}
                                             </Label>
@@ -1295,7 +1292,7 @@ export default function Create({
                                                 ) : null}
                                             </ToggleGroup>
                                         </div>
-                                        <div className="w-[10.75rem] shrink-0 space-y-1">
+                                        <div className="w-full shrink-0 space-y-1 lg:w-[10.75rem]">
                                             <div className="flex h-6 items-center gap-1">
                                                 <Label
                                                     htmlFor="fecha_emision_sunat"
@@ -1357,19 +1354,19 @@ export default function Create({
                                                     }
                                                     disabled={!puede_vender}
                                                 />
+                                                <p
+                                                    id="fecha_emision_sunat_hint"
+                                                    className="mt-1 text-[11px] leading-4 text-muted-foreground"
+                                                >
+                                                    {form.data.tipo_comprobante_sunat === 1
+                                                        ? t('caja:ventas.create.fecha_emision_factura')
+                                                        : form.data.tipo_comprobante_sunat === 2
+                                                          ? t('caja:ventas.create.fecha_emision_boleta')
+                                                          : t('caja:ventas.create.fecha_emision_ticket')}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
-                                    <p
-                                        id="fecha_emision_sunat_hint"
-                                        className="text-[11px] leading-4 text-muted-foreground"
-                                    >
-                                        {form.data.tipo_comprobante_sunat === 1
-                                            ? t('caja:ventas.create.fecha_emision_factura')
-                                            : form.data.tipo_comprobante_sunat === 2
-                                              ? t('caja:ventas.create.fecha_emision_boleta')
-                                              : t('caja:ventas.create.fecha_emision_ticket')}
-                                    </p>
                                     {form.errors.tipo_comprobante_sunat ? (
                                         <p className="text-[11px] text-destructive">{form.errors.tipo_comprobante_sunat}</p>
                                     ) : null}
@@ -2349,7 +2346,7 @@ export default function Create({
 
                                 <Button
                                     type="button"
-                                    className="h-10 w-full gap-2 text-sm font-semibold shadow-md shadow-primary/15"
+                                    className="hidden h-10 w-full gap-2 text-sm font-semibold shadow-md shadow-primary/15 lg:inline-flex"
                                     disabled={!puedeConfirmar || form.processing}
                                     onClick={submit}
                                 >
@@ -2368,6 +2365,27 @@ export default function Create({
                             </div>
                         </PosPanel>
                     </div>
+                </div>
+
+                <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 p-3 pr-36 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur-sm lg:hidden">
+                    <Button
+                        type="button"
+                        className="h-11 w-full gap-2 text-sm font-semibold"
+                        disabled={!puedeConfirmar || form.processing}
+                        onClick={submit}
+                    >
+                        {form.processing ? (
+                            <>
+                                <Loader2 className="size-4 animate-spin" aria-hidden />
+                                {t('caja:ventas.create.guardando')}
+                            </>
+                        ) : (
+                            <>
+                                <ShoppingCart className="size-4" aria-hidden />
+                                {t('caja:ventas.create.confirmar')} · {formatMoney(recargoTarjeta.total)}
+                            </>
+                        )}
+                    </Button>
                 </div>
             </div>
 
