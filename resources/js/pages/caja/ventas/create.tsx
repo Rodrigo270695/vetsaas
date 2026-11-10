@@ -3,6 +3,7 @@ import {
     ArrowLeft,
     Banknote,
     Building2,
+    Calendar,
     ClipboardList,
     CreditCard,
     Loader2,
@@ -858,10 +859,7 @@ export default function Create({
             notas: d.notas || null,
             tipo_comprobante_sunat:
                 d.tipo_comprobante_sunat === 0 ? null : d.tipo_comprobante_sunat,
-            fecha_emision_sunat:
-                d.tipo_comprobante_sunat === 1 || d.tipo_comprobante_sunat === 2
-                    ? d.fecha_emision_sunat
-                    : null,
+            fecha_emision_sunat: d.fecha_emision_sunat || null,
             recargo_tarjeta_porcentaje: d.pagos.some((p) => p.metodo === 'tarjeta')
                 ? recargoTarjeta.pct
                 : null,
@@ -1235,85 +1233,106 @@ export default function Create({
                                     ) : null}
                                 </div>
 
-                                <div className="w-full shrink-0 space-y-1 lg:w-auto lg:min-w-[220px]">
-                                    <Label className="flex h-6 items-center text-xs text-muted-foreground">
-                                        {t('caja:ventas.create.tipo_comprobante')}
-                                    </Label>
-                                    <ToggleGroup
-                                        type="single"
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex h-9 w-full flex-wrap justify-start gap-0.5"
-                                        value={String(form.data.tipo_comprobante_sunat)}
-                                        onValueChange={(v) => {
-                                            if (v !== '0' && v !== '1' && v !== '2') {
-                                                return;
-                                            }
-                                            const tipo = Number(v) as 0 | 1 | 2;
-                                            const min =
-                                                tipo === 1 ? fechaEmisionLocal(3) : fechaEmisionLocal(5);
-                                            const actual = form.data.fecha_emision_sunat;
-                                            form.setData({
-                                                ...form.data,
-                                                tipo_comprobante_sunat: tipo,
-                                                fecha_emision_sunat:
-                                                    tipo === 0 || actual < min
-                                                        ? fechaEmisionLocal()
-                                                        : actual,
-                                            });
-                                        }}
-                                        disabled={!puede_vender}
+                                <div className="w-full shrink-0 space-y-1 lg:w-[24rem]">
+                                    <div className="flex items-end gap-2">
+                                        <div className="min-w-0 flex-1 space-y-1">
+                                            <Label className="flex h-6 items-center text-xs text-muted-foreground">
+                                                {t('caja:ventas.create.tipo_comprobante')}
+                                            </Label>
+                                            <ToggleGroup
+                                                type="single"
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex h-9 w-full justify-start gap-0.5"
+                                                value={String(form.data.tipo_comprobante_sunat)}
+                                                onValueChange={(v) => {
+                                                    if (v !== '0' && v !== '1' && v !== '2') {
+                                                        return;
+                                                    }
+                                                    const tipo = Number(v) as 0 | 1 | 2;
+                                                    let fecha = form.data.fecha_emision_sunat || fechaEmisionLocal();
+                                                    if (tipo === 1 || tipo === 2) {
+                                                        const min = tipo === 1 ? fechaEmisionLocal(3) : fechaEmisionLocal(5);
+                                                        const max = fechaEmisionLocal();
+                                                        if (fecha < min || fecha > max) {
+                                                            fecha = max;
+                                                        }
+                                                    }
+                                                    form.setData({
+                                                        ...form.data,
+                                                        tipo_comprobante_sunat: tipo,
+                                                        fecha_emision_sunat: fecha,
+                                                    });
+                                                }}
+                                                disabled={!puede_vender}
+                                            >
+                                                <ToggleGroupItem value="0" className="h-9 min-w-0 flex-1 cursor-pointer px-2 text-xs">
+                                                    {t('caja:ventas.create.comprobante_ticket')}
+                                                </ToggleGroupItem>
+                                                {puedeEmitirBoleta ? (
+                                                    <ToggleGroupItem value="2" className="h-9 min-w-0 flex-1 cursor-pointer px-2 text-xs">
+                                                        {t('caja:ventas.create.comprobante_boleta')}
+                                                    </ToggleGroupItem>
+                                                ) : null}
+                                                {puedeEmitirFactura ? (
+                                                    <ToggleGroupItem value="1" className="h-9 min-w-0 flex-1 cursor-pointer px-2 text-xs">
+                                                        {t('caja:ventas.create.comprobante_factura')}
+                                                    </ToggleGroupItem>
+                                                ) : null}
+                                            </ToggleGroup>
+                                        </div>
+                                        <div className="w-36 shrink-0 space-y-1">
+                                            <Label
+                                                htmlFor="fecha_emision_sunat"
+                                                className="flex h-6 items-center gap-1 text-xs text-muted-foreground"
+                                            >
+                                                <Calendar className="size-3.5" aria-hidden />
+                                                {t('caja:ventas.create.fecha_emision')}
+                                            </Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="fecha_emision_sunat"
+                                                    type="date"
+                                                    className="h-9 bg-background px-2 text-xs tabular-nums scheme-light dark:scheme-dark"
+                                                    min={
+                                                        form.data.tipo_comprobante_sunat === 1
+                                                            ? fechaEmisionLocal(3)
+                                                            : form.data.tipo_comprobante_sunat === 2
+                                                              ? fechaEmisionLocal(5)
+                                                              : undefined
+                                                    }
+                                                    max={
+                                                        form.data.tipo_comprobante_sunat === 0
+                                                            ? undefined
+                                                            : fechaEmisionLocal()
+                                                    }
+                                                    value={form.data.fecha_emision_sunat}
+                                                    aria-describedby="fecha_emision_sunat_hint"
+                                                    onChange={(e) =>
+                                                        form.setData('fecha_emision_sunat', e.target.value)
+                                                    }
+                                                    disabled={!puede_vender}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p
+                                        id="fecha_emision_sunat_hint"
+                                        className="text-[11px] leading-4 text-muted-foreground"
                                     >
-                                        <ToggleGroupItem value="0" className="h-9 min-w-0 flex-1 cursor-pointer px-2.5 text-xs">
-                                            {t('caja:ventas.create.comprobante_ticket')}
-                                        </ToggleGroupItem>
-                                        {puedeEmitirBoleta ? (
-                                            <ToggleGroupItem value="2" className="h-9 min-w-0 flex-1 cursor-pointer px-2.5 text-xs">
-                                                {t('caja:ventas.create.comprobante_boleta')}
-                                            </ToggleGroupItem>
-                                        ) : null}
-                                        {puedeEmitirFactura ? (
-                                            <ToggleGroupItem value="1" className="h-9 min-w-0 flex-1 cursor-pointer px-2.5 text-xs">
-                                                {t('caja:ventas.create.comprobante_factura')}
-                                            </ToggleGroupItem>
-                                        ) : null}
-                                    </ToggleGroup>
+                                        {form.data.tipo_comprobante_sunat === 1
+                                            ? t('caja:ventas.create.fecha_emision_factura')
+                                            : form.data.tipo_comprobante_sunat === 2
+                                              ? t('caja:ventas.create.fecha_emision_boleta')
+                                              : t('caja:ventas.create.fecha_emision_ticket')}
+                                    </p>
                                     {form.errors.tipo_comprobante_sunat ? (
                                         <p className="text-[11px] text-destructive">{form.errors.tipo_comprobante_sunat}</p>
                                     ) : null}
-                                    {form.data.tipo_comprobante_sunat === 1 ||
-                                    form.data.tipo_comprobante_sunat === 2 ? (
-                                        <div className="space-y-1 pt-1">
-                                            <Label htmlFor="fecha_emision_sunat" className="text-xs text-muted-foreground">
-                                                {t('caja:ventas.create.fecha_emision')}
-                                            </Label>
-                                            <Input
-                                                id="fecha_emision_sunat"
-                                                type="date"
-                                                className="h-9"
-                                                min={
-                                                    form.data.tipo_comprobante_sunat === 1
-                                                        ? fechaEmisionLocal(3)
-                                                        : fechaEmisionLocal(5)
-                                                }
-                                                max={fechaEmisionLocal()}
-                                                value={form.data.fecha_emision_sunat}
-                                                onChange={(e) =>
-                                                    form.setData('fecha_emision_sunat', e.target.value)
-                                                }
-                                                disabled={!puede_vender}
-                                            />
-                                            <p className="text-[11px] text-muted-foreground">
-                                                {form.data.tipo_comprobante_sunat === 1
-                                                    ? t('caja:ventas.create.fecha_emision_factura')
-                                                    : t('caja:ventas.create.fecha_emision_boleta')}
-                                            </p>
-                                            {form.errors.fecha_emision_sunat ? (
-                                                <p className="text-[11px] text-destructive">
-                                                    {form.errors.fecha_emision_sunat}
-                                                </p>
-                                            ) : null}
-                                        </div>
+                                    {form.errors.fecha_emision_sunat ? (
+                                        <p className="text-[11px] text-destructive" role="alert">
+                                            {form.errors.fecha_emision_sunat}
+                                        </p>
                                     ) : null}
                                 </div>
                             </div>

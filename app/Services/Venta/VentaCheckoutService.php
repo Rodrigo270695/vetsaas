@@ -731,7 +731,7 @@ final class VentaCheckoutService
                     ? number_format($recargoPct, 2, '.', '')
                     : null;
             }
-            if (Schema::hasColumn('ventas', 'fecha_emision_sunat') && $tipoComprobante !== null) {
+            if (Schema::hasColumn('ventas', 'fecha_emision_sunat')) {
                 $fechaSunat = $validated['fecha_emision_sunat'] ?? null;
                 $ventaAttrs['fecha_emision_sunat'] = is_string($fechaSunat) && $fechaSunat !== ''
                     ? $fechaSunat

@@ -88,22 +88,26 @@ class StoreVentaRequest extends FormRequest
         $puedeElegirSunat = PlanCapabilities::facturaElectronica($tenant)
             && (bool) $clinic->emite_comprobantes_sunat;
 
+        $fecha = trim((string) $this->input('fecha_emision_sunat', ''));
+        $fecha = $fecha === '' ? null : $fecha;
+
         if (! $puedeElegirSunat) {
             $this->merge([
                 'tipo_comprobante_sunat' => null,
-                'fecha_emision_sunat' => null,
+                'fecha_emision_sunat' => $fecha,
             ]);
         } else {
             $tipo = $this->input('tipo_comprobante_sunat');
             if ($tipo === null || $tipo === '' || $tipo === FelSerie::TIPO_TICKET || $tipo === '0') {
                 $this->merge([
                     'tipo_comprobante_sunat' => null,
-                    'fecha_emision_sunat' => null,
+                    'fecha_emision_sunat' => $fecha,
                 ]);
             } else {
-                $this->merge(['tipo_comprobante_sunat' => (int) $tipo]);
-                $fecha = trim((string) $this->input('fecha_emision_sunat', ''));
-                $this->merge(['fecha_emision_sunat' => $fecha === '' ? null : $fecha]);
+                $this->merge([
+                    'tipo_comprobante_sunat' => (int) $tipo,
+                    'fecha_emision_sunat' => $fecha,
+                ]);
             }
         }
 

@@ -76,9 +76,16 @@ final class VentaTicketPdfService
             return $t === '' ? null : $t;
         };
 
-        $fechaCobro = ($venta->fecha_pago ?? $venta->created_at)
-            ?->timezone(config('app.timezone'))
-            ->format('d/m/Y H:i') ?? '—';
+        $fechaDocumento = $venta->fecha_emision_sunat?->timezone(config('app.timezone'));
+        $fechaPago = ($venta->fecha_pago ?? $venta->created_at)?->timezone(config('app.timezone'));
+        $fechaCobro = '—';
+        if ($fechaDocumento !== null && $fechaPago !== null && ! $fechaDocumento->isSameDay($fechaPago)) {
+            $fechaCobro = $fechaDocumento->format('d/m/Y');
+        } elseif ($fechaPago !== null) {
+            $fechaCobro = $fechaPago->format('d/m/Y H:i');
+        } elseif ($fechaDocumento !== null) {
+            $fechaCobro = $fechaDocumento->format('d/m/Y');
+        }
 
         return [
             'ancho_mm' => $ancho,
