@@ -9,6 +9,7 @@ use App\Models\FelSerie;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\Tenant;
+use App\Support\Fel\FelFechaEmision;
 use App\Support\PlanCapabilities;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -76,6 +77,7 @@ class StoreVentaRequest extends FormRequest
                 FelSerie::TIPO_FACTURA,
                 FelSerie::TIPO_BOLETA,
             ])],
+            'fecha_emision_sunat' => ['nullable', 'date_format:Y-m-d'],
         ];
     }
 
@@ -87,13 +89,21 @@ class StoreVentaRequest extends FormRequest
             && (bool) $clinic->emite_comprobantes_sunat;
 
         if (! $puedeElegirSunat) {
-            $this->merge(['tipo_comprobante_sunat' => null]);
+            $this->merge([
+                'tipo_comprobante_sunat' => null,
+                'fecha_emision_sunat' => null,
+            ]);
         } else {
             $tipo = $this->input('tipo_comprobante_sunat');
             if ($tipo === null || $tipo === '' || $tipo === FelSerie::TIPO_TICKET || $tipo === '0') {
-                $this->merge(['tipo_comprobante_sunat' => null]);
+                $this->merge([
+                    'tipo_comprobante_sunat' => null,
+                    'fecha_emision_sunat' => null,
+                ]);
             } else {
                 $this->merge(['tipo_comprobante_sunat' => (int) $tipo]);
+                $fecha = trim((string) $this->input('fecha_emision_sunat', ''));
+                $this->merge(['fecha_emision_sunat' => $fecha === '' ? null : $fecha]);
             }
         }
 
@@ -123,6 +133,7 @@ class StoreVentaRequest extends FormRequest
             'pagos.*.monto' => 'monto del pago',
             'pagos.*.monto_recibido' => 'monto recibido',
             'tipo_comprobante_sunat' => 'tipo de comprobante',
+            'fecha_emision_sunat' => 'fecha de emisión',
             'grooming_turno_id' => 'turno de grooming',
             'hotel_estancia_id' => 'estancia de hotel',
         ];
@@ -131,6 +142,14 @@ class StoreVentaRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $v): void {
+            $tipoSunat = $this->input('tipo_comprobante_sunat');
+            $fechaSunat = $this->input('fecha_emision_sunat');
+            if (is_int($tipoSunat) && is_string($fechaSunat) && $fechaSunat !== '') {
+                if (FelFechaEmision::resolver($tipoSunat, $fechaSunat) === null) {
+                    $v->errors()->add('fecha_emision_sunat', FelFechaEmision::mensajeFueraDePlazo($tipoSunat));
+                }
+            }
+
             $sesionId = $this->input('caja_sesion_id');
             if (! is_string($sesionId) || $sesionId === '') {
                 return;

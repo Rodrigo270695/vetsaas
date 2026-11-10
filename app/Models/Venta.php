@@ -35,6 +35,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?string $notas
  * @property string $fel_estado
  * @property ?int $tipo_comprobante_sunat
+ * @property ?\Illuminate\Support\Carbon $fecha_emision_sunat
  * @property ?string $fel_document_id
  * @property ?string $created_by_id
  */
@@ -92,6 +93,7 @@ class Venta extends Model
         'notas',
         'fel_estado',
         'tipo_comprobante_sunat',
+        'fecha_emision_sunat',
         'fel_document_id',
         'created_by_id',
         'anulado_at',
@@ -105,6 +107,7 @@ class Venta extends Model
             'anio' => 'integer',
             'correlativo' => 'integer',
             'tipo_comprobante_sunat' => 'integer',
+            'fecha_emision_sunat' => 'date',
             'subtotal' => 'decimal:2',
             'igv_monto' => 'decimal:2',
             'descuento_monto' => 'decimal:2',

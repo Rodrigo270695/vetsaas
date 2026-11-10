@@ -38,6 +38,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
+function fechaEmisionLocal(diasAtras = 0): string {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() - diasAtras);
+    const z = (n: number) => String(n).padStart(2, '0');
+
+    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+}
 import AppLayout from '@/layouts/app-layout';
 import { PropietarioFormModal } from '@/pages/clinica/propietarios/components/propietario-form-modal';
 import { PrecuentasPendientesModal } from './components/precuentas-pendientes-modal';
@@ -223,6 +232,7 @@ export default function Create({
         propietario_id: '',
         paciente_id: null as string | null,
         tipo_comprobante_sunat: 0 as 0 | 1 | 2,
+        fecha_emision_sunat: fechaEmisionLocal(),
         consulta_id: null as string | null,
         consulta_cargo_id: null as string | null,
         consulta_cargo_ids: [] as string[],
@@ -848,6 +858,10 @@ export default function Create({
             notas: d.notas || null,
             tipo_comprobante_sunat:
                 d.tipo_comprobante_sunat === 0 ? null : d.tipo_comprobante_sunat,
+            fecha_emision_sunat:
+                d.tipo_comprobante_sunat === 1 || d.tipo_comprobante_sunat === 2
+                    ? d.fecha_emision_sunat
+                    : null,
             recargo_tarjeta_porcentaje: d.pagos.some((p) => p.metodo === 'tarjeta')
                 ? recargoTarjeta.pct
                 : null,
@@ -1232,9 +1246,21 @@ export default function Create({
                                         className="flex h-9 w-full flex-wrap justify-start gap-0.5"
                                         value={String(form.data.tipo_comprobante_sunat)}
                                         onValueChange={(v) => {
-                                            if (v === '0' || v === '1' || v === '2') {
-                                                form.setData('tipo_comprobante_sunat', Number(v) as 0 | 1 | 2);
+                                            if (v !== '0' && v !== '1' && v !== '2') {
+                                                return;
                                             }
+                                            const tipo = Number(v) as 0 | 1 | 2;
+                                            const min =
+                                                tipo === 1 ? fechaEmisionLocal(3) : fechaEmisionLocal(5);
+                                            const actual = form.data.fecha_emision_sunat;
+                                            form.setData({
+                                                ...form.data,
+                                                tipo_comprobante_sunat: tipo,
+                                                fecha_emision_sunat:
+                                                    tipo === 0 || actual < min
+                                                        ? fechaEmisionLocal()
+                                                        : actual,
+                                            });
                                         }}
                                         disabled={!puede_vender}
                                     >
@@ -1254,6 +1280,40 @@ export default function Create({
                                     </ToggleGroup>
                                     {form.errors.tipo_comprobante_sunat ? (
                                         <p className="text-[11px] text-destructive">{form.errors.tipo_comprobante_sunat}</p>
+                                    ) : null}
+                                    {form.data.tipo_comprobante_sunat === 1 ||
+                                    form.data.tipo_comprobante_sunat === 2 ? (
+                                        <div className="space-y-1 pt-1">
+                                            <Label htmlFor="fecha_emision_sunat" className="text-xs text-muted-foreground">
+                                                {t('caja:ventas.create.fecha_emision')}
+                                            </Label>
+                                            <Input
+                                                id="fecha_emision_sunat"
+                                                type="date"
+                                                className="h-9"
+                                                min={
+                                                    form.data.tipo_comprobante_sunat === 1
+                                                        ? fechaEmisionLocal(3)
+                                                        : fechaEmisionLocal(5)
+                                                }
+                                                max={fechaEmisionLocal()}
+                                                value={form.data.fecha_emision_sunat}
+                                                onChange={(e) =>
+                                                    form.setData('fecha_emision_sunat', e.target.value)
+                                                }
+                                                disabled={!puede_vender}
+                                            />
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {form.data.tipo_comprobante_sunat === 1
+                                                    ? t('caja:ventas.create.fecha_emision_factura')
+                                                    : t('caja:ventas.create.fecha_emision_boleta')}
+                                            </p>
+                                            {form.errors.fecha_emision_sunat ? (
+                                                <p className="text-[11px] text-destructive">
+                                                    {form.errors.fecha_emision_sunat}
+                                                </p>
+                                            ) : null}
+                                        </div>
                                     ) : null}
                                 </div>
                             </div>

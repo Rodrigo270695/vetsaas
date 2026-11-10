@@ -9,6 +9,7 @@ use App\Models\FelDocument;
 use App\Models\Venta;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\Fel\FelDocumentApisunatModeResolver;
+use App\Support\Fel\FelFechaEmision;
 use App\Support\Fel\FelReceptorResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -149,6 +150,17 @@ final class FelSandboxToProduccionService
                 $receptor = FelReceptorResolver::datosReceptor($venta->propietario);
             }
 
+            try {
+                $fechaEmision = FelFechaEmision::instanteEmision(
+                    (int) $documento->tipo_comprobante,
+                    $venta->fecha_emision_sunat,
+                );
+            } catch (RuntimeException $e) {
+                throw ValidationException::withMessages([
+                    'fel' => $e->getMessage(),
+                ]);
+            }
+
             $payload = $this->apisunat->construirPayload(
                 $venta,
                 $clinic,
@@ -156,6 +168,7 @@ final class FelSandboxToProduccionService
                 (string) $documento->serie,
                 (int) $documento->correlativo,
                 $receptor,
+                $fechaEmision,
             );
 
             try {

@@ -367,6 +367,8 @@ class TenantSchemaMigrator
             '2026_10_05_010000_t168_controles' => Schema::hasTable('controles'),
             '2026_11_09_120000_t171_historia_clinica_codigo' => Schema::hasTable('historias_clinicas')
                 && Schema::hasColumn('historias_clinicas', 'codigo'),
+            '2026_11_10_120000_t172_ventas_fecha_emision_sunat' => Schema::hasTable('ventas')
+                && Schema::hasColumn('ventas', 'fecha_emision_sunat'),
             '2026_07_22_190000_t121_add_arqueo_json_to_caja_sesiones' => Schema::hasTable('caja_sesiones')
                 && Schema::hasColumn('caja_sesiones', 'arqueo_json'),
             '2026_07_23_200000_t122_create_caja_egresos_table' => Schema::hasTable('caja_egresos'),

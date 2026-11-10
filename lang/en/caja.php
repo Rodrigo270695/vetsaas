@@ -106,6 +106,7 @@ return [
             'sin_serie' => 'No :tipo series configured. Check Settings › Branches (invoice/receipt series) or the clinic FEL catalog.',
             'sin_token' => 'Configure the Nubefact API route and token under Settings › General.',
             'emitida_ok' => 'Electronic receipt issued successfully.',
+            'fecha_emision_fuera' => 'A :tipo date can be today or up to :dias days earlier.',
             'sandbox_prod' => [
                 'solo_emitidos' => 'Only issued receipts can be moved to production.',
                 'solo_sandbox' => 'This receipt is no longer in test mode.',

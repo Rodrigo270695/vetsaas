@@ -8,6 +8,7 @@ use App\Models\FelSerie;
 use App\Models\Tenant;
 use App\Models\Venta;
 use App\Support\Fel\ApisunatCredentialResolver;
+use App\Support\Fel\FelFechaEmision;
 use App\Support\Fel\FelReceptorResolver;
 use App\Support\Fel\FelSerieResolver;
 use App\Support\PlanCapabilities;
@@ -67,7 +68,9 @@ final class FelEmisionVentaService
             throw new RuntimeException(__('caja.ventas.fel.factura_requiere_ruc'));
         }
 
-        return DB::transaction(function () use ($venta, $credenciales, $receptor, $tipoComprobante, $emisionModo): FelDocument {
+        $fechaEmision = FelFechaEmision::instanteEmision($tipoComprobante, $venta->fecha_emision_sunat);
+
+        return DB::transaction(function () use ($venta, $credenciales, $receptor, $tipoComprobante, $emisionModo, $fechaEmision): FelDocument {
             $venta = Venta::query()->whereKey($venta->id)->lockForUpdate()->firstOrFail();
 
             if (! $this->estadoPermiteEmision($venta)) {
@@ -113,6 +116,7 @@ final class FelEmisionVentaService
                 $serie->serie,
                 $correlativo,
                 $receptor,
+                $fechaEmision,
             );
 
             try {

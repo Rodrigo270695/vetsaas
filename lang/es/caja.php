@@ -111,6 +111,7 @@ return [
             'apisunat_no_configurado' => 'Configura el token de APISUNAT en Configuración › General.',
             'apisunat_token_invalido' => 'No se puede descifrar el token de APISUNAT. Revisa la configuración.',
             'factura_requiere_ruc' => 'La factura requiere un propietario con RUC válido.',
+            'fecha_emision_fuera' => 'La fecha de una :tipo puede ser hoy o hasta :dias días atrás.',
             'emitida_ok' => 'Comprobante electrónico emitido correctamente.',
             'sandbox_prod' => [
                 'solo_emitidos' => 'Solo se pueden pasar a producción comprobantes ya emitidos.',

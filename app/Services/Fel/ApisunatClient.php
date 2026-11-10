@@ -184,9 +184,12 @@ final class ApisunatClient
         string $serie,
         int $correlativo,
         array $receptor,
+        ?\DateTimeInterface $fechaEmision = null,
     ): array {
         $docName = self::DOC_NOMBRES[$tipoComprobante] ?? 'boleta';
-        $fecha = now(config('app.timezone'));
+        $fecha = $fechaEmision !== null
+            ? \Carbon\Carbon::parse($fechaEmision)->timezone((string) config('app.timezone'))
+            : now(config('app.timezone'));
 
         $items = $venta->lineas->map(function (VentaLinea $ln) use ($clinic): array {
             $cantidad = (float) (string) $ln->cantidad;
