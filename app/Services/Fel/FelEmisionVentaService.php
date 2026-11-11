@@ -12,7 +12,9 @@ use App\Support\Fel\FelFechaEmision;
 use App\Support\Fel\FelReceptorResolver;
 use App\Support\Fel\FelSerieResolver;
 use App\Support\PlanCapabilities;
+use App\Jobs\EmitirFelVentaJob;
 use App\Tenancy\TenantManager;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -74,6 +76,65 @@ final class FelEmisionVentaService
         $documento = $this->reservarCorrelativo($venta, $clinic, $receptor, $tipoComprobante);
 
         return $this->confirmarEnLucode($venta->fresh(), $documento, $clinic, recienReservado: true);
+    }
+
+    /**
+     * Deja la boleta o factura con su correlativo ya guardado y envía a Lucode
+     * después de responder al cajero. SUNAT puede seguir pendiente: el número no se suelta.
+     */
+    public function programarEmision(Venta $venta): FelDocument
+    {
+        $clinic = ClinicSetting::current();
+        $tenant = app(TenantManager::class)->current()?->tenant;
+        $slug = app(TenantManager::class)->slug();
+
+        $reservado = $this->documentoReservado($venta);
+        if (! $reservado instanceof FelDocument) {
+            if (! $this->puedeEmitir($tenant, $clinic, $venta)) {
+                throw new RuntimeException(__('caja.ventas.fel.no_emitible'));
+            }
+
+            $receptor = FelReceptorResolver::datosReceptor($venta->propietario);
+            $tipoComprobante = (int) $venta->tipo_comprobante_sunat;
+
+            if ($tipoComprobante === FelSerie::TIPO_FACTURA && (int) $receptor['tipo_doc'] !== 6) {
+                throw new RuntimeException(__('caja.ventas.fel.factura_requiere_ruc'));
+            }
+
+            $reservado = $this->reservarCorrelativo($venta, $clinic, $receptor, $tipoComprobante);
+        }
+
+        if (is_string($slug) && $slug !== '') {
+            EmitirFelVentaJob::dispatch((string) $venta->id, $slug)->afterResponse();
+        }
+
+        return $reservado;
+    }
+
+    /**
+     * Reenvía comprobantes cuyo número ya está guardado y Lucode todavía no confirmó.
+     */
+    public function reintentarEnviosSinConfirmar(int $limit = 20): int
+    {
+        $docs = FelDocument::query()
+            ->where('estado', FelDocument::ESTADO_PENDIENTE)
+            ->whereNull('nubefact_id')
+            ->where('updated_at', '<=', now()->subMinutes(2))
+            ->orderBy('updated_at')
+            ->limit(max(1, min(50, $limit)))
+            ->get();
+
+        $enviados = 0;
+        foreach ($docs as $doc) {
+            try {
+                $this->emitirPorVentaId((string) $doc->venta_id);
+                $enviados++;
+            } catch (RuntimeException) {
+                // El número sigue reservado. Un rechazo de negocio no pide otro correlativo aquí.
+            }
+        }
+
+        return $enviados;
     }
 
     /**
@@ -222,6 +283,20 @@ final class FelEmisionVentaService
 
     private function confirmarEnLucode(Venta $venta, FelDocument $documento, ClinicSetting $clinic, bool $recienReservado): FelDocument
     {
+        $lock = Cache::lock('fel-confirmar:'.$documento->id, 90);
+        if (! $lock->get()) {
+            return $documento->fresh() ?? $documento;
+        }
+
+        try {
+            return $this->confirmarEnLucodeConLock($venta, $documento, $clinic, $recienReservado);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function confirmarEnLucodeConLock(Venta $venta, FelDocument $documento, ClinicSetting $clinic, bool $recienReservado): FelDocument
+    {
         $credenciales = ApisunatCredentialResolver::fromClinicSetting($clinic);
         $emisionModo = $credenciales['mode'];
         $nombre = $this->apisunat->nombreDocumentoTipo((int) $documento->tipo_comprobante);
@@ -236,6 +311,12 @@ final class FelEmisionVentaService
             $estado = $this->apisunat->extraerEstado($consulta);
             if (in_array($estado, ['ACEPTADO', 'PENDIENTE'], true)) {
                 return $this->aplicarRespuestaLucode($venta, $documento, $consulta, $emisionModo);
+            }
+            if (in_array($estado, ['RECHAZADO', 'EXCEPCION'], true)) {
+                $mensaje = $this->apisunat->extraerMensajeError($consulta);
+                $this->marcarRechazado($documento, $venta, $mensaje, $emisionModo);
+
+                throw new RuntimeException($mensaje !== '' ? $mensaje : 'APISUNAT rechazó el comprobante.');
             }
         }
 

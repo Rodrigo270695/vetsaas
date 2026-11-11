@@ -901,11 +901,11 @@ final class VentaCheckoutService
 
         if ($felPendiente) {
             try {
-                app(FelEmisionVentaService::class)->emitir(
+                app(FelEmisionVentaService::class)->programarEmision(
                     $venta->fresh(['lineas', 'propietario', 'felDocument']),
                 );
             } catch (\RuntimeException) {
-                // El servicio deja la venta en rechazado o pendiente; no revertimos el cobro.
+                // El cobro ya está guardado. Si no hubo serie, la venta sigue pendiente y se emite desde el detalle.
             }
         }
 

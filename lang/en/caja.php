@@ -106,6 +106,7 @@ return [
             'sin_serie' => 'No :tipo series configured. Check Settings › Branches (invoice/receipt series) or the clinic FEL catalog.',
             'sin_token' => 'Configure the Nubefact API route and token under Settings › General.',
             'emitida_ok' => 'Electronic receipt issued successfully.',
+            'registrada_ok' => 'Receipt :numero is registered. SUNAT confirms the status without holding the sale.',
             'fecha_emision_fuera' => 'A :tipo date can be today or up to :dias days earlier.',
             'fecha_emision_futura' => 'A date after today (Peru time) is not allowed.',
             'sandbox_prod' => [

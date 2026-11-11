@@ -197,6 +197,7 @@ export default function Show({
         venta.tipo_comprobante_sunat === null || venta.tipo_comprobante_sunat === 0;
     const esFactura = venta.tipo_comprobante_sunat === 1;
     const esComprobanteSunat = venta.tipo_comprobante_sunat === 1 || venta.tipo_comprobante_sunat === 2;
+    const boletaAsignada = esComprobanteSunat && Boolean(venta.fel_document?.numero_completo);
     const puedeVerTicket = ticket.puede_imprimir && !esAnulada && esTicketInterno;
     const cpeEmitido = esComprobanteSunat && venta.fel_estado === 'emitido' && Boolean(felPdfUrl);
     const tituloPrincipal =
@@ -709,12 +710,20 @@ export default function Show({
                                         >
                                             {esTicketInterno
                                                 ? t('caja:ventas.show.ticket_interno')
-                                                : t(`caja:ventas.fel.${venta.fel_estado}`, {
-                                                      defaultValue: venta.fel_estado,
-                                                  })}
+                                                : boletaAsignada && venta.fel_estado === 'pendiente_emision'
+                                                  ? t('caja:ventas.fel.sunat_pendiente')
+                                                  : t(`caja:ventas.fel.${venta.fel_estado}`, {
+                                                        defaultValue: venta.fel_estado,
+                                                    })}
                                         </Badge>
                                     </div>
+                                    {boletaAsignada && venta.fel_estado === 'pendiente_emision' ? (
+                                        <p className="text-xs leading-relaxed text-muted-foreground">
+                                            {t('caja:ventas.show.fel_sunat_pendiente_hint')}
+                                        </p>
+                                    ) : null}
                                     {esComprobanteSunat &&
+                                    !boletaAsignada &&
                                     clinica.emite_comprobantes_sunat &&
                                     (clinica.plan_permite_boletas || clinica.plan_permite_facturas) ? (
                                         <div className="rounded-md border border-dashed border-border/60 bg-background/80 px-2.5 py-2 text-xs">
@@ -827,7 +836,9 @@ export default function Show({
                                                 {emitiendoFel ? (
                                                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
                                                 ) : null}
-                                                {t('caja:ventas.show.fel_emitir')}
+                                                {venta.fel_estado === 'rechazado'
+                                                    ? t('caja:ventas.show.fel_emitir_otra')
+                                                    : t('caja:ventas.show.fel_emitir')}
                                             </Button>
                                         ) : null}
                                         {esComprobanteSunat && fel.sincronizar_estado_url && !esAnulada ? (

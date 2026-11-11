@@ -259,6 +259,7 @@
         "fel": {
             "sin_cpe": "No receipt",
             "pendiente_emision": "Pending issuance",
+            "sunat_pendiente": "Sent to SUNAT",
             "emitido": "Issued",
             "rechazado": "Rejected",
             "anulado": "Voided"
@@ -330,6 +331,7 @@
             "consulta_vinculo_body": "This sale comes from the pre-invoice for {{paciente}}.",
             "consulta_vinculo_cta": "View consultation charges",
             "fel_title": "SUNAT receipt",
+            "fel_sunat_pendiente_hint": "The number is already assigned. SUNAT may take a while to accept; the sale does not wait for that.",
             "fel_previsto_titulo": "Will be issued as",
             "fel_previsto_boleta": "Sales receipt (boleta)",
             "fel_previsto_factura": "Electronic invoice",
@@ -338,6 +340,7 @@
             "fel_previsto_sin_serie": "Missing series in Settings › Branches.",
             "fel_ver_pdf": "View PDF",
             "fel_emitir": "Issue receipt",
+            "fel_emitir_otra": "Issue another receipt",
             "fel_sin_apisunat": "Configure APISUNAT under Settings › General to issue receipts.",
             "fel_sandbox_title": "Test-mode receipt",
             "fel_sandbox_body": "This boleta/factura is not valid for SUNAT because it was issued in sandbox. Move it to production in correlative order (1, then 2, etc.).",

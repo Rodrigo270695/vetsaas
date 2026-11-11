@@ -52,6 +52,12 @@ final class SyncFelDocumentStatusesCommand extends Command
                         return;
                     }
 
+                    $reenviados = app(\App\Services\Fel\FelEmisionVentaService::class)
+                        ->reintentarEnviosSinConfirmar(20);
+                    if ($reenviados > 0) {
+                        $this->line("[{$tenant->slug}] reenviados={$reenviados}");
+                    }
+
                     $stats = $sync->syncClinic(limit: $limit);
                     $totalChecked += $stats['checked'];
                     $totalUpdated += $stats['updated'];

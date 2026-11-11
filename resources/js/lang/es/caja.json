@@ -259,6 +259,7 @@
         "fel": {
             "sin_cpe": "Sin comprobante",
             "pendiente_emision": "Pendiente de emisión",
+            "sunat_pendiente": "Enviada a SUNAT",
             "emitido": "Emitido",
             "rechazado": "Rechazado",
             "anulado": "Anulado"
@@ -330,6 +331,7 @@
             "consulta_vinculo_body": "Esta venta proviene de la pre-cuenta de {{paciente}}.",
             "consulta_vinculo_cta": "Ver cargos de la consulta",
             "fel_title": "Comprobante SUNAT",
+            "fel_sunat_pendiente_hint": "El número ya está asignado. SUNAT puede tardar en aceptar; la venta no espera esa respuesta.",
             "fel_previsto_titulo": "Se emitirá como",
             "fel_previsto_boleta": "Boleta de venta",
             "fel_previsto_factura": "Factura electrónica",
@@ -338,6 +340,7 @@
             "fel_previsto_sin_serie": "Falta serie en Configuración › Sedes.",
             "fel_ver_pdf": "Ver PDF",
             "fel_emitir": "Emitir comprobante",
+            "fel_emitir_otra": "Emitir otra boleta",
             "fel_sin_apisunat": "Configura APISUNAT en Configuración › General para emitir comprobantes.",
             "fel_sandbox_title": "Comprobante en modo prueba",
             "fel_sandbox_body": "Esta boleta/factura no es válida ante SUNAT porque se emitió en sandbox. Debes pasarla a producción en orden de correlativo (1, luego 2, etc.).",

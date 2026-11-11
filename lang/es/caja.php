@@ -114,6 +114,7 @@ return [
             'fecha_emision_fuera' => 'La fecha de una :tipo puede ser hoy o hasta :dias días atrás.',
             'fecha_emision_futura' => 'No se puede usar una fecha posterior a hoy (hora de Perú).',
             'emitida_ok' => 'Comprobante electrónico emitido correctamente.',
+            'registrada_ok' => 'Boleta o factura :numero registrada. SUNAT confirma el estado sin detener la venta.',
             'sandbox_prod' => [
                 'solo_emitidos' => 'Solo se pueden pasar a producción comprobantes ya emitidos.',
                 'solo_sandbox' => 'Este comprobante ya no está en modo prueba.',

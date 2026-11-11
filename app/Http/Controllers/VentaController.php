@@ -1030,7 +1030,7 @@ class VentaController extends Controller
         abort_unless($request->user()?->can('ventas.create'), 403);
 
         try {
-            $emision->emitir($venta);
+            $documento = $emision->programarEmision($venta);
         } catch (\RuntimeException $e) {
             return redirect()
                 ->route('caja.ventas.show', $venta)
@@ -1038,8 +1038,10 @@ class VentaController extends Controller
         }
 
         return redirect()
-            ->route('caja.ventas.show', ['venta' => $venta, 'imprimir' => 1])
-            ->with('success', __('caja.ventas.fel.emitida_ok'));
+            ->route('caja.ventas.show', $venta)
+            ->with('success', __('caja.ventas.fel.registrada_ok', [
+                'numero' => $documento->numero_completo,
+            ]));
     }
 
     public function anular(

@@ -312,7 +312,11 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                 header: t('caja:ventas.columns.fel'),
                 cell: (row) => (
                     <StatBadge
-                        label={t(`caja:ventas.fel.${row.fel_estado}`, { defaultValue: row.fel_estado })}
+                        label={
+                            row.fel_estado === 'pendiente_emision' && row.numero_display !== row.numero
+                                ? t('caja:ventas.fel.sunat_pendiente')
+                                : t(`caja:ventas.fel.${row.fel_estado}`, { defaultValue: row.fel_estado })
+                        }
                         value=""
                         variant={ventaFelBadgeVariant(row.fel_estado)}
                     />
