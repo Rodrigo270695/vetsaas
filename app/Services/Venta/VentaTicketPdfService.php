@@ -37,10 +37,7 @@ final class VentaTicketPdfService
 
         $ancho = TicketAnchoMm::normalize($anchoMm, (string) $cfg->ticket_ancho_mm);
 
-        $propietario = $venta->propietario;
-        $clienteNombre = $propietario === null
-            ? '—'
-            : ($propietario->razon_social ?: trim(implode(' ', array_filter([$propietario->nombres, $propietario->apellidos]))));
+        $clienteNombre = $venta->nombreClienteVisible();
 
         $sedeNombre = Sede::query()
             ->where('tenant_id', $tenantId)
@@ -102,7 +99,7 @@ final class VentaTicketPdfService
             'fecha_cobro' => $fechaCobro,
             'sede_nombre' => $sedeNombre,
             'cliente_nombre' => $clienteNombre,
-            'cliente_doc' => $propietario?->numero_documento,
+            'cliente_doc' => $venta->documentoClienteVisible(),
             'paciente_nombre' => $venta->paciente?->nombre,
             'cajero_nombre' => $venta->creadoPor?->name,
             'metodo_pago_label' => $metodoPagoLabel,

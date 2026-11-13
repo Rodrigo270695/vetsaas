@@ -26,7 +26,10 @@ class StoreVentaRequest extends FormRequest
     {
         return [
             'caja_sesion_id' => ['required', 'uuid', 'exists:caja_sesiones,id'],
-            'propietario_id' => ['required', 'uuid', 'exists:propietarios,id'],
+            'sin_propietario' => ['sometimes', 'boolean'],
+            'propietario_id' => ['nullable', 'uuid', 'exists:propietarios,id', 'required_unless:sin_propietario,true'],
+            'cliente_nombre' => ['nullable', 'string', 'max:200'],
+            'cliente_documento' => ['nullable', 'string', 'regex:/^\d{8}$|^\d{11}$/'],
             'paciente_id' => [
                 'nullable',
                 'uuid',
@@ -114,6 +117,26 @@ class StoreVentaRequest extends FormRequest
         $code = trim((string) $this->input('promotion_code', ''));
         $this->merge(['promotion_code' => $code === '' ? null : strtoupper($code)]);
 
+        $sin = $this->boolean('sin_propietario') && $this->input('tipo_comprobante_sunat') === null;
+        if (! $sin) {
+            $this->merge(['sin_propietario' => false]);
+        } else {
+            $doc = preg_replace('/\D+/', '', (string) $this->input('cliente_documento', '')) ?? '';
+            $nombre = trim((string) $this->input('cliente_nombre', ''));
+            $this->merge([
+                'sin_propietario' => true,
+                'propietario_id' => null,
+                'paciente_id' => null,
+                'consulta_id' => null,
+                'consulta_cargo_id' => null,
+                'consulta_cargo_ids' => null,
+                'grooming_turno_id' => null,
+                'hotel_estancia_id' => null,
+                'cliente_nombre' => $nombre === '' ? null : $nombre,
+                'cliente_documento' => $doc === '' ? null : $doc,
+            ]);
+        }
+
         // El POS manda [] en venta libre; `nullable`+`min:1` no ignora arrays vacíos.
         $multi = $this->input('consulta_cargo_ids');
         if (! is_array($multi) || $multi === []) {
@@ -126,6 +149,8 @@ class StoreVentaRequest extends FormRequest
         return [
             'caja_sesion_id' => 'sesión de caja',
             'propietario_id' => 'cliente',
+            'cliente_nombre' => 'nombre',
+            'cliente_documento' => 'documento',
             'paciente_id' => 'paciente',
             'lineas' => 'líneas',
             'lineas.*.descuento_pct' => 'descuento de la línea',

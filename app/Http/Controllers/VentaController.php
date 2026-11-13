@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\VentasXlsxExport;
 use App\Grooming\GroomingCatalogoMode;
 use App\Http\Controllers\Concerns\LogsAuditExports;
+use App\Http\Controllers\Concerns\RespondsToApiPeruConsulta;
 use App\Http\Requests\AnularVentaRequest;
 use App\Http\Requests\ProductoRapidoVentaRequest;
 use App\Http\Requests\PropietarioRequest;
@@ -31,6 +32,8 @@ use App\Models\Desparasitacion;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
+use App\Services\Integrations\ApiPeruDniService;
+use App\Services\Integrations\ApiPeruRucService;
 use App\Services\Fel\FelSandboxToProduccionService;
 use App\Services\Inventario\InventarioLoteService;
 use App\Services\Venta\VentaAnulacionService;
@@ -73,6 +76,7 @@ use Throwable;
 class VentaController extends Controller
 {
     use LogsAuditExports;
+    use RespondsToApiPeruConsulta;
 
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -118,9 +122,7 @@ class VentaController extends Controller
 
         $ventas->getCollection()->transform(function (Venta $v) use ($sedeNombres): array {
             $p = $v->propietario;
-            $nombreCliente = $p === null
-                ? '—'
-                : ($p->razon_social ?: trim(implode(' ', array_filter([$p->nombres, $p->apellidos]))));
+            $nombreCliente = $v->nombreClienteVisible();
 
             return [
                 'id' => $v->id,
@@ -430,6 +432,8 @@ class VentaController extends Controller
         $like = '%'.addcslashes($search, '%_\\').'%';
         $query->where(function ($q) use ($like, $search): void {
             $q->where('numero', 'ILIKE', $like)
+                ->orWhere('cliente_nombre', 'ILIKE', $like)
+                ->orWhere('cliente_documento', 'ILIKE', $like)
                 ->orWhereHas('felDocument', fn ($fq) => $fq->where('numero_completo', 'ILIKE', $like))
                 ->orWhereHas('propietario', function ($q2) use ($search): void {
                     PropietarioSearch::apply($q2, $search);
@@ -908,9 +912,7 @@ class VentaController extends Controller
             ->where('tenant_id', $tenantId)
             ->whereKey($venta->sede_id)
             ->value('nombre');
-        $cliente = $propietario === null
-            ? '—'
-            : ($propietario->razon_social ?: trim(implode(' ', array_filter([$propietario->nombres, $propietario->apellidos]))));
+        $cliente = $venta->nombreClienteVisible();
 
         $consultaVinculo = null;
         if ($venta->consulta_id !== null && $venta->consulta !== null) {
@@ -964,7 +966,7 @@ class VentaController extends Controller
                     'apisunat_mode' => $felMode,
                 ],
                 'cliente' => $cliente,
-                'cliente_doc' => $propietario?->numero_documento,
+                'cliente_doc' => $venta->documentoClienteVisible(),
                 'paciente' => $venta->paciente?->nombre,
                 'paciente_id' => $venta->paciente_id,
                 'cajero' => $venta->creadoPor?->name ?? '—',
@@ -1131,7 +1133,7 @@ class VentaController extends Controller
 
         $ownerName = $propietario !== null
             ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'cliente')
-            : 'cliente';
+            : ($venta->nombreClienteVisible() !== '—' ? $venta->nombreClienteVisible() : 'cliente');
 
         try {
             $sender->send(
@@ -1461,6 +1463,27 @@ class VentaController extends Controller
             ->get(['id', 'nombre']);
 
         return response()->json(['data' => $rows]);
+    }
+
+    public function consultaDocumento(
+        Request $request,
+        ApiPeruDniService $dni,
+        ApiPeruRucService $ruc,
+    ): JsonResponse {
+        $numero = preg_replace('/\D+/', '', (string) $request->query('documento', '')) ?? '';
+
+        if (strlen($numero) === 8) {
+            return $this->consultaApiPeruResponse(fn () => $dni->consultar($numero));
+        }
+
+        if (strlen($numero) === 11) {
+            return $this->consultaApiPeruResponse(fn () => $ruc->consultar($numero));
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Ingresa un DNI de 8 dígitos o un RUC de 11.',
+        ], 422);
     }
 
     public function buscarPropietarios(Request $request): JsonResponse

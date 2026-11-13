@@ -697,12 +697,15 @@ final class VentaCheckoutService
             $correlativo = ((int) ($ultimaVentaAnio?->correlativo ?? 0)) + 1;
             $numero = sprintf('VTA-%d-%05d', $anio, $correlativo);
 
+            $sinPropietario = (bool) ($validated['sin_propietario'] ?? false);
             $ventaAttrs = [
                 'numero' => $numero,
                 'anio' => $anio,
                 'correlativo' => $correlativo,
-                'propietario_id' => $validated['propietario_id'],
-                'paciente_id' => $validated['paciente_id'] ?? null,
+                'propietario_id' => $sinPropietario ? null : $validated['propietario_id'],
+                'cliente_nombre' => $sinPropietario ? ($validated['cliente_nombre'] ?? null) : null,
+                'cliente_documento' => $sinPropietario ? ($validated['cliente_documento'] ?? null) : null,
+                'paciente_id' => $sinPropietario ? null : ($validated['paciente_id'] ?? null),
                 'consulta_id' => $cargoVinculado['consulta_id'] ?? ($validated['consulta_id'] ?? null),
                 'consulta_cargo_id' => $cargoVinculado['consulta_cargo_id'] ?? ($validated['consulta_cargo_id'] ?? null),
                 'caja_sesion_id' => $sesion->id,

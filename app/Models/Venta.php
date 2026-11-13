@@ -14,7 +14,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $numero
  * @property int $anio
  * @property int $correlativo
- * @property string $propietario_id
+ * @property ?string $propietario_id
+ * @property ?string $cliente_nombre
+ * @property ?string $cliente_documento
  * @property ?string $paciente_id
  * @property ?string $consulta_id
  * @property ?string $consulta_cargo_id
@@ -71,6 +73,8 @@ class Venta extends Model
         'anio',
         'correlativo',
         'propietario_id',
+        'cliente_nombre',
+        'cliente_documento',
         'paciente_id',
         'consulta_id',
         'consulta_cargo_id',
@@ -136,6 +140,34 @@ class Venta extends Model
         $tipo = (int) ($this->tipo_comprobante_sunat ?? FelSerie::TIPO_BOLETA);
 
         return $tipo === FelSerie::TIPO_FACTURA ? FelSerie::TIPO_FACTURA : FelSerie::TIPO_BOLETA;
+    }
+
+    public function nombreClienteVisible(): string
+    {
+        $propietario = $this->propietario;
+        if ($propietario !== null) {
+            $nombre = $propietario->razon_social
+                ?: trim(implode(' ', array_filter([$propietario->nombres, $propietario->apellidos])));
+
+            return $nombre !== '' ? $nombre : '—';
+        }
+
+        $suelto = trim((string) ($this->cliente_nombre ?? ''));
+
+        return $suelto !== '' ? $suelto : '—';
+    }
+
+    public function documentoClienteVisible(): ?string
+    {
+        if ($this->propietario !== null) {
+            $doc = trim((string) ($this->propietario->numero_documento ?? ''));
+
+            return $doc !== '' ? $doc : null;
+        }
+
+        $doc = trim((string) ($this->cliente_documento ?? ''));
+
+        return $doc !== '' ? $doc : null;
     }
 
     public function propietario(): BelongsTo

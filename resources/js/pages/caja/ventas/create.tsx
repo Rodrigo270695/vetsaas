@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -228,6 +229,8 @@ export default function Create({
     const [qPropietario, setQPropietario] = useState('');
     const [buscandoPropietario, setBuscandoPropietario] = useState(false);
     const [nuevoClienteOpen, setNuevoClienteOpen] = useState(false);
+    const [consultandoDocumento, setConsultandoDocumento] = useState(false);
+    const ultimaConsultaDoc = useRef('');
     const [catalogTab, setCatalogTab] = useState<'productos' | 'servicios'>('productos');
     const [productoRapidoOpen, setProductoRapidoOpen] = useState(false);
     const [servicioRapidoOpen, setServicioRapidoOpen] = useState(false);
@@ -242,6 +245,9 @@ export default function Create({
     const form = useForm({
         caja_sesion_id: mi_sesion?.id ?? '',
         propietario_id: '',
+        sin_propietario: false,
+        cliente_documento: '',
+        cliente_nombre: '',
         paciente_id: null as string | null,
         tipo_comprobante_sunat: 0 as 0 | 1 | 2,
         fecha_emision_sunat: fechaPeru(),
@@ -557,6 +563,58 @@ export default function Create({
         [form],
     );
 
+    const consultarDocumentoVenta = useCallback(
+        async (numero: string) => {
+            if (ultimaConsultaDoc.current === numero || consultandoDocumento) {
+                return;
+            }
+            ultimaConsultaDoc.current = numero;
+            setConsultandoDocumento(true);
+            try {
+                const res = await fetch(
+                    `/caja/ventas/consulta-documento?documento=${encodeURIComponent(numero)}`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-XSRF-TOKEN': readXsrfToken(),
+                        },
+                    },
+                );
+                const body = (await res.json()) as {
+                    success?: boolean;
+                    message?: string;
+                    data?: {
+                        nombre_completo?: string;
+                        nombres?: string;
+                        apellidos?: string;
+                        razon_social?: string;
+                    };
+                };
+                if (!res.ok || !body.success || !body.data) {
+                    toastManager.error({
+                        title: body.message ?? t('caja:ventas.create.cliente_consulta_error'),
+                    });
+                    return;
+                }
+                const d = body.data;
+                const nombre =
+                    (typeof d.razon_social === 'string' && d.razon_social.trim()) ||
+                    (typeof d.nombre_completo === 'string' && d.nombre_completo.trim()) ||
+                    [d.nombres, d.apellidos].filter((p) => typeof p === 'string' && p.trim() !== '').join(' ');
+                if (nombre !== '') {
+                    form.setData('cliente_nombre', nombre);
+                }
+            } catch {
+                toastManager.error({ title: t('caja:ventas.create.cliente_consulta_error') });
+            } finally {
+                setConsultandoDocumento(false);
+            }
+        },
+        [consultandoDocumento, form, t],
+    );
+
     const addProduct = useCallback(
         (p: ProductoBusqueda) => {
             const stock = parseStock(p.stock_sede);
@@ -851,7 +909,14 @@ export default function Create({
 
         return {
             caja_sesion_id: mi_sesion!.id,
-            propietario_id: d.propietario_id,
+            sin_propietario: d.sin_propietario && d.tipo_comprobante_sunat === 0,
+            propietario_id: d.sin_propietario && d.tipo_comprobante_sunat === 0 ? null : d.propietario_id,
+            cliente_nombre:
+                d.sin_propietario && d.tipo_comprobante_sunat === 0 ? d.cliente_nombre.trim() || null : null,
+            cliente_documento:
+                d.sin_propietario && d.tipo_comprobante_sunat === 0
+                    ? d.cliente_documento.replace(/\D/g, '') || null
+                    : null,
             paciente_id: d.paciente_id || null,
             consulta_id: d.consulta_id || null,
             consulta_cargo_id: d.consulta_cargo_id || null,
@@ -993,7 +1058,7 @@ export default function Create({
         puede_vender &&
         cart.length > 0 &&
         !cartSinStock &&
-        form.data.propietario_id &&
+        (form.data.sin_propietario || form.data.propietario_id) &&
         form.data.pagos.length > 0 &&
         (totales.total <= 0.009 || pagosCuadran) &&
         (totales.total <= 0.009 || efectivoOk);
@@ -1198,6 +1263,77 @@ export default function Create({
                         <section className="rounded-lg border border-border/60 bg-card px-3 py-2.5 shadow-xs ring-1 ring-border/10">
                             <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-3">
                                 <div className="min-w-0 flex-1 space-y-1">
+                                    {form.data.tipo_comprobante_sunat === 0 && !desdeCargo ? (
+                                        <label className="flex items-start gap-2 pb-1">
+                                            <Checkbox
+                                                checked={form.data.sin_propietario}
+                                                disabled={!puede_vender}
+                                                onCheckedChange={(checked) => {
+                                                    const activo = checked === true;
+                                                    ultimaConsultaDoc.current = '';
+                                                    form.setData({
+                                                        ...form.data,
+                                                        sin_propietario: activo,
+                                                    });
+                                                }}
+                                                aria-describedby="sin-propietario-hint"
+                                            />
+                                            <span className="min-w-0">
+                                                <span className="block text-xs font-medium text-foreground">
+                                                    {t('caja:ventas.create.sin_propietario')}
+                                                </span>
+                                                <span id="sin-propietario-hint" className="block text-[11px] text-muted-foreground">
+                                                    {t('caja:ventas.create.sin_propietario_hint')}
+                                                </span>
+                                            </span>
+                                        </label>
+                                    ) : null}
+                                    {form.data.sin_propietario && form.data.tipo_comprobante_sunat === 0 ? (
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                            <div className="space-y-1">
+                                                <Label htmlFor="cliente_documento" className="text-xs text-muted-foreground">
+                                                    {t('caja:ventas.create.cliente_documento')}
+                                                </Label>
+                                                <Input
+                                                    id="cliente_documento"
+                                                    inputMode="numeric"
+                                                    autoComplete="off"
+                                                    maxLength={11}
+                                                    value={form.data.cliente_documento}
+                                                    placeholder={t('caja:ventas.create.cliente_documento_ph')}
+                                                    disabled={!puede_vender || consultandoDocumento}
+                                                    onChange={(e) => {
+                                                        const digitos = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                                        form.setData('cliente_documento', digitos);
+                                                        if (digitos.length === 8 || digitos.length === 11) {
+                                                            void consultarDocumentoVenta(digitos);
+                                                        } else {
+                                                            ultimaConsultaDoc.current = '';
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label htmlFor="cliente_nombre" className="text-xs text-muted-foreground">
+                                                    {t('caja:ventas.create.cliente_nombre')}
+                                                </Label>
+                                                <Input
+                                                    id="cliente_nombre"
+                                                    value={form.data.cliente_nombre}
+                                                    placeholder={t('caja:ventas.create.cliente_nombre_ph')}
+                                                    disabled={!puede_vender}
+                                                    maxLength={200}
+                                                    onChange={(e) => form.setData('cliente_nombre', e.target.value)}
+                                                />
+                                            </div>
+                                            {form.errors.cliente_documento ? (
+                                                <p className="text-[11px] text-destructive sm:col-span-2">
+                                                    {form.errors.cliente_documento}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    ) : (
+                                        <>
                                     <div className="flex h-6 items-center justify-between gap-2">
                                         <Label htmlFor="propietario" className="text-xs text-muted-foreground">
                                             {t('caja:ventas.create.propietario')}
@@ -1234,6 +1370,8 @@ export default function Create({
                                     {form.errors.propietario_id ? (
                                         <p className="text-[11px] text-destructive">{form.errors.propietario_id}</p>
                                     ) : null}
+                                        </>
+                                    )}
                                     {desdeCargo ? (
                                         <p className="text-[11px] text-muted-foreground">
                                             {t('caja:ventas.desde_cargo.cliente_bloqueado')}
@@ -1273,6 +1411,7 @@ export default function Create({
                                                         ...form.data,
                                                         tipo_comprobante_sunat: tipo,
                                                         fecha_emision_sunat: fecha,
+                                                        sin_propietario: tipo === 0 ? form.data.sin_propietario : false,
                                                     });
                                                 }}
                                                 disabled={!puede_vender}
