@@ -579,6 +579,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:historias-clinicas-planes.manage')
                 ->get('historias-clinicas/productos-medicamento', [ConsultaPlanTratamientoController::class, 'productosMedicamento'])
                 ->name('historias-clinicas.productos-medicamento');
+            Route::middleware('permission:historias-clinicas.view')
+                ->get('historias-clinicas/consultas', fn () => redirect()->route('clinica.historias-clinicas'))
+                ->name('historias-clinicas.consultas.abrir');
             Route::middleware('permission:historias-clinicas.create')
                 ->post('historias-clinicas/consultas', [ConsultaHistoriaController::class, 'store'])
                 ->name('historias-clinicas.consultas.store');

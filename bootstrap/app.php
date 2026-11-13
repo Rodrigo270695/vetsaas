@@ -275,6 +275,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->renderable(function (HttpException $e, Request $request) use ($renderInertiaHttpError, $supportFacingErrorMessage) {
             $status = $e->getStatusCode();
 
+            if ($status === 405 && $request->isMethod('GET') && ! $request->expectsJson()) {
+                $path = $request->path();
+                if (str_contains($path, 'historias-clinicas')) {
+                    return redirect()->route('clinica.historias-clinicas');
+                }
+            }
+
             if ($status === 403) {
                 return $renderInertiaHttpError(
                     $request,
