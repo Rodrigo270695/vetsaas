@@ -1058,7 +1058,10 @@ export default function Create({
         puede_vender &&
         cart.length > 0 &&
         !cartSinStock &&
-        (form.data.sin_propietario || form.data.propietario_id) &&
+        (form.data.sin_propietario && form.data.tipo_comprobante_sunat === 0
+            ? form.data.cliente_nombre.trim() !== '' &&
+              (form.data.cliente_documento.length === 8 || form.data.cliente_documento.length === 11)
+            : Boolean(form.data.propietario_id)) &&
         form.data.pagos.length > 0 &&
         (totales.total <= 0.009 || pagosCuadran) &&
         (totales.total <= 0.009 || efectivoOk);
@@ -1167,6 +1170,47 @@ export default function Create({
                             </p>
                         ) : null}
                     </div>
+                    {form.data.tipo_comprobante_sunat === 0 && !desdeCargo && puede_vender ? (
+                        <div className="flex h-8 shrink-0 items-center gap-1 rounded-md border border-border/70 bg-card px-2">
+                            <label className="flex min-w-0 items-center gap-2">
+                                <Checkbox
+                                    checked={form.data.sin_propietario}
+                                    disabled={!puede_vender}
+                                    onCheckedChange={(checked) => {
+                                        ultimaConsultaDoc.current = '';
+                                        form.setData({
+                                            ...form.data,
+                                            sin_propietario: checked === true,
+                                        });
+                                    }}
+                                />
+                                <span className="truncate text-xs font-medium text-foreground">
+                                    {t('caja:ventas.create.sin_propietario')}
+                                </span>
+                            </label>
+                            <Popover>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <PopoverTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                aria-label={t('caja:ventas.create.sin_propietario_hint')}
+                                            >
+                                                <Info className="size-3.5" aria-hidden />
+                                            </button>
+                                        </PopoverTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="max-w-64 px-3 py-2 text-left leading-5">
+                                        {t('caja:ventas.create.sin_propietario_hint')}
+                                    </TooltipContent>
+                                </Tooltip>
+                                <PopoverContent align="end" className="w-72 p-3 text-xs leading-5">
+                                    {t('caja:ventas.create.sin_propietario_hint')}
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    ) : null}
                     {!desdeCargo && puede_vender ? (
                         <Button
                             type="button"
@@ -1263,56 +1307,20 @@ export default function Create({
                         <section className="rounded-lg border border-border/60 bg-card px-3 py-2.5 shadow-xs ring-1 ring-border/10">
                             <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-3">
                                 <div className="min-w-0 flex-1 space-y-1">
-                                    {form.data.tipo_comprobante_sunat === 0 && !desdeCargo ? (
-                                        <div className="flex h-6 items-center gap-1">
-                                            <label className="flex min-w-0 items-center gap-2">
-                                                <Checkbox
-                                                    checked={form.data.sin_propietario}
-                                                    disabled={!puede_vender}
-                                                    onCheckedChange={(checked) => {
-                                                        const activo = checked === true;
-                                                        ultimaConsultaDoc.current = '';
-                                                        form.setData({
-                                                            ...form.data,
-                                                            sin_propietario: activo,
-                                                        });
-                                                    }}
-                                                />
-                                                <span className="truncate text-xs font-medium text-foreground">
-                                                    {t('caja:ventas.create.sin_propietario')}
-                                                </span>
-                                            </label>
-                                            <Popover>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <PopoverTrigger asChild>
-                                                            <button
-                                                                type="button"
-                                                                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                                                                aria-label={t('caja:ventas.create.sin_propietario_hint')}
-                                                            >
-                                                                <Info className="size-3.5" aria-hidden />
-                                                            </button>
-                                                        </PopoverTrigger>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" className="max-w-64 px-3 py-2 text-left leading-5">
-                                                        {t('caja:ventas.create.sin_propietario_hint')}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                                <PopoverContent align="start" className="w-72 p-3 text-xs leading-5">
-                                                    {t('caja:ventas.create.sin_propietario_hint')}
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
-                                    ) : null}
                                     {form.data.sin_propietario && form.data.tipo_comprobante_sunat === 0 ? (
                                         <div className="grid gap-2 sm:grid-cols-2">
                                             <div className="space-y-1">
                                                 <Label htmlFor="cliente_documento" className="text-xs text-muted-foreground">
                                                     {t('caja:ventas.create.cliente_documento')}
+                                                    <span className="text-destructive" aria-hidden>
+                                                        {' '}
+                                                        *
+                                                    </span>
                                                 </Label>
                                                 <Input
                                                     id="cliente_documento"
+                                                    required
+                                                    aria-required="true"
                                                     inputMode="numeric"
                                                     autoComplete="off"
                                                     maxLength={11}
@@ -1333,9 +1341,15 @@ export default function Create({
                                             <div className="space-y-1">
                                                 <Label htmlFor="cliente_nombre" className="text-xs text-muted-foreground">
                                                     {t('caja:ventas.create.cliente_nombre')}
+                                                    <span className="text-destructive" aria-hidden>
+                                                        {' '}
+                                                        *
+                                                    </span>
                                                 </Label>
                                                 <Input
                                                     id="cliente_nombre"
+                                                    required
+                                                    aria-required="true"
                                                     value={form.data.cliente_nombre}
                                                     placeholder={t('caja:ventas.create.cliente_nombre_ph')}
                                                     disabled={!puede_vender}
@@ -1346,6 +1360,11 @@ export default function Create({
                                             {form.errors.cliente_documento ? (
                                                 <p className="text-[11px] text-destructive sm:col-span-2">
                                                     {form.errors.cliente_documento}
+                                                </p>
+                                            ) : null}
+                                            {form.errors.cliente_nombre ? (
+                                                <p className="text-[11px] text-destructive sm:col-span-2">
+                                                    {form.errors.cliente_nombre}
                                                 </p>
                                             ) : null}
                                         </div>

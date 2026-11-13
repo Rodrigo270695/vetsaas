@@ -28,8 +28,8 @@ class StoreVentaRequest extends FormRequest
             'caja_sesion_id' => ['required', 'uuid', 'exists:caja_sesiones,id'],
             'sin_propietario' => ['sometimes', 'boolean'],
             'propietario_id' => ['nullable', 'uuid', 'exists:propietarios,id', 'required_unless:sin_propietario,true'],
-            'cliente_nombre' => ['nullable', 'string', 'max:200'],
-            'cliente_documento' => ['nullable', 'string', 'regex:/^\d{8}$|^\d{11}$/'],
+            'cliente_nombre' => ['nullable', 'string', 'max:200', 'required_if:sin_propietario,true'],
+            'cliente_documento' => ['nullable', 'string', 'regex:/^\d{8}$|^\d{11}$/', 'required_if:sin_propietario,true'],
             'paciente_id' => [
                 'nullable',
                 'uuid',
