@@ -1264,29 +1264,46 @@ export default function Create({
                             <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-3">
                                 <div className="min-w-0 flex-1 space-y-1">
                                     {form.data.tipo_comprobante_sunat === 0 && !desdeCargo ? (
-                                        <label className="flex items-start gap-2 pb-1">
-                                            <Checkbox
-                                                checked={form.data.sin_propietario}
-                                                disabled={!puede_vender}
-                                                onCheckedChange={(checked) => {
-                                                    const activo = checked === true;
-                                                    ultimaConsultaDoc.current = '';
-                                                    form.setData({
-                                                        ...form.data,
-                                                        sin_propietario: activo,
-                                                    });
-                                                }}
-                                                aria-describedby="sin-propietario-hint"
-                                            />
-                                            <span className="min-w-0">
-                                                <span className="block text-xs font-medium text-foreground">
+                                        <div className="flex h-6 items-center gap-1">
+                                            <label className="flex min-w-0 items-center gap-2">
+                                                <Checkbox
+                                                    checked={form.data.sin_propietario}
+                                                    disabled={!puede_vender}
+                                                    onCheckedChange={(checked) => {
+                                                        const activo = checked === true;
+                                                        ultimaConsultaDoc.current = '';
+                                                        form.setData({
+                                                            ...form.data,
+                                                            sin_propietario: activo,
+                                                        });
+                                                    }}
+                                                />
+                                                <span className="truncate text-xs font-medium text-foreground">
                                                     {t('caja:ventas.create.sin_propietario')}
                                                 </span>
-                                                <span id="sin-propietario-hint" className="block text-[11px] text-muted-foreground">
+                                            </label>
+                                            <Popover>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <PopoverTrigger asChild>
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                                aria-label={t('caja:ventas.create.sin_propietario_hint')}
+                                                            >
+                                                                <Info className="size-3.5" aria-hidden />
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="max-w-64 px-3 py-2 text-left leading-5">
+                                                        {t('caja:ventas.create.sin_propietario_hint')}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <PopoverContent align="start" className="w-72 p-3 text-xs leading-5">
                                                     {t('caja:ventas.create.sin_propietario_hint')}
-                                                </span>
-                                            </span>
-                                        </label>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
                                     ) : null}
                                     {form.data.sin_propietario && form.data.tipo_comprobante_sunat === 0 ? (
                                         <div className="grid gap-2 sm:grid-cols-2">
