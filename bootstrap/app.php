@@ -276,10 +276,13 @@ return Application::configure(basePath: dirname(__DIR__))
             $status = $e->getStatusCode();
 
             if ($status === 405 && $request->isMethod('GET') && ! $request->expectsJson()) {
-                $path = $request->path();
-                if (str_contains($path, 'historias-clinicas')) {
-                    return redirect()->route('clinica.historias-clinicas');
-                }
+                $path = '/'.ltrim($request->path(), '/');
+                $parent = preg_replace('#/[^/]+$#', '', $path);
+                $target = is_string($parent) && $parent !== '' && $parent !== $path
+                    ? $parent
+                    : '/dashboard';
+
+                return redirect()->to($target);
             }
 
             if ($status === 403) {

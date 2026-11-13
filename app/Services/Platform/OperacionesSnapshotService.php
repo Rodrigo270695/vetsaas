@@ -112,7 +112,16 @@ final class OperacionesSnapshotService
         $load5 = is_array($loads) && isset($loads[1]) ? round((float) $loads[1], 2) : null;
         $load15 = is_array($loads) && isset($loads[2]) ? round((float) $loads[2], 2) : null;
 
-        $loadThreshold = (float) config('bot-ia.ops_load_alert_threshold', 4);
+        $configuredThreshold = (float) config('bot-ia.ops_load_alert_threshold', 4);
+        $cpus = 0;
+        if (is_readable('/proc/cpuinfo')) {
+            $cpus = preg_match_all('/^processor\s*:/m', (string) file_get_contents('/proc/cpuinfo'));
+        }
+        // En un VPS de 2 núcleos, load 2 ya es la máquina llena. El umbral no puede
+        // quedar por encima de los núcleos reales.
+        $loadThreshold = $cpus > 0
+            ? min($configuredThreshold, (float) $cpus)
+            : $configuredThreshold;
         // load_5 también cuenta: un pico sostenido satura PHP-FPM aunque load_1 baje un momento.
         $loadMetric = max($load1 ?? 0.0, $load5 ?? 0.0);
         $loadHigh = ($load1 !== null || $load5 !== null) && $loadMetric >= $loadThreshold;
