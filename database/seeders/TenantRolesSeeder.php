@@ -192,9 +192,6 @@ class TenantRolesSeeder extends Seeder
 
                 // Reportes propios
                 'reporte-top-pacientes.view',
-
-                // Plantillas de autorización. No abre la configuración del sistema.
-                'documentos-autorizacion.view',
             ],
         ],
 
@@ -424,55 +421,10 @@ class TenantRolesSeeder extends Seeder
                 }
             }
 
-            $this->keepSplitScreensForRolesThatHadGeneral($guard);
-
             app(PermissionRegistrar::class)->forgetCachedPermissions();
         } finally {
             setPermissionsTeamId($previousTeam);
         }
     }
 
-    /**
-     * Quien ya veía Autorizaciones, Suscripción y Referidos porque tenía
-     * la configuración general no pierde esas pantallas. General sigue
-     * siendo el permiso de la configuración del sistema.
-     */
-    private function keepSplitScreensForRolesThatHadGeneral(string $guard): void
-    {
-        $map = [
-            'config-general.view' => [
-                'documentos-autorizacion.view',
-                'suscripcion.view',
-                'referidos.view',
-            ],
-            'config-general.update' => [
-                'documentos-autorizacion.update',
-            ],
-        ];
-
-        $known = array_flip(
-            Permission::query()->where('guard_name', $guard)->pluck('name')->all(),
-        );
-
-        foreach (Role::query()->where('guard_name', $guard)->get() as $role) {
-            $names = $role->permissions->pluck('name')->all();
-            $toAdd = [];
-
-            foreach ($map as $source => $targets) {
-                if (! in_array($source, $names, true)) {
-                    continue;
-                }
-
-                foreach ($targets as $target) {
-                    if (isset($known[$target]) && ! in_array($target, $names, true)) {
-                        $toAdd[] = $target;
-                    }
-                }
-            }
-
-            if ($toAdd !== []) {
-                $role->givePermissionTo($toAdd);
-            }
-        }
-    }
 }
