@@ -14,7 +14,7 @@ class ClinicReferralController extends Controller
 {
     public function show(Request $request, ReferralService $referrals): Response
     {
-        abort_unless($request->user()?->can('config-general.view') ?? false, 403);
+        abort_unless($request->user()?->can('referidos.view') ?? false, 403);
 
         $tenant = app(TenantManager::class)->current()?->tenant;
         abort_if($tenant === null, 404);

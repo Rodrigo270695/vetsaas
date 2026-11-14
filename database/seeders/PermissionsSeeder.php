@@ -90,7 +90,12 @@ class PermissionsSeeder extends Seeder
         'reporte-top-pacientes' => ['view'],
 
         // ───── Configuración ─────
+        // General es la configuración del sistema (datos fiscales, FEL, logo).
+        // Autorizaciones, suscripción y referidos van aparte.
         'config-general' => ['view', 'update'],
+        'documentos-autorizacion' => ['view', 'update'],
+        'suscripcion' => ['view'],
+        'referidos' => ['view'],
         'sedes' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
         'roles' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
         'horarios' => ['view', 'create', 'update', 'delete'],

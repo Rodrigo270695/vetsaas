@@ -240,7 +240,7 @@ class HandleInertiaRequests extends Middleware
                     }
 
                     try {
-                        if (! $user->can('config-general.view')) {
+                        if (! $user->can('suscripcion.view')) {
                             return null;
                         }
 

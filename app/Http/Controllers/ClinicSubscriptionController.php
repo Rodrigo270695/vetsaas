@@ -16,7 +16,7 @@ class ClinicSubscriptionController extends Controller
 {
     public function show(Request $request): Response
     {
-        abort_unless($request->user()?->can('config-general.view') ?? false, 403);
+        abort_unless($request->user()?->can('suscripcion.view') ?? false, 403);
 
         $tenant = app(TenantManager::class)->current()?->tenant;
         abort_if($tenant === null, 404);

@@ -367,7 +367,7 @@ final class InAppAssistantKnowledgeSeeder extends Seeder
             ],
             'suscripcion' => [
                 'title' => 'Configuración · Suscripción',
-                'permission' => null,
+                'permission' => 'suscripcion.view',
                 'url' => '/configuracion/suscripcion',
                 'component' => 'configuracion/suscripcion/*',
                 'keywords' => ['plan', 'límites', 'renovación', 'pago'],

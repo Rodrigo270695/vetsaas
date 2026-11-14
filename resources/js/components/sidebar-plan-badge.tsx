@@ -84,7 +84,7 @@ export function SidebarPlanBadge() {
 
     const name = planName(plan);
     const color = planColor(plan);
-    const href = can('config-general.view') ? '/configuracion/suscripcion' : null;
+    const href = can('suscripcion.view') ? '/configuracion/suscripcion' : null;
     const kicker = t('plan_kicker');
 
     if (collapsed) {

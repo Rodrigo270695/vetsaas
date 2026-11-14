@@ -1604,29 +1604,29 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('ticket-ancho', [ClinicSettingController::class, 'rememberTicketAncho'])
             ->name('ticket-ancho.remember');
 
-        Route::middleware(['tenant.required', 'permission:config-general.view'])
+        Route::middleware(['tenant.required', 'permission:suscripcion.view'])
             ->get('suscripcion', [ClinicSubscriptionController::class, 'show'])
             ->name('suscripcion.show');
 
-        Route::middleware(['tenant.required', 'permission:config-general.view'])
+        Route::middleware(['tenant.required', 'permission:referidos.view'])
             ->get('referidos', [ClinicReferralController::class, 'show'])
             ->name('referidos.show');
 
         Route::inertia('ayuda', 'configuracion/ayuda/index')->name('ayuda');
 
-        Route::middleware(['tenant.required', 'permission:config-general.view'])
+        Route::middleware(['tenant.required', 'permission:documentos-autorizacion.view'])
             ->get('documentos-autorizacion', [DocumentoAutorizacionPlantillaController::class, 'index'])
             ->name('documentos-autorizacion.index');
-        Route::middleware(['tenant.required', 'permission:config-general.update'])
+        Route::middleware(['tenant.required', 'permission:documentos-autorizacion.update'])
             ->post('documentos-autorizacion/desde-ia', [DocumentoAutorizacionPlantillaController::class, 'fromAi'])
             ->name('documentos-autorizacion.from-ai');
-        Route::middleware(['tenant.required', 'permission:config-general.update'])
+        Route::middleware(['tenant.required', 'permission:documentos-autorizacion.update'])
             ->post('documentos-autorizacion', [DocumentoAutorizacionPlantillaController::class, 'store'])
             ->name('documentos-autorizacion.store');
-        Route::middleware(['tenant.required', 'permission:config-general.update'])
+        Route::middleware(['tenant.required', 'permission:documentos-autorizacion.update'])
             ->match(['put', 'patch'], 'documentos-autorizacion/{plantilla}', [DocumentoAutorizacionPlantillaController::class, 'update'])
             ->name('documentos-autorizacion.update');
-        Route::middleware(['tenant.required', 'permission:config-general.update'])
+        Route::middleware(['tenant.required', 'permission:documentos-autorizacion.update'])
             ->delete('documentos-autorizacion/{plantilla}', [DocumentoAutorizacionPlantillaController::class, 'destroy'])
             ->name('documentos-autorizacion.destroy');
 

@@ -27,7 +27,7 @@ export default function Index({
 }: Props) {
     const { t } = useTranslation(['documentos-autorizacion', 'common', 'nav']);
     const { can } = usePermission();
-    const canUpdate = can('config-general.update');
+    const canUpdate = can('documentos-autorizacion.update');
     const [editing, setEditing] = useState<PlantillaAutorizacion | null | 'new'>(null);
     const destroyForm = useForm({});
 
@@ -74,7 +74,7 @@ export default function Index({
                                             </p>
                                         ) : null}
                                     </div>
-                                    <Can permission="config-general.update">
+                                    <Can permission="documentos-autorizacion.update">
                                         <div className="flex shrink-0 gap-1.5">
                                             <Button
                                                 type="button"

@@ -11,7 +11,7 @@ class DocumentoAutorizacionPlantillaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('config-general.update') ?? false;
+        return $this->user()?->can('documentos-autorizacion.update') ?? false;
     }
 
     public function rules(): array

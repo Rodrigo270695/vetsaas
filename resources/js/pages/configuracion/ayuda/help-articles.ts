@@ -17,7 +17,7 @@ export const HELP_CATEGORIES: HelpCategoryConfig[] = [
             { id: 'sede', href: '/configuracion/sedes', permission: 'sedes.view' },
             { id: 'clinic', href: '/configuracion/general', permission: 'config-general.view' },
             { id: 'firma_digital', href: '/configuracion/general', permission: 'config-general.view' },
-            { id: 'autorizaciones', href: '/configuracion/documentos-autorizacion', permission: 'config-general.view' },
+            { id: 'autorizaciones', href: '/configuracion/documentos-autorizacion', permission: 'documentos-autorizacion.view' },
             { id: 'usuarios_roles', href: '/configuracion/usuarios', permission: 'usuarios.view' },
             { id: 'tarifas', href: '/configuracion/tarifas', permission: 'tarifas.view' },
             { id: 'horarios', href: '/configuracion/horarios', permission: 'horarios.view' },

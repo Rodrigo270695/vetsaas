@@ -91,7 +91,7 @@ function formatAnchorDate(value: string | null, locale: string): string | null {
 
 /**
  * Modal diario (máx. 1 vez por día) cuando faltan 7 días o menos
- * para el próximo cobro. Solo para admins con config-general.view.
+ * para el próximo cobro. Solo para quien puede ver Suscripción.
  */
 export function SubscriptionRenewalReminderModal() {
     const { t, i18n } = useTranslation(['config-suscripcion', 'common']);

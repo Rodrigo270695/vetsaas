@@ -21,7 +21,7 @@ final class DocumentoAutorizacionPlantillaController extends Controller
 {
     public function index(): Response
     {
-        abort_unless(request()->user()?->can('config-general.view') ?? false, 403);
+        abort_unless(request()->user()?->can('documentos-autorizacion.view') ?? false, 403);
 
         $logoUrl = ClinicSetting::current()->logo_url;
         $items = DocumentoAutorizacionPlantilla::query()
@@ -93,7 +93,7 @@ final class DocumentoAutorizacionPlantillaController extends Controller
 
     public function destroy(DocumentoAutorizacionPlantilla $plantilla): RedirectResponse
     {
-        abort_unless(request()->user()?->can('config-general.update') ?? false, 403);
+        abort_unless(request()->user()?->can('documentos-autorizacion.update') ?? false, 403);
         $plantilla->delete();
 
         return back()->with('success', 'Plantilla eliminada.');
