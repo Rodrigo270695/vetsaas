@@ -273,7 +273,7 @@ final class SalaEsperaHoyService
                 $this->assertModule($tenant, 'citas');
                 $existing = $this->citaEnColaHoy($paciente, $now);
                 if ($existing !== null) {
-                    $this->marcarEnviado($existing, $now);
+                    $this->marcarEnviado($existing, $now, $user);
                     $this->aplicarTratante($existing, 'veterinario_id', $tratanteId, $user);
                     $this->aplicarIngresoSala($existing, $motivo, $tipoAtencion);
                     $existing->setRelation('paciente', $paciente);
@@ -293,7 +293,7 @@ final class SalaEsperaHoyService
                     'estado' => Cita::ESTADO_PROGRAMADA,
                     'motivo' => 'Sala de espera',
                     'sala_espera_enviado_at' => $now,
-                    'sala_espera_estado' => self::ESTADO_CITADO,
+                    'sala_espera_estado' => self::ESTADO_EN_ESPERA,
                     'created_by_id' => $user->id,
                     'updated_by_id' => $user->id,
                 ];
@@ -316,7 +316,7 @@ final class SalaEsperaHoyService
             $this->assertModule($tenant, 'grooming');
             $existing = $this->groomingEnColaHoy($paciente, $now);
             if ($existing !== null) {
-                $this->marcarEnviado($existing, $now);
+                $this->marcarEnviado($existing, $now, $user);
                 $this->aplicarTratante($existing, 'responsable_id', $tratanteId, $user);
                 $this->aplicarIngresoSala($existing, $motivo, $tipoAtencion);
                 $existing->setRelation('paciente', $paciente);
@@ -336,7 +336,7 @@ final class SalaEsperaHoyService
                 'estado' => GroomingTurno::ESTADO_PROGRAMADA,
                 'servicio' => 'bano_higienico',
                 'sala_espera_enviado_at' => $now,
-                'sala_espera_estado' => self::ESTADO_CITADO,
+                'sala_espera_estado' => self::ESTADO_EN_ESPERA,
                 'created_by_id' => $user->id,
                 'updated_by_id' => $user->id,
             ];
@@ -397,6 +397,45 @@ final class SalaEsperaHoyService
         $this->cambiarEstado($user, $tipo, $id, self::ESTADO_ATENDIDO);
     }
 
+    /**
+     * Alinea sala de espera al abrir consulta / pasar la cita a en_atencion.
+     * Quita «atendido» fantasma que bloqueaba la cola y la HC.
+     */
+    public function alAperturarCita(Cita $cita, User $user): void
+    {
+        if ($cita->sala_espera_enviado_at === null) {
+            return;
+        }
+
+        if (! Schema::hasColumn('citas', 'sala_espera_estado')
+            || ! Schema::hasColumn('citas', 'sala_espera_atendido_at')) {
+            return;
+        }
+
+        $this->escribirEstadoSala($cita, self::ESTADO_EN_ATENCION_SALA, $user, sincronizarClinico: false);
+    }
+
+    /**
+     * Marca el turno en sala como atendido solo cuando la cita ya se completó por cobro.
+     */
+    public function alCobrarCitaEnSala(Cita $cita, User $user): void
+    {
+        if ($cita->sala_espera_enviado_at === null) {
+            return;
+        }
+
+        if (! Schema::hasColumn('citas', 'sala_espera_estado')
+            || ! Schema::hasColumn('citas', 'sala_espera_atendido_at')) {
+            return;
+        }
+
+        if ($cita->estado !== Cita::ESTADO_COMPLETADA) {
+            return;
+        }
+
+        $this->escribirEstadoSala($cita, self::ESTADO_ATENDIDO, $user, sincronizarClinico: false);
+    }
+
     public function retirar(User $user, string $tipo, string $id): void
     {
         $tipo = $this->normalizeTipo($tipo);
@@ -428,24 +467,36 @@ final class SalaEsperaHoyService
         if ($tipo === self::TIPO_CONSULTA) {
             abort_unless(Schema::hasColumn('citas', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
             $cita = Cita::query()->whereKey($id)->firstOrFail();
-            $updates = $this->updatesDeEstado($cita, $estado, $now, $user);
-            $estadoClinico = $this->mapearEstadoClinicoCita($estado, $cita);
-            if ($estadoClinico !== null) {
-                $updates['estado'] = $estadoClinico;
-            }
-            $cita->forceFill($updates)->save();
+            $this->escribirEstadoSala($cita, $estado, $user);
 
             return;
         }
 
         abort_unless(Schema::hasColumn('grooming_turnos', 'sala_espera_atendido_at'), 422, 'Migración de sala de espera pendiente.');
         $turno = GroomingTurno::query()->whereKey($id)->firstOrFail();
-        $updates = $this->updatesDeEstado($turno, $estado, $now, $user);
-        $estadoClinico = $this->mapearEstadoClinicoGrooming($estado, $turno);
-        if ($estadoClinico !== null) {
-            $updates['estado'] = $estadoClinico;
+        $this->escribirEstadoSala($turno, $estado, $user);
+    }
+
+    private function escribirEstadoSala(
+        Cita|GroomingTurno $record,
+        string $estadoSala,
+        User $user,
+        bool $sincronizarClinico = true,
+    ): void {
+        $now = Carbon::now();
+        $updates = $this->updatesDeEstado($record, $estadoSala, $now, $user);
+
+        if ($sincronizarClinico) {
+            $estadoClinico = $record instanceof Cita
+                ? $this->mapearEstadoClinicoCita($estadoSala, $record)
+                : $this->mapearEstadoClinicoGrooming($estadoSala, $record);
+
+            if ($estadoClinico !== null) {
+                $updates['estado'] = $estadoClinico;
+            }
         }
-        $turno->forceFill($updates)->save();
+
+        $record->forceFill($updates)->save();
     }
 
     private function mapearEstadoClinicoCita(string $estadoSala, Cita $cita): ?string
@@ -849,23 +900,109 @@ final class SalaEsperaHoyService
 
     private function estadoSala(Cita|GroomingTurno $record): string
     {
+        $this->repararEstadoSalaSiDesfasado($record);
+
+        return $this->resolverEstadoSalaEfectivo($record);
+    }
+
+    /**
+     * Estado visible en sala: la cita/turno clínico manda sobre un sala_espera_estado viejo.
+     */
+    private function resolverEstadoSalaEfectivo(Cita|GroomingTurno $record): string
+    {
+        $clinico = (string) $record->estado;
         $guardado = $record->getAttribute('sala_espera_estado');
-        if (is_string($guardado) && in_array($guardado, self::ESTADOS_SALA, true)) {
-            return $guardado;
-        }
+        $guardado = is_string($guardado) && in_array($guardado, self::ESTADOS_SALA, true)
+            ? $guardado
+            : null;
+
+        $cancelada = in_array($clinico, [Cita::ESTADO_CANCELADA, GroomingTurno::ESTADO_CANCELADA], true);
+        $completada = in_array($clinico, [Cita::ESTADO_COMPLETADA, GroomingTurno::ESTADO_COMPLETADA], true);
+        $enCurso = in_array($clinico, [Cita::ESTADO_EN_ATENCION, GroomingTurno::ESTADO_EN_PROCESO], true);
 
         if ($record->sala_espera_atendido_at !== null) {
-            return (string) $record->estado === 'cancelada'
-                ? self::ESTADO_CANCELADO
-                : self::ESTADO_ATENDIDO;
+            return $cancelada ? self::ESTADO_CANCELADO : self::ESTADO_ATENDIDO;
         }
 
-        $clinico = (string) $record->estado;
-        if (in_array($clinico, [Cita::ESTADO_EN_ATENCION, GroomingTurno::ESTADO_EN_PROCESO], true)) {
+        if ($completada && $record->sala_espera_enviado_at !== null) {
+            if ($record->sala_espera_atendido_at !== null || $guardado === self::ESTADO_ATENDIDO) {
+                return self::ESTADO_ATENDIDO;
+            }
+
             return self::ESTADO_EN_ATENCION_SALA;
         }
 
-        return self::ESTADO_CITADO;
+        if ($cancelada && $record->sala_espera_enviado_at !== null) {
+            return self::ESTADO_CANCELADO;
+        }
+
+        if ($enCurso) {
+            if (in_array($guardado, [self::ESTADO_ATENDIDO, self::ESTADO_CANCELADO], true)) {
+                return self::ESTADO_EN_ATENCION_SALA;
+            }
+
+            if ($guardado !== null && ! in_array($guardado, self::ESTADOS_HISTORIAL, true)) {
+                return $guardado;
+            }
+
+            return self::ESTADO_EN_ATENCION_SALA;
+        }
+
+        if (in_array($guardado, [self::ESTADO_ATENDIDO, self::ESTADO_CANCELADO], true)) {
+            return $record->sala_espera_enviado_at !== null
+                ? self::ESTADO_EN_ESPERA
+                : self::ESTADO_CITADO;
+        }
+
+        if ($guardado !== null) {
+            return $guardado;
+        }
+
+        return $record->sala_espera_enviado_at !== null
+            ? self::ESTADO_EN_ESPERA
+            : self::ESTADO_CITADO;
+    }
+
+    private function repararEstadoSalaSiDesfasado(Cita|GroomingTurno $record): void
+    {
+        if ($record->sala_espera_enviado_at === null
+            || ! Schema::hasColumn($record->getTable(), 'sala_espera_estado')) {
+            return;
+        }
+
+        $efectivo = $this->resolverEstadoSalaEfectivo($record);
+        $guardado = $record->getAttribute('sala_espera_estado');
+        $guardadoOk = is_string($guardado) && $guardado === $efectivo;
+        $atendidoOk = in_array($efectivo, self::ESTADOS_HISTORIAL, true)
+            ? $record->sala_espera_atendido_at !== null
+            : $record->sala_espera_atendido_at === null;
+
+        if ($guardadoOk && $atendidoOk) {
+            return;
+        }
+
+        $actorId = $record->updated_by_id ?? $record->created_by_id;
+        $user = is_string($actorId) && $actorId !== ''
+            ? User::query()->whereKey($actorId)->first()
+            : null;
+
+        if ($user === null) {
+            $now = Carbon::now();
+            $historial = in_array($efectivo, self::ESTADOS_HISTORIAL, true);
+            $pausa = $efectivo === self::ESTADO_EN_ATENCION_SALA || $historial;
+            $updates = [
+                'sala_espera_atendido_at' => $historial ? ($record->sala_espera_atendido_at ?? $now) : null,
+                'sala_espera_estado' => $efectivo,
+                'sala_espera_estado_at' => $pausa
+                    ? ($record->sala_espera_estado_at ?? $now)
+                    : null,
+            ];
+            $record->forceFill($updates)->save();
+
+            return;
+        }
+
+        $this->escribirEstadoSala($record, $efectivo, $user, sincronizarClinico: false);
     }
 
     /**
@@ -918,18 +1055,22 @@ final class SalaEsperaHoyService
         }
     }
 
-    private function marcarEnviado(Cita|GroomingTurno $record, Carbon $now): void
+    private function marcarEnviado(Cita|GroomingTurno $record, Carbon $now, User $user): void
     {
-        $updates = [];
+        $table = $record->getTable();
 
-        if (Schema::hasColumn($record->getTable(), 'sala_espera_enviado_at')
-            && $record->sala_espera_enviado_at === null) {
-            $updates['sala_espera_enviado_at'] = now();
+        if (Schema::hasColumn($table, 'sala_espera_estado')) {
+            $this->escribirEstadoSala($record, self::ESTADO_EN_ESPERA, $user, sincronizarClinico: false);
+            $record->refresh();
         }
 
-        if ($updates !== []) {
-            $record->forceFill($updates)->save();
+        $updates = ['updated_by_id' => $user->id];
+
+        if (Schema::hasColumn($table, 'sala_espera_enviado_at')) {
+            $updates['sala_espera_enviado_at'] = $now;
         }
+
+        $record->forceFill($updates)->save();
 
         $this->ensureNumero($record, $now);
     }

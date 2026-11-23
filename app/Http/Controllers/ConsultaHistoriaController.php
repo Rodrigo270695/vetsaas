@@ -14,6 +14,8 @@ use App\Models\Farmaco;
 use App\Models\HistoriaClinica;
 use App\Models\Paciente;
 use App\Models\ServicioClinico;
+use App\Models\User;
+use App\Services\Clinica\SalaEsperaHoyService;
 use App\Support\ConsultaCargo\ConsultaCargoCobroEstado;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -404,8 +406,10 @@ class ConsultaHistoriaController extends Controller
         ];
     }
 
-    public function store(StoreConsultaHistoriaRequest $request): RedirectResponse
-    {
+    public function store(
+        StoreConsultaHistoriaRequest $request,
+        SalaEsperaHoyService $salaEspera,
+    ): RedirectResponse {
         $validated = $request->validated();
         $uid = Auth::id();
         $medicoTratante = isset($validated['medico_tratante'])
@@ -418,7 +422,7 @@ class ConsultaHistoriaController extends Controller
         $consultaCreada = null;
         $this->assertCupoResultados(null, $request, []);
 
-        DB::transaction(function () use ($validated, $uid, $medicoTratante, $request, &$consultaCreada): void {
+        DB::transaction(function () use ($validated, $uid, $medicoTratante, $request, $salaEspera, &$consultaCreada): void {
             $historia = HistoriaClinica::query()->firstOrCreate(
                 ['paciente_id' => $validated['paciente_id']],
                 [
@@ -471,6 +475,12 @@ class ConsultaHistoriaController extends Controller
                         'estado' => Cita::ESTADO_EN_ATENCION,
                         'updated_by_id' => $uid,
                     ]);
+
+                $cita = Cita::query()->whereKey($citaId)->first();
+                $actor = $request->user();
+                if ($cita !== null && $actor instanceof User) {
+                    $salaEspera->alAperturarCita($cita, $actor);
+                }
             }
         });
 
@@ -921,7 +931,7 @@ class ConsultaHistoriaController extends Controller
             ->with('success', __('historias-clinicas.flash.cerrar_abiertas', ['count' => $count]));
     }
 
-    public function reabrir(Consulta $consulta): RedirectResponse
+    public function reabrir(Consulta $consulta, SalaEsperaHoyService $salaEspera): RedirectResponse
     {
         abort_unless(auth()->user()?->can('historias-clinicas.update') ?? false, 403);
 
@@ -946,6 +956,12 @@ class ConsultaHistoriaController extends Controller
                     'estado' => Cita::ESTADO_EN_ATENCION,
                     'updated_by_id' => $uid,
                 ]);
+
+            $cita = Cita::query()->whereKey($consulta->cita_id)->first();
+            $actor = Auth::user();
+            if ($cita !== null && $actor instanceof User) {
+                $salaEspera->alAperturarCita($cita, $actor);
+            }
         }
 
         return redirect()

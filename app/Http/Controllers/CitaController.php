@@ -14,6 +14,7 @@ use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Clinica\SalaEsperaHoyService;
 use App\Services\Notifications\AppointmentReminderScanner;
 use App\Services\Notifications\NotificationQueueService;
 use App\Services\Notifications\ReminderMessageBuilder;
@@ -586,8 +587,11 @@ class CitaController extends Controller
      * - accion=nueva → alta de consulta
      * - accion=reabrir + consulta_id → reactiva esa consulta (o continúa si ya está abierta)
      */
-    public function aperturar(Request $request, Cita $cita): RedirectResponse
-    {
+    public function aperturar(
+        Request $request,
+        Cita $cita,
+        SalaEsperaHoyService $salaEspera,
+    ): RedirectResponse {
         abort_unless(auth()->user()?->can('citas.aperturar') ?? false, 403);
 
         $accion = (string) $request->input('accion', 'nueva');
@@ -609,12 +613,17 @@ class CitaController extends Controller
                 ->with('error', __('citas.flash.aperturar_estado_invalido'));
         }
 
+        /** @var User $actor */
+        $actor = Auth::user();
+
         if (! $yaEnAtencion) {
             $cita->forceFill([
                 'estado' => Cita::ESTADO_EN_ATENCION,
-                'updated_by_id' => Auth::id(),
+                'updated_by_id' => $actor->id,
             ])->save();
         }
+
+        $salaEspera->alAperturarCita($cita->fresh(), $actor);
 
         if ($accion === 'reabrir') {
             $consultaId = $request->input('consulta_id');

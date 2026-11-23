@@ -264,6 +264,41 @@ it('muestra la vista Inertia de sala de espera al admin de clínica', function (
         ->assertInertia(fn ($page) => $page->component('clinica/sala-espera/index'));
 });
 
+it('corrige atendido fantasma en sala cuando la cita ya esta en atencion', function (): void {
+    $citaId = app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): string {
+        $propietario = Propietario::query()->create([
+            'nombres' => 'Ana',
+            'apellidos' => 'Cola',
+            'activo' => true,
+        ]);
+        $paciente = Paciente::query()->create([
+            'propietario_id' => $propietario->id,
+            'nombre' => 'Toby',
+            'activo' => true,
+        ]);
+
+        return (string) Cita::query()->create([
+            'paciente_id' => $paciente->id,
+            'inicio_at' => now()->subMinutes(2),
+            'duracion_minutos' => 15,
+            'estado' => Cita::ESTADO_EN_ATENCION,
+            'sala_espera_enviado_at' => now()->subMinutes(2),
+            'sala_espera_estado' => 'atendido',
+        ])->id;
+    });
+
+    $this->actingAs($this->testTenantAdmin)
+        ->getJson('http://'.$this->testTenantHost.'/clinica/sala-espera?tipo=consulta')
+        ->assertOk()
+        ->assertJsonPath('en_curso.0.sala_estado', 'en_atencion');
+
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function () use ($citaId): void {
+        $cita = Cita::query()->whereKey($citaId)->firstOrFail();
+        expect($cita->sala_espera_estado)->toBe('en_atencion');
+        expect($cita->sala_espera_atendido_at)->toBeNull();
+    });
+});
+
 it('sincroniza el estado de la cita al cambiar estado en sala de espera', function (): void {
     $citaId = app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): string {
         $propietario = Propietario::query()->create([

@@ -17,6 +17,8 @@ use App\Models\Tenant;
 use App\Models\Venta;
 use App\Models\VentaLinea;
 use App\Models\VentaPago;
+use App\Models\User;
+use App\Services\Clinica\SalaEsperaHoyService;
 use App\Services\Fel\FelEmisionVentaService;
 use App\Services\Inventario\InventarioLoteService;
 use App\Support\Fel\ApisunatCredentialResolver;
@@ -34,6 +36,7 @@ final class VentaCheckoutService
 {
     public function __construct(
         private readonly InventarioLoteService $lotes,
+        private readonly SalaEsperaHoyService $salaEspera,
     ) {}
 
     /**
@@ -787,13 +790,21 @@ final class VentaCheckoutService
                     ]);
 
                     if (is_string($consulta->cita_id) && $consulta->cita_id !== '') {
-                        Cita::query()
+                        $cita = Cita::query()
                             ->whereKey($consulta->cita_id)
                             ->where('estado', Cita::ESTADO_EN_ATENCION)
-                            ->update([
+                            ->first();
+
+                        if ($cita !== null) {
+                            $cita->update([
                                 'estado' => Cita::ESTADO_COMPLETADA,
                                 'updated_by_id' => $user->getAuthIdentifier(),
                             ]);
+
+                            if ($user instanceof User) {
+                                $this->salaEspera->alCobrarCitaEnSala($cita->fresh(), $user);
+                            }
+                        }
                     }
                 }
 
