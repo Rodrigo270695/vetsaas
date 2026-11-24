@@ -48,3 +48,23 @@ export function citaEstadoBadgeClass(estado: string): string {
 export function citaEstadoCalendarAccent(estado: string): string {
     return CALENDAR_ACCENT[estado] ?? CALENDAR_ACCENT.programada;
 }
+
+/** Barras sólidas del timeline «Agenda del día» (Google Calendar). */
+const TIMELINE_BAR: Record<string, string> = {
+    programada:
+        'border-amber-700/30 bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500',
+    confirmada:
+        'border-sky-700/30 bg-sky-500 text-white hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500',
+    en_atencion:
+        'border-violet-700/30 bg-violet-500 text-white hover:bg-violet-600 dark:bg-violet-600 dark:hover:bg-violet-500',
+    completada:
+        'border-emerald-700/30 bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500',
+    cancelada:
+        'border-rose-700/30 bg-rose-500 text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500',
+    no_asistio:
+        'border-rose-700/30 bg-rose-500 text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500',
+};
+
+export function citaEstadoTimelineBarClass(estado: string): string {
+    return TIMELINE_BAR[estado] ?? TIMELINE_BAR.programada;
+}

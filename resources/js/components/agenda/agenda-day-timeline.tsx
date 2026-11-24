@@ -4,6 +4,7 @@ import { Clock } from 'lucide-react';
 import { useMemo } from 'react';
 import type { DragEvent } from 'react';
 import { cn } from '@/lib/utils';
+import { citaEstadoTimelineBarClass } from '@/pages/clinica/citas/cita-estado-styles';
 import type { AgendaEvent } from './agenda-types';
 
 const DEFAULT_DURATION_MIN = 30;
@@ -58,20 +59,33 @@ type LaidOutEvent = {
 };
 
 function barToneClass(event: AgendaEvent): string {
-    if (event.tone === 'grooming' || event.accentClass.includes('emerald')) {
+    if (event.tone === 'grooming') {
         return 'border-emerald-700/30 bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500';
     }
 
-    if (event.tone === 'hotel' || event.accentClass.includes('sky')) {
+    if (event.tone === 'hotel') {
         return 'border-sky-700/30 bg-sky-500 text-white hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500';
     }
 
-    if (event.tone === 'cita' || event.accentClass.includes('amber')) {
-        return 'border-amber-700/30 bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500';
+    if (event.estado) {
+        return citaEstadoTimelineBarClass(event.estado);
     }
 
-    if (event.accentClass.includes('rose')) {
-        return 'border-rose-700/30 bg-rose-500 text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500';
+    const accent = event.accentClass;
+    if (accent.includes('rose')) {
+        return citaEstadoTimelineBarClass('cancelada');
+    }
+    if (accent.includes('violet')) {
+        return citaEstadoTimelineBarClass('en_atencion');
+    }
+    if (accent.includes('emerald')) {
+        return citaEstadoTimelineBarClass('completada');
+    }
+    if (accent.includes('sky')) {
+        return citaEstadoTimelineBarClass('confirmada');
+    }
+    if (accent.includes('amber')) {
+        return citaEstadoTimelineBarClass('programada');
     }
 
     return 'border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90';

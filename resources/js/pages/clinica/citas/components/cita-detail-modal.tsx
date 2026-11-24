@@ -98,7 +98,6 @@ export function CitaDetailModal({
     const canAperturar =
         cita !== null &&
         can('citas.aperturar') &&
-        can('historias-clinicas.create') &&
         Boolean(cita.paciente_id) &&
         ['programada', 'confirmada'].includes(cita.estado);
 

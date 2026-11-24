@@ -90,6 +90,7 @@ export function CitasCalendar({
                     .filter(Boolean)
                     .join(' · ') || null,
                 accentClass: getEstadoAccent(cita.estado),
+                estado: cita.estado,
                 tone: 'cita',
                 canDrag: canDragCita(cita, canUpdate),
             })),

@@ -8,6 +8,8 @@ export type AgendaEvent = {
     title: string;
     subtitle?: string | null;
     accentClass: string;
+    /** Estado clínico (citas); evita inferir color solo por `tone`. */
+    estado?: string;
     /** Tono de barra en timeline del día (Google Calendar). */
     tone?: 'grooming' | 'hotel' | 'cita' | 'default';
     canDrag?: boolean;
