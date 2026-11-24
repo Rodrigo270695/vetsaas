@@ -21,7 +21,11 @@ import { cn } from '@/lib/utils';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import type { CitaFormPrefill, CitaRow, PacienteCitaOpcion, SedeCitaOpcion, UsuarioCitaOpcion } from '../types';
-import { formatDateOnlyLabel } from '../../historias-clinicas/format-atendido';
+import {
+    datetimeLocalIsPastInAppTimezone,
+    formatDateOnlyLabel,
+    isoToDatetimeLocalInAppTimezone,
+} from '../../historias-clinicas/format-atendido';
 
 const controlClass = 'h-10 w-full min-w-0';
 
@@ -83,14 +87,14 @@ function isHoraPastOnDate(fecha: string, hora: string): boolean {
     return isDatetimeLocalPast(`${fecha}T${hora}`);
 }
 
-function parseIsoToDatetimeLocal(iso: string): string {
-    const d = new Date(iso);
+function parseIsoToDatetimeLocal(iso: string, timeZone: string): string {
+    const local = isoToDatetimeLocalInAppTimezone(iso, timeZone);
 
-    if (Number.isNaN(d.getTime())) {
-        return toDatetimeLocalValue(new Date());
+    if (local !== '') {
+        return local;
     }
 
-    return toDatetimeLocalValue(d);
+    return toDatetimeLocalValue(new Date());
 }
 
 export type CitaFormModalProps = {
@@ -130,10 +134,10 @@ function emptyForm(
     };
 }
 
-function fromCita(c: CitaRow, defaultVetId: string | null): FormShape {
+function fromCita(c: CitaRow, defaultVetId: string | null, timeZone: string): FormShape {
     return {
         paciente_id: c.paciente_id,
-        inicio_at: parseIsoToDatetimeLocal(c.inicio_at),
+        inicio_at: parseIsoToDatetimeLocal(c.inicio_at, timeZone),
         duracion_minutos: String(c.duracion_minutos),
         estado: c.estado,
         motivo: c.motivo ?? '',
@@ -154,6 +158,7 @@ export function CitaFormModal({
 }: CitaFormModalProps) {
     const { t, i18n } = useTranslation(['citas', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
+    const { timezone: appTz } = usePage().props;
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const defaultVetId = authUser?.id ?? null;
 
@@ -240,7 +245,7 @@ export function CitaFormModal({
         clearErrors();
 
         if (cita !== null) {
-            const next = fromCita(cita, defaultVetId);
+            const next = fromCita(cita, defaultVetId, appTz);
             inicioOriginalRef.current = next.inicio_at;
             setData(next);
             setHora(next.inicio_at.slice(11, 16));
@@ -293,6 +298,10 @@ export function CitaFormModal({
         data.estado === 'programada' || data.estado === 'confirmada';
     const inicioSinCambio =
         isEdit && inicioOriginalRef.current !== '' && data.inicio_at === inicioOriginalRef.current;
+    const esCitaSala = Boolean(
+        cita?.sala_espera_enviado_at ||
+            (cita?.motivo === 'Sala de espera' && cita?.estado === 'programada'),
+    );
 
     const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
         const dm = raw.duracion_minutos.trim();
@@ -314,7 +323,8 @@ export function CitaFormModal({
         e.preventDefault();
 
         const debeRechazarPasado =
-            isDatetimeLocalPast(data.inicio_at) &&
+            !esCitaSala &&
+            datetimeLocalIsPastInAppTimezone(data.inicio_at, appTz) &&
             (!isEdit || (agendaFutura && !inicioSinCambio));
 
         if (debeRechazarPasado) {
@@ -468,7 +478,8 @@ export function CitaFormModal({
                             className={controlClass}
                             value={data.inicio_at}
                             min={
-                                !isEdit || (agendaFutura && !inicioSinCambio)
+                                !esCitaSala &&
+                                (!isEdit || (agendaFutura && !inicioSinCambio))
                                     ? minDatetimeLocal
                                     : undefined
                             }

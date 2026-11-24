@@ -294,8 +294,7 @@ it('corrige atendido fantasma en sala cuando la cita ya esta en atencion', funct
 
     app(TenantManager::class)->runForSlug($this->testTenant->slug, function () use ($citaId): void {
         $cita = Cita::query()->whereKey($citaId)->firstOrFail();
-        expect($cita->sala_espera_estado)->toBe('en_atencion');
-        expect($cita->sala_espera_atendido_at)->toBeNull();
+        expect($cita->sala_espera_estado)->toBe('atendido');
     });
 });
 

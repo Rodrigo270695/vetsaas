@@ -900,8 +900,6 @@ final class SalaEsperaHoyService
 
     private function estadoSala(Cita|GroomingTurno $record): string
     {
-        $this->repararEstadoSalaSiDesfasado($record);
-
         return $this->resolverEstadoSalaEfectivo($record);
     }
 
@@ -961,48 +959,6 @@ final class SalaEsperaHoyService
         return $record->sala_espera_enviado_at !== null
             ? self::ESTADO_EN_ESPERA
             : self::ESTADO_CITADO;
-    }
-
-    private function repararEstadoSalaSiDesfasado(Cita|GroomingTurno $record): void
-    {
-        if ($record->sala_espera_enviado_at === null
-            || ! Schema::hasColumn($record->getTable(), 'sala_espera_estado')) {
-            return;
-        }
-
-        $efectivo = $this->resolverEstadoSalaEfectivo($record);
-        $guardado = $record->getAttribute('sala_espera_estado');
-        $guardadoOk = is_string($guardado) && $guardado === $efectivo;
-        $atendidoOk = in_array($efectivo, self::ESTADOS_HISTORIAL, true)
-            ? $record->sala_espera_atendido_at !== null
-            : $record->sala_espera_atendido_at === null;
-
-        if ($guardadoOk && $atendidoOk) {
-            return;
-        }
-
-        $actorId = $record->updated_by_id ?? $record->created_by_id;
-        $user = is_string($actorId) && $actorId !== ''
-            ? User::query()->whereKey($actorId)->first()
-            : null;
-
-        if ($user === null) {
-            $now = Carbon::now();
-            $historial = in_array($efectivo, self::ESTADOS_HISTORIAL, true);
-            $pausa = $efectivo === self::ESTADO_EN_ATENCION_SALA || $historial;
-            $updates = [
-                'sala_espera_atendido_at' => $historial ? ($record->sala_espera_atendido_at ?? $now) : null,
-                'sala_espera_estado' => $efectivo,
-                'sala_espera_estado_at' => $pausa
-                    ? ($record->sala_espera_estado_at ?? $now)
-                    : null,
-            ];
-            $record->forceFill($updates)->save();
-
-            return;
-        }
-
-        $this->escribirEstadoSala($record, $efectivo, $user, sincronizarClinico: false);
     }
 
     /**

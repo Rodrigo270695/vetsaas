@@ -90,6 +90,10 @@ class UpdateCitaRequest extends FormRequest
 
             /** @var Cita|null $cita */
             $cita = $this->route('cita');
+            if ($cita instanceof Cita && $cita->sala_espera_enviado_at !== null) {
+                return;
+            }
+
             if ($cita instanceof Cita && $cita->inicio_at !== null) {
                 try {
                     $nuevo = Carbon::parse($raw, config('app.timezone'))->startOfMinute();

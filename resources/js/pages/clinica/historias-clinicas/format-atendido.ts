@@ -99,6 +99,46 @@ export function formatFullDateLabelInAppTimezone(
 /**
  * Formatea una fecha calendario (Y-m-d o ISO con hora) sin componente horario.
  */
+/**
+ * Valor para `<input type="datetime-local">` en la zona horaria de la clínica.
+ */
+export function isoToDatetimeLocalInAppTimezone(iso: string, timeZone: string): string {
+    try {
+        const d = new TZDate(iso, timeZone);
+
+        if (Number.isNaN(d.getTime())) {
+            return '';
+        }
+
+        return `${format(d, 'yyyy-MM-dd')}T${format(d, 'HH:mm')}`;
+    } catch {
+        return '';
+    }
+}
+
+export function datetimeLocalIsPastInAppTimezone(value: string, timeZone: string): boolean {
+    if (!value || !value.includes('T')) {
+        return false;
+    }
+
+    try {
+        const d = new TZDate(`${value}:00`, timeZone);
+        const now = new TZDate(Date.now(), timeZone);
+        const floorMin = (x: TZDate) =>
+            new Date(
+                x.getFullYear(),
+                x.getMonth(),
+                x.getDate(),
+                x.getHours(),
+                x.getMinutes(),
+            ).getTime();
+
+        return floorMin(d) < floorMin(now);
+    } catch {
+        return false;
+    }
+}
+
 export function formatDateOnlyLabel(value: string, localeCode: string): string {
     try {
         const datePart = value.trim().slice(0, 10);
