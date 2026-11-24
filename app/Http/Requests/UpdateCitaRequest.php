@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Cita;
 use App\Support\Citas\CitaInicioValidator;
+use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -85,6 +86,20 @@ class UpdateCitaRequest extends FormRequest
             $raw = $this->input('inicio_at');
             if (! is_string($raw) || $raw === '') {
                 return;
+            }
+
+            /** @var Cita|null $cita */
+            $cita = $this->route('cita');
+            if ($cita instanceof Cita && $cita->inicio_at !== null) {
+                try {
+                    $nuevo = Carbon::parse($raw, config('app.timezone'))->startOfMinute();
+                    $anterior = $cita->inicio_at->copy()->timezone((string) config('app.timezone'))->startOfMinute();
+                    if ($nuevo->equalTo($anterior)) {
+                        return;
+                    }
+                } catch (\Throwable) {
+                    // Sigue la validación de pasado abajo.
+                }
             }
 
             if (CitaInicioValidator::isPast($raw)) {

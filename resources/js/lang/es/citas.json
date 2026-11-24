@@ -88,7 +88,7 @@
         "acciones": "Acciones"
     },
     "estado": {
-        "programada": "En espera",
+        "programada": "Programada",
         "confirmada": "Confirmada",
         "en_atencion": "En atención",
         "completada": "Atendida",

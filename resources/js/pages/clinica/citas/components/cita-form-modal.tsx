@@ -1,6 +1,6 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { CalendarDays, Clock, Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PacienteCombobox } from '@/components/clinica/paciente-combobox';
@@ -162,6 +162,7 @@ export function CitaFormModal({
 
     const [hora, setHora] = useState('09:00');
     const [usuarios, setUsuarios] = useState<readonly UsuarioCitaOpcion[]>(usuariosOpciones);
+    const inicioOriginalRef = useRef('');
 
     useEffect(() => {
         if (usuariosOpciones.length > 0) {
@@ -239,9 +240,12 @@ export function CitaFormModal({
         clearErrors();
 
         if (cita !== null) {
-            setData(fromCita(cita, defaultVetId));
-            setHora(fromCita(cita, defaultVetId).inicio_at.slice(11, 16));
+            const next = fromCita(cita, defaultVetId);
+            inicioOriginalRef.current = next.inicio_at;
+            setData(next);
+            setHora(next.inicio_at.slice(11, 16));
         } else if (prefill?.fecha) {
+            inicioOriginalRef.current = '';
             const nextHora = prefill.hora ?? '09:00';
             setHora(nextHora);
             setData({
@@ -250,6 +254,7 @@ export function CitaFormModal({
                 paciente_id: prefill.paciente_id ?? '',
             });
         } else {
+            inicioOriginalRef.current = '';
             setData({
                 ...emptyForm(defaultVetId, sedesOpciones),
                 paciente_id: prefill?.paciente_id ?? '',
@@ -284,8 +289,10 @@ export function CitaFormModal({
 
     const minDatetimeLocal = useMemo(() => toDatetimeLocalValue(new Date()), [open]);
 
-    const requiresFutureInicio =
-        !isEdit || data.estado === 'programada' || data.estado === 'confirmada';
+    const agendaFutura =
+        data.estado === 'programada' || data.estado === 'confirmada';
+    const inicioSinCambio =
+        isEdit && inicioOriginalRef.current !== '' && data.inicio_at === inicioOriginalRef.current;
 
     const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
         const dm = raw.duracion_minutos.trim();
@@ -306,7 +313,11 @@ export function CitaFormModal({
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        if (requiresFutureInicio && isDatetimeLocalPast(data.inicio_at)) {
+        const debeRechazarPasado =
+            isDatetimeLocalPast(data.inicio_at) &&
+            (!isEdit || (agendaFutura && !inicioSinCambio));
+
+        if (debeRechazarPasado) {
             setError('inicio_at', t('validation.inicio_pasado'));
 
             return;
@@ -456,7 +467,11 @@ export function CitaFormModal({
                             type="datetime-local"
                             className={controlClass}
                             value={data.inicio_at}
-                            min={!isEdit || requiresFutureInicio ? minDatetimeLocal : undefined}
+                            min={
+                                !isEdit || (agendaFutura && !inicioSinCambio)
+                                    ? minDatetimeLocal
+                                    : undefined
+                            }
                             onChange={(e) => setData('inicio_at', e.target.value)}
                             aria-invalid={Boolean(errors.inicio_at)}
                             disabled={processing}
