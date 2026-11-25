@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Tenancy\Resolvers\PortalAccesoHostResolver;
 use App\Tenancy\Resolvers\SubdomainResolver;
 use App\Tenancy\TenantManager;
 use Closure;
@@ -34,6 +35,7 @@ class ResolveTenant
 {
     public function __construct(
         protected SubdomainResolver $resolver,
+        protected PortalAccesoHostResolver $portalAccesoHosts,
         protected TenantManager $manager,
     ) {}
 
@@ -44,6 +46,10 @@ class ResolveTenant
         $this->manager->forget();
 
         $slug = $this->resolver->resolveFromRequest($request);
+
+        if ($slug === null) {
+            $slug = $this->portalAccesoHosts->resolveSlugFromHost($request->getHost());
+        }
 
         if ($slug === null) {
             return $next($request);

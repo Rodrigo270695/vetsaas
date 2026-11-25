@@ -21,4 +21,9 @@ return [
     'reset_code_minutes' => 10,
 
     'reset_max_per_hour' => 3,
+
+    /** OTP por acceso desde landing propia (DNI + WhatsApp). */
+    'landing_otp_minutes' => (int) env('PORTAL_LANDING_OTP_MINUTES', 10),
+
+    'landing_otp_max_per_hour' => (int) env('PORTAL_LANDING_OTP_MAX_PER_HOUR', 5),
 ];

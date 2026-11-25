@@ -568,6 +568,8 @@ function validPayload(): array
         'email_institucional' => 'contacto@sp.pe',
         'telefono_principal' => '+51 1 555-0101',
         'web_url' => 'https://sp.pe',
+        'portal_landing_activo' => false,
+        'portal_landing_hostname' => null,
         'duracion_cita_default_min' => 45,
         'intervalo_agenda_min' => 15,
         'agenda_hora_inicio' => '06:00',

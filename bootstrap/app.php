@@ -52,6 +52,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // jamás incluyen el subdominio en su matching.
         then: function (): void {
             Route::middleware('web')
+                ->group(base_path('routes/tenant-portal.php'));
+
+            Route::middleware('web')
                 ->domain('{tenant_subdomain}.'.config('tenant.root_domain'))
                 ->group(base_path('routes/tenant.php'));
         },
@@ -85,6 +88,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.module' => EnsureTenantModuleEnabled::class,
             'tenant.active-sede' => EnsureTenantHasActiveSede::class,
             'portal.auth' => EnsurePortalPropietario::class,
+            'portal.tenant-host' => \App\Http\Middleware\EnsurePortalTenantHost::class,
+            'portal.landing' => \App\Http\Middleware\EnsurePortalLandingEnabled::class,
         ]);
 
         // `ResolveTenant` se aplica a TODO el grupo web. Es inocuo en

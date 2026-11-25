@@ -94,5 +94,18 @@
     "sin_acceso": {
         "title": "Open the WhatsApp link",
         "body": "This access is personal. Ask the clinic to resend the message, or use the link they already sent you."
+    },
+    "landing": {
+        "title": "Pet portal",
+        "document_hint": "Enter the ID number you used when registering at the clinic.",
+        "document_placeholder": "ID document number",
+        "continue": "Continue",
+        "sending": "Sending…",
+        "invite_note": "On your first visit we will send a WhatsApp code. Clinic WhatsApp links still work the same.",
+        "otp_title": "Verification code",
+        "otp_hint": "Enter the 6-digit code we sent to {{phone}}.",
+        "verify": "Verify",
+        "verifying": "Verifying…",
+        "widget_label": "My pets"
     }
 }

@@ -26,6 +26,11 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $reset_last_sent_at
  * @property int $reset_sent_hour_count
  * @property ?string $invited_by_id
+ * @property ?string $landing_otp_hash
+ * @property ?Carbon $landing_otp_expires_at
+ * @property int $landing_otp_failed_attempts
+ * @property ?Carbon $landing_otp_last_sent_at
+ * @property int $landing_otp_sent_hour_count
  */
 class PortalPropietario extends Model
 {
@@ -37,6 +42,7 @@ class PortalPropietario extends Model
         'pin_hash',
         'reset_code_hash',
         'invite_token',
+        'landing_otp_hash',
     ];
 
     protected $fillable = [
@@ -54,6 +60,11 @@ class PortalPropietario extends Model
         'reset_last_sent_at',
         'reset_sent_hour_count',
         'invited_by_id',
+        'landing_otp_hash',
+        'landing_otp_expires_at',
+        'landing_otp_failed_attempts',
+        'landing_otp_last_sent_at',
+        'landing_otp_sent_hour_count',
     ];
 
     protected function casts(): array
@@ -67,6 +78,10 @@ class PortalPropietario extends Model
             'pin_failed_attempts' => 'integer',
             'reset_failed_attempts' => 'integer',
             'reset_sent_hour_count' => 'integer',
+            'landing_otp_expires_at' => 'datetime',
+            'landing_otp_failed_attempts' => 'integer',
+            'landing_otp_last_sent_at' => 'datetime',
+            'landing_otp_sent_hour_count' => 'integer',
         ];
     }
 

@@ -11,6 +11,8 @@ use App\Services\Tenancy\TenantShowcaseService;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\Pdf\SignatureImageProcessor;
 use App\Support\PlanCapabilities;
+use App\Support\Portal\PortalAccesoUrl;
+use App\Tenancy\Resolvers\PortalAccesoHostResolver;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -71,8 +73,16 @@ class ClinicSettingController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $portalEmbed = $tenantModel !== null && (bool) $setting->portal_landing_activo
+            ? [
+                'acceso_url' => PortalAccesoUrl::acceso($tenantModel),
+                'widget_src' => PortalAccesoUrl::widgetJs($tenantModel),
+            ]
+            : null;
+
         return Inertia::render('configuracion/general/index', [
-            'setting' => $this->presentSetting($setting, $planPermiteFacturaElectronica),
+            'setting' => $this->presentSetting($setting, $planPermiteFacturaElectronica, $tenantModel),
+            'portal_landing_embed' => $portalEmbed,
             'clinic_header' => $tenant === null ? null : [
                 'id' => $tenant->id(),
                 'slug' => $tenant->slug,
@@ -119,6 +129,7 @@ class ClinicSettingController extends Controller
             'email_institucional' => $data['email_institucional'] ?? null,
             'telefono_principal' => $data['telefono_principal'] ?? null,
             'web_url' => $data['web_url'] ?? null,
+            'portal_landing_activo' => (bool) ($data['portal_landing_activo'] ?? false),
             'duracion_cita_default_min' => $data['duracion_cita_default_min'],
             'intervalo_agenda_min' => $data['intervalo_agenda_min'],
             'horario_atencion' => $horarioAtencion,
@@ -175,6 +186,10 @@ class ClinicSettingController extends Controller
         }
 
         $setting->save();
+
+        if ($tenantModel !== null) {
+            $this->syncPortalAccesoHostname($tenantModel, $data);
+        }
 
         app(TenantShowcaseService::class)->forgetCache();
 
@@ -323,8 +338,37 @@ class ClinicSettingController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function presentSetting(ClinicSetting $setting, bool $planPermiteFacturaElectronica): array
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function syncPortalAccesoHostname(\App\Models\Tenant $tenant, array $data): void
     {
+        $activo = (bool) ($data['portal_landing_activo'] ?? false);
+        $previous = is_string($tenant->portal_acceso_hostname) ? strtolower(trim($tenant->portal_acceso_hostname)) : null;
+
+        if (! $activo) {
+            $tenant->portal_acceso_hostname = null;
+            $tenant->save();
+            PortalAccesoHostResolver::forgetCacheForHostname($previous);
+
+            return;
+        }
+
+        $host = strtolower(trim((string) ($data['portal_landing_hostname'] ?? '')));
+        $tenant->portal_acceso_hostname = $host !== '' ? $host : null;
+        $tenant->save();
+
+        if ($previous !== null && $previous !== $tenant->portal_acceso_hostname) {
+            PortalAccesoHostResolver::forgetCacheForHostname($previous);
+        }
+        PortalAccesoHostResolver::forgetCacheForHostname($tenant->portal_acceso_hostname);
+    }
+
+    private function presentSetting(
+        ClinicSetting $setting,
+        bool $planPermiteFacturaElectronica,
+        ?\App\Models\Tenant $tenant = null,
+    ): array {
         return [
             'id' => $setting->id,
             // Identidad
@@ -359,6 +403,8 @@ class ClinicSettingController extends Controller
             'email_institucional' => $setting->email_institucional,
             'telefono_principal' => $setting->telefono_principal,
             'web_url' => $setting->web_url,
+            'portal_landing_activo' => (bool) ($setting->portal_landing_activo ?? false),
+            'portal_landing_hostname' => $tenant?->portal_acceso_hostname,
             // Operación
             'duracion_cita_default_min' => $setting->duracion_cita_default_min,
             'intervalo_agenda_min' => $setting->intervalo_agenda_min,

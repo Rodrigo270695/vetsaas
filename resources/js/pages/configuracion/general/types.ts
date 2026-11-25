@@ -67,6 +67,8 @@ export type ClinicSetting = {
     email_institucional: string | null;
     telefono_principal: string | null;
     web_url: string | null;
+    portal_landing_activo: boolean;
+    portal_landing_hostname: string | null;
     // Operación (citas y agenda)
     duracion_cita_default_min: number;
     intervalo_agenda_min: number;

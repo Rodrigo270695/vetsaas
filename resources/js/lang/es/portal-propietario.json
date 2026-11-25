@@ -94,5 +94,18 @@
     "sin_acceso": {
         "title": "Abre el enlace de WhatsApp",
         "body": "Este acceso es personal. Pide a la clínica que te reenvíe el mensaje, o usa el enlace que ya te mandaron."
+    },
+    "landing": {
+        "title": "Portal de mascotas",
+        "document_hint": "Ingresa el DNI o documento con el que estás registrado en la clínica.",
+        "document_placeholder": "Número de documento",
+        "continue": "Continuar",
+        "sending": "Enviando…",
+        "invite_note": "Si es tu primera vez y no tienes PIN, te enviaremos un código por WhatsApp. El enlace por WhatsApp de la clínica sigue funcionando igual.",
+        "otp_title": "Código de verificación",
+        "otp_hint": "Escribe el código de 6 dígitos que enviamos al {{phone}}.",
+        "verify": "Verificar",
+        "verifying": "Verificando…",
+        "widget_label": "Mis mascotas"
     }
 }

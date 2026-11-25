@@ -48,6 +48,7 @@ class Tenant extends Model
         'referral_code',
         'referral_days_balance',
         'modulos_deshabilitados',
+        'portal_acceso_hostname',
     ];
 
     protected function casts(): array

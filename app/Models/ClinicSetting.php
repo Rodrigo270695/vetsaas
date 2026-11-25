@@ -95,6 +95,7 @@ use Throwable;
  * @property int $horas_min_cancelacion
  * @property ?string $color_primario
  * @property ?string $color_secundario
+ * @property bool $portal_landing_activo Acceso al portal desde landing/DNI (adicional al flujo WhatsApp).
  * @property ?string $updated_by_id
  * @property-read ?User $actualizadoPor
  * @property-read ?Distrito $distritoModel
@@ -195,6 +196,7 @@ class ClinicSetting extends Model
         'chat_retention_days',
         'color_primario',
         'color_secundario',
+        'portal_landing_activo',
         'firma_digital_path',
         'firma_digital_nombre',
         'firma_digital_colegiatura',
@@ -249,6 +251,7 @@ class ClinicSetting extends Model
             'recordatorio_cumple_activo' => 'boolean',
             'bot_ia_respuestas_activo' => 'boolean',
             'modo_asesora_activo' => 'boolean',
+            'portal_landing_activo' => 'boolean',
             'nubefact_configurado' => 'boolean',
             'precio_incluye_igv' => 'boolean',
             'emite_comprobantes_sunat' => 'boolean',

@@ -63,6 +63,14 @@ class ClinicSettingRequest extends FormRequest
             'email_institucional' => ['nullable', 'email', 'max:150'],
             'telefono_principal' => ['nullable', 'string', 'max:20'],
             'web_url' => ['nullable', 'url', 'max:200'],
+            'portal_landing_activo' => ['required', 'boolean'],
+            'portal_landing_hostname' => [
+                'nullable',
+                'string',
+                'max:253',
+                'regex:/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i',
+                Rule::requiredIf(fn (): bool => (bool) $this->boolean('portal_landing_activo')),
+            ],
 
             // Operación
             'duracion_cita_default_min' => ['required', 'integer', 'min:5', 'max:480'],

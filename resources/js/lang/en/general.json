@@ -43,6 +43,10 @@
             "title": "Contact",
             "description": "How clients can reach you. Used on emails, reminders and templates."
         },
+        "portal_landing": {
+            "title": "Portal on your website",
+            "description": "Optional: ID-based sign-in without replacing WhatsApp invites."
+        },
         "modo_asesora": {
             "title": "Advisor mode",
             "description": "For teams advising several clinics: enable the origin-clinic catalog and the pet selector."
@@ -146,6 +150,11 @@
         "email_institucional": "Institutional email",
         "telefono_principal": "Main phone",
         "web_url": "Website",
+        "portal_landing_activo": "Pet portal access from my website",
+        "portal_landing_activo_hint": "In addition to WhatsApp invites: owners sign in with their ID and a code sent to their registered phone.",
+        "portal_landing_hostname": "Portal domain (optional)",
+        "portal_landing_hostname_hint": "e.g. pets.myclinic.com — CNAME to the same VetSaaS host. If empty, use the tenant access URL.",
+        "portal_landing_embed_title": "Paste on your landing page:",
         "modo_asesora_activo": "Enable advisor mode (multiple clinics)",
         "modo_asesora_activo_hint": "When enabled, Clínica → Advised clinics appears and you can set which clinic each pet belongs to.",
         "duracion_cita_default_min": "Default appointment duration (min)",

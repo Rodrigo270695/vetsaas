@@ -51,8 +51,14 @@ import { LogoUploader } from './components/logo-uploader';
 import { SectionCard } from './components/section-card';
 import type { ClinicHeaderSnapshot, ClinicSetting, GeoOption } from './types';
 
+type PortalLandingEmbed = {
+    acceso_url: string;
+    widget_src: string;
+};
+
 type ConfiguracionGeneralProps = {
     setting: ClinicSetting;
+    portal_landing_embed: PortalLandingEmbed | null;
     clinic_header: ClinicHeaderSnapshot;
     departamentos: readonly GeoOption[];
     plan_permite_factura_electronica: boolean;
@@ -107,6 +113,8 @@ type FormState = {
     email_institucional: string;
     telefono_principal: string;
     web_url: string;
+    portal_landing_activo: boolean;
+    portal_landing_hostname: string;
     // Operación
     duracion_cita_default_min: number;
     intervalo_agenda_min: number;
@@ -166,6 +174,8 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     email_institucional: setting.email_institucional ?? '',
     telefono_principal: setting.telefono_principal ?? '',
     web_url: setting.web_url ?? '',
+    portal_landing_activo: setting.portal_landing_activo ?? false,
+    portal_landing_hostname: setting.portal_landing_hostname ?? '',
     duracion_cita_default_min: setting.duracion_cita_default_min,
     intervalo_agenda_min: setting.intervalo_agenda_min,
     agenda_hora_inicio: setting.agenda_hora_inicio ?? '07:00',
@@ -340,6 +350,7 @@ const resolveErrorTab = (errors: Record<string, string>): GeneralTab => {
  */
 export default function Index({
     setting,
+    portal_landing_embed,
     clinic_header,
     departamentos,
     plan_permite_factura_electronica,
@@ -960,6 +971,69 @@ export default function Index({
                                         disabled={!canUpdate}
                                     />
                                 </FormField>
+                            </FormSection>
+
+                            <FormSection
+                                title={t('sections.portal_landing.title')}
+                                description={t('sections.portal_landing.description')}
+                                className="mt-8 border-t border-border/60 pt-8"
+                            >
+                                <div className="flex items-start gap-3 rounded-lg border border-border p-4 sm:col-span-2">
+                                    <Checkbox
+                                        id="general-portal-landing"
+                                        checked={data.portal_landing_activo}
+                                        onCheckedChange={(checked) =>
+                                            setData('portal_landing_activo', checked === true)
+                                        }
+                                        disabled={!canUpdate}
+                                    />
+                                    <div className="min-w-0 flex-1 space-y-3">
+                                        <div className="space-y-1">
+                                            <Label htmlFor="general-portal-landing">
+                                                {t('fields.portal_landing_activo')}
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {t('fields.portal_landing_activo_hint')}
+                                            </p>
+                                        </div>
+                                        {data.portal_landing_activo ? (
+                                            <FormField
+                                                id="general-portal-hostname"
+                                                label={t('fields.portal_landing_hostname')}
+                                                error={errors.portal_landing_hostname}
+                                            >
+                                                <Input
+                                                    id="general-portal-hostname"
+                                                    value={data.portal_landing_hostname}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'portal_landing_hostname',
+                                                            e.target.value.trim().toLowerCase(),
+                                                        )
+                                                    }
+                                                    placeholder="acceso.miclinica.pe"
+                                                    disabled={!canUpdate}
+                                                />
+                                                <p className="mt-1.5 text-xs text-muted-foreground">
+                                                    {t('fields.portal_landing_hostname_hint')}
+                                                </p>
+                                            </FormField>
+                                        ) : null}
+                                        {portal_landing_embed ? (
+                                            <div className="space-y-2 rounded-lg bg-muted/40 p-3 text-xs">
+                                                <p className="font-medium text-foreground">
+                                                    {t('fields.portal_landing_embed_title')}
+                                                </p>
+                                                <p className="break-all text-muted-foreground">
+                                                    {portal_landing_embed.acceso_url}
+                                                </p>
+                                                <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded border border-border bg-background p-2 text-[0.7rem]">
+                                                    {`<div data-vetsaas-portal-acceso></div>\n<script src="${portal_landing_embed.widget_src}" defer></script>`}
+                                                </pre>
+                                            </motion.div>
+                                        ) : null}
+                                    </div>
+                                </div>
                             </FormSection>
                         </SectionCard>
 

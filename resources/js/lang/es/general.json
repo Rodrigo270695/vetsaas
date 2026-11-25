@@ -43,6 +43,10 @@
             "title": "Contacto",
             "description": "Datos por los que tus clientes pueden ubicarte. Se usan en correos, recordatorios y plantillas."
         },
+        "portal_landing": {
+            "title": "Portal en tu web",
+            "description": "Opcional: acceso con documento del titular sin reemplazar la invitación por WhatsApp."
+        },
         "modo_asesora": {
             "title": "Modo asesora",
             "description": "Para quienes atienden varias veterinarias: activa el catálogo de clínicas de origen y el selector en mascotas."
@@ -146,6 +150,11 @@
         "email_institucional": "Correo institucional",
         "telefono_principal": "Teléfono principal",
         "web_url": "Sitio web",
+        "portal_landing_activo": "Acceso al portal desde mi sitio web",
+        "portal_landing_activo_hint": "Adicional al enlace por WhatsApp: tus clientes pueden entrar con su documento y un código al celular registrado.",
+        "portal_landing_hostname": "Dominio del portal (opcional)",
+        "portal_landing_hostname_hint": "Ej. acceso.miclinica.pe — apunta con CNAME al mismo servidor VetSaaS. Si lo dejas vacío, usan la URL de acceso del tenant.",
+        "portal_landing_embed_title": "Pega esto en tu landing:",
         "modo_asesora_activo": "Activar modo asesora (varias veterinarias)",
         "modo_asesora_activo_hint": "Al activarlo verás Clínica → Clínicas asesoradas y podrás indicar de qué veterinaria es cada mascota.",
         "duracion_cita_default_min": "Duración por defecto de una cita (min)",
