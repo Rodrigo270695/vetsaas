@@ -1030,7 +1030,7 @@ export default function Index({
                                                 <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded border border-border bg-background p-2 text-[0.7rem]">
                                                     {`<div data-vetsaas-portal-acceso></div>\n<script src="${portal_landing_embed.widget_src}" defer></script>`}
                                                 </pre>
-                                            </motion.div>
+                                            </div>
                                         ) : null}
                                     </div>
                                 </div>
